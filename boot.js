@@ -1,0 +1,1 @@
+(function(){try{var a=JSON.parse(localStorage.getItem('bondline.appearance')||'{}'),r=document.documentElement;if(a.scheme&&a.scheme!=='copper')r.setAttribute('data-scheme',a.scheme);if(a.mode==='light'||a.mode==='dark')r.setAttribute('data-mode',a.mode)}catch(e){}})();

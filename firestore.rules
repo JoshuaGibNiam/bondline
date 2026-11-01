@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Bondline keeps each person's data in users/{their id}/notes.
+    // Only that person can read or change it, and every write is checked for shape and size.
+    match /users/{uid}/notes/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validDoc(docId, request.resource.data);
+    }
+
+    // Read-only share links. Anyone with a link can open that one shared copy,
+    // but nobody can list them, and only the owner can create, update or delete it.
+    match /shares/{shareId} {
+      allow get: if shareId.size() >= 10 && shareId.size() <= 40;
+      allow list: if false;
+      allow create: if request.auth != null && validShare(request.resource.data);
+      allow update: if request.auth != null && resource.data.owner == request.auth.uid && validShare(request.resource.data);
+      allow delete: if request.auth != null && resource.data.owner == request.auth.uid;
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validShare(d) {
+      return d.keys().hasOnly(['owner', 'at', 'note'])
+          && d.owner == request.auth.uid
+          && d.at is number
+          && d.note is map
+          && d.note.keys().hasOnly(['title', 'tags', 'blocks', 'updated'])
+          && d.note.blocks is list && d.note.blocks.size() <= 400;
+    }
+
+    function validDoc(docId, d) {
+      return (docId == '_meta'
+                && d.keys().hasOnly(['dismissed', 'folders', 'foldersAt'])
+                && d.dismissed is list && d.dismissed.size() <= 500
+                && (!('folders' in d) || (d.folders is list && d.folders.size() <= 300))
+                && (!('foldersAt' in d) || d.foldersAt is number))
+          || (docId == '_quiz'
+                && d.keys().hasOnly(['v', 'q'])
+                && d.q is map && d.q.size() <= 2000)
+          || (docId != '_meta' && docId != '_quiz'
+                && docId.size() <= 100
+                && d.keys().hasOnly(['title', 'tag', 'tags', 'folder', 'pinned', 'comments', 'deleted', 'share', 'updated', 'blocks'])
+                && d.title is string && d.title.size() <= 500
+                && d.tag is string && d.tag.size() <= 100
+                && (!('tags' in d) || (d.tags is list && d.tags.size() <= 20))
+                && (!('folder' in d) || (d.folder is string && d.folder.size() <= 40))
+                && (!('pinned' in d) || d.pinned is bool)
+                && (!('comments' in d) || (d.comments is list && d.comments.size() <= 500))
+                && (!('deleted' in d) || d.deleted is number)
+                && (!('share' in d) || (d.share is string && d.share.size() <= 40))
+                && d.updated is number
+                && d.blocks is list && d.blocks.size() <= 400);
+    }
+
+    // Everything else is closed.
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
