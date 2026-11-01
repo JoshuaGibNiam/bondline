@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 10)
+# Bondline: organic chemistry notebook (version 11)
 
 An installable web app for organic chemistry:
 
@@ -9,7 +9,15 @@ An installable web app for organic chemistry:
 
 ## Upload
 
-Drag the whole `bondline-app` folder onto your Netlify site's **Deploys** page. Firestore rules are unchanged from version 9 (`firestore.rules` is included in case you need it).
+Drag the whole `bondline-app` folder onto your Netlify site's **Deploys** page. Firestore rules are unchanged from version 9, and nothing in version 11 needs a Firebase change (`firestore.rules` is included in case you need it).
+
+## New in version 11 (a calmer, roomier look)
+
+- **Collapsible sidebar:** press the panel button next to the Bondline name (or `Ctrl` + `\`, `Cmd` + `\` on a Mac) to hide the sidebar and give your notes the whole screen. A small button at the top left brings it back. Bondline remembers your choice. On phones the sidebar stays a slide-out menu.
+- **Clickable logo:** click the Bondline logo or name, at the top of the sidebar, to go straight to Home.
+- **New Home page:** more white space and fewer things at once. A short greeting, four quick actions, one large "Continue" card, three recent notes, a Study section (flashcards and naming progress), your topics, and quieter links to the reaction library, mechanism practice and quick reference at the bottom. A brand-new account sees a "Start your first note" card and example notes instead.
+- **New welcome screen:** first-time visitors see a single calm screen with two buttons (start a note, or open an example), a light/dark switch, and links to a 1-minute tour or to skip. People who have already used Bondline will not see it again. To preview it, open the app with `?welcome=1` on the end of the address, or press `Ctrl` + `K` and choose **Welcome page**.
+- **Tidier sidebar:** more spacing, a shorter search box label, and no scrollbar on the topic chips.
 
 ## New in version 10
 

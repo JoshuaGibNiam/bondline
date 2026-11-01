@@ -3077,31 +3077,34 @@ function noteCard(n,big){const th=noteThumb(n),sn=noteSnippet(n),k=n.blocks.filt
 const TIPS=['Type <code>$\\ce{H2SO4}$</code> in a note to write a formula with proper subscripts.','Type <code>## </code> at the start of a line to make a heading.','Hover an atom and press <kbd>N</kbd> to turn it into nitrogen.','Press <kbd>D</kbd> with a drawing selected to see it in 3D.','Select text and choose ▣ Box to make a “Key idea” or “Definition” callout.','On a tablet, a stylus draws in sketches while your finger scrolls.','The C<sub>x</sub>H<sub>y</sub> button names every molecule in a drawing.','Press <kbd>?</kbd> anywhere for drawing shortcuts.'];
 function greet(){const h=new Date().getHours();return h<5?'Working late':h<12?'Good morning':h<18?'Good afternoon':'Good evening'}
 function renderHome(){
-  const notes=[...App.notes].sort((a,b)=>b.updated-a.updated),own=notes.filter(n=>!n.example),last=notes[0];
+  const notes=[...App.notes].sort((a,b)=>b.updated-a.updated),own=notes.filter(n=>!n.example),last=own[0]||null;
+  const rest=notes.filter(n=>n!==last).slice(0,3);
   const tags={};for(const n of notes)for(const t of noteTags(n))tags[t]=(tags[t]||0)+1;
   const drawings=notes.reduce((s,n)=>s+n.blocks.filter(b=>b.type==='scheme').length,0),sketches=notes.reduce((s,n)=>s+n.blocks.filter(b=>b.type==='sketch').length,0);
   const eqs=notes.reduce((s,n)=>s+n.blocks.reduce((t,b)=>t+(b.type==='text'?((b.html||'').match(/data-tex=/g)||[]).length:0),0),0);
   const topics=NM_LESSONS.filter(l=>l.id!=='intro').map(l=>({l,s:topicStats(l.id)})),mast=topics.reduce((a,t)=>a+t.s.m,0),tot=topics.reduce((a,t)=>a+t.s.n,0);
+  const ds=allDecks();let due=0,nw=0;ds.forEach(x=>{const st=deckStats(x.d);due+=st.due;nw+=st.nw});
   const tip=TIPS[Math.floor(Date.now()/86400000)%TIPS.length];
-  const act=(id,ic,t,s)=>`<button class="hm-act" data-go="${id}"><span class="hm-ai" aria-hidden="true">${ic}</span><span><b>${t}</b><small>${s}</small></span></button>`;
-  $('#homePage').innerHTML=`<header class="hm-hero"><div class="hm-kicker">${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))}</div><h1>${greet()}</h1><p>Your organic chemistry notebook: notes, structures, mechanisms, maths and sketches in one place.</p></header>
-  <div class="hm-actions">${act('new','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>','New note','Text and structures')}${act('board','<svg viewBox="0 0 24 24"><path d="M4 18c3-1 4-9 7-9s2 6 5 6 3-4 4-5"/></svg>','New whiteboard','Free sketching space')}${act('quiz','<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>','Practise naming','IUPAC quiz')}${act('guide','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.3M12 16.8v.2"/></svg>','Guide','How to use, shortcuts')}</div>
-  ${last?`<section class="hm-sec"><h2>Continue where you left off</h2>${noteCard(last,true)}</section>`:''}
-  ${notes.length>1?`<section class="hm-sec"><div class="hm-sh"><h2>Recent notes</h2><button class="linkbtn" data-go="notes">All notes (${notes.length})</button></div><div class="hm-grid">${notes.slice(1,7).map(n=>noteCard(n)).join('')}</div></section>`:''}
-  ${(()=>{const ds=allDecks();if(!ds.length)return'';let due=0,nw=0;ds.forEach(x=>{const st=deckStats(x.d);due+=st.due;nw+=st.nw});return`<section class="hm-cards"><b>Flashcards</b><span>${due?due+' due':'Nothing due'}${nw?` · ${nw} new`:''} in ${ds.length} deck${ds.length>1?'s':''}</span><button class="btn small primary" data-go="cards">${due+nw?'Study now':'Open'}</button></section>`})()}
-  <div class="hm-two">
-   <section class="hm-sec hm-panel"><h2>Topics</h2>${Object.keys(tags).length?`<div class="hm-tags">${Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<button class="hm-tag" data-tag="${esc(t)}">${esc(t)}<span>${c}</span></button>`).join('')}</div>`:'<p class="hm-muted">Give a note a topic and it shows up here.</p>'}
-    <div class="hm-stats"><div><b>${notes.length}</b><span>notes</span></div><div><b>${drawings}</b><span>drawings</span></div><div><b>${eqs}</b><span>equations</span></div><div><b>${sketches}</b><span>sketches</span></div></div></section>
-   <section class="hm-sec hm-panel"><div class="hm-sh"><h2>Naming progress</h2><span class="hm-muted">${mast} of ${tot} mastered</span></div>
-    <div class="hm-prog">${topics.map(({l,s})=>`<button class="hm-pr" data-lessonhome="${l.id}"><span>${esc(l.title)}</span><span class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*s.m/(s.n||1))}%"></i></span><small>${s.m}/${s.n}</small></button>`).join('')}</div></section>
-  </div>
-  <section class="hm-sec"><h2>Chemistry tools</h2><div class="hm-tools"><button class="btn" data-go="rxn">📖 Reaction library</button><button class="btn" data-go="prac">↷ Mechanism practice</button><button class="btn" data-go="ref">▦ Quick reference</button><button class="btn" data-go="cmd">⌘ Command palette <kbd>Ctrl K</kbd></button></div></section>
-  <section class="hm-tip"><b>Tip</b><span>${tip}</span><button class="linkbtn" data-go="guide">More in the guide</button></section>`;
+  const act=(id,ic,t)=>`<button class="hm-act" data-go="${id}"><span class="hm-ai" aria-hidden="true">${ic}</span><b>${t}</b></button>`;
+  const lead=last?`<section class="hm-sec"><h2>Continue where you left off</h2>${noteCard(last,true)}</section>`
+    :`<section class="hm-sec"><h2>Get started</h2><div class="hm-first"><h3>Start your first note</h3><p>Write, add a drawing and sketch out a mechanism, all on one page. Have a look at an example first if you like.</p><div class="hm-fbtns"><button class="btn primary" data-go="new">Start a blank note</button><button class="btn" data-go="example">Open an example</button></div></div></section>`;
+  $('#homePage').innerHTML=`<header class="hm-hero"><div class="hm-kicker">${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))}</div><h1>${greet()}</h1><p>Your organic chemistry notebook. Pick up where you left off, or start something new.</p></header>
+  <div class="hm-actions">${act('new','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>','New note')}${act('board','<svg viewBox="0 0 24 24"><path d="M4 18c3-1 4-9 7-9s2 6 5 6 3-4 4-5"/></svg>','New whiteboard')}${act('quiz','<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>','Practise naming')}${act('guide','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.3M12 16.8v.2"/></svg>','Guide')}</div>
+  ${lead}
+  ${rest.length?`<section class="hm-sec"><div class="hm-sh"><h2>${last?'Recent notes':'Examples to explore'}</h2>${last?`<button class="linkbtn" data-go="notes">All notes (${notes.length})</button>`:''}</div><div class="hm-grid">${rest.map(n=>noteCard(n)).join('')}</div></section>`:''}
+  <section class="hm-sec"><h2>Study</h2><div class="hm-study">
+   <div class="hm-tile"><h3>Flashcards</h3><p>${ds.length?`${due?due+' due':'Nothing due'}${nw?` · ${nw} new`:''} in ${ds.length} deck${ds.length>1?'s':''}.`:'Turn any note into flashcards: select some text and press + Card.'}</p><button class="btn${due+nw?' primary':''}" data-go="cards">${due+nw?'Study now':'Open Cards'}</button></div>
+   <div class="hm-tile"><h3>IUPAC naming</h3><p>${mast} of ${tot} questions mastered.</p><div class="hm-bar" aria-hidden="true"><i style="width:${tot?Math.round(100*mast/tot):0}%"></i></div><button class="btn" data-go="naming">${mast?'Keep practising':'Start learning'}</button></div>
+  </div></section>
+  ${Object.keys(tags).length?`<section class="hm-sec"><h2>Topics</h2><div class="hm-tags">${Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<button class="hm-tag" data-tag="${esc(t)}">${esc(t)}<span>${c}</span></button>`).join('')}</div></section>`:''}
+  <footer class="hm-foot"><nav class="hm-links" aria-label="More tools"><button data-go="rxn">Reaction library</button><button data-go="prac">Mechanism practice</button><button data-go="ref">Quick reference</button><button data-go="cmd">Command palette <kbd>Ctrl K</kbd></button></nav>
+   <p class="hm-tip2"><b>Tip</b>${tip}<button class="linkbtn" data-go="guide">More in the guide</button></p>
+   <p class="hm-count">${notes.length} note${notes.length===1?'':'s'} · ${drawings} drawing${drawings===1?'':'s'} · ${eqs} equation${eqs===1?'':'s'} · ${sketches} sketch${sketches===1?'':'es'}</p></footer>`;
 }
 function newWhiteboard(){const n={id:uid(),title:'Whiteboard',tag:'',updated:Date.now(),blocks:[{id:uid(),type:'sketch',data:emptySketch(1300)}]};App.notes.push(n);App.noteChanged(n);setMode('notes');openNote(n.id)}
 function homeClick(e){
   const o=e.target.closest('[data-open]');if(o){setMode('notes');openNote(o.dataset.open);return}
-  const g=e.target.closest('[data-go]');if(g){const k=g.dataset.go;if(k==='new'){setMode('notes');newNote()}else if(k==='board')newWhiteboard();else if(k==='quiz'){setMode('naming');quizSetup()}else if(k==='guide')openGuide();else if(k==='rxn')openLibrary();else if(k==='prac')openPractice();else if(k==='ref')openRef();else if(k==='cmd')openCmd();else if(k==='cards')setMode('cards');else if(k==='notes'){setMode('notes');if(App.coarse||innerWidth<=820)$('#side').classList.add('open')}return}
+  const g=e.target.closest('[data-go]');if(g){const k=g.dataset.go;if(k==='new'){setMode('notes');newNote()}else if(k==='board')newWhiteboard();else if(k==='quiz'){setMode('naming');quizSetup()}else if(k==='guide')openGuide();else if(k==='rxn')openLibrary();else if(k==='prac')openPractice();else if(k==='ref')openRef();else if(k==='cmd')openCmd();else if(k==='naming')setMode('naming');else if(k==='example'){const n=App.notes.find(x=>x.id==='lib-hybrid')||App.notes.find(x=>x.example)||App.notes[0];setMode('notes');if(n)openNote(n.id)}else if(k==='cards')setMode('cards');else if(k==='notes'){setMode('notes');if(App.coarse||innerWidth<=820)$('#side').classList.add('open')}return}
   const t=e.target.closest('[data-tag]');if(t){setMode('notes');$('#search').value='';VIEW.tag=t.dataset.tag;VIEW.folder='all';renderFolders();renderList();$('#side').classList.add('open');return}
   const l=e.target.closest('[data-lessonhome]');if(l){setMode('naming');openLesson(l.dataset.lessonhome)}
 }
@@ -3125,7 +3128,7 @@ const GUIDE=[
  {id:'safety',t:'Trash, history, images and sharing',h:`<ul><li><b>Trash</b>: deleted notes stay in Trash (in the sidebar) for 30 days. Restore them or delete them for good. You can also press <b>Undo</b> straight after deleting.</li><li><b>History</b> at the top of a note shows earlier versions saved on this device (at most one every 10 minutes while you edit). Preview one and press <b>Restore</b>; the version you replace is kept too.</li><li><b>Images</b>: press <b>Add image</b>, paste a picture into a text block, or drag image files onto a note. Pictures are shrunk to save space and sync with the note. Choose Small, Medium, Large or Full width and add a caption. Click a picture to see it full size.</li><li><b>Share</b> (installed app, when signed in): make a read-only link to a note. Anyone with the link can view it and save a copy; press <b>Stop sharing</b> to turn the link off.</li><li><b>Command palette</b>: press ${K('Ctrl','K')} anywhere and type to jump to a note, folder, reaction, guide section or action.</li></ul>`},
  {id:'save',t:'Saving, syncing and printing',h:`<ul><li><b>Export PDF</b> (at the top of a note) offers two kinds of PDF. <b>Print or save as PDF</b> uses your browser's printer: choose “Save as PDF” to get a file with real, selectable text and sharp drawings. <b>Download PDF (image)</b> saves a file that looks exactly like the screen. Both are in ⚙ Settings for all notes at once.</li><li><b>Back up</b> saves all your notes to a file. <b>Restore</b> brings them back on any device.</li><li>In the installed app, <b>Sign in</b> to sync notes across your devices. Without an account, notes stay on the device.</li><li>Drawings and sketches can be saved as PNG or SVG images.</li></ul>`},
  {id:'look',t:'Appearance and devices',h:`<p>Open <b>⚙ Settings</b> at the bottom of the sidebar to choose Light, Dark or Auto, and one of four colour schemes: Copper Sulfate, Malachite, Potassium Flame or Sodium Lamp.</p><p>On phones and tablets, use the − and + zoom buttons on a drawing for precise work, and ✋ to move around when zoomed in. Bondline can be installed as an app from your browser's menu, and it then works offline.</p>`},
- {id:'keys',t:'Keyboard shortcuts',h:`<h3>Text</h3>${KT([[K('Ctrl','B')+' '+K('Ctrl','I')+' '+K('Ctrl','U'),'Bold, italic, underline'],[K('Ctrl',',')+' '+K('Ctrl','.'),'Subscript, superscript'],[K('Ctrl','Alt','1')+' – '+K('3'),'Heading 1–3'],[K('Ctrl','Alt','0'),'Normal text'],[K('Ctrl','Shift','8')+' '+K('Ctrl','Shift','7'),'Bulleted, numbered list'],[K('Tab')+' '+K('Shift','Tab'),'Indent, outdent a list item'],[K('Ctrl','M'),'Insert an equation'],[K('Ctrl','K'),'Command palette (anywhere)'],[K('Ctrl','Alt','C'),'Comment on the selection'],[K('Ctrl','Z'),'Undo']])}
+ {id:'keys',t:'Keyboard shortcuts',h:`<h3>Text</h3>${KT([[K('Ctrl','B')+' '+K('Ctrl','I')+' '+K('Ctrl','U'),'Bold, italic, underline'],[K('Ctrl',',')+' '+K('Ctrl','.'),'Subscript, superscript'],[K('Ctrl','Alt','1')+' – '+K('3'),'Heading 1–3'],[K('Ctrl','Alt','0'),'Normal text'],[K('Ctrl','Shift','8')+' '+K('Ctrl','Shift','7'),'Bulleted, numbered list'],[K('Tab')+' '+K('Shift','Tab'),'Indent, outdent a list item'],[K('Ctrl','M'),'Insert an equation'],[K('Ctrl','K'),'Command palette (anywhere)'],[K('Ctrl','\\'),'Hide or show the sidebar'],[K('Ctrl','Alt','C'),'Comment on the selection'],[K('Ctrl','Z'),'Undo']])}
   <h3>Structure tools (click a drawing first)</h3>${KT([[K('V'),'Select and move'],[K('E'),'Eraser'],[K('1')+' '+K('2')+' '+K('3'),'Single, double, triple bond'],[K('W')+' '+K('Q'),'Wedge, hashed bond'],[K('B'),'Benzene ring'],[K('A'),'Reaction arrow'],[K('M'),'Curly arrow'],[K('T'),'Text'],[K('+')+' '+K('-')+' '+K('L'),'Charges, lone pairs'],[K('D'),'View in 3D'],[K('Ctrl','Z')+' / '+K('Ctrl','Shift','Z'),'Undo, redo'],[K('Delete'),'Delete the selection or hovered item'],[K('?'),'Shortcut card']])}
   <h3>Hover an atom or bond, then type</h3>${KT([[K('C')+' '+K('N')+' '+K('O')+' '+K('S')+' '+K('P')+' '+K('F')+' '+K('I')+' '+K('H'),'Change the element'],[K('l')+' '+K('b'),'Chlorine, bromine'],[K('+')+' '+K('-'),'Add a charge'],[K('.'),'Add a lone pair'],[K('1')+' '+K('2')+' '+K('3'),'Bond order (on a bond)'],[K('W')+' '+K('Q'),'Wedge or hash (on a bond)']])}
   <h3>Sketches (click a sketch first)</h3>${KT([[K('P'),'Pen'],[K('H'),'Highlighter'],[K('L')+' '+K('A'),'Line, arrow'],[K('R')+' '+K('O'),'Rectangle, ellipse'],[K('E'),'Eraser'],[K('1')+' '+K('2')+' '+K('3'),'Thin, medium, thick'],[K('F'),'Full screen'],[K('Ctrl','Z'),'Undo']])}
@@ -3719,7 +3722,7 @@ function cmdItems(){const I=[],A=(label,kind,fn,kw)=>I.push({label,kind,fn,kw:kw
   A('Light mode','Appearance',()=>applyAppearance({...getAppearance(),mode:'light'},true));A('Dark mode','Appearance',()=>applyAppearance({...getAppearance(),mode:'dark'},true));A('Auto light/dark','Appearance',()=>applyAppearance({...getAppearance(),mode:'auto'},true));
   for(const[k,nm]of Object.entries(SCHEME_NAMES))A('Colour scheme: '+nm,'Appearance',()=>applyAppearance({...getAppearance(),scheme:k},true));
   if(App.cur&&App.mode==='notes'){A('Export this note to PDF','This note',()=>exportPDF([App.cur],fileBase()+'.pdf'),'print');A('Version history of this note','This note',()=>openHistory(),'restore undo');A('Add an image','This note',()=>pickImages(),'photo picture');A('Comments on this note','This note',()=>openComments())}
-  A('Trash','Action',()=>openTrash(),'deleted restore');A('Welcome tour','Help',()=>openWelcome(),'intro start onboarding');A('Settings','Action',()=>openSettings(),'preferences account');A('Back up notes','Action',()=>backupNotes(),'export json');A('New folder','Action',()=>{setMode('notes');newFolder('')});
+  A('Trash','Action',()=>openTrash(),'deleted restore');A('Welcome tour','Help',()=>openWelcome(),'intro start onboarding');A('Welcome page','Help',()=>openHello(),'intro first start');A('Hide or show sidebar','Action',()=>toggleSide(),'collapse menu panel navigation');A('Settings','Action',()=>openSettings(),'preferences account');A('Back up notes','Action',()=>backupNotes(),'export json');A('New folder','Action',()=>{setMode('notes');newFolder('')});
   for(const n of App.notes)A(n.title||'Untitled note','Note',()=>{setMode('notes');openNote(n.id)},noteTags(n).join(' ')+' '+(n.folder&&folderById(n.folder)?folderPath(n.folder):''));
   for(const f of App.folders)A(folderPath(f.id),'Folder',()=>{VIEW.folder=f.id;setMode('notes');renderFolders();renderList();$('#side').classList.add('open')});
   for(const r of RXN)A(r.name,'Reaction',()=>openLibrary(r.id),r.cat);
@@ -3763,7 +3766,23 @@ function renderWelcome(){const S=welcomeSteps(),s=S[WT.i],last=WT.i===S.length-1
   $('#wtBack').hidden=WT.i===0;$('#wtNext').textContent=last?'Finish':'Next';
   const m=getAppearance().mode;document.querySelectorAll('[data-wmode]').forEach(b=>{const on=b.dataset.wmode===m;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
   $('#wtNext').focus()}
-function wireWelcome(){
+/* ---------- calm welcome screen for first-time visitors ---------- */
+function syncHelloMode(){const m=getAppearance().mode;document.querySelectorAll('#hello [data-hmode]').forEach(b=>{const on=b.dataset.hmode===m;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})}
+function openHello(){const h=$('#hello');h.hidden=false;document.body.classList.add('sk-lock');syncHelloMode();h.setAttribute('tabindex','-1');setTimeout(()=>h.focus({preventScroll:true}),60)}
+function closeHello(){$('#hello').hidden=true;document.body.classList.remove('sk-lock');try{localStorage.setItem('bondline.welcomed','1')}catch(e){}}
+function wireHello(){
+  $('#hello').addEventListener('click',e=>{
+    const m=e.target.closest('[data-hmode]');if(m){applyAppearance({...getAppearance(),mode:m.dataset.hmode},true);syncHelloMode();return}
+    const g=e.target.closest('[data-hgo]');if(!g)return;closeHello();const k=g.dataset.hgo;
+    if(k==='blank'){setMode('notes');newNote()}
+    else if(k==='sample'){const n=App.notes.find(x=>x.id==='lib-hybrid')||App.notes.find(x=>x.example)||App.notes[0];setMode('notes');if(n)openNote(n.id)}
+    else if(k==='tour')openWelcome()});
+  document.addEventListener('keydown',e=>{if($('#hello').hidden)return;e.stopPropagation();
+    if(e.key==='Escape'){closeHello();return}
+    if(e.key==='Tab'){const f=[...$('#hello').querySelectorAll('button')].filter(b=>b.offsetParent!==null);if(!f.length)return;const i=f.indexOf(document.activeElement);
+      if(e.shiftKey&&i<=0){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&i===f.length-1){e.preventDefault();f[0].focus()}}},true);
+}
+function wireWelcome(){wireHello();
   $('#welcome').addEventListener('click',e=>{
     const m=e.target.closest('[data-wmode]');if(m){applyAppearance({...getAppearance(),mode:m.dataset.wmode},true);renderWelcome();return}
     const d=e.target.closest('[data-wdot]');if(d){WT.i=+d.dataset.wdot;renderWelcome();return}
@@ -3775,7 +3794,7 @@ function wireWelcome(){
     if(e.target.closest('#wtSkip'))closeWelcome()});
   document.addEventListener('keydown',e=>{if($('#welcome').hidden)return;e.stopPropagation();if(e.key==='Escape')closeWelcome();else if(e.key==='ArrowRight'&&WT.i<welcomeSteps().length-1){WT.i++;renderWelcome()}else if(e.key==='ArrowLeft'&&WT.i>0){WT.i--;renderWelcome()}},true);
   let seen=false;try{seen=!!localStorage.getItem('bondline.welcomed')}catch(e){seen=true}
-  if(!seen&&!App.notes.some(n=>!n.example)&&!/[#&]share=/.test(location.hash))setTimeout(openWelcome,300);
+  if((!seen&&!App.notes.some(n=>!n.example)&&!/[#&]share=/.test(location.hash))||/[?&]welcome\b/.test(location.search))openHello();
   else if(!seen){try{localStorage.setItem('bondline.welcomed','1')}catch(e){}}
 }
 
@@ -4294,6 +4313,24 @@ $('#eqSnips').addEventListener('click',e=>{const b=e.target.closest('[data-snip]
 $('#blocks').addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.items||[]].some(i=>i.kind==='file')){e.preventDefault();$('#blocks').classList.add('drop-img')}});$('#blocks').addEventListener('dragleave',e=>{if(!$('#blocks').contains(e.relatedTarget))$('#blocks').classList.remove('drop-img')});$('#blocks').addEventListener('drop',e=>{$('#blocks').classList.remove('drop-img');const fs=[...(e.dataTransfer&&e.dataTransfer.files||[])].filter(f=>f.type.startsWith('image/'));if(!fs.length)return;e.preventDefault();const sec=e.target.closest&&e.target.closest('.block');const b=sec&&App.cur&&App.cur.blocks.find(x=>x.id===sec.dataset.id);addImages(fs,b)});
 $('#addbar').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;if(b.dataset.add==='reaction')return openBuilder('end');addBlock(b.dataset.add)});
 $('#openSide').onclick=()=>$('#side').classList.add('open');
+
+/* ---------- collapsible sidebar and clickable logo ---------- */
+const SIDE_KEY='bondline.sidebar';
+function sideIsOff(){return document.documentElement.getAttribute('data-side')==='off'}
+function syncSideAria(){const off=sideIsOff();['#sideCollapse','#sideShow'].forEach(s=>{const b=$(s);if(b)b.setAttribute('aria-expanded',String(!off))})}
+function setSideOff(off,focus){
+  const r=document.documentElement;r.classList.add('side-moving');clearTimeout(setSideOff.t);setSideOff.t=setTimeout(()=>r.classList.remove('side-moving'),320);
+  if(off)r.setAttribute('data-side','off');else r.removeAttribute('data-side');
+  try{localStorage.setItem(SIDE_KEY,off?'off':'on')}catch(e){}
+  syncSideAria();
+  if(focus){const b=$(off?'#sideShow':'#sideCollapse');if(b)b.focus({preventScroll:true})}
+}
+function toggleSide(){if(innerWidth<=820){$('#side').classList.toggle('open');return}setSideOff(!sideIsOff(),true)}
+$('#sideCollapse').onclick=()=>{if(innerWidth<=820)$('#side').classList.remove('open');else setSideOff(true,true)};
+$('#sideShow').onclick=()=>setSideOff(false,true);
+$('#brandHome').onclick=()=>setMode('home');
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key==='\\'){e.preventDefault();toggleSide()}});
+syncSideAria();
 $('#main').addEventListener('pointerdown',e=>{if(!e.target.closest('#openSide'))$('#side').classList.remove('open')});
 $('#helpClose').onclick=()=>showHelp(false);
 $('#nameIn').addEventListener('input',()=>{clearTimeout(nmT);nmT=setTimeout(namePreview,180)});
