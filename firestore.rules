@@ -2,6 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- Personal notes ----------
     // Bondline keeps each person's data in users/{their id}/notes.
     // Only that person can read or change it, and every write is checked for shape and size.
     match /users/{uid}/notes/{docId} {
@@ -9,7 +10,8 @@ service cloud.firestore {
       allow create, update: if isOwner(uid) && validDoc(docId, request.resource.data);
     }
 
-    // Read-only share links. Anyone with a link can open that one shared copy,
+    // ---------- Read-only share links ----------
+    // Anyone with a link can open that one shared copy,
     // but nobody can list them, and only the owner can create, update or delete it.
     match /shares/{shareId} {
       allow get: if shareId.size() >= 10 && shareId.size() <= 40;
@@ -19,8 +21,198 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.owner == request.auth.uid;
     }
 
+    // ---------- Shared notebooks ----------
+    // Members can read everything in a notebook. Editors (and the owner) can change notes;
+    // viewers can only add comments. Only the owner can invite, remove people or delete it.
+    match /notebooks/{nb} {
+      allow get: if signedIn() && (request.auth.uid in resource.data.memberIds || isInvited(resource.data));
+      allow list: if signedIn() && (request.auth.uid in resource.data.memberIds || isInvited(resource.data));
+      allow create: if signedIn() && validNewNotebook(request.resource.data);
+      allow update: if signedIn() && validNotebook(request.resource.data)
+                    && (ownerUpdate() || joinByLink(nb) || joinByEmail() || leave() || declineInvite());
+      allow delete: if signedIn() && resource.data.owner == request.auth.uid;
+
+      match /notes/{noteId} {
+        allow read: if isMember(nb);
+        allow create: if canEdit(nb) && validSharedNote(request.resource.data);
+        allow update: if validSharedNote(request.resource.data)
+                      && (canEdit(nb) || (isMember(nb) && onlyComments()));
+        allow delete: if canEdit(nb);
+      }
+      match /blocks/{blockId} {
+        allow read: if isMember(nb);
+        allow create, update: if canEdit(nb) && validBlock(request.resource.data);
+        allow delete: if canEdit(nb);
+      }
+      match /presence/{uid} {
+        allow read: if isMember(nb);
+        allow create, update: if signedIn() && request.auth.uid == uid && isMember(nb) && validPresence(request.resource.data);
+        allow delete: if signedIn() && (request.auth.uid == uid || get(/databases/$(database)/documents/notebooks/$(nb)).data.owner == request.auth.uid);
+      }
+    }
+
+    // Invite links. Anyone signed in who has the (long, random) link can read that one invite.
+    // Only the notebook's owner can make one.
+    match /invites/{key} {
+      allow get: if signedIn() && key.size() >= 20;
+      allow list: if false;
+      allow create: if signedIn() && key.size() >= 20 && validInvite(request.resource.data)
+                    && get(/databases/$(database)/documents/notebooks/$(request.resource.data.nb)).data.owner == request.auth.uid;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.by == request.auth.uid;
+    }
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function isInvited(d) {
+      return request.auth.token.email_verified == true && myEmail() in d.inviteEmails;
+    }
+
+    function nbData(nb) {
+      return get(/databases/$(database)/documents/notebooks/$(nb)).data;
+    }
+
+    function isMember(nb) {
+      return signedIn() && request.auth.uid in nbData(nb).memberIds;
+    }
+
+    function canEdit(nb) {
+      return isMember(nb) && nbData(nb).roles[request.auth.uid] in ['owner', 'editor'];
+    }
+
+    function validNotebook(d) {
+      return d.keys().hasOnly(['name', 'owner', 'roles', 'people', 'memberIds', 'inviteEmails', 'inviteEditors', 'at', 'joinKey', 'linkKey', 'linkRole'])
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+          && d.owner is string
+          && d.roles is map && d.roles.size() <= 100
+          && d.people is map && d.people.size() <= 100
+          && d.memberIds is list && d.memberIds.size() <= 100
+          && d.inviteEmails is list && d.inviteEmails.size() <= 100
+          && d.inviteEditors is list && d.inviteEditors.size() <= 100
+          && d.roles[d.owner] == 'owner'
+          && d.owner in d.memberIds;
+    }
+
+    function validNewNotebook(d) {
+      return validNotebook(d)
+          && d.owner == request.auth.uid
+          && d.memberIds == [request.auth.uid]
+          && d.roles.keys().hasOnly([request.auth.uid])
+          && d.inviteEmails.size() == 0 && d.inviteEditors.size() == 0;
+    }
+
+    // The owner can change anything except who owns it.
+    function ownerUpdate() {
+      return resource.data.owner == request.auth.uid
+          && request.resource.data.owner == resource.data.owner;
+    }
+
+    // Someone with a valid invite link adds only themselves, with the link's role.
+    function joinByLink(nb) {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      return ('joinKey' in d)
+          && !(me in o.memberIds)
+          && get(/databases/$(database)/documents/invites/$(d.joinKey)).data.nb == nb
+          && get(/databases/$(database)/documents/invites/$(d.joinKey)).data.on == true
+          && d.diff(o).affectedKeys().hasOnly(['roles', 'people', 'memberIds', 'joinKey'])
+          && d.roles.diff(o.roles).affectedKeys().hasOnly([me])
+          && d.roles[me] == get(/databases/$(database)/documents/invites/$(d.joinKey)).data.role
+          && d.people.diff(o.people).affectedKeys().hasOnly([me])
+          && d.memberIds.toSet() == o.memberIds.toSet().union([me].toSet())
+          && d.memberIds.size() == o.memberIds.size() + 1;
+    }
+
+    // Someone invited by (verified) email adds only themselves and clears their invitation.
+    function joinByEmail() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      return isInvited(o)
+          && !(me in o.memberIds)
+          && d.diff(o).affectedKeys().hasOnly(['roles', 'people', 'memberIds', 'inviteEmails', 'inviteEditors'])
+          && d.roles.diff(o.roles).affectedKeys().hasOnly([me])
+          && d.roles[me] == (myEmail() in o.inviteEditors ? 'editor' : 'viewer')
+          && d.people.diff(o.people).affectedKeys().hasOnly([me])
+          && d.memberIds.toSet() == o.memberIds.toSet().union([me].toSet())
+          && d.memberIds.size() == o.memberIds.size() + 1
+          && d.inviteEmails.toSet() == o.inviteEmails.toSet().difference([myEmail()].toSet())
+          && d.inviteEditors.toSet() == o.inviteEditors.toSet().difference([myEmail()].toSet());
+    }
+
+    // A member (not the owner) removes only themselves.
+    function leave() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      return me in o.memberIds && me != o.owner
+          && d.diff(o).affectedKeys().hasOnly(['roles', 'people', 'memberIds'])
+          && !(me in d.roles) && !(me in d.memberIds)
+          && d.roles.diff(o.roles).affectedKeys().hasOnly([me])
+          && d.people.diff(o.people).affectedKeys().hasOnly([me])
+          && d.memberIds.toSet() == o.memberIds.toSet().difference([me].toSet());
+    }
+
+    // Someone invited by email turns the invitation down.
+    function declineInvite() {
+      let d = request.resource.data;
+      let o = resource.data;
+      return isInvited(o)
+          && d.diff(o).affectedKeys().hasOnly(['inviteEmails', 'inviteEditors'])
+          && d.inviteEmails.toSet() == o.inviteEmails.toSet().difference([myEmail()].toSet())
+          && d.inviteEditors.toSet() == o.inviteEditors.toSet().difference([myEmail()].toSet());
+    }
+
+    function validSharedNote(d) {
+      return d.keys().hasOnly(['title', 'tags', 'comments', 'updated', 'by'])
+          && d.title is string && d.title.size() <= 500
+          && (!('tags' in d) || (d.tags is list && d.tags.size() <= 20))
+          && (!('comments' in d) || (d.comments is list && d.comments.size() <= 500))
+          && d.updated is number
+          && d.by == request.auth.uid;
+    }
+
+    function onlyComments() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments', 'updated', 'by']);
+    }
+
+    function validBlock(d) {
+      return d.keys().hasOnly(['note', 'pos', 'b', 'u', 'by'])
+          && d.note is string && d.note.size() <= 100
+          && d.pos is number
+          && d.b is map
+          && d.u is number
+          && d.by == request.auth.uid;
+    }
+
+    function validPresence(d) {
+      return d.keys().hasOnly(['note', 'at', 'n'])
+          && d.note is string && d.note.size() <= 100
+          && d.at is number
+          && d.n is string && d.n.size() <= 80;
+    }
+
+    function validInvite(d) {
+      return d.keys().hasOnly(['nb', 'role', 'by', 'name', 'from', 'on', 'at'])
+          && d.nb is string && d.nb.size() <= 40
+          && d.role in ['editor', 'viewer']
+          && d.by == request.auth.uid
+          && d.on == true
+          && d.name is string && d.name.size() <= 100
+          && d.from is string && d.from.size() <= 100
+          && d.at is number;
     }
 
     function validShare(d) {
@@ -41,7 +233,11 @@ service cloud.firestore {
           || (docId == '_quiz'
                 && d.keys().hasOnly(['v', 'q'])
                 && d.q is map && d.q.size() <= 2000)
-          || (docId != '_meta' && docId != '_quiz'
+          || (docId == '_gloss'
+                && d.keys().hasOnly(['v', 'at', 'terms'])
+                && d.terms is list && d.terms.size() <= 500
+                && d.at is number)
+          || (docId != '_meta' && docId != '_quiz' && docId != '_gloss'
                 && docId.size() <= 100
                 && d.keys().hasOnly(['title', 'tag', 'tags', 'folder', 'pinned', 'comments', 'deleted', 'share', 'updated', 'blocks'])
                 && d.title is string && d.title.size() <= 500

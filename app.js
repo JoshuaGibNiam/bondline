@@ -2767,12 +2767,13 @@ let qzSaveT;function saveQuiz(){clearTimeout(qzSaveT);qzSaveT=setTimeout(()=>{tr
 function mergeQuiz(remote){if(!remote||!remote.q)return;for(const[id,r]of Object.entries(remote.q)){const l=App.quiz.q[id];if(!l||(r.at||0)>(l.at||0))App.quiz.q[id]=r}}
 function topicStats(t){const qs=NM_BANK.filter(q=>q.t===t);const m=qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:qs.length}}
 function setMode(mode){
-  if(!['home','notes','cards','naming','guide'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
+  if(!['home','notes','cards','naming','guide','spectra','orbitals'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
   App.mode=mode;closePop();
   document.querySelectorAll('.mode').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
-  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';
-  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=mode==='naming';
+  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';
+  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals'].includes(mode);
   if(mode==='naming'){renderNamingSide();if(!NM.view)openLesson('intro')}
+  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();
   if(mode==='home')renderHome();
   if(mode==='cards')renderCardsPage();
   if(mode==='guide'&&!$('#guidePage').firstChild)renderGuide();
@@ -3085,26 +3086,27 @@ function renderHome(){
   const topics=NM_LESSONS.filter(l=>l.id!=='intro').map(l=>({l,s:topicStats(l.id)})),mast=topics.reduce((a,t)=>a+t.s.m,0),tot=topics.reduce((a,t)=>a+t.s.n,0);
   const ds=allDecks();let due=0,nw=0;ds.forEach(x=>{const st=deckStats(x.d);due+=st.due;nw+=st.nw});
   const tip=TIPS[Math.floor(Date.now()/86400000)%TIPS.length];
-  const act=(id,ic,t)=>`<button class="hm-act" data-go="${id}"><span class="hm-ai" aria-hidden="true">${ic}</span><b>${t}</b></button>`;
+  const act=(id,ic,t,c)=>`<button class="hm-act${c?' '+c:''}" data-go="${id}"><span class="hm-ai" aria-hidden="true">${ic}</span><b>${t}</b></button>`;
   const lead=last?`<section class="hm-sec"><h2>Continue where you left off</h2>${noteCard(last,true)}</section>`
     :`<section class="hm-sec"><h2>Get started</h2><div class="hm-first"><h3>Start your first note</h3><p>Write, add a drawing and sketch out a mechanism, all on one page. Have a look at an example first if you like.</p><div class="hm-fbtns"><button class="btn primary" data-go="new">Start a blank note</button><button class="btn" data-go="example">Open an example</button></div></div></section>`;
-  $('#homePage').innerHTML=`<header class="hm-hero"><div class="hm-kicker">${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))}</div><h1>${greet()}</h1><p>Your organic chemistry notebook. Pick up where you left off, or start something new.</p></header>
-  <div class="hm-actions">${act('new','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>','New note')}${act('board','<svg viewBox="0 0 24 24"><path d="M4 18c3-1 4-9 7-9s2 6 5 6 3-4 4-5"/></svg>','New whiteboard')}${act('quiz','<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>','Practise naming')}${act('guide','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.3M12 16.8v.2"/></svg>','Guide')}</div>
+  $('#homePage').innerHTML=`<header class="hm-hero"><div class="hm-kicker">${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))}</div><h1>${greet()}</h1>${last?'':'<p>Your organic chemistry notebook. Write notes, draw structures and mechanisms, and study, all in one place.</p>'}</header>
+  <div class="hm-actions">${act('new','<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>','New note','primary')}${act('board','<svg viewBox="0 0 24 24"><path d="M4 18c3-1 4-9 7-9s2 6 5 6 3-4 4-5"/></svg>','New whiteboard')}${act('predict','<svg viewBox="0 0 24 24"><path d="M3 12h12M11 8l4 4-4 4"/><path d="M19 5.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z"/></svg>','Predict a reaction')}</div>
   ${lead}
-  ${rest.length?`<section class="hm-sec"><div class="hm-sh"><h2>${last?'Recent notes':'Examples to explore'}</h2>${last?`<button class="linkbtn" data-go="notes">All notes (${notes.length})</button>`:''}</div><div class="hm-grid">${rest.map(n=>noteCard(n)).join('')}</div></section>`:''}
-  <section class="hm-sec"><h2>Study</h2><div class="hm-study">
-   <div class="hm-tile"><h3>Flashcards</h3><p>${ds.length?`${due?due+' due':'Nothing due'}${nw?` · ${nw} new`:''} in ${ds.length} deck${ds.length>1?'s':''}.`:'Turn any note into flashcards: select some text and press + Card.'}</p><button class="btn${due+nw?' primary':''}" data-go="cards">${due+nw?'Study now':'Open Cards'}</button></div>
-   <div class="hm-tile"><h3>IUPAC naming</h3><p>${mast} of ${tot} questions mastered.</p><div class="hm-bar" aria-hidden="true"><i style="width:${tot?Math.round(100*mast/tot):0}%"></i></div><button class="btn" data-go="naming">${mast?'Keep practising':'Start learning'}</button></div>
+  <section class="hm-sec"><h2>Study today</h2><div class="hm-today">
+   <div class="hm-td"><span class="hm-tdn${due?'':' zero'}">${due}</span><span class="hm-tdl"><b>Flashcard${due===1?'':'s'} due</b><small>${ds.length?`${nw?nw+' new · ':''}${ds.length} deck${ds.length>1?'s':''}`:'Select text in a note and press + Card'}</small></span><button class="btn small${due+nw?' primary':''}" data-go="cards">${due+nw?'Study':'Open'}</button></div>
+   <div class="hm-td"><span class="hm-tdn${mast?'':' zero'}">${tot?Math.round(100*mast/tot):0}%</span><span class="hm-tdl"><b>IUPAC naming</b><small>${mast} of ${tot} questions mastered</small></span><button class="btn small" data-go="quiz">${mast?'Practise':'Start'}</button></div>
+   ${(()=>{const s=spAllStats();return`<div class="hm-td"><span class="hm-tdn${s.m?'':' zero'}">${Math.round(100*s.m/s.n)}%</span><span class="hm-tdl"><b>Spectroscopy</b><small>${s.m} of ${s.n} questions mastered</small></span><button class="btn small" data-go="spprac">${s.m?'Practise':'Start'}</button></div>`})()}
   </div></section>
+  ${rest.length?`<section class="hm-sec"><div class="hm-sh"><h2>${last?'Recent notes':'Examples to explore'}</h2>${last?`<button class="linkbtn" data-go="notes">All notes (${notes.length})</button>`:''}</div><div class="hm-grid">${rest.map(n=>noteCard(n)).join('')}</div></section>`:''}
   ${Object.keys(tags).length?`<section class="hm-sec"><h2>Topics</h2><div class="hm-tags">${Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<button class="hm-tag" data-tag="${esc(t)}">${esc(t)}<span>${c}</span></button>`).join('')}</div></section>`:''}
-  <footer class="hm-foot"><nav class="hm-links" aria-label="More tools"><button data-go="rxn">Reaction library</button><button data-go="prac">Mechanism practice</button><button data-go="ref">Quick reference</button><button data-go="cmd">Command palette <kbd>Ctrl K</kbd></button></nav>
+  <footer class="hm-foot"><nav class="hm-links" aria-label="More tools"><button data-go="spectra">Spectroscopy</button><button data-go="orbitals">Orbitals and MO diagrams</button><button data-go="gloss">Glossary</button><button data-go="rxn">Reaction library</button><button data-go="prac">Mechanism practice</button><button data-go="ref">Quick reference</button><button data-go="guide">Guide</button><button data-go="cmd">Command palette <kbd>Ctrl K</kbd></button></nav>
    <p class="hm-tip2"><b>Tip</b>${tip}<button class="linkbtn" data-go="guide">More in the guide</button></p>
    <p class="hm-count">${notes.length} note${notes.length===1?'':'s'} · ${drawings} drawing${drawings===1?'':'s'} · ${eqs} equation${eqs===1?'':'s'} · ${sketches} sketch${sketches===1?'':'es'}</p></footer>`;
 }
 function newWhiteboard(){const n={id:uid(),title:'Whiteboard',tag:'',updated:Date.now(),blocks:[{id:uid(),type:'sketch',data:emptySketch(1300)}]};App.notes.push(n);App.noteChanged(n);setMode('notes');openNote(n.id)}
 function homeClick(e){
   const o=e.target.closest('[data-open]');if(o){setMode('notes');openNote(o.dataset.open);return}
-  const g=e.target.closest('[data-go]');if(g){const k=g.dataset.go;if(k==='new'){setMode('notes');newNote()}else if(k==='board')newWhiteboard();else if(k==='quiz'){setMode('naming');quizSetup()}else if(k==='guide')openGuide();else if(k==='rxn')openLibrary();else if(k==='prac')openPractice();else if(k==='ref')openRef();else if(k==='cmd')openCmd();else if(k==='naming')setMode('naming');else if(k==='example'){const n=App.notes.find(x=>x.id==='lib-hybrid')||App.notes.find(x=>x.example)||App.notes[0];setMode('notes');if(n)openNote(n.id)}else if(k==='cards')setMode('cards');else if(k==='notes'){setMode('notes');if(App.coarse||innerWidth<=820)$('#side').classList.add('open')}return}
+  const g=e.target.closest('[data-go]');if(g){const k=g.dataset.go;if(k==='new'){setMode('notes');newNote()}else if(k==='board')newWhiteboard();else if(k==='quiz'){setMode('naming');quizSetup()}else if(k==='guide')openGuide();else if(k==='predict')openPredictor();else if(k==='gloss')openGlossary();else if(k==='rxn')openLibrary();else if(k==='prac')openPractice();else if(k==='ref')openRef();else if(k==='cmd')openCmd();else if(k==='naming')setMode('naming');else if(k==='spectra')setMode('spectra');else if(k==='spprac'){setMode('spectra');spSetup()}else if(k==='orbitals')setMode('orbitals');else if(k==='example'){const n=App.notes.find(x=>x.id==='lib-hybrid')||App.notes.find(x=>x.example)||App.notes[0];setMode('notes');if(n)openNote(n.id)}else if(k==='cards')setMode('cards');else if(k==='notes'){setMode('notes');if(App.coarse||innerWidth<=820)$('#side').classList.add('open')}return}
   const t=e.target.closest('[data-tag]');if(t){setMode('notes');$('#search').value='';VIEW.tag=t.dataset.tag;VIEW.folder='all';renderFolders();renderList();$('#side').classList.add('open');return}
   const l=e.target.closest('[data-lessonhome]');if(l){setMode('naming');openLesson(l.dataset.lessonhome)}
 }
@@ -3113,19 +3115,24 @@ function homeClick(e){
 const K=(...ks)=>ks.map(k=>`<kbd>${k}</kbd>`).join(' ');
 const KT=rows=>`<dl class="gd-keys">${rows.map(([k,d])=>`<dt>${k}</dt><dd>${d}</dd>`).join('')}</dl>`;
 const GUIDE=[
- {id:'start',t:'Getting started',h:`<p>Bondline has four parts, switched at the top of the sidebar:</p><ul><li><b>Home</b>: recent notes, quick actions and your progress.</li><li><b>Notes</b>: your notebook. Each note is a stack of <b>blocks</b>: text, structure drawings and sketches. Add blocks with the buttons at the bottom of a note.</li><li><b>Cards</b>: your flashcard decks and study sessions.</li><li><b>Naming</b>: IUPAC lessons and a quiz.</li></ul><p>Everything saves automatically. The dot at the bottom of the sidebar shows where your notes are saved.</p><p>The toolbar at the top of a note changes with what you're doing: click in text for <b>text tools</b>, click a drawing for <b>structure tools</b>. You can also switch with the <b>Text</b> and <b>Structure</b> tabs at its left.</p>`},
+ {id:'start',t:'Getting started',h:`<p>Bondline has six parts, switched with the icons down the left edge:</p><ul><li><b>Home</b>: recent notes, quick actions and your progress.</li><li><b>Notes</b>: your notebook. Each note is a stack of <b>blocks</b>: text, structure drawings and sketches. Add blocks with the buttons at the bottom of a note.</li><li><b>Cards</b>: your flashcard decks and study sessions.</li><li><b>Naming</b>: IUPAC lessons and a quiz.</li><li><b>Spectra</b>: lessons and practice for IR, NMR and mass spectrometry.</li><li><b>Orbitals</b>: MO diagrams, π molecular orbitals and 3D atomic and hybrid orbitals.</li></ul><p>Everything saves automatically. The dot at the bottom of the sidebar shows where your notes are saved.</p><p>The toolbar at the top of a note changes with what you're doing: click in text for <b>text tools</b>, click a drawing for <b>structure tools</b>. You can also switch with the <b>Text</b> and <b>Structure</b> tabs at its left.</p>`},
  {id:'text',t:'Writing and formatting text',h:`<p>Click in a text block and the toolbar shows text tools.</p><ul><li><b>Style</b>: Normal text, Heading 1–3, Quote and Code. Headings appear in the “On this page” list beside long notes, on wide screens.</li><li><b>Font</b>: Serif, Sans, Rounded, Handwriting, Classic and Typewriter. Select text to change just that text, or click in a paragraph to change the whole paragraph.</li><li><b>A</b>: text colour and highlighter. Colours follow your colour scheme.</li><li><b>▣ Box</b>: callout boxes for a Key idea, Definition, Example, Watch out or Tip.</li><li><b>H₂O</b>: select text like CH3CO2H and press it to subscript the numbers.</li></ul><h3>Type to format</h3>${KT([['<code>#</code> + space','Heading 1 (<code>##</code> and <code>###</code> for smaller headings)'],['<code>-</code> + space','Bulleted list'],['<code>1.</code> + space','Numbered list'],['<code>&gt;</code> + space','Quote'],['<code>---</code> + space','Divider line'],['<code>$…$</code>','Inline equation'],['<code>$$…$$</code>','Equation on its own line']])}`},
  {id:'maths',t:'Equations and LaTeX',h:`<p>Type LaTeX between dollar signs and it turns into a typeset equation as soon as you type the closing <code>$</code>. Use <code>$$…$$</code> for an equation on its own line. Or press <b>∑x²</b> (${K('Ctrl','M')}) to write one with a live preview and a palette of symbols.</p><p>Click any equation to edit or delete it.</p><h3>Chemistry with \\ce</h3>${KT([['<code>\\ce{H2SO4}</code>','Formula with subscripts'],['<code>\\ce{SO4^2-}</code>','Ion charges'],['<code>\\ce{A + B -&gt; C}</code>','Reaction arrow'],['<code>\\ce{A &lt;=&gt; B}</code>','Equilibrium'],['<code>\\ce{A -&gt;[H+][heat] B}</code>','Conditions above and below the arrow']])}<h3>Common maths</h3>${KT([['<code>x^{2}</code>, <code>x_{i}</code>','Powers and subscripts'],['<code>\\frac{a}{b}</code>','Fraction'],['<code>\\sqrt{x}</code>','Square root'],['<code>\\Delta</code>, <code>\\alpha</code>, <code>\\pi</code>','Greek letters'],['<code>\\times</code>, <code>\\pm</code>, <code>\\approx</code>','×, ±, ≈'],['<code>\\ln</code>, <code>\\log_{10}</code>','Logarithms'],['<code>\\text{rate}</code>','Ordinary words inside an equation']])}`},
  {id:'draw',t:'Drawing structures',h:`<p>Click a drawing to use the structure tools.</p><ul><li><b>Bonds</b>: click empty space to start a chain, or click an atom to grow from it. Drag to aim. Click a bond to cycle single, double and triple.</li><li><b>Rings</b>: click empty space to place one, or an atom or bond to fuse it.</li><li><b>Atoms</b>: pick an element, then click atoms. Type any label (like OMe or CO2Et) in the box.</li><li><b>Charges and lone pairs</b>: pick ⊕, ⊖ or •• and click atoms.</li><li><b>Select</b>: drag to select, then move, or press Delete.</li></ul><h3>Chemistry tools</h3><ul><li><b>Templates</b>: groups, rings, protecting groups, amino acids and reagents. Pick one, then click an atom to attach it.</li><li><b>Aa→</b>: type a name (IUPAC or common) to draw the structure.</li><li><b>C<sub>x</sub>H<sub>y</sub></b>: name, formula, molar mass and checks for every molecule.</li><li><b>R/S</b>: label stereocentres and E/Z double bonds.</li></ul>`},
  {id:'mech',t:'Mechanisms, arrows and 3D',h:`<ul><li><b>Reaction arrows</b>: pick an arrow type and drag. Click an arrow to add reagents above and conditions below.</li><li><b>Curly arrows</b>: pick a full or half (fishhook) arrow, then drag from a lone pair, atom or bond to where the electrons go.</li><li><b>3D</b>: press the 3D button on a drawing (or ${K('D')}). Each reaction arrow becomes a step, and curly arrows animate between steps. Drag to rotate, scroll or pinch to zoom.</li></ul>`},
  {id:'sketch',t:'Whiteboard and sketches',h:`<p>Add a <b>Sketch</b> block to any note, or press <b>New whiteboard</b> on the Home page for a large blank board.</p><ul><li>Tools: pen, highlighter, line, arrow, rectangle, ellipse and eraser. Hold ${K('Shift')} to snap lines to 15° and draw perfect squares and circles.</li><li>Colours follow your colour scheme, so black ink turns light in dark mode.</li><li><b>Pen only</b>: on a tablet, only the stylus draws and fingers scroll the page. It turns on by itself the first time you use a stylus. Pen pressure changes the line width.</li><li><b>Full screen</b> (${K('F')}) gives you the whole screen. Press ${K('Esc')} to leave.</li><li>Drag the bar under the sketch to make it taller. Change the background with the Dots button.</li></ul>`},
  {id:'naming',t:'Naming and quizzes',h:`<p>Open <b>Naming</b> for lessons on each family of compounds, from alkanes to stereodescriptors. Each lesson has worked examples you can open in 3D.</p><p>Start a quiz from any lesson or the sidebar. Questions are a mix of multiple choice, typed names and picking the right structure. Bondline remembers what you got right and wrong and shows progress for each topic on the Home page.</p>${KT([[K('1')+' – '+K('4'),'Choose an answer'],[K('Enter'),'Check, then next question']])}`},
- {id:'org',t:'Folders, tags and pinning',h:`<ul><li><b>Folders</b>: press <b>+</b> next to Folders in the sidebar. Use <b>⋯</b> on a folder to rename it, add a subfolder, start a note in it or delete it (its notes move up a level). Double-click a folder to rename it.</li><li><b>Move a note</b>: drag it from the list onto a folder, or choose a folder from <b>▤</b> at the top of the note.</li><li><b>Tags</b>: type in the Tags box at the top of a note and press Enter. A note can have several tags. Click a tag under the folders to show only notes with that tag.</li><li><b>★ Pin</b> keeps a note at the top of the list. <b>Recent</b> and <b>A–Z</b> change the order.</li><li><b>Search</b> looks through every note, including tags, flashcards and comments.</li></ul>`},
+ {id:'org',t:'Folders, tags and pinning',h:`<ul><li><b>Folders</b>: press <b>+</b> next to Folders in the sidebar. Use <b>⋯</b> on a folder to rename it, add a subfolder, start a note in it or delete it (its notes move up a level). Double-click a folder to rename it.</li><li><b>Move a note</b>: drag it from the list onto a folder, or choose a folder from <b>▤</b> at the top of the note.</li><li><b>Tags</b>: type in the Tags box at the top of a note and press Enter. A note can have several tags. Open <b>Tags</b> in the sidebar and click a tag to show only notes with that tag.</li><li><b>★ Pin</b> keeps a note at the top of the list. <b>Recent</b> and <b>A–Z</b> change the order.</li><li><b>Search</b> looks through every note, including tags, flashcards and comments.</li></ul>`},
  {id:'cards',t:'Flashcards',h:`<ul><li>Make a deck with <b>Cards → + New deck</b>, add a <b>Flashcards</b> block to any note, or select text in a note and press <b>+ Card</b>.</li><li>Each side can be text (with $…$ maths, and formulas like H2SO4 get their subscripts) or <b>⬡</b> a structure: type a name such as <i>2-methylpropan-2-ol</i> or a SMILES string and Bondline draws it.</li><li><b>Study</b> shows cards that are due plus new ones. Rate each card: <b>Again</b> brings it back in this session; <b>Hard</b>, <b>Good</b> and <b>Easy</b> space it out further each time.</li><li>Decks print as a question-and-answer table in PDFs.</li></ul>${KT([[K('Space'),'Show the answer'],[K('1')+' '+K('2')+' '+K('3')+' '+K('4'),'Again, Hard, Good, Easy'],[K('Ctrl','Enter'),'Add a card while editing a deck'],[K('Esc'),'End the session']])}`},
  {id:'comments',t:'Comments',h:`<ul><li>Select text and press <b>💬 Comment</b> in the text tools (${K('Ctrl','Alt','C')}). The text gets a coloured underline.</li><li>Press <b>💬</b> on any block (a drawing, sketch or deck) to comment on the whole block.</li><li><b>Comments</b> at the top of a note opens the list. You can reply, edit, resolve or delete each one. Resolved comments are kept under “Resolved”.</li><li>Click underlined text to jump to its comment. Comments don't appear in PDFs.</li></ul>`},
  {id:'chemtools',t:'Spectra, reactions and practice',h:`<ul><li><b>Predict spectra</b>: turn on C<sub>x</sub>H<sub>y</sub> for a drawing, then press <b>Predict spectra</b> under a molecule. You get the number of ¹H and ¹³C NMR signals with typical shifts, how many H each signal represents and its splitting (n + 1 rule), the main IR peaks, and the molecular ion pattern for mass spectrometry, including Cl and Br isotope peaks.</li><li><b>Reaction library</b> (📖 in the structure tools): 34 core reactions with the conditions and every mechanism step drawn with curly arrows. Add one to a note and press <b>3D</b> to watch it.</li><li><b>Mechanism practice</b> (↷): each problem shows a step and its product; draw the curly arrows yourself and press <b>Check</b>. Bondline tells you which arrows are right, which are missing and which don't belong.</li><li><b>Quick reference</b> (▦): periodic table, pKa table, functional groups with naming endings, and IR and NMR tables.</li></ul>${KT([[K('M')+' '+K('V')+' '+K('E'),'Curly arrow, move, eraser (in practice)'],[K('Enter'),'Check, then next problem'],[K('Ctrl','Z'),'Undo an arrow']])}`},
  {id:'chem2',t:'Checking structures, resonance and reactions',h:`<ul><li><b>Structure checks</b>: Bondline circles atoms that can't exist as drawn, such as a carbon with five bonds, a chlorine with two or a triple bond in a small ring. A badge on the drawing says how many problems there are; click it for details. Turn this off in ⚙ Settings.</li><li><b>Resonance structures</b>: click a molecule or ion, then <b>More → Resonance structures</b>. Bondline draws every contributor with the curly arrows between them and marks the major ones.</li><li><b>Reaction builder</b>: press <b>Add reaction</b> at the bottom of a note. Type reactants and products as names, formulas or SMILES, add reagents and conditions, and Bondline checks the atoms balance (or balances it for you).</li><li><b>Formula calculator</b>: <b>More → Formula calculator</b> works out molar mass, % composition, exact mass and degrees of unsaturation for formulas like CuSO<sub>4</sub>·5H<sub>2</sub>O. It also converts mass to moles and finds empirical and molecular formulas from percentages.</li></ul>`},
  {id:'safety',t:'Trash, history, images and sharing',h:`<ul><li><b>Trash</b>: deleted notes stay in Trash (in the sidebar) for 30 days. Restore them or delete them for good. You can also press <b>Undo</b> straight after deleting.</li><li><b>History</b> at the top of a note shows earlier versions saved on this device (at most one every 10 minutes while you edit). Preview one and press <b>Restore</b>; the version you replace is kept too.</li><li><b>Images</b>: press <b>Add image</b>, paste a picture into a text block, or drag image files onto a note. Pictures are shrunk to save space and sync with the note. Choose Small, Medium, Large or Full width and add a caption. Click a picture to see it full size.</li><li><b>Share</b> (installed app, when signed in): make a read-only link to a note. Anyone with the link can view it and save a copy; press <b>Stop sharing</b> to turn the link off.</li><li><b>Command palette</b>: press ${K('Ctrl','K')} anywhere and type to jump to a note, folder, reaction, guide section or action.</li></ul>`},
+ {id:'gloss',t:'Glossary',h:`<p>Bondline knows over 300 organic chemistry terms: solvents (DMSO, THF), reagents (LiAlH₄, PCC, mCPBA), abbreviations (Et, Ts, Boc), concepts (nucleophile, enolate, Zaitsev's rule) and named reactions (SN2, aldol, Diels–Alder).</p><ul><li>Terms in your notes are <b>highlighted</b>. Hover over one, or tap it on a phone or tablet, to see what it means. Solvents and reagents show their structure.</li><li>Open the full <b>Glossary</b> from Home, the command palette (${K('Ctrl','K')}) or ⚙ Settings. Search it, or filter by type.</li><li><b>Add your own terms</b> with “Add a term”. They are highlighted in your notes too, and sync with your account.</li><li>In ⚙ Settings → Glossary, highlight every mention, only the first in each note, or turn highlighting off.</li></ul>`},
+ {id:'predict',t:'Reaction predictor',h:`<p>Open it from Home, the command palette, or <b>Predict reaction</b> at the bottom of a note. Type a starting material (a name such as <i>2-bromobutane</i> or a SMILES string) and the reagents and conditions, for example <code>NaOEt, EtOH, heat</code> or <code>1. BH3·THF 2. H2O2, NaOH</code>. If a drawing is selected you can pick a molecule from it.</p><ul><li>For alkyl halides and sulfonates, Bondline weighs <b>SN1, SN2, E1 and E2</b> using the substrate, the nucleophile or base, the solvent and heat, and explains why one wins.</li><li>It also predicts additions to alkenes and alkynes, oxidations and reductions, Grignard, Wittig, acetal, imine, aldol and Claisen reactions, acid derivative reactions, alcohol reactions and aromatic substitution (with directing effects).</li><li>Where a carbocation forms, Bondline shows <b>rearrangements</b> (1,2-hydride and methyl shifts).</li><li><b>Add to note</b> inserts the reaction as an editable drawing.</li></ul><p class="hm-muted">Predictions follow textbook rules. Real reactions can give mixtures, so check against your course.</p>`},
+ {id:'shared',t:'Shared notebooks',h:`<p>Share a notebook with classmates or colleagues (installed app, signed in). Everyone sees the same notes, and changes appear live.</p><ul><li>Press <b>+</b> next to <b>Shared</b> in the sidebar to make one, then invite people <b>by email</b> (they see the invitation in their sidebar after signing in with that email) or with an <b>invite link</b> you can paste into a group chat.</li><li>Choose whether each person <b>can edit</b> or <b>can only view</b>. Viewers can still read and comment. Only the owner can invite or remove people, or delete the notebook.</li><li>Move a note in by dragging it onto the notebook, or by choosing the notebook in the folder menu at the top of the note. Moving a note out removes it from the notebook for everyone; viewers can use <b>Copy to my notes</b> instead.</li><li>Two people can edit different paragraphs or drawings of the same note at once. If you both edit the same block, the last one saved wins.</li><li>The letters next to the notebook name at the top of a note show who else is looking at it.</li><li>Deleting a shared note removes it for everyone, but keeps a copy in your Trash.</li></ul>`},
+ {id:'spectra',t:'Spectroscopy',h:`<p>Open <b>Spectra</b> in the bar on the left for six short lessons: how to solve a structure, IR, ¹H NMR, ¹³C NMR, mass spectrometry and a worked example using all four. Each has tables and example spectra.</p><ul><li><b>Practise spectra</b> asks you to identify compounds from their spectra, count NMR signals, predict splitting, read isotope patterns and work out degrees of unsaturation. Questions you haven't seen or got wrong come first, and your progress syncs with your account.</li><li>Answer with the mouse or keys ${K('1')} – ${K('4')}, then ${K('Enter')} for the next question.</li><li>To predict the spectra of a molecule you have drawn, turn on C<sub>x</sub>H<sub>y</sub> and press <b>Predict spectra</b> under it.</li></ul>`},
+ {id:'orbitals',t:'Orbitals and MO diagrams',h:`<p>Open <b>Orbitals</b> in the bar on the left.</p><ul><li><b>Atomic orbitals in 3D</b>: s, p and d orbitals, coloured by phase. Drag to rotate, scroll or pinch to zoom, and turn on <b>Cutaway</b> to see nodes inside.</li><li><b>Hybrid orbitals</b>: sp, sp² and sp³, with the leftover p orbitals.</li><li><b>Diatomic MO diagrams</b>: H₂ to Ne₂, ions such as O₂⁻, and CO, CN⁻ and NO. Bondline fills the electrons and works out the bond order and whether the molecule is magnetic. Click any orbital to see it in 3D.</li><li><b>π molecular orbitals</b>: Hückel calculations for conjugated chains and rings, with HOMO and LUMO, delocalisation energy and whether a ring is aromatic.</li></ul>`},
  {id:'save',t:'Saving, syncing and printing',h:`<ul><li><b>Export PDF</b> (at the top of a note) offers two kinds of PDF. <b>Print or save as PDF</b> uses your browser's printer: choose “Save as PDF” to get a file with real, selectable text and sharp drawings. <b>Download PDF (image)</b> saves a file that looks exactly like the screen. Both are in ⚙ Settings for all notes at once.</li><li><b>Back up</b> saves all your notes to a file. <b>Restore</b> brings them back on any device.</li><li>In the installed app, <b>Sign in</b> to sync notes across your devices. Without an account, notes stay on the device.</li><li>Drawings and sketches can be saved as PNG or SVG images.</li></ul>`},
  {id:'look',t:'Appearance and devices',h:`<p>Open <b>⚙ Settings</b> at the bottom of the sidebar to choose Light, Dark or Auto, and one of four colour schemes: Copper Sulfate, Malachite, Potassium Flame or Sodium Lamp.</p><p>On phones and tablets, use the − and + zoom buttons on a drawing for precise work, and ✋ to move around when zoomed in. Bondline can be installed as an app from your browser's menu, and it then works offline.</p>`},
  {id:'keys',t:'Keyboard shortcuts',h:`<h3>Text</h3>${KT([[K('Ctrl','B')+' '+K('Ctrl','I')+' '+K('Ctrl','U'),'Bold, italic, underline'],[K('Ctrl',',')+' '+K('Ctrl','.'),'Subscript, superscript'],[K('Ctrl','Alt','1')+' – '+K('3'),'Heading 1–3'],[K('Ctrl','Alt','0'),'Normal text'],[K('Ctrl','Shift','8')+' '+K('Ctrl','Shift','7'),'Bulleted, numbered list'],[K('Tab')+' '+K('Shift','Tab'),'Indent, outdent a list item'],[K('Ctrl','M'),'Insert an equation'],[K('Ctrl','K'),'Command palette (anywhere)'],[K('Ctrl','\\'),'Hide or show the sidebar'],[K('Ctrl','Alt','C'),'Comment on the selection'],[K('Ctrl','Z'),'Undo']])}
@@ -3197,7 +3204,7 @@ function wireOrg(){
   $('#noteList').addEventListener('dragend',()=>{document.body.classList.remove('dragging-note');tree.querySelectorAll('.drop').forEach(x=>x.classList.remove('drop'))});
   tree.addEventListener('dragover',e=>{const it=e.target.closest('[data-folder]');if(!it||!e.dataTransfer.types.includes('text/x-bondline-note'))return;const k=it.dataset.folder;if(k==='all'||k==='pinned')return;e.preventDefault();tree.querySelectorAll('.drop').forEach(x=>x!==it&&x.classList.remove('drop'));it.classList.add('drop')});
   tree.addEventListener('dragleave',e=>{const it=e.target.closest('[data-folder]');if(it&&!it.contains(e.relatedTarget))it.classList.remove('drop')});
-  tree.addEventListener('drop',e=>{document.body.classList.remove('dragging-note');const it=e.target.closest('[data-folder]');const id=e.dataTransfer.getData('text/x-bondline-note');if(!it||!id)return;e.preventDefault();it.classList.remove('drop');const n=App.notes.find(x=>x.id===id);if(!n)return;const k=it.dataset.folder;moveNote(n,k==='unfiled'?'':k);toast(`Moved to ${k==='unfiled'?'Unfiled':folderById(k).name}`)});
+  tree.addEventListener('drop',e=>{document.body.classList.remove('dragging-note');const it=e.target.closest('[data-folder]');const id=e.dataTransfer.getData('text/x-bondline-note');if(!it||!id)return;e.preventDefault();it.classList.remove('drop');const n=App.notes.find(x=>x.id===id);if(!n)return;const k=it.dataset.folder;moveNote(n,k==='unfiled'?'':k);if(!k.startsWith('nb:'))toast(`Moved to ${k==='unfiled'?'Unfiled':folderById(k).name}`)});
   $('#newFolder').onclick=()=>newFolder(folderById(VIEW.folder)?VIEW.folder:'');
   $('#tagFilter').addEventListener('click',e=>{const m=e.target.closest('[data-tagmore]');if(m){App.allTags=!App.allTags;renderFolders();return}const t=e.target.closest('[data-tagf]');if(!t)return;VIEW.tag=VIEW.tag===t.dataset.tagf?null:t.dataset.tagf;renderFolders();renderList()});
   $('#viewLabel').addEventListener('click',e=>{if(e.target.closest('[data-cleartag]')){VIEW.tag=null;renderFolders();renderList()}});
@@ -3717,12 +3724,12 @@ function cmdItems(){const I=[],A=(label,kind,fn,kw)=>I.push({label,kind,fn,kw:kw
   A('Study flashcards','Action',()=>startStudy(allDecks().map(x=>x.b),false),'review cards');A('Mechanism practice','Chemistry',()=>openPractice(),'curly arrows quiz');A('Reaction library','Chemistry',()=>openLibrary(),'named reactions mechanisms');
   A('Formula calculator','Chemistry',()=>openRef('calc'),'molar mass moles empirical molecular percentage composition');A('Reaction builder','Chemistry',()=>openBuilder(App.active?'after':'end'),'equation balance draw full reaction');A('Resonance structures','Chemistry',()=>drawResonance(),'contributors delocalised hybrid');A('Print or save note as PDF','Action',()=>App.cur&&printNotes([App.cur],App.cur.title||'note'),'pdf export text');
   A('Periodic table','Reference',()=>openRef('pt'),'elements');A('pKa table','Reference',()=>openRef('pka'),'acids bases');A('Functional groups','Reference',()=>openRef('fg'),'names suffix');A('Spectroscopy tables','Reference',()=>openRef('spec'),'ir nmr');
-  A('Naming quiz','Action',()=>{setMode('naming');quizSetup()},'iupac');A('Guide and shortcuts','Help',()=>openGuide(),'help keyboard');
-  for(const[m,l]of[['home','Go to Home'],['notes','Go to Notes'],['cards','Go to Cards'],['naming','Go to Naming']])A(l,'Go to',()=>setMode(m));
+  A('Naming quiz','Action',()=>{setMode('naming');quizSetup()},'iupac');A('Spectroscopy practice','Action',()=>{setMode('spectra');spSetup()},'ir nmr mass spec quiz spectra');A('MO diagrams','Chemistry',()=>{setMode('orbitals');obPage('dia')},'molecular orbital bond order paramagnetic o2 n2 diatomic');A('Atomic orbitals in 3D','Chemistry',()=>{setMode('orbitals');obPage('atomic')},'s p d orbital shape nodes');A('Hybrid orbitals','Chemistry',()=>{setMode('orbitals');obPage('hybrid')},'sp sp2 sp3 hybridisation hybridization');A('π molecular orbitals (Hückel)','Chemistry',()=>{setMode('orbitals');obPage('pi')},'huckel pi aromatic antiaromatic benzene butadiene frost homo lumo');A('Guide and shortcuts','Help',()=>openGuide(),'help keyboard');
+  for(const[m,l]of[['home','Go to Home'],['notes','Go to Notes'],['cards','Go to Cards'],['naming','Go to Naming'],['spectra','Go to Spectroscopy'],['orbitals','Go to Orbitals']])A(l,'Go to',()=>setMode(m));
   A('Light mode','Appearance',()=>applyAppearance({...getAppearance(),mode:'light'},true));A('Dark mode','Appearance',()=>applyAppearance({...getAppearance(),mode:'dark'},true));A('Auto light/dark','Appearance',()=>applyAppearance({...getAppearance(),mode:'auto'},true));
   for(const[k,nm]of Object.entries(SCHEME_NAMES))A('Colour scheme: '+nm,'Appearance',()=>applyAppearance({...getAppearance(),scheme:k},true));
   if(App.cur&&App.mode==='notes'){A('Export this note to PDF','This note',()=>exportPDF([App.cur],fileBase()+'.pdf'),'print');A('Version history of this note','This note',()=>openHistory(),'restore undo');A('Add an image','This note',()=>pickImages(),'photo picture');A('Comments on this note','This note',()=>openComments())}
-  A('Trash','Action',()=>openTrash(),'deleted restore');A('Welcome tour','Help',()=>openWelcome(),'intro start onboarding');A('Welcome page','Help',()=>openHello(),'intro first start');A('Hide or show sidebar','Action',()=>toggleSide(),'collapse menu panel navigation');A('Settings','Action',()=>openSettings(),'preferences account');A('Back up notes','Action',()=>backupNotes(),'export json');A('New folder','Action',()=>{setMode('notes');newFolder('')});
+  A('Trash','Action',()=>openTrash(),'deleted restore');A('Welcome tour','Help',()=>openWelcome(),'intro start onboarding');A('Welcome page','Help',()=>openHello(),'intro first start');A('Hide or show sidebar','Action',()=>toggleSide(),'collapse menu panel navigation');A('Glossary','Chemistry',()=>openGlossary(),'terms definitions dictionary abbreviations solvents reagents');{const st=glSelectionText();A(st?`Add “${st}” to the glossary`:'Add a term to the glossary','Chemistry',()=>openGlossary(null,st),'new term define my terms')}A('Reaction predictor','Chemistry',()=>openPredictor(),'predict product sn1 sn2 e1 e2 mechanism reagents');A('Glossary highlights: every mention','Appearance',()=>setGlossMode('all'),'glossary underline');A('Glossary highlights: first mention only','Appearance',()=>setGlossMode('first'),'glossary underline');A('Glossary highlights: off','Appearance',()=>setGlossMode('off'),'glossary underline');A('New shared notebook','Action',()=>newNotebook(),'collaborate share invite group class');for(const d of SH.nbs.values())A(d.name,'Shared notebook',()=>shShowNb(d.id));if(App.cur&&App.cur.nb)A('Copy this note to my notes','This note',()=>shCopyOut(App.cur),'duplicate personal');A('Settings','Action',()=>openSettings(),'preferences account');A('Back up notes','Action',()=>backupNotes(),'export json');A('New folder','Action',()=>{setMode('notes');newFolder('')});
   for(const n of App.notes)A(n.title||'Untitled note','Note',()=>{setMode('notes');openNote(n.id)},noteTags(n).join(' ')+' '+(n.folder&&folderById(n.folder)?folderPath(n.folder):''));
   for(const f of App.folders)A(folderPath(f.id),'Folder',()=>{VIEW.folder=f.id;setMode('notes');renderFolders();renderList();$('#side').classList.add('open')});
   for(const r of RXN)A(r.name,'Reaction',()=>openLibrary(r.id),r.cat);
@@ -4060,7 +4067,7 @@ function renderList(){
   const list=sortedNotes(App.notes.filter(n=>q?noteText(n).toLowerCase().includes(q):inView(n)));
   const lbl=$('#viewLabel');if(lbl&&q)lbl.textContent='Search results';else if(lbl)renderFolders();
   nav.innerHTML=list.length?list.map(n=>{const k=n.blocks.filter(b=>b.type==='scheme').length,tg=noteTags(n),fc=n.blocks.filter(b=>b.type==='cards').reduce((a,b)=>a+b.data.cards.length,0),cm=cmtCount(n),fd=q&&n.folder&&folderById(n.folder);
-    return`<button class="item${App.cur&&App.cur.id===n.id?' on':''}" data-id="${n.id}" draggable="true"><span class="t">${n.pinned?'<span class="pin" aria-label="Pinned">★</span> ':''}${esc(n.title||'Untitled note')}</span><span class="m">${tg.slice(0,2).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}${tg.length>2?`<span>+${tg.length-2}</span>`:''}<span>${fmtDate(n.updated)}</span>${k?`<span>${k} drawing${k>1?'s':''}</span>`:''}${n.blocks.some(b=>b.type==='sketch')?'<span>sketch</span>':''}${fc?`<span>${fc} card${fc>1?'s':''}</span>`:''}${cm?`<span>💬 ${cm}</span>`:''}${fd?`<span>▤ ${esc(fd.name)}</span>`:''}</span></button>`}).join('')
+    return`<button class="item${App.cur&&App.cur.id===n.id?' on':''}" data-id="${n.id}" draggable="true" title="${esc(n.title||'Untitled note')}"><span class="t">${n.pinned?'<span class="pin" aria-label="Pinned">★</span> ':''}${esc(n.title||'Untitled note')}</span><span class="m"><span>${fmtDate(n.updated)}</span>${cm?`<span>💬 ${cm}</span>`:''}${fd?`<span>▤ ${esc(fd.name)}</span>`:''}${tg.length?`<span>${esc(tg[0])}${tg.length>1?` +${tg.length-1}`:''}</span>`:''}</span></button>`}).join('')
     :`<div class="empty-list">${q?'No notes match “'+esc(q)+'”.':(VIEW.folder!=='all'||VIEW.tag)?'Nothing here yet. Drag a note onto a folder to file it.':'No notes yet.'}</div>`;
 }
 let metaT;function refreshMeta(){clearTimeout(metaT);metaT=setTimeout(()=>{renderList();const d=$('#noteDate');if(d&&App.cur)d.textContent='Edited '+fmtDate(App.cur.updated)},300)}
@@ -4259,6 +4266,7 @@ document.addEventListener('keydown',e=>{
   if(!$('#authScrim').hidden){if(e.key==='Escape')closeAuth();return}
   if(!$('#helpScrim').hidden){if(e.key==='Escape')showHelp(false);return}
   if(App.mode==='naming'){quizKey(e);return}
+  if(App.mode==='spectra'){spKey(e);return}
   if(e.target.closest&&e.target.closest('input,textarea,[contenteditable="true"]'))return;
   if(App.mode!=='notes'){if(e.key==='?')showHelp(true);return}
   if(App.sketch&&skKeys(e)){e.preventDefault();return}
@@ -4291,7 +4299,7 @@ function openSettings(sec){$('#side').classList.remove('open');$('#setScrim').hi
 function closeSettings(){$('#setScrim').hidden=true}
 $('#openSettings').onclick=()=>openSettings();$('#setClose').onclick=closeSettings;
 $('#setScrim').addEventListener('click',e=>{if(e.target.id==='setScrim')return closeSettings();if(e.target.closest('#openTrash,#pdfAll,#pdfAllImg,#openGuide,#setCmd'))closeSettings();if(e.target.closest('#setCmd'))openCmd();if(e.target.closest('#setTour')){closeSettings();openWelcome()}});
-$('#sfGuide').onclick=()=>openGuide();$('#sfTrash').onclick=()=>{$('#side').classList.remove('open');openTrash()};
+$('#sfGuide').onclick=()=>openGuide();$('#setGlossOpen').onclick=()=>{closeSettings();openGlossary()};$('#sfTrash').onclick=()=>{$('#side').classList.remove('open');openTrash()};
 /* wiring */
 $('#newNote').onclick=newNote;$('#pdfAll').onclick=()=>printNotes([...App.notes].sort((a,b)=>b.updated-a.updated),'bondline-notes');$('#pdfAllImg').onclick=()=>exportPDF([...App.notes].sort((a,b)=>b.updated-a.updated),'bondline-notes.pdf');
 $('#pdfMenu').addEventListener('click',e=>{const b=e.target.closest('[data-pdf]');if(b&&$('#pdfMenu')._go)$('#pdfMenu')._go(b.dataset.pdf)});document.addEventListener('pointerdown',e=>{if(!$('#pdfMenu').hidden&&!e.target.closest('#pdfMenu,#pdfNote'))$('#pdfMenu').hidden=true});$('#newNote2').onclick=newNote;
@@ -4311,7 +4319,7 @@ $('#eqOk').onclick=eqSave;$('#eqCancel').onclick=closeEq;$('#eqDel').onclick=eqD
 $('#eqScrim').addEventListener('click',e=>{if(e.target.id==='eqScrim')closeEq()});
 $('#eqSnips').addEventListener('click',e=>{const b=e.target.closest('[data-snip]');if(!b)return;const ta=$('#eqIn'),a=ta.selectionStart,z=ta.selectionEnd,t=b.dataset.snip;ta.value=ta.value.slice(0,a)+t+ta.value.slice(z);ta.focus();const br=t.indexOf('{}');const pos=a+(br>=0?br+1:t.length);ta.setSelectionRange(pos,pos);eqPreview()});
 $('#blocks').addEventListener('dragover',e=>{if(e.dataTransfer&&[...e.dataTransfer.items||[]].some(i=>i.kind==='file')){e.preventDefault();$('#blocks').classList.add('drop-img')}});$('#blocks').addEventListener('dragleave',e=>{if(!$('#blocks').contains(e.relatedTarget))$('#blocks').classList.remove('drop-img')});$('#blocks').addEventListener('drop',e=>{$('#blocks').classList.remove('drop-img');const fs=[...(e.dataTransfer&&e.dataTransfer.files||[])].filter(f=>f.type.startsWith('image/'));if(!fs.length)return;e.preventDefault();const sec=e.target.closest&&e.target.closest('.block');const b=sec&&App.cur&&App.cur.blocks.find(x=>x.id===sec.dataset.id);addImages(fs,b)});
-$('#addbar').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;if(b.dataset.add==='reaction')return openBuilder('end');addBlock(b.dataset.add)});
+$('#addbar').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;if(b.dataset.add==='reaction')return openBuilder('end');if(b.dataset.add==='predict')return openPredictor();addBlock(b.dataset.add)});
 $('#openSide').onclick=()=>$('#side').classList.add('open');
 
 /* ---------- collapsible sidebar and clickable logo ---------- */
@@ -4371,7 +4379,7 @@ async function boot(){
   mergeLibrary();
   const first=[...App.notes].sort((a,b)=>b.updated-a.updated)[0];
   setTool('b1');openNote(first?first.id:null);
-  loadQuiz();buildTextTools();wireWelcome();wireChem();wireOrg();wireComments();wireStudy();wireTrash();wireHistory();wireCmd();wireLibrary();wirePractice();wireRef();reconcileTrash();purgeTrash();renderTrashLink();renderFolders();setMode('home');
+  loadQuiz();buildTextTools();wireWelcome();wireGloss();wirePredictor();wireShared();wireChem();wireOrg();wireComments();wireStudy();wireTrash();wireHistory();wireCmd();wireLibrary();wirePractice();wireRef();reconcileTrash();purgeTrash();renderTrashLink();renderFolders();setMode('home');
   setStatus('local');
   const ok=await Store.connect();
   if(!ok){setStatus('local');return}
@@ -4589,7 +4597,7 @@ function startLive(){if(SY.live||Store.mode!=='cloud'||!Store.col||!Store.col.on
     for(const ch of snap.docChanges()){const d=ch.doc;if(ch.type==='removed'){continue}
       const data=JSON.parse(JSON.stringify(d.data()));
       if(d.id==='_meta'){if(Array.isArray(data.dismissed))data.dismissed.forEach(x=>App.dismissed.add(x));if(Array.isArray(data.folders)&&(+data.foldersAt||0)>(App.foldersAt||0)){App.folders=cleanFolders(data.folders);App.foldersAt=+data.foldersAt;renderFolders();list=true}continue}
-      if(d.id==='_quiz'){try{mergeQuiz(data);if(App.mode==='naming')renderNamingSide()}catch(e){}continue}
+      if(d.id==='_quiz'){try{mergeQuiz(data);if(App.mode==='naming')renderNamingSide();if(App.mode==='spectra')renderSpecSide()}catch(e){}continue}
       if(d.id[0]==='_')continue;
       if(applyRemote(normNote({...data,id:d.id})))changed=true}
     if(changed||list){reconcileTrash();renderTrashLink();persistLocal();renderList();if(App.mode==='home'&&typeof renderHome==='function')renderHome()}
@@ -4619,5 +4627,2013 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'){
     reg.addEventListener('updatefound',()=>{const w=reg.installing;if(!w)return;w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)toast('A new version of Bondline is ready. Reopen the app to use it.')})});
   }).catch(()=>{});
 }
+/* ---------- chemistry glossary: built-in terms ---------- */
+/* [term, other names (| separated), category, definition, SMILES for a structure picture (optional)]
+   categories: s solvent, r reagent, a abbreviation, c concept, x named reaction, t technique */
+const GLOSS_CATS={s:'Solvent',r:'Reagent',a:'Abbreviation',c:'Concept',x:'Reaction',t:'Technique',u:'My terms'};
+const GLOSS_DATA=[
+/* solvents */
+['DMSO','dimethyl sulfoxide|dimethyl sulphoxide','s','Polar aprotic solvent (bp 189 °C). It solvates cations well but leaves anions “naked”, so it speeds up SN2 reactions. It is also the oxidant in the Swern oxidation.','CS(C)=O'],
+['DMF','N,N-dimethylformamide|dimethylformamide','s','Polar aprotic solvent (bp 153 °C). Common for SN2 reactions, alkylations and amide couplings.','CN(C)C=O'],
+['THF','tetrahydrofuran','s','Cyclic ether used as a polar aprotic solvent (bp 66 °C). The standard solvent for Grignard, organolithium and LiAlH₄ reactions: its oxygen lone pairs coordinate to Mg and Li.','C1CCOC1'],
+['DCM','dichloromethane|methylene chloride|CH2Cl2','s','Weakly polar aprotic solvent (bp 40 °C). Used for extractions and many room-temperature reactions. It is denser than water, so it forms the lower layer.','ClCCl'],
+['CHCl3','chloroform|trichloromethane','s','Weakly polar solvent (bp 61 °C). Its deuterated form, CDCl₃, is the most common NMR solvent.','ClC(Cl)Cl'],
+['CDCl3','deuterochloroform','s','Chloroform with D in place of H. The usual solvent for ¹H and ¹³C NMR; it gives a small residual peak at 7.26 ppm.'],
+['CCl4','carbon tetrachloride|tetrachloromethane','s','Non-polar solvent, now rarely used because it is toxic. The classic solvent for radical brominations with NBS and for adding Br₂ to alkenes.','ClC(Cl)(Cl)Cl'],
+['MeCN','acetonitrile|CH3CN','s','Polar aprotic solvent (bp 82 °C) that mixes with water. Used for SN2 reactions and as an HPLC solvent.','CC#N'],
+['Et2O','diethyl ether','s','Low-polarity aprotic solvent (bp 35 °C). The classic solvent for Grignard reagents and LiAlH₄. Very flammable, and it forms explosive peroxides on standing.','CCOCC'],
+['EtOAc','ethyl acetate','s','Moderately polar aprotic solvent (bp 77 °C). Widely used for extractions and column chromatography.','CCOC(C)=O'],
+['MeOH','methanol','s','Polar protic solvent (bp 65 °C). Used for NaBH₄ reductions and solvolysis; as a nucleophile it gives methyl ethers and methyl esters.','CO'],
+['EtOH','ethanol','s','Polar protic solvent (bp 78 °C). Used with NaOEt for E2 eliminations and Claisen condensations, and for NaBH₄ reductions.','CCO'],
+['acetone','propanone','s','Polar aprotic solvent (bp 56 °C). NaI dissolves in it but NaCl and NaBr do not, which drives the Finkelstein reaction.','CC(C)=O'],
+['toluene','methylbenzene|PhMe','s','Non-polar aromatic solvent (bp 111 °C). Used for reactions that need heat and for removing water with a Dean–Stark trap.','Cc1ccccc1'],
+['hexane','hexanes|n-hexane','s','Non-polar solvent (bp 69 °C) used in chromatography and recrystallisation. n-BuLi is sold as a solution in hexanes.','CCCCCC'],
+['benzene','C6H6','s','The parent aromatic hydrocarbon: a planar ring of six sp² carbons sharing 6 π electrons. Rarely used as a solvent now because it causes cancer.','c1ccccc1'],
+['HMPA','hexamethylphosphoramide','s','Very polar aprotic additive that binds cations strongly, which makes enolates and other anions more reactive. It is a carcinogen, so DMPU is often used instead.'],
+['DME','1,2-dimethoxyethane|glyme','s','Ether solvent that wraps around metal cations (chelates). Common in Suzuki couplings.','COCCOC'],
+['dioxane','1,4-dioxane','s','Cyclic diether solvent (bp 101 °C) that mixes with water.','C1COCCO1'],
+['H2O','','s','Polar protic solvent. A weak nucleophile and weak base: it takes part in solvolysis (SN1/E1), hydrolysis and hydration reactions, and in workups.','O'],
+['t-BuOH','tert-butanol|tBuOH|2-methylpropan-2-ol','s','Bulky polar protic solvent; the partner solvent for t-BuOK.','CC(C)(C)O'],
+['AcOH','acetic acid|ethanoic acid|CH3COOH|HOAc','s','Weak acid (pKa 4.8) also used as a polar protic solvent, for example in α-bromination of ketones.','CC(=O)O'],
+['NMP','N-methyl-2-pyrrolidone|N-methylpyrrolidone','s','Polar aprotic solvent with a high boiling point (202 °C).','CN1CCCC1=O'],
+['pyridine','C5H5N','s','Aromatic amine (pKa of its conjugate acid is 5.2). Used as a mild base and solvent: it mops up the HCl made when acid chlorides, TsCl or SOCl₂ react.','c1ccncc1'],
+/* reducing agents */
+['LiAlH4','LAH|lithium aluminium hydride|lithium aluminum hydride|lithium tetrahydridoaluminate','r','Very strong hydride reducing agent. Reduces aldehydes, ketones, esters, carboxylic acids and acid chlorides to alcohols, and amides and nitriles to amines. Reacts violently with water, so it is used in dry ether or THF and followed by an aqueous workup.'],
+['NaBH4','sodium borohydride|sodium tetrahydridoborate','r','Mild hydride reducing agent. Reduces aldehydes and ketones to alcohols but normally leaves esters, acids and amides alone. Works in methanol, ethanol or water.'],
+['NaBH3CN','sodium cyanoborohydride','r','Mild, acid-tolerant hydride donor that reduces iminium ions faster than ketones, so it is the classic reagent for reductive amination.'],
+['NaBH(OAc)3','STAB|sodium triacetoxyborohydride','r','Mild hydride donor used for reductive amination; less toxic than NaBH₃CN.'],
+['DIBAL-H','DIBAL|DIBALH|diisobutylaluminium hydride|diisobutylaluminum hydride','r','Bulky, Lewis-acidic hydride. At −78 °C it adds only one hydride to esters and nitriles, giving aldehydes after workup. At higher temperatures it reduces further, to alcohols.'],
+['BH3','borane|BH3·THF|BH3-THF','r','Adds H–B across C=C with boron on the less substituted carbon (syn addition). Oxidising with H₂O₂/NaOH then gives the anti-Markovnikov alcohol. Also reduces carboxylic acids to alcohols.'],
+['9-BBN','9-borabicyclo[3.3.1]nonane','r','Bulky borane that gives very high anti-Markovnikov selectivity in hydroboration.'],
+['Pd/C','palladium on carbon','r','Hydrogenation catalyst. With H₂ it reduces C=C and C≡C to alkanes (syn addition), nitro groups to amines, and removes benzyl (Bn) and Cbz groups. Benzene rings and C=O normally survive.'],
+['Lindlar catalyst','Lindlar\'s catalyst|Lindlar','r','“Poisoned” palladium catalyst (Pd on CaCO₃ with lead and quinoline). With H₂ it reduces alkynes to cis (Z) alkenes and stops there.'],
+['Raney nickel','Raney Ni','r','Spongy nickel catalyst for hydrogenation; also removes sulfur (desulfurisation of thioacetals gives CH₂).'],
+['PtO2','Adams\' catalyst|platinum dioxide','r','Platinum hydrogenation catalyst; more active than Pd/C.'],
+['Na/NH3','dissolving metal reduction|Na, NH3|sodium in liquid ammonia','r','Sodium dissolved in liquid ammonia. Reduces alkynes to trans (E) alkenes, and benzene rings to 1,4-cyclohexadienes (Birch reduction).'],
+['Zn(Hg)','zinc amalgam','r','Zinc–mercury amalgam; with concentrated HCl it reduces aldehydes and ketones to CH₂ (Clemmensen reduction).'],
+['N2H4','hydrazine','r','With KOH and heat it reduces aldehydes and ketones to CH₂ (Wolff–Kishner reduction). On its own it forms hydrazones.'],
+['Sn/HCl','tin and hydrochloric acid|Fe/HCl|SnCl2','r','Metal and acid reduce aromatic nitro groups (ArNO₂) to anilines (ArNH₂).'],
+['Bu3SnH','tributyltin hydride','r','Radical reducing agent: with AIBN it replaces C–Br or C–I with C–H.'],
+/* oxidising agents */
+['PCC','pyridinium chlorochromate','r','Mild chromium(VI) oxidant used in CH₂Cl₂. Oxidises primary alcohols to aldehydes (without going on to acids) and secondary alcohols to ketones.'],
+['PDC','pyridinium dichromate','r','Chromium(VI) oxidant similar to PCC. In CH₂Cl₂ it gives aldehydes; in DMF it can take primary alcohols to carboxylic acids.'],
+['DMP','Dess–Martin periodinane|Dess-Martin periodinane|Dess–Martin|Dess-Martin','r','Mild, chromium-free oxidant: primary alcohols to aldehydes and secondary alcohols to ketones at room temperature.'],
+['Jones reagent','Jones oxidation','r','CrO₃ in aqueous H₂SO₄ and acetone. Oxidises primary alcohols to carboxylic acids and secondary alcohols to ketones. The orange Cr(VI) turns green as Cr(III) forms.'],
+['CrO3','chromium trioxide','r','Chromium(VI) oxide; with H₂SO₄ it is the Jones reagent.'],
+['K2Cr2O7','potassium dichromate|Na2Cr2O7|sodium dichromate','r','Orange chromium(VI) oxidant. With acid it oxidises primary alcohols to carboxylic acids (through the aldehyde) and secondary alcohols to ketones, turning green as Cr(III) forms.'],
+['KMnO4','potassium permanganate','r','Strong oxidant. Cold, dilute and basic: alkenes give cis (syn) 1,2-diols. Hot or acidic: it cleaves alkenes, oxidises primary alcohols and aldehydes to carboxylic acids, and oxidises alkyl side chains on benzene rings to COOH.'],
+['OsO4','osmium tetroxide','r','Adds to alkenes to give cis (syn) 1,2-diols. Toxic and expensive, so it is used in catalytic amounts with NMO to re-oxidise it.'],
+['NMO','N-methylmorpholine N-oxide','r','Co-oxidant that regenerates OsO₄ (and TPAP) so they can be used in catalytic amounts.'],
+['O3','ozone','r','Cleaves C=C bonds (ozonolysis). A reductive workup (Me₂S or Zn) gives aldehydes and ketones; an oxidative workup (H₂O₂) gives carboxylic acids and ketones.'],
+['mCPBA','m-CPBA|MCPBA|meta-chloroperoxybenzoic acid|3-chloroperoxybenzoic acid','r','Peroxyacid. Converts alkenes to epoxides in one step (syn, stereospecific) and ketones to esters (Baeyer–Villiger oxidation).','OOC(=O)c1cccc(Cl)c1'],
+['H2O2','hydrogen peroxide','r','Oxidant. Used with NaOH in the second step of hydroboration–oxidation, and in oxidative ozonolysis workups.'],
+['NaIO4','sodium periodate','r','Cleaves 1,2-diols into two carbonyl compounds; also re-oxidises OsO₄.'],
+['TEMPO','2,2,6,6-tetramethylpiperidinyloxyl','r','Stable nitroxide radical used as a catalyst (with bleach) for oxidising primary alcohols to aldehydes.'],
+['(COCl)2','oxalyl chloride','r','Activates DMSO in the Swern oxidation; also converts carboxylic acids to acid chlorides.'],
+['SeO2','selenium dioxide','r','Oxidises allylic C–H bonds and the α-CH₂ next to a ketone.'],
+['Me2S','dimethyl sulfide|DMS','r','Mild reducing agent used to work up ozonolysis reactions (giving aldehydes and ketones). It is also the smelly by-product of the Swern oxidation.','CSC'],
+['Tollens\' reagent','Tollens reagent|Tollens\' test|Tollens test','r','Ammoniacal silver nitrate, [Ag(NH₃)₂]⁺. Aldehydes reduce it to a silver mirror while being oxidised to carboxylates; ketones do not react.'],
+['Fehling\'s solution','Fehling\'s test|Benedict\'s solution','r','Blue Cu(II) solution that aldehydes reduce to a red-brown Cu₂O precipitate. Ketones give no change.'],
+['2,4-DNP','2,4-dinitrophenylhydrazine|Brady\'s reagent','r','Forms an orange or yellow precipitate (a hydrazone) with aldehydes and ketones; a test for C=O groups.'],
+/* bases */
+['LDA','lithium diisopropylamide','r','Very strong (pKa of the conjugate acid ≈ 36), bulky, non-nucleophilic base. Removes α-hydrogens quickly and irreversibly at −78 °C, giving the kinetic (less substituted) enolate.'],
+['LiHMDS','LHMDS|KHMDS|NaHMDS|hexamethyldisilazide','r','Strong, bulky, non-nucleophilic amide bases (Li, Na or K salts of hexamethyldisilazane) used to make enolates.'],
+['n-BuLi','nBuLi|BuLi|butyllithium|n-butyllithium','r','Very strong base and carbon nucleophile, sold as a solution in hexanes. Deprotonates terminal alkynes and many C–H acids, and swaps halogen for lithium.'],
+['t-BuOK','KOtBu|tBuOK|KOt-Bu|potassium tert-butoxide|t-BuO−','r','Strong, bulky base. Favours E2 over SN2 and gives the less substituted (Hofmann) alkene.'],
+['NaH','sodium hydride','r','Strong, non-nucleophilic base (the hydride leaves as H₂ gas). Used to deprotonate alcohols for the Williamson ether synthesis and to make enolates.'],
+['NaNH2','sodium amide|sodamide','r','Very strong base. Deprotonates terminal alkynes and performs double eliminations of dihalides to make alkynes.'],
+['NaOH','sodium hydroxide','r','Strong base and good nucleophile (HO⁻). Used for ester hydrolysis (saponification), SN2/E2 reactions and aldol reactions.'],
+['KOH','potassium hydroxide','r','Strong base like NaOH. Used for E2 eliminations (often in ethanol) and in the Wolff–Kishner reduction.'],
+['NaOEt','sodium ethoxide|EtONa|EtO−','r','Strong base and good nucleophile, usually used in ethanol. Gives E2 with secondary and tertiary halides, and is the base for Claisen condensations of ethyl esters.'],
+['NaOMe','sodium methoxide|MeONa|MeO−','r','Strong base and good nucleophile, usually used in methanol.'],
+['DBU','1,8-diazabicyclo[5.4.0]undec-7-ene','r','Strong, non-nucleophilic amidine base, popular for E2 eliminations.','C1CCC2=NCCCN2CC1'],
+['Et3N','triethylamine|NEt3|TEA','r','Common organic base (pKa of the conjugate acid 10.7). Mops up the acid formed in acylations, mesylations and the Swern oxidation.','CCN(CC)CC'],
+['DIPEA','Hünig\'s base|Hunig\'s base|iPr2NEt|diisopropylethylamine','r','Hindered amine base that is too crowded to act as a nucleophile.','CCN(C(C)C)C(C)C'],
+['DMAP','4-dimethylaminopyridine','r','Nucleophilic catalyst for acylations: it attacks the acylating agent to make a very reactive acylpyridinium ion.','CN(C)c1ccncc1'],
+['K2CO3','potassium carbonate|Cs2CO3|caesium carbonate|cesium carbonate','r','Mild inorganic base used to alkylate phenols, acids and amines.'],
+['NaHCO3','sodium bicarbonate|sodium hydrogencarbonate|sodium hydrogen carbonate','r','Weak base used in workups to neutralise acid; it fizzes as CO₂ is released.'],
+/* acids and Lewis acids */
+['HCl','hydrochloric acid|hydrogen chloride','r','Strong acid. Adds to alkenes (Markovnikov) and converts tertiary alcohols to alkyl chlorides.'],
+['HBr','hydrobromic acid|hydrogen bromide','r','Strong acid. Adds to alkenes with Markovnikov orientation; with peroxides (ROOR) it adds anti-Markovnikov by a radical chain. Converts alcohols to alkyl bromides.'],
+['HI','hydroiodic acid|hydrogen iodide','r','The strongest hydrogen halide acid. Cleaves ethers and converts alcohols to alkyl iodides.'],
+['H2SO4','sulfuric acid|sulphuric acid','r','Strong acid. Catalyses Fischer esterification and alkene hydration, dehydrates alcohols to alkenes on heating, and with HNO₃ makes the nitronium ion for nitration.'],
+['HNO3','nitric acid','r','With H₂SO₄ it forms the nitronium ion (NO₂⁺), the electrophile in aromatic nitration.'],
+['H3PO4','phosphoric acid','r','Non-nucleophilic acid used to dehydrate alcohols to alkenes (E1).'],
+['H3O+','hydronium|aqueous acid|acidic workup','r','Aqueous acid. Often written as the last step to protonate alkoxides after a Grignard or hydride reaction, or to hydrolyse esters, amides, nitriles and acetals.'],
+['TsOH','p-toluenesulfonic acid|PTSA|pTsOH|p-TsOH|tosic acid','r','Strong organic acid that dissolves in organic solvents. Used as a catalyst for acetal formation, esterification and dehydration.','Cc1ccc(cc1)S(=O)(=O)O'],
+['TFA','trifluoroacetic acid','r','Strong, volatile acid used to remove Boc and tert-butyl protecting groups.','OC(=O)C(F)(F)F'],
+['AlCl3','aluminium chloride|aluminum chloride','r','Strong Lewis acid; the catalyst for Friedel–Crafts alkylation and acylation.'],
+['FeBr3','iron(III) bromide|ferric bromide','r','Lewis acid that polarises Br₂ so it can brominate aromatic rings.'],
+['FeCl3','iron(III) chloride|ferric chloride','r','Lewis acid catalyst for aromatic chlorination. Also gives a purple colour with phenols.'],
+['BF3','boron trifluoride|BF3·OEt2|BF3·Et2O','r','Lewis acid. BF₃·OEt₂ is a convenient liquid form.'],
+['ZnCl2','zinc chloride','r','Lewis acid. With concentrated HCl it is the Lucas reagent, which tells primary, secondary and tertiary alcohols apart.'],
+/* halogenation and leaving groups */
+['Br2','bromine','r','Adds across alkenes to give anti 1,2-dibromides (through a bromonium ion). With FeBr₃ it brominates aromatic rings; with light it brominates alkanes by a radical chain.'],
+['Cl2','chlorine','r','Adds to alkenes like Br₂. With AlCl₃ or FeCl₃ it chlorinates aromatic rings; with light it chlorinates alkanes (much less selectively than Br₂).'],
+['I2','iodine','r','With NaOH it gives the iodoform test for methyl ketones.'],
+['NBS','N-bromosuccinimide','r','Supplies a low, steady concentration of Br₂ and Br•. With light or AIBN it brominates allylic and benzylic positions; with water it makes bromohydrins.','O=C1CCC(=O)N1Br'],
+['AIBN','azobisisobutyronitrile','r','Radical initiator: on heating it loses N₂ to make carbon radicals that start chain reactions.','CC(C)(C#N)N=NC(C)(C)C#N'],
+['SOCl2','thionyl chloride','r','Converts alcohols to alkyl chlorides and carboxylic acids to acid chlorides. The by-products, SO₂ and HCl, are gases.'],
+['PBr3','phosphorus tribromide','r','Converts primary and secondary alcohols to alkyl bromides with inversion of configuration (SN2).'],
+['PCl5','phosphorus pentachloride|PCl3','r','Converts alcohols to alkyl chlorides and acids to acid chlorides.'],
+['POCl3','phosphoryl chloride|phosphorus oxychloride','r','With pyridine it dehydrates alcohols to alkenes by E2, avoiding carbocation rearrangements.'],
+['TsCl','tosyl chloride|p-toluenesulfonyl chloride','r','Turns an alcohol’s OH into a tosylate (OTs), an excellent leaving group, without changing the configuration at carbon.','Cc1ccc(cc1)S(Cl)(=O)=O'],
+['MsCl','mesyl chloride|methanesulfonyl chloride','r','Turns an alcohol into a mesylate (OMs), an excellent leaving group. Used with Et₃N.','CS(Cl)(=O)=O'],
+['Tf2O','triflic anhydride|trifluoromethanesulfonic anhydride','r','Makes triflates (OTf), among the best leaving groups known.'],
+['NaI','sodium iodide|KI','r','Iodide is an excellent nucleophile. NaI in acetone converts alkyl chlorides and bromides to iodides (Finkelstein reaction).'],
+['NaCN','sodium cyanide|KCN|potassium cyanide','r','Source of cyanide (CN⁻), a good nucleophile and weak base. SN2 on alkyl halides gives nitriles; addition to C=O gives cyanohydrins.'],
+['NaN3','sodium azide','r','Azide (N₃⁻) is an excellent SN2 nucleophile. Reducing the alkyl azide gives a primary amine.'],
+['NaNO2','sodium nitrite','r','With HCl at 0–5 °C it turns aromatic amines (ArNH₂) into diazonium salts (ArN₂⁺).'],
+/* carbon nucleophiles and coupling */
+['Grignard reagent','Grignard|Grignards|RMgBr|RMgX|RMgCl|organomagnesium','r','Organomagnesium halide (R–MgX), made from R–X and Mg in dry ether. The carbon is strongly nucleophilic and basic: it adds to aldehydes, ketones, esters, epoxides and CO₂, and is destroyed by water or any O–H or N–H.'],
+['organolithium','RLi|organolithium reagent','r','R–Li reagents such as MeLi and n-BuLi. Like Grignard reagents but more reactive and more basic.'],
+['Gilman reagent','organocuprate|R2CuLi|lithium dialkylcuprate|cuprate','r','Lithium dialkylcuprate (R₂CuLi), a soft carbon nucleophile. Adds 1,4 (conjugate addition) to enones, couples with alkyl halides and turns acid chlorides into ketones.'],
+['Wittig reagent','phosphonium ylide|Ph3P=CH2','r','Phosphorus ylide (Ph₃P=CHR) that converts a C=O group into C=CHR.'],
+['PPh3','triphenylphosphine','r','Used to make Wittig reagents (from alkyl halides) and as a ligand on palladium catalysts.'],
+['Pd(PPh3)4','tetrakis(triphenylphosphine)palladium','r','Palladium(0) catalyst for cross-couplings such as the Suzuki, Heck and Sonogashira reactions.'],
+['CH2N2','diazomethane','r','Converts carboxylic acids to methyl esters. Toxic and explosive; TMS-diazomethane is a safer substitute.'],
+['DCC','dicyclohexylcarbodiimide|EDC|EDCI','r','Coupling agents that activate carboxylic acids to make amides and esters. DCC forms insoluble dicyclohexylurea as a by-product; EDC’s urea is water-soluble.'],
+['Ac2O','acetic anhydride','r','Acetylating agent: turns alcohols into acetate esters and amines into acetamides (often with pyridine or DMAP).','CC(=O)OC(C)=O'],
+['AcCl','acetyl chloride|CH3COCl','r','Reactive acetylating agent; also the acyl chloride for Friedel–Crafts acetylation.','CC(Cl)=O'],
+['Hg(OAc)2','mercury(II) acetate|mercuric acetate','r','Used in oxymercuration: Markovnikov addition of water (or an alcohol) to an alkene without carbocation rearrangements, followed by NaBH₄.'],
+['HgSO4','mercury(II) sulfate','r','Catalyst (with H₂SO₄) for Markovnikov hydration of alkynes, giving ketones through an enol.'],
+['NH2OH','hydroxylamine','r','Reacts with aldehydes and ketones to give oximes.'],
+['TBAF','tetra-n-butylammonium fluoride|tetrabutylammonium fluoride','r','Fluoride source used to remove silyl protecting groups (TBS, TIPS, TMS), because the Si–F bond is very strong.'],
+['TBSCl','TBDMSCl|tert-butyldimethylsilyl chloride','r','Protects alcohols as TBS ethers (usually with imidazole in DMF).'],
+['TMSCl','trimethylsilyl chloride|chlorotrimethylsilane','r','Makes TMS ethers and silyl enol ethers.'],
+['Boc2O','di-tert-butyl dicarbonate|Boc anhydride','r','Protects amines as Boc carbamates.'],
+/* abbreviations */
+['Me','methyl','a','Methyl group, CH₃–.'],
+['Et','ethyl','a','Ethyl group, CH₃CH₂–.'],
+['Pr','n-Pr|propyl','a','Propyl group, CH₃CH₂CH₂–.'],
+['iPr','i-Pr|isopropyl','a','Isopropyl group, (CH₃)₂CH–.'],
+['Bu','n-Bu|butyl','a','Butyl group, CH₃CH₂CH₂CH₂–.'],
+['tBu','t-Bu|tert-butyl','a','tert-Butyl group, (CH₃)₃C–. Very bulky, so it blocks SN2 and locks cyclohexanes with it equatorial.'],
+['Ph','phenyl','a','Phenyl group, C₆H₅– (a benzene ring as a substituent).'],
+['Bn','benzyl','a','Benzyl group, C₆H₅CH₂–. As a protecting group (OBn) it is removed by H₂ and Pd/C.'],
+['Bz','benzoyl','a','Benzoyl group, C₆H₅C(=O)–.'],
+['Ac','acetyl','a','Acetyl group, CH₃C(=O)–. OAc is acetate.'],
+['Ar','aryl','a','Any aromatic ring used as a substituent.'],
+['Ts','tosyl|OTs|tosylate','a','Tosyl, p-toluenesulfonyl (p-CH₃C₆H₄SO₂–). OTs, a tosylate, is an excellent leaving group.'],
+['Ms','mesyl|OMs|mesylate','a','Mesyl, methanesulfonyl (CH₃SO₂–). OMs, a mesylate, is an excellent leaving group.'],
+['Tf','triflyl|OTf|triflate','a','Triflyl, trifluoromethanesulfonyl (CF₃SO₂–). OTf, a triflate, is one of the best leaving groups.'],
+['Boc','tert-butoxycarbonyl|NHBoc','a','tert-Butoxycarbonyl, a protecting group for amines. Removed with acid (TFA or HCl).'],
+['Cbz','Z group|benzyloxycarbonyl','a','Benzyloxycarbonyl, a protecting group for amines. Removed by H₂ and Pd/C.'],
+['Fmoc','fluorenylmethyloxycarbonyl','a','Amine protecting group removed by base (piperidine); standard in peptide synthesis.'],
+['TBS','TBDMS|OTBS|tert-butyldimethylsilyl','a','tert-Butyldimethylsilyl, a protecting group for alcohols. Removed with TBAF or acid.'],
+['TMS','trimethylsilyl','a','Trimethylsilyl, (CH₃)₃Si–. Also tetramethylsilane, the 0 ppm reference in NMR.'],
+['THP','tetrahydropyranyl','a','Tetrahydropyranyl, an acid-labile protecting group for alcohols (an acetal).'],
+['Nu','Nu−|Nu:','a','Any nucleophile.'],
+['LG','','a','Leaving group: the atom or group that departs with the bonding pair of electrons.'],
+['EWG','electron-withdrawing group','a','Electron-withdrawing group, such as NO₂, CN, C=O or CF₃. Pulls electron density away, stabilising anions and deactivating benzene rings.'],
+['EDG','electron-donating group','a','Electron-donating group, such as OH, OR, NH₂ or alkyl. Pushes electron density in, stabilising cations and activating benzene rings.'],
+['TS','','a','Transition state: the highest-energy point on a reaction step, often drawn in square brackets with ‡.'],
+['rt','r.t.|RT|room temperature','a','Room temperature, about 20–25 °C.'],
+['aq','(aq)','a','Aqueous: dissolved in water.'],
+['equiv','eq.|equivalents','a','Equivalents: how many moles of a reagent are used per mole of starting material.'],
+['hν','hv','a','Light (photochemical conditions), often used to start radical reactions.'],
+['ee','enantiomeric excess','a','Enantiomeric excess: % of the major enantiomer minus % of the minor one. A racemate has 0% ee.'],
+['NMR','nuclear magnetic resonance','t','Nuclear magnetic resonance spectroscopy. ¹H NMR shows the different hydrogen environments (chemical shift), how many H each has (integration) and their neighbours (splitting).'],
+['IR','infrared spectroscopy|IR spectroscopy','t','Infrared spectroscopy: bonds absorb at characteristic wavenumbers, e.g. C=O near 1700 cm⁻¹ and broad O–H near 3300 cm⁻¹.'],
+['TLC','thin-layer chromatography','t','Thin-layer chromatography: a quick way to follow a reaction or check purity by how far spots travel up a coated plate.'],
+['Rf','Rf value|retardation factor','t','Retention factor in TLC: distance moved by the spot divided by distance moved by the solvent front.'],
+['ppm','parts per million','t','Unit of chemical shift (δ) in NMR.'],
+['HOMO','highest occupied molecular orbital','c','Highest occupied molecular orbital: the electrons a nucleophile donates come from here.'],
+['LUMO','lowest unoccupied molecular orbital','c','Lowest unoccupied molecular orbital: an electrophile accepts electrons into this orbital.'],
+['pKa','pKₐ|acid dissociation constant','c','−log Ka. The lower the pKa, the stronger the acid. An acid is deprotonated by the conjugate base of any acid with a higher pKa.'],
+['sp3','sp2|sp hybridised|sp3 hybridised|sp2 hybridised','c','Hybridisation labels: sp³ is tetrahedral (109.5°, four groups), sp² is trigonal planar (120°, three groups plus a p orbital), sp is linear (180°, two groups plus two p orbitals).'],
+/* concepts */
+['nucleophile','nucleophilic','c','An electron-rich species that donates a pair of electrons to form a new bond, usually to carbon. It uses a lone pair, a π bond or a C–metal bond. Examples: HO⁻, CN⁻, NH₃, Grignard reagents.'],
+['electrophile','electrophilic','c','An electron-poor species that accepts a pair of electrons. Examples: carbonyl carbons, carbocations, H⁺, Br₂ and alkyl halides.'],
+['leaving group','leaving groups','c','The group that departs, taking the bonding electrons with it. Good leaving groups are weak bases: I⁻, Br⁻, Cl⁻, H₂O, tosylate. HO⁻ and RO⁻ are poor leaving groups unless protonated or converted to sulfonates.'],
+['carbocation','carbenium ion|carbonium ion','c','A carbon with only six electrons and a positive charge; sp² and planar. Stability: tertiary > secondary > primary > methyl, and allylic or benzylic cations are stabilised by resonance. Intermediates in SN1, E1 and Markovnikov additions, and they can rearrange.'],
+['carbanion','carbanions','c','A carbon bearing a negative charge and a lone pair. Strong bases and nucleophiles; stabilised by nearby C=O (enolates), nitriles or sp hybridisation (acetylides).'],
+['radical','free radical','c','A species with an unpaired electron, made by homolysis. Stability follows the same order as carbocations: tertiary > secondary > primary, with allylic and benzylic best.'],
+['enolate','enolate ion','c','The anion made by removing an α-hydrogen next to a C=O. The charge is shared between the α-carbon and oxygen; it usually reacts through carbon. Key nucleophile in aldol, Claisen and alkylation reactions.'],
+['enol','enols','c','The C=C–OH tautomer of a carbonyl compound. Present in small amounts in equilibrium with the keto form; reacts with electrophiles at the α-carbon.'],
+['tautomerism','tautomer|keto–enol tautomerism|keto-enol tautomerism|tautomerisation|tautomerization','c','Interconversion of isomers by moving a proton and a double bond, e.g. keto ⇌ enol. Tautomers are different compounds, not resonance forms.'],
+['resonance','resonance structure|resonance structures|resonance form|contributing structure','c','When one Lewis structure isn’t enough, the real molecule is a hybrid of several resonance structures that differ only in where electrons are. Atoms don’t move. Spreading charge out (delocalisation) stabilises a species.'],
+['conjugation','conjugated','c','Alternating single and multiple bonds (or a π bond next to a lone pair or empty p orbital) let p orbitals overlap and electrons spread out, which lowers the energy.'],
+['aromaticity','aromatic compound','c','Extra stability of cyclic, planar, fully conjugated rings with 4n+2 π electrons (Hückel’s rule), e.g. benzene with 6. Aromatic rings prefer substitution to addition.'],
+['Hückel\'s rule','Huckel\'s rule|Hückel rule|4n+2 rule','c','A planar, cyclic, fully conjugated ring is aromatic if it has 4n+2 π electrons (2, 6, 10…), and antiaromatic if it has 4n (4, 8…).'],
+['antiaromatic','antiaromaticity','c','Planar, cyclic, fully conjugated with 4n π electrons; especially unstable (e.g. cyclobutadiene). Molecules twist out of planarity to avoid it.'],
+['hybridisation','hybridization|hybrid orbital','c','Mixing atomic orbitals to make hybrid orbitals that point towards the bonded atoms. Count σ bonds plus lone pairs: 4 → sp³, 3 → sp², 2 → sp.'],
+['sigma bond','σ bond|σ-bond|sigma bonds','c','A bond formed by head-on overlap of orbitals along the line joining the nuclei. Every single bond is a σ bond; free rotation is possible.'],
+['pi bond','π bond|π-bond|pi bonds','c','A bond formed by side-on overlap of parallel p orbitals, above and below the σ bond. A double bond is σ + π; a triple bond is σ + 2π. π bonds prevent rotation and are more reactive than σ bonds.'],
+['inductive effect','induction','c','Polarisation transmitted through σ bonds by electronegative atoms or alkyl groups. It weakens quickly with distance.'],
+['mesomeric effect','resonance effect|M effect','c','Donation or withdrawal of electrons through π systems (resonance). Usually stronger than the inductive effect when the two compete, as with OH and OMe on benzene.'],
+['hyperconjugation','hyperconjugative','c','Stabilisation from overlap of a filled C–H or C–C σ bond with a neighbouring empty p orbital or π*. Explains why more substituted carbocations and alkenes are more stable.'],
+['steric hindrance','sterics|steric bulk','c','Crowding by large groups that slows or blocks a reaction. It is why SN2 fails at tertiary carbons and why bulky bases favour Hofmann elimination.'],
+['chirality','chiral','c','A molecule is chiral if it can’t be superimposed on its mirror image. Usually caused by a carbon with four different groups.'],
+['stereocentre','stereocenter|chiral centre|chiral center|stereogenic centre|stereogenic center|asymmetric carbon','c','An atom (usually carbon with four different groups) where swapping two groups gives a stereoisomer. Labelled R or S.'],
+['enantiomer','enantiomers','c','Stereoisomers that are non-superimposable mirror images. They have identical physical properties except the direction in which they rotate plane-polarised light (and how they interact with other chiral things).'],
+['diastereomer','diastereoisomer|diastereomers|diastereoisomers','c','Stereoisomers that are not mirror images, e.g. cis/trans isomers or compounds differing at some but not all stereocentres. They have different physical properties.'],
+['meso compound','meso','c','A compound with stereocentres that is achiral because it has an internal mirror plane, e.g. (2R,3S)-butane-2,3-diol.'],
+['racemic mixture','racemate|racemic','c','A 50:50 mixture of two enantiomers; optically inactive. SN1 reactions at a stereocentre give (nearly) racemic products.'],
+['optical activity','optically active|specific rotation','c','Rotation of plane-polarised light by a chiral substance. Enantiomers rotate light by equal amounts in opposite directions.'],
+['epimer','epimers','c','Diastereomers that differ at only one of several stereocentres.'],
+['anomer','anomers|anomeric carbon','c','In cyclic sugars, the two diastereomers (α and β) that differ at the new stereocentre formed when the ring closes (the anomeric carbon).'],
+['conformation','conformer|conformers|conformations','c','Different 3D shapes of the same molecule that interconvert by rotation about single bonds, such as staggered and eclipsed ethane or chair cyclohexane.'],
+['Newman projection','Newman projections','c','A view straight down a C–C bond: the front carbon is a point, the back carbon a circle. Used to compare staggered, eclipsed, gauche and anti conformations.'],
+['chair conformation','chair|ring flip|ring-flip','c','The strain-free shape of cyclohexane. Each carbon has one axial and one equatorial position; a ring flip swaps them. Big groups prefer equatorial.'],
+['axial','axial position','c','In a chair cyclohexane, a bond parallel to the ring’s axis (straight up or down). Axial groups suffer 1,3-diaxial strain.'],
+['equatorial','equatorial position','c','In a chair cyclohexane, a bond pointing out around the ring’s “equator”. Bulky groups prefer equatorial positions.'],
+['E/Z','E/Z isomerism|cis–trans isomerism|cis/trans isomerism|geometric isomers|geometric isomerism','c','Stereoisomerism about a double bond. Using CIP priorities, Z means the higher-priority groups are on the same side, E on opposite sides.'],
+['CIP rules','Cahn–Ingold–Prelog|Cahn-Ingold-Prelog|CIP priority|priority rules','c','Rules for ranking groups: higher atomic number at the first point of difference wins; multiple bonds count as duplicated atoms. Used to assign R/S and E/Z.'],
+['Markovnikov\'s rule','Markovnikov|Markovnikov addition|Markovnikov product|Markovnikov\'s','c','When HX (or H₂O with acid) adds to an alkene, H goes to the carbon that already has more H, so X ends up on the more substituted carbon. The reason: that path goes through the more stable carbocation.'],
+['anti-Markovnikov','anti-Markovnikov addition|anti-Markovnikov product','c','Addition with the H (or the smaller group) on the more substituted carbon. Seen in hydroboration–oxidation and HBr with peroxides.'],
+['Zaitsev\'s rule','Zaitsev|Saytzeff|Zaitsev product|Saytzeff\'s rule','c','In eliminations, the more substituted (more stable) alkene is usually the major product.'],
+['Hofmann product','Hofmann rule|Hofmann alkene','c','The less substituted alkene. It becomes the major product of E2 with bulky bases (t-BuOK, LDA) or with bulky leaving groups such as NR₃⁺.'],
+['regioselectivity','regioselective','c','Preference for bond formation at one position over another, e.g. Markovnikov vs anti-Markovnikov, or Zaitsev vs Hofmann.'],
+['stereoselectivity','stereoselective','c','Preference for forming one stereoisomer over others when more than one is possible.'],
+['stereospecific','stereospecificity','c','A reaction where the stereochemistry of the starting material decides the stereochemistry of the product, e.g. SN2 inversion, anti addition of Br₂, syn epoxidation.'],
+['chemoselectivity','chemoselective','c','Reacting with one functional group in the presence of others, e.g. NaBH₄ reducing a ketone but not an ester.'],
+['kinetic control','kinetic product','c','Conditions (low temperature, short time, irreversible steps) under which the product that forms fastest dominates, even if it isn’t the most stable.'],
+['thermodynamic control','thermodynamic product','c','Conditions (higher temperature, longer time, reversible steps) under which the most stable product dominates.'],
+['transition state','transition states','c','The highest-energy arrangement along a reaction step, with bonds partly made and broken. It can’t be isolated; drawn in brackets with ‡.'],
+['reactive intermediate','reaction intermediate','c','A short-lived species formed between steps, sitting in an energy well (e.g. carbocations, carbanions, radicals, tetrahedral intermediates). Unlike a transition state it can sometimes be detected.'],
+['activation energy','Ea|energy barrier','c','The energy needed to reach the transition state from the starting materials. A lower barrier means a faster reaction; catalysts lower it.'],
+['rate-determining step','rate-limiting step|RDS|slow step','c','The step with the highest transition state energy, which controls the overall rate. In SN1 it is ionisation to the carbocation.'],
+['Hammond postulate','Hammond\'s postulate','c','A transition state resembles the species (reactant or product) closest to it in energy. So endothermic steps have late, product-like transition states.'],
+['polar protic','protic solvent|polar protic solvent','c','Solvents with O–H or N–H bonds (water, alcohols, acetic acid). They hydrogen-bond to anions, which slows SN2 but stabilises the ions in SN1/E1.'],
+['polar aprotic','aprotic solvent|polar aprotic solvent|dipolar aprotic','c','Polar solvents without O–H or N–H (DMSO, DMF, acetone, MeCN). They solvate cations but not anions, so nucleophiles are more reactive: they favour SN2.'],
+['Lewis acid','Lewis acids','c','An electron-pair acceptor, such as AlCl₃, BF₃, FeBr₃ or H⁺.'],
+['Lewis base','Lewis bases','c','An electron-pair donor, such as NH₃, H₂O or an alkoxide.'],
+['Brønsted acid','Bronsted acid|Brønsted–Lowry acid|Bronsted-Lowry acid|proton donor','c','A proton (H⁺) donor.'],
+['conjugate base','conjugate bases','c','What is left after an acid loses H⁺. The stronger the acid, the weaker (more stable) its conjugate base.'],
+['conjugate acid','conjugate acids','c','What forms when a base gains H⁺.'],
+['nucleophilicity','nucleophilic strength','c','How fast a species attacks an electrophile. Increases with negative charge and polarisability; decreases with steric bulk. In protic solvents I⁻ > Br⁻ > Cl⁻ > F⁻.'],
+['Walden inversion','inversion of configuration|backside attack|back-side attack','c','The umbrella-like flip of configuration at carbon in an SN2 reaction, caused by the nucleophile attacking from the side opposite the leaving group.'],
+['racemisation','racemization','c','Conversion of a single enantiomer into a racemic mixture, e.g. through a planar carbocation (SN1) or an enol.'],
+['antiperiplanar','anti-periplanar|anti periplanar','c','H–C–C–LG arranged with H and the leaving group at 180° in the same plane. E2 needs this geometry; in cyclohexanes both must be axial.'],
+['syn addition','','c','Both new groups add to the same face of a double bond (e.g. hydrogenation, hydroboration, OsO₄ dihydroxylation, epoxidation).'],
+['anti addition','','c','The two new groups add to opposite faces of a double bond (e.g. Br₂ via a bromonium ion, halohydrin formation).'],
+['tetrahedral intermediate','tetrahedral intermediates','c','The sp³ intermediate formed when a nucleophile adds to a C=O carbon. In acyl substitution it collapses, expelling a leaving group.'],
+['carbonyl','carbonyl group','c','The C=O group. The carbon is electrophilic (δ+) and the oxygen is nucleophilic and basic (δ−). Found in aldehydes, ketones, acids and their derivatives.'],
+['hemiacetal','hemiacetals|hemiketal','c','A carbon bearing both an OH and an OR, made by adding one alcohol to an aldehyde or ketone. Usually unstable unless it is in a ring (as in sugars).'],
+['acetal','acetals|ketal','c','A carbon bearing two OR groups, made from an aldehyde or ketone and two alcohols (or a diol) with acid and water removal. Stable to base, so acetals protect C=O; aqueous acid removes them.'],
+['hemiaminal','carbinolamine','c','Intermediate with OH and NR₂ on the same carbon, formed when an amine adds to C=O on the way to an imine or enamine.'],
+['imine','imines|Schiff base','c','C=N compound made from an aldehyde or ketone and a primary amine with loss of water (best near pH 5). Hydrolysed back by aqueous acid.'],
+['enamine','enamines','c','C=C–NR₂ compound made from an aldehyde or ketone and a secondary amine. A neutral enolate equivalent: it reacts with electrophiles at the α-carbon (Stork enamine reaction).'],
+['iminium ion','iminium','c','C=N⁺ ion; a stronger electrophile than C=O. Intermediate in imine and enamine formation, reductive amination and the Mannich reaction.'],
+['oxime','oximes','c','C=N–OH compound from an aldehyde or ketone and hydroxylamine.'],
+['hydrazone','hydrazones','c','C=N–NH₂ compound from an aldehyde or ketone and hydrazine; the intermediate in the Wolff–Kishner reduction.'],
+['cyanohydrin','cyanohydrins','c','A carbon bearing OH and CN, made by adding HCN (or CN⁻ then acid) to an aldehyde or ketone.'],
+['hydrate','gem-diol|geminal diol','c','Two OH groups on one carbon, made by adding water to a C=O. Usually only significant for formaldehyde and aldehydes with electron-withdrawing groups.'],
+['protecting group','protecting groups|protection|deprotection','c','A group temporarily attached to hide a reactive functional group, then removed later. E.g. TBS for alcohols, acetals for ketones, Boc for amines.'],
+['acylium ion','acylium','c','R–C≡O⁺, the electrophile in Friedel–Crafts acylation. Stabilised by resonance, so it does not rearrange.'],
+['arenium ion','sigma complex|σ-complex|Wheland intermediate','c','The carbocation formed when an electrophile adds to a benzene ring; it loses H⁺ to restore aromaticity.'],
+['ortho/para director','ortho, para-director|ortho/para-director|o/p director','c','A substituent that makes electrophiles attack the positions next to it (ortho) and opposite it (para). All activating groups and the halogens are o/p directors.'],
+['meta director','meta-director|meta directing','c','A substituent that directs electrophiles to the meta position: NO₂, CN, C=O groups, SO₃H, CF₃ and NR₃⁺. All are deactivating.'],
+['activating group','activating groups|activator','c','A substituent that makes a benzene ring react faster than benzene in electrophilic substitution, by donating electrons (OH, OR, NH₂, alkyl).'],
+['deactivating group','deactivating groups|deactivator','c','A substituent that makes a benzene ring react more slowly than benzene, by withdrawing electrons (NO₂, CN, C=O, halogens).'],
+['electrophilic aromatic substitution','EAS|SEAr','x','Replacement of an H on an aromatic ring by an electrophile: the ring attacks E⁺ to form an arenium ion, which loses H⁺. Includes nitration, halogenation, sulfonation and Friedel–Crafts reactions.'],
+['SNAr','nucleophilic aromatic substitution','x','Substitution on an aromatic ring by a nucleophile, through an anionic Meisenheimer complex. Needs a leaving group with strong EWGs (e.g. NO₂) ortho or para to it.'],
+['benzyne','aryne','c','A highly reactive benzene with a strained “triple bond”, formed by elimination from an aryl halide with a very strong base such as NaNH₂.'],
+['carbene','carbenes','c','A neutral carbon with two bonds and two non-bonding electrons, e.g. :CH₂ or :CCl₂. Adds to alkenes to make cyclopropanes.'],
+['ylide','ylid|ylides','c','A neutral molecule with + and − charges on adjacent atoms, e.g. the phosphorus ylide Ph₃P⁺–CH₂⁻ used in the Wittig reaction.'],
+['oxonium ion','oxonium','c','An oxygen with three bonds and a positive charge, e.g. a protonated alcohol (ROH₂⁺), which can lose water as a good leaving group.'],
+['halonium ion','bromonium ion|chloronium ion|iodonium ion','c','A three-membered ring with a positively charged halogen, formed when X₂ adds to an alkene. Opening it from the back gives anti addition.'],
+['epoxide','epoxides|oxirane','c','A strained three-membered cyclic ether. Ring-opened by nucleophiles: under basic conditions at the less substituted carbon; under acidic conditions at the more substituted carbon.'],
+['Bürgi–Dunitz angle','Burgi-Dunitz angle|Bürgi-Dunitz angle|Bürgi–Dunitz trajectory','c','Nucleophiles approach a C=O carbon at about 107° to the C=O bond, so they overlap best with the π* orbital.'],
+['α-carbon','alpha carbon|α carbon|alpha-carbon','c','The carbon next to a functional group, usually next to C=O. Its hydrogens (α-hydrogens) are acidic (pKa ≈ 20 for ketones).'],
+['α-hydrogen','alpha hydrogen|α hydrogen|alpha-hydrogen|α-H','c','A hydrogen on the α-carbon. Removing it gives an enolate.'],
+['β-hydrogen','beta hydrogen|β hydrogen|beta-hydrogen|β-H','c','A hydrogen on the carbon next to the carbon bearing the leaving group. Elimination (E1/E2) removes a β-hydrogen to form the C=C.'],
+['chemical shift','δ value','t','The position of an NMR signal (δ, in ppm). Electronegative atoms and π systems nearby move signals downfield (higher δ).'],
+['n+1 rule','n + 1 rule','t','In ¹H NMR, a signal is split into n+1 peaks by n equivalent neighbouring hydrogens (doublet, triplet, quartet…).'],
+['coupling constant','J value','t','The spacing between lines of a split NMR signal (J, in Hz). Coupled hydrogens share the same J.'],
+['deshielding','deshielded','t','Electron withdrawal near a nucleus reduces its shielding, moving its NMR signal downfield (larger δ).'],
+['Michael acceptor','Michael acceptors','c','An α,β-unsaturated carbonyl (or nitrile, nitro) compound that accepts nucleophiles at the β-carbon.'],
+['enone','enones|α,β-unsaturated carbonyl|alpha,beta-unsaturated','c','A C=C conjugated with a C=O. Electrophilic at the carbonyl carbon (1,2-addition) and the β-carbon (1,4-addition).'],
+['dienophile','dienophiles','c','The alkene (2π) partner in a Diels–Alder reaction; electron-withdrawing groups make it react faster.'],
+['diene','dienes|conjugated diene','c','A molecule with two C=C bonds. In a Diels–Alder reaction it must be conjugated and able to adopt the s-cis conformation.'],
+['endo rule','endo product|endo selectivity','c','In Diels–Alder reactions, the substituent on the dienophile usually ends up endo (tucked under the new ring), because of secondary orbital overlap.'],
+['pericyclic reaction','pericyclic','c','A reaction that happens in one step through a cyclic transition state, with no intermediates, e.g. Diels–Alder.'],
+['homolysis','homolytic cleavage|homolytic fission','c','Breaking a bond so that each atom keeps one electron, forming two radicals. Shown with fishhook arrows.'],
+['heterolysis','heterolytic cleavage|heterolytic fission','c','Breaking a bond so that one atom takes both electrons, forming a cation and an anion.'],
+['curly arrow','curved arrow|curly arrows|curved arrows','c','Shows the movement of an electron pair, from a lone pair or bond (the tail) to an atom or bond (the head).'],
+['fishhook arrow','half-headed arrow|fishhook arrows','c','A single-barbed curly arrow showing one electron moving, used for radical reactions.'],
+['formal charge','formal charges','c','Charge assigned to an atom: valence electrons − lone-pair electrons − number of bonds.'],
+['lone pair','lone pairs|non-bonding pair','c','A pair of valence electrons not used in bonding. Lone pairs make atoms nucleophilic and basic.'],
+['electronegativity','electronegative','c','How strongly an atom attracts bonding electrons (Pauling scale: F 4.0, O 3.5, N 3.0, C 2.5, H 2.1).'],
+['hydrogen bonding','hydrogen bond|H-bond|H-bonding','c','Attraction between an H on O, N or F and a lone pair on another O, N or F. Raises boiling points and helps water dissolve polar molecules.'],
+['zwitterion','zwitterions','c','A neutral molecule containing both a + and a − charge, e.g. amino acids at neutral pH (H₃N⁺–CHR–COO⁻).'],
+['solvolysis','solvolysis reaction','c','A substitution or elimination where the solvent (water or an alcohol) is the nucleophile or base, typically SN1/E1 at tertiary carbons.'],
+['carbocation rearrangement','hydride shift|1,2-hydride shift|methyl shift|1,2-methyl shift|alkyl shift|1,2-shift','c','A carbocation can become more stable by moving an H (with its electrons) or an alkyl group from a neighbouring carbon, e.g. secondary → tertiary. Watch for it in SN1, E1, HX addition and acid hydration.'],
+/* named reactions and mechanism types */
+['SN2','SN2 reaction|bimolecular nucleophilic substitution','x','One-step substitution: the nucleophile attacks from the back as the leaving group leaves, inverting the configuration. Rate = k[R–X][Nu]. Fastest for methyl and primary carbons; favoured by strong nucleophiles and polar aprotic solvents.'],
+['SN1','SN1 reaction|unimolecular nucleophilic substitution','x','Two-step substitution: the leaving group leaves to form a carbocation, then the nucleophile adds. Rate = k[R–X]. Favoured for tertiary, allylic and benzylic carbons, weak nucleophiles and polar protic solvents. Gives racemisation and possible rearrangements.'],
+['E2','E2 reaction|bimolecular elimination','x','One-step elimination: a base removes a β-H as the leaving group leaves, forming C=C. Needs an antiperiplanar H and leaving group. Favoured by strong bases and heat; gives the Zaitsev alkene unless the base is bulky.'],
+['E1','E1 reaction|unimolecular elimination','x','Two-step elimination through a carbocation, which then loses a β-H. Competes with SN1 for tertiary substrates with weak bases; heat favours E1. Gives the Zaitsev alkene.'],
+['E1cB','E1cb|E1cB elimination','x','Elimination through a carbanion (conjugate base): deprotonation first, then loss of the leaving group. Typical when the H is acidic (next to C=O) and the leaving group is poor, as in aldol condensation.'],
+['aldol reaction','aldol addition|aldol','x','An enolate (or enol) adds to the C=O of another aldehyde or ketone, giving a β-hydroxy carbonyl compound.'],
+['aldol condensation','aldol condensations','x','An aldol reaction followed by loss of water (usually with heat) to give an α,β-unsaturated carbonyl (enone).'],
+['Claisen condensation','Claisen','x','An ester enolate attacks another ester, expelling an alkoxide, to give a β-keto ester. Needs a full equivalent of base (e.g. NaOEt).'],
+['Dieckmann condensation','Dieckmann','x','An intramolecular Claisen condensation of a diester, forming a 5- or 6-membered cyclic β-keto ester.'],
+['Michael addition','Michael reaction|conjugate addition|1,4-addition','x','A nucleophile (often a stabilised enolate or a cuprate) adds to the β-carbon of an α,β-unsaturated carbonyl.'],
+['Robinson annulation','Robinson ring formation','x','A Michael addition followed by an intramolecular aldol condensation, building a new six-membered ring with an enone.'],
+['Diels–Alder reaction','Diels-Alder|Diels–Alder|Diels Alder|[4+2] cycloaddition','x','A conjugated diene and a dienophile combine in one step to make a cyclohexene, forming two new σ bonds. Stereospecific (suprafacial) and usually endo-selective.'],
+['Wittig reaction','Wittig','x','A phosphorus ylide (Ph₃P=CHR) reacts with an aldehyde or ketone to give an alkene and Ph₃P=O, placing the C=C exactly where the C=O was.'],
+['Horner–Wadsworth–Emmons','Horner-Wadsworth-Emmons|HWE reaction|HWE','x','A Wittig-type reaction using a phosphonate-stabilised carbanion; usually gives E-alkenes.'],
+['Grignard reaction','Grignard addition','x','Addition of a Grignard reagent to a carbonyl (or epoxide, or CO₂) followed by acid workup, forming a new C–C bond and an alcohol (or acid).'],
+['Friedel–Crafts alkylation','Friedel-Crafts alkylation|Friedel Crafts alkylation','x','Alkylation of an aromatic ring with an alkyl halide and AlCl₃. Problems: carbocations rearrange, the product reacts again (polyalkylation), and it fails on deactivated rings.'],
+['Friedel–Crafts acylation','Friedel-Crafts acylation|Friedel Crafts acylation','x','Acylation of an aromatic ring with an acid chloride (or anhydride) and AlCl₃, giving an aryl ketone. No rearrangement and no over-reaction.'],
+['Williamson ether synthesis','Williamson synthesis|Williamson ether','x','SN2 reaction of an alkoxide (RO⁻) with a methyl or primary alkyl halide to make an ether. With secondary or tertiary halides, E2 wins.'],
+['Fischer esterification','Fischer–Speier esterification|Fischer esterification reaction','x','A carboxylic acid and an alcohol, with an acid catalyst, give an ester and water. Reversible; driven by excess alcohol or removing water.'],
+['saponification','base hydrolysis of an ester|ester hydrolysis','x','Hydrolysis of an ester with NaOH or KOH to give a carboxylate salt and an alcohol. Irreversible, because the carboxylate is deprotonated.'],
+['transesterification','trans-esterification','x','Swapping the alkoxy group of an ester by reaction with a different alcohol (with acid or base catalysis).'],
+['Gabriel synthesis','Gabriel amine synthesis','x','Makes primary amines without over-alkylation: potassium phthalimide does SN2 on an alkyl halide, then hydrazine releases the amine.'],
+['reductive amination','reductive aminations','x','An aldehyde or ketone and an amine form an imine or iminium ion, which is reduced (NaBH₃CN or NaBH(OAc)₃) to an amine.'],
+['hydroboration–oxidation','hydroboration|hydroboration-oxidation|hydroboration oxidation','x','BH₃ then H₂O₂/NaOH adds H and OH across an alkene: syn, anti-Markovnikov (OH on the less substituted carbon), no rearrangement.'],
+['ozonolysis','ozonolyses','x','O₃ cleaves C=C into two C=O groups. Me₂S or Zn workup gives aldehydes/ketones; H₂O₂ workup gives acids/ketones.'],
+['epoxidation','epoxidations','x','Turning an alkene into an epoxide, usually with mCPBA. Syn and stereospecific: cis alkenes give cis epoxides.'],
+['dihydroxylation','syn-dihydroxylation|anti-dihydroxylation','x','Adding two OH groups across a C=C. OsO₄ or cold KMnO₄ gives syn diols; epoxidation then acid hydrolysis gives anti diols.'],
+['hydrogenation','catalytic hydrogenation','x','Adding H₂ across C=C or C≡C with a metal catalyst (Pd/C, Pt, Ni). Syn addition; Lindlar’s catalyst stops alkynes at cis alkenes.'],
+['halohydrin','halohydrin formation|bromohydrin|chlorohydrin','x','X₂ in water adds X and OH across an alkene, anti, with OH on the more substituted carbon.'],
+['oxymercuration','oxymercuration–demercuration|oxymercuration-demercuration','x','Hg(OAc)₂ and water, then NaBH₄: Markovnikov addition of water to an alkene without carbocation rearrangement.'],
+['Baeyer–Villiger oxidation','Baeyer-Villiger|Baeyer–Villiger','x','A peroxyacid (mCPBA) inserts an O next to a ketone’s C=O, giving an ester. The group that migrates best: tertiary alkyl > secondary alkyl ≈ phenyl > primary > methyl.'],
+['Cannizzaro reaction','Cannizzaro','x','Aldehydes without α-H, in concentrated NaOH, disproportionate: one molecule is reduced to an alcohol, another oxidised to a carboxylate.'],
+['Clemmensen reduction','Clemmensen','x','Zn(Hg) and HCl reduce an aldehyde or ketone C=O to CH₂ (acidic conditions).'],
+['Wolff–Kishner reduction','Wolff-Kishner|Wolff–Kishner|Wolff Kishner','x','Hydrazine with KOH and heat reduces an aldehyde or ketone C=O to CH₂ (basic conditions), via a hydrazone and loss of N₂.'],
+['Birch reduction','Birch','x','Na or Li in liquid NH₃ with an alcohol reduces benzene rings to 1,4-cyclohexadienes.'],
+['Swern oxidation','Swern','x','DMSO and oxalyl chloride, then Et₃N, at −78 °C: primary alcohols → aldehydes and secondary → ketones. By-products include smelly Me₂S.'],
+['Hell–Volhard–Zelinsky','Hell-Volhard-Zelinsky|HVZ|HVZ reaction','x','Br₂ and PBr₃ brominate a carboxylic acid at the α-carbon.'],
+['haloform reaction','iodoform test|iodoform reaction','x','A methyl ketone with X₂ and NaOH is converted to a carboxylate and CHX₃. With I₂, yellow iodoform (CHI₃) precipitates: a test for CH₃C=O and CH₃CH(OH) groups.'],
+['Mannich reaction','Mannich','x','An enol, formaldehyde and an amine combine to form a β-amino carbonyl compound, via an iminium ion.'],
+['Suzuki coupling','Suzuki reaction|Suzuki–Miyaura|Suzuki-Miyaura','x','Palladium-catalysed coupling of an organoboron compound with an aryl or vinyl halide, forming a new C–C bond. Needs a base.'],
+['Heck reaction','Heck coupling','x','Palladium-catalysed coupling of an aryl or vinyl halide with an alkene.'],
+['Sonogashira coupling','Sonogashira','x','Palladium/copper-catalysed coupling of a terminal alkyne with an aryl or vinyl halide.'],
+['Hofmann elimination','Hofmann degradation','x','Exhaustive methylation of an amine (MeI) then heating with Ag₂O gives the less substituted alkene by E2.'],
+['Beckmann rearrangement','Beckmann','x','Acid converts an oxime into an amide; the group anti to the OH migrates to nitrogen.'],
+['pinacol rearrangement','pinacol','x','Acid converts a 1,2-diol into a ketone by a carbocation 1,2-shift.'],
+['Sandmeyer reaction','Sandmeyer','x','An aryl diazonium salt with CuCl, CuBr or CuCN gives ArCl, ArBr or ArCN.'],
+['diazotisation','diazotization|diazonium salt|diazonium','x','An aromatic amine with NaNO₂ and HCl at 0–5 °C gives a diazonium salt (ArN₂⁺), whose N₂ is an excellent leaving group.'],
+['nitration','nitrations','x','Electrophilic aromatic substitution with NO₂⁺ (from HNO₃ and H₂SO₄), giving a nitroarene.'],
+['sulfonation','sulphonation','x','Electrophilic aromatic substitution with SO₃ in H₂SO₄ (fuming sulfuric acid), giving ArSO₃H. Reversible.'],
+['Finkelstein reaction','Finkelstein','x','NaI in acetone converts an alkyl chloride or bromide to the iodide by SN2; NaCl or NaBr precipitates and drives it forward.'],
+['Strecker synthesis','Strecker','x','An aldehyde, ammonia and cyanide give an α-aminonitrile, which hydrolyses to an amino acid.'],
+['Stork enamine reaction','Stork enamine|Stork enamine alkylation','x','An enamine is alkylated or acylated at the α-carbon, then hydrolysed back to the ketone.'],
+['radical halogenation','free-radical halogenation|radical chlorination|radical bromination','x','X₂ and light substitute an alkane C–H with C–X by a chain: initiation, propagation, termination. Bromination is very selective for the most substituted C–H.'],
+['acid chloride','acid chlorides|acyl chloride|acyl chlorides','c','RCOCl, the most reactive carboxylic acid derivative. Reacts with water, alcohols and amines to give acids, esters and amides.'],
+['acid anhydride','anhydride|anhydrides','c','(RCO)₂O. Reactive acylating agent, a little less reactive than an acid chloride.'],
+['nitrile','nitriles|cyano group','c','R–C≡N. Hydrolysed to carboxylic acids, reduced to amines (LiAlH₄) or aldehydes (DIBAL-H); attacked by Grignard reagents to give ketones.'],
+];
+
+/* ---------- glossary: highlight terms in notes, hover cards, glossary browser ---------- */
+const GL={mode:'all',user:[],userAt:0,E:[],byId:new Map(),rx:[],map:new Map(),pop:null,hot:null,showT:0,hideT:0,raf:0,px:0,py:0,cat:'all',q:'',edit:null,dirty:new Set(),scanT:0};
+try{const v=localStorage.getItem('bondline.glossMode');if(['all','first','off'].includes(v))GL.mode=v}catch(e){}
+const GL_KEY=()=>'bondline.gloss'+(uidHint?':'+uidHint:'');
+function glLoadLocal(){try{const o=JSON.parse(localStorage.getItem(GL_KEY())||'null');if(o&&Array.isArray(o.terms)){GL.user=glCleanUser(o.terms);GL.userAt=+o.at||0}}catch(e){}}
+function glCleanUser(list){return(Array.isArray(list)?list:[]).slice(0,500).filter(x=>x&&x.t).map(x=>({id:String(x.id||uid()).replace(/[^a-z0-9]/gi,'').slice(0,24)||uid(),t:String(x.t).trim().slice(0,80),a:(Array.isArray(x.a)?x.a:[]).map(s=>String(s).trim().slice(0,80)).filter(Boolean).slice(0,10),d:String(x.d||'').trim().slice(0,1200)}))}
+function glSaveUser(){GL.userAt=Date.now();try{localStorage.setItem(GL_KEY(),JSON.stringify({at:GL.userAt,terms:GL.user}))}catch(e){}
+  if(Store.mode==='cloud'&&Store.col)Store.col.doc('_gloss').set(JSON.parse(JSON.stringify({v:1,at:GL.userAt,terms:GL.user}))).catch(()=>toast('Couldn\'t sync your glossary terms. They are saved on this device.'))}
+async function glCloudLoad(){if(Store.mode!=='cloud'||!Store.col)return;try{const d=await Store.col.doc('_gloss').get();const r=d.exists?d.data():null;
+  if(r&&(+r.at||0)>GL.userAt){GL.user=glCleanUser(r.terms);GL.userAt=+r.at;try{localStorage.setItem(GL_KEY(),JSON.stringify({at:GL.userAt,terms:GL.user}))}catch(e){}glBuild();glRefreshAll();if(!$('#glScrim').hidden)glRender()}
+  else if(GL.user.length&&(!r||(+r.at||0)<GL.userAt))glSaveUser()}catch(e){}}
+/* text normalisation keeps the length the same so offsets still line up */
+const GL_NORM={'₀':'0','₁':'1','₂':'2','₃':'3','₄':'4','₅':'5','₆':'6','₇':'7','₈':'8','₉':'9','⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁺':'+','⁻':'-','−':'-','‐':'-','‑':'-','‒':'-','–':'-','—':'-','’':"'",'‘':"'",' ':' ','·':'·'};
+const glNorm=s=>s.replace(/[₀-₉⁰¹²³⁴-⁹⁺⁻−‐‑‒–—’‘ ]/g,c=>GL_NORM[c]||c);
+function glIsCS(n){return /\d/.test(n)||/[A-Z]/.test(n.slice(1))||(n.length<=4&&/[A-Z]/.test(n))}
+const glEsc=s=>s.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&');
+function glEntries(){const out=[];
+  GLOSS_DATA.forEach((r,i)=>out.push({id:'b'+i,t:r[0],a:r[1]?r[1].split('|'):[],c:r[2],d:r[3],s:r[4]||''}));
+  for(const u of GL.user)out.push({id:'u'+u.id,t:u.t,a:u.a,c:'u',d:u.d,s:''});
+  return out}
+function glBuild(){
+  GL.E=glEntries();GL.byId=new Map(GL.E.map(e=>[e.id,e]));
+  const cs=new Map(),ci=new Map();
+  /* user terms first so they win over built-in ones with the same name */
+  const order=[...GL.E.filter(e=>e.c==='u'),...GL.E.filter(e=>e.c!=='u')];
+  for(const e of order)for(const raw of[e.t,...e.a]){const n=glNorm(String(raw||'').trim());if(n.length<2)continue;
+    if(glIsCS(n)){if(!cs.has(n))cs.set(n,e)}else{const k=n.toLowerCase();if(!ci.has(k))ci.set(k,e)}}
+  const pat=keys=>[...keys].sort((a,b)=>b.length-a.length).map(k=>glEsc(k).replace(/\s+/g,'\\s+')).join('|');
+  GL.cs=cs;GL.ci=ci;GL.rx=[];
+  try{if(cs.size)GL.rx.push({re:new RegExp(`(?<![\\p{L}\\p{N}])(?:${pat(cs.keys())})(?![\\p{L}\\p{N}])`,'gu'),cs:true});
+    if(ci.size)GL.rx.push({re:new RegExp(`(?<![\\p{L}\\p{N}])(?:${pat(ci.keys())})(?:e?s)?(?![\\p{L}\\p{N}])`,'giu'),cs:false})}catch(err){console.warn('glossary pattern',err);GL.rx=[]}
+}
+function glLookup(m,cs){const t=m.replace(/\s+/g,' ');if(cs)return GL.cs.get(t);const k=t.toLowerCase();return GL.ci.get(k)||(k.endsWith('es')&&GL.ci.get(k.slice(0,-2)))||(k.endsWith('s')&&GL.ci.get(k.slice(0,-1)))||null}
+const GL_SKIP='span[data-tex],code,pre,svg,mjx-container,.gl-skip,input,textarea,button';
+const GL_BLOCK='p,div,li,h1,h2,h3,h4,h5,h6,blockquote,td,th,figcaption,dt,dd,section,article';
+function glScanText(root){
+  const starts=[],nodes=[];let txt='',last=null;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{const p=n.parentElement;if(!p||!n.data)return NodeFilter.FILTER_REJECT;const s=p.closest(GL_SKIP);return s&&root.contains(s)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}});
+  for(let n=w.nextNode();n;n=w.nextNode()){const b=n.parentElement.closest(GL_BLOCK);if(b!==last){txt+='\n';last=b}starts.push(txt.length);nodes.push(n);txt+=n.data}
+  return{txt:glNorm(txt),starts,nodes}}
+function glPos(S,i){let lo=0,hi=S.starts.length-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(S.starts[mid]<=i)lo=mid;else hi=mid-1}return{node:S.nodes[lo],off:i-S.starts[lo]}}
+function glFind(root){
+  const S=glScanText(root);if(!S.nodes.length)return[];const hits=[];
+  for(const{re,cs}of GL.rx){re.lastIndex=0;let m;while((m=re.exec(S.txt))){const e=glLookup(m[0],cs);if(e)hits.push({s:m.index,e:m.index+m[0].length,entry:e})}}
+  hits.sort((a,b)=>a.s-b.s||(b.e-b.s)-(a.e-a.s));
+  const out=[];let end=-1;
+  for(const h of hits){if(h.s<end)continue;const a=glPos(S,h.s),z=glPos(S,h.e-1);if(!a.node||!z.node)continue;
+    const r=document.createRange();try{r.setStart(a.node,a.off);r.setEnd(z.node,Math.min(z.node.data.length,z.off+1))}catch(err){continue}
+    out.push({r,entry:h.entry});end=h.e}
+  return out}
+function glRoots(){return[...document.querySelectorAll('#blocks .text-body,#svPage,.gl-scan')]}
+function glApply(){
+  if(!window.Highlight||!CSS.highlights)return;
+  const all=[];for(const[root,items]of GL.map){if(!root.isConnected){GL.map.delete(root);continue}for(const it of items)if(!it.hidden)all.push(it.r)}
+  CSS.highlights.set('bl-gloss',new Highlight(...all));
+}
+function glRefreshAll(){GL.dirty.clear();GL.map.clear();if(GL.mode!=='off'&&GL.rx.length){const seen=new Set();for(const root of glRoots()){const items=glFind(root);if(GL.mode==='first')for(const it of items){if(seen.has(it.entry.id))it.hidden=true;else seen.add(it.entry.id)}GL.map.set(root,items)}}glApply();glHidePop(true)}
+function glQueue(root){if(!root)return;GL.dirty.add(root);clearTimeout(GL.scanT);GL.scanT=setTimeout(()=>{if(GL.mode==='first'){glRefreshAll();return}for(const r of GL.dirty)if(r.isConnected&&GL.mode!=='off')GL.map.set(r,glFind(r));GL.dirty.clear();glApply()},260)}
+function glObserve(){
+  const mo=new MutationObserver(list=>{if(GL.mode==='off')return;for(const m of list){const el=m.target.nodeType===1?m.target:m.target.parentElement;if(!el)continue;
+      const root=el.closest('.text-body,#svPage,.gl-scan');if(root){glQueue(root);continue}
+      for(const n of m.addedNodes)if(n.nodeType===1){if(n.matches('.text-body,#svPage,.gl-scan'))glQueue(n);n.querySelectorAll&&n.querySelectorAll('.text-body,#svPage,.gl-scan').forEach(glQueue)}}});
+  for(const id of['#blocks','#shareView'])if($(id))mo.observe($(id),{subtree:true,childList:true,characterData:true});
+}
+/* hover cards */
+function glHit(x,y){const el=document.elementFromPoint(x,y);if(!el)return null;if(el.closest('.gl-pop'))return'pop';const root=el.closest('.text-body,#svPage,.gl-scan');if(!root)return null;const items=GL.map.get(root);if(!items)return null;
+  for(const it of items){if(it.hidden)continue;for(const rc of it.r.getClientRects())if(x>=rc.left-1&&x<=rc.right+1&&y>=rc.top-2&&y<=rc.bottom+2)return it}return null}
+const glF=(t,c)=>['s','r'].includes(c)?esc(t).replace(/([A-Za-z\)])(\d+)/g,'$1<sub>$2</sub>'):esc(t);
+function glCard(e){const cat=GLOSS_CATS[e.c]||'';const aka=e.a.filter(x=>x&&x!==e.t).slice(0,4);let mol='';if(e.s){try{mol=`<div class="gl-mol" aria-hidden="true">${smilesSVG(e.s,0.82)}</div>`}catch(err){}}
+  return`<div class="gl-h"><b>${glF(e.t,e.c)}</b><span class="gl-cat c-${e.c}">${esc(cat)}</span></div>${aka.length?`<div class="gl-aka">${aka.map(x=>glF(x,e.c)).join(' · ')}</div>`:''}${mol}<p>${esc(e.d||'No definition yet.')}</p>`}
+function glShowPop(it,sticky){
+  glHidePop(true);const e=it.entry,rc=it.r.getClientRects()[0]||it.r.getBoundingClientRect();if(!rc)return;
+  const p=document.createElement('div');p.className='gl-pop';p.setAttribute('role','tooltip');p.id='glPop';
+  p.innerHTML=glCard(e)+`<div class="gl-act"><button class="linkbtn" data-glopen="${esc(e.id)}">Open in glossary</button></div>`;
+  document.body.appendChild(p);
+  const w=p.offsetWidth,h=p.offsetHeight;let left=Math.max(8,Math.min(innerWidth-w-8,rc.left+rc.width/2-w/2)),top=rc.bottom+8;if(top+h>innerHeight-8)top=Math.max(8,rc.top-h-8);
+  p.style.left=left+'px';p.style.top=top+'px';GL.pop=p;GL.hot=it;GL.sticky=!!sticky;
+  if(window.Highlight&&CSS.highlights)CSS.highlights.set('bl-gloss-hot',new Highlight(it.r));
+  p.addEventListener('pointerleave',()=>{if(!GL.sticky)glHideSoon()});p.addEventListener('pointerenter',()=>clearTimeout(GL.hideT));
+  p.addEventListener('click',ev=>{const o=ev.target.closest('[data-glopen]');if(o){glHidePop(true);openGlossary(o.dataset.glopen)}});
+}
+function glHidePop(now){clearTimeout(GL.showT);clearTimeout(GL.hideT);if(!now){glHideSoon();return}if(GL.pop){GL.pop.remove();GL.pop=null}GL.hot=null;GL.sticky=false;if(window.Highlight&&CSS.highlights)CSS.highlights.delete('bl-gloss-hot')}
+function glHideSoon(){clearTimeout(GL.hideT);GL.hideT=setTimeout(()=>glHidePop(true),220)}
+function glHover(){GL.raf=0;if(GL.mode==='off'||!GL.map.size)return;const it=glHit(GL.px,GL.py);
+  if(it==='pop'){clearTimeout(GL.hideT);return}
+  if(!it){clearTimeout(GL.showT);if(GL.pop&&!GL.sticky)glHideSoon();return}
+  if(GL.hot===it){clearTimeout(GL.hideT);return}
+  clearTimeout(GL.showT);GL.showT=setTimeout(()=>{if(glHit(GL.px,GL.py)===it)glShowPop(it,false)},GL.pop?60:240)}
+function wireGloss(){
+  glLoadLocal();glBuild();glObserve();
+  document.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;GL.px=e.clientX;GL.py=e.clientY;if(!GL.raf)GL.raf=requestAnimationFrame(glHover)},{passive:true});
+  /* tap (touch) or click while holding Alt shows the card and keeps it open */
+  document.addEventListener('click',e=>{if(GL.mode==='off')return;if(e.target.closest('.gl-pop'))return;const touch=e.pointerType==='touch'||(App.coarse&&!e.pointerType);
+    if(touch||e.altKey){const it=glHit(e.clientX,e.clientY);if(it&&it!=='pop'){glShowPop(it,true);return}}if(GL.sticky)glHidePop(true)},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&GL.pop)glHidePop(true)});
+  $('#main').addEventListener('scroll',()=>{if(GL.pop)glHidePop(true)},{passive:true});
+  addEventListener('resize',()=>{if(GL.pop)glHidePop(true)});
+  const sel=$('#setGloss');if(sel){sel.value=GL.mode;sel.onchange=()=>setGlossMode(sel.value)}
+  wireGlossBrowser();
+  requestAnimationFrame(glRefreshAll);
+}
+function setGlossMode(m){GL.mode=m;try{localStorage.setItem('bondline.glossMode',m)}catch(e){}const sel=$('#setGloss');if(sel)sel.value=m;glRefreshAll();toast(m==='off'?'Glossary highlights are off':m==='first'?'Highlighting the first mention of each term':'Highlighting every glossary term')}
+/* glossary browser */
+function openGlossary(id,prefill){$('#glScrim').hidden=false;document.body.classList.add('sk-lock');if(prefill!=null){GL.edit={id:null,t:prefill,a:'',d:''}}GL.focus=id||null;if(id){GL.q='';GL.cat='all';$('#glSearch').value=''}glRender();
+  if(id){const el=document.getElementById('gl-'+id);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}}
+  else if(GL.edit)$('#glForm [name="t"]')&&$('#glForm [name="t"]').focus();else $('#glSearch').focus()}
+function closeGlossary(){$('#glScrim').hidden=true;document.body.classList.remove('sk-lock');GL.edit=null}
+function glMatches(e,q){if(!q)return true;q=q.toLowerCase();return e.t.toLowerCase().includes(q)||e.a.some(a=>a.toLowerCase().includes(q))||(e.d||'').toLowerCase().includes(q)}
+function glRender(){
+  const q=GL.q.trim(),cats=['all',...Object.keys(GLOSS_CATS)];
+  const counts={};for(const e of GL.E)counts[e.c]=(counts[e.c]||0)+1;
+  $('#glCats').innerHTML=cats.filter(c=>c==='all'||counts[c]||c==='u').map(c=>`<button class="tf${GL.cat===c?' on':''}" data-glcat="${c}" aria-pressed="${GL.cat===c}">${c==='all'?'All':esc(GLOSS_CATS[c])}<span>${c==='all'?GL.E.length:counts[c]||0}</span></button>`).join('');
+  const list=GL.E.filter(e=>(GL.cat==='all'||e.c===GL.cat)&&glMatches(e,q)).sort((a,b)=>a.t.localeCompare(b.t,undefined,{sensitivity:'base'}));
+  const form=GL.edit?`<form class="gl-form" id="glForm"><h3>${GL.edit.id?'Edit your term':'Add a term'}</h3><label>Term<input name="t" required maxlength="80" value="${esc(GL.edit.t||'')}" placeholder="e.g. Jones reagent"></label><label>Other names or spellings <small>(separate with commas)</small><input name="a" maxlength="400" value="${esc(GL.edit.a||'')}" placeholder="e.g. CrO3/H2SO4"></label><label>Definition<textarea name="d" rows="3" maxlength="1200" placeholder="What it is and what it does">${esc(GL.edit.d||'')}</textarea></label><div class="np-row"><span class="np-sp"></span><button type="button" class="btn" data-glf="cancel">Cancel</button><button class="btn primary" type="submit">Save term</button></div></form>`:'';
+  $('#glList').innerHTML=form+(list.length?list.map(e=>`<article class="gl-item" id="gl-${esc(e.id)}">${glCard(e)}${e.c==='u'?`<div class="gl-act"><button class="linkbtn" data-glf="edit" data-id="${esc(e.id)}">Edit</button><button class="linkbtn danger" data-glf="del" data-id="${esc(e.id)}">Delete</button></div>`:''}</article>`).join('')
+    :`<p class="hm-muted gl-none">${GL.cat==='u'&&!q?'You haven\'t added any terms yet. Press “Add a term” to make your own.':'Nothing in the glossary matches that.'}</p>`);
+  $('#glCount').textContent=`${list.length} term${list.length===1?'':'s'}`;
+}
+function wireGlossBrowser(){
+  $('#glClose').onclick=closeGlossary;
+  $('#glScrim').addEventListener('click',e=>{if(e.target.id==='glScrim')closeGlossary()});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#glScrim').hidden)return;e.stopPropagation();e.preventDefault();if(GL.edit){GL.edit=null;glRender()}else closeGlossary()},true);
+  $('#glSearch').addEventListener('input',e=>{GL.q=e.target.value;glRender()});
+  $('#glAdd').onclick=()=>{GL.edit={id:null,t:'',a:'',d:''};glRender();$('#glList').scrollTop=0;$('#glForm [name="t"]').focus()};
+  $('#glCats').addEventListener('click',e=>{const b=e.target.closest('[data-glcat]');if(!b)return;GL.cat=b.dataset.glcat;glRender()});
+  $('#glList').addEventListener('click',e=>{const b=e.target.closest('[data-glf]');if(!b)return;const k=b.dataset.glf;
+    if(k==='cancel'){GL.edit=null;glRender();return}
+    const u=GL.user.find(x=>'u'+x.id===b.dataset.id);if(!u)return;
+    if(k==='edit'){GL.edit={id:u.id,t:u.t,a:u.a.join(', '),d:u.d};glRender();$('#glList').scrollTop=0;return}
+    if(k==='del'){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Click again to delete';return}GL.user=GL.user.filter(x=>x!==u);glSaveUser();glBuild();glRefreshAll();glRender();toast(`Deleted “${u.t}”`)}});
+  $('#glList').addEventListener('submit',e=>{e.preventDefault();const f=e.target;const t=f.t.value.trim();if(!t)return;
+    const a=f.a.value.split(/[,;\n]/).map(s=>s.trim()).filter(Boolean).slice(0,10),d=f.d.value.trim();
+    if(GL.edit&&GL.edit.id){const u=GL.user.find(x=>x.id===GL.edit.id);if(u)Object.assign(u,{t,a,d})}else GL.user.push({id:uid(),t,a,d});
+    GL.edit=null;GL.user=glCleanUser(GL.user);glSaveUser();glBuild();glRefreshAll();GL.cat='u';glRender();$('#glSearch').focus();toast(`Saved “${t}” to your glossary`)});
+}
+function glSelectionText(){const s=getSelection();const t=s&&s.rangeCount?String(s).trim():'';return t.length<=80?t:''}
+
+/* ---------- reaction predictor ---------- */
+/* A small, editable molecule graph built from SMILES. Hydrogens are implicit and recalculated with fixH(). */
+class PM{
+  constructor(){this.A=[];this.B=[]}
+  static from(smi){const m=parseSmiles(smi),M=new PM();m.atoms.forEach(a=>M.A.push({el:a.el,ch:a.charge||0,h:a.hImp||0,ar:!!a.arom}));m.bonds.forEach(b=>M.B.push({a:b.a,b:b.b,o:b.order,ar:!!b.arom}));M.perceive();return M}
+  perceive(){/* mark benzene-type rings written in Kekulé form as aromatic */const ok=i=>!this.A[i].dead&&['C','N'].includes(this.A[i].el);
+    this.A.forEach((a,s)=>{if(!ok(s)||a.ar)return;const walk=path=>{const last=path[path.length-1];if(path.length===6){if(this.bond(last,s)<0)return false;const o=q=>this.order(path[q],path[(q+1)%6]);
+        for(let q=0;q<6;q++){const x=o(q),y=o((q+1)%6);if(x+y!==3)return false}for(let q=0;q<6;q++){this.A[path[q]].ar=true;this.B[this.bond(path[q],path[(q+1)%6])].ar=true}return true}
+      for(const n of this.nb(last))if(ok(n.to)&&!path.includes(n.to)&&walk([...path,n.to]))return true;return false};walk([s])})}
+  clone(){const M=new PM();M.A=this.A.map(a=>({...a}));M.B=this.B.map(b=>({...b}));return M}
+  live(i){return!this.A[i].dead}
+  nb(i){const r=[];this.B.forEach((b,bi)=>{if(b.dead)return;if(b.a===i)r.push({to:b.b,o:b.o,bi});else if(b.b===i)r.push({to:b.a,o:b.o,bi})});return r}
+  bond(i,j){return this.B.findIndex(b=>!b.dead&&((b.a===i&&b.b===j)||(b.a===j&&b.b===i)))}
+  order(i,j){const k=this.bond(i,j);return k<0?0:this.B[k].o}
+  add(el,ch=0){this.A.push({el,ch,h:0,ar:false});return this.A.length-1}
+  link(i,j,o=1){this.B.push({a:i,b:j,o})}
+  unlink(i,j){const k=this.bond(i,j);if(k>=0)this.B[k].dead=true}
+  setO(i,j,o){const k=this.bond(i,j);if(k>=0)this.B[k].o=o;else this.link(i,j,o)}
+  kill(i){this.A[i].dead=true;this.B.forEach(b=>{if(b.a===i||b.b===i)b.dead=true})}
+  killBranch(i,from){/* remove atom i and everything reachable from it without passing through `from` */const seen=new Set([from]),st=[i];while(st.length){const x=st.pop();if(seen.has(x))continue;seen.add(x);for(const n of this.nb(x))if(!seen.has(n.to))st.push(n.to);this.kill(x)}}
+  attach(at,frag,o=1){const F=PM.from(frag),base=this.A.length;F.A.forEach(a=>this.A.push({...a}));F.B.forEach(b=>this.B.push({...b,a:b.a+base,b:b.b+base}));this.link(at,base,o);return base}
+  fixH(){this.A.forEach((a,i)=>{if(a.dead)return;const s=this.nb(i).reduce((t,n)=>t+n.o,0),c=a.ch||0;let v;
+    switch(a.el){case'C':case'Si':v=c?3:4;break;case'N':v=3+c;break;case'O':v=2+c;break;case'S':v=[2,4,6].find(x=>x>=s)||s;break;case'P':v=[3,5].find(x=>x>=s)||s;break;case'B':v=3-c;break;case'F':case'Cl':case'Br':case'I':v=c?0:1;break;case'H':v=1;break;default:v=s}
+    a.h=Math.max(0,v-s)})}
+  G(){const map=new Map(),atoms=[];this.A.forEach((a,i)=>{if(a.dead)return;map.set(i,atoms.length);atoms.push({el:a.el,charge:a.ch||0,h:a.h||0})});
+    const bonds=[];this.B.forEach(b=>{if(b.dead||!map.has(b.a)||!map.has(b.b))return;bonds.push({a:map.get(b.a),b:map.get(b.b),o:b.o,src:b})});
+    const adj=atoms.map(()=>[]);bonds.forEach((b,bi)=>{adj[b.a].push({to:b.b,o:b.o,bi});adj[b.b].push({to:b.a,o:b.o,bi})});return{atoms,bonds,adj,map}}
+  comps(){/* split into connected pieces */const out=[],seen=new Set();this.A.forEach((a,i)=>{if(a.dead||seen.has(i))return;const ids=[],st=[i];while(st.length){const x=st.pop();if(seen.has(x))continue;seen.add(x);ids.push(x);for(const n of this.nb(x))st.push(n.to)}
+    const M=this.clone();M.A.forEach((q,k)=>{if(!ids.includes(k))q.dead=true});M.B.forEach(b=>{if(!ids.includes(b.a))b.dead=true});out.push(M)});return out}
+  smiles(st){const G=this.G();const stereo={centres:{},dbs:{}};if(st)for(const[key,lab]of Object.entries(st)){const[i,j]=key.split('-').map(Number);const bi=G.bonds.findIndex(b=>(b.a===G.map.get(i)&&b.b===G.map.get(j))||(b.a===G.map.get(j)&&b.b===G.map.get(i)));if(bi>=0)stereo.dbs[bi]=lab}
+    return toSmiles(G,stereo)}
+}
+const PRC={};
+function prName(smi){if(PRC[smi]!==undefined)return PRC[smi];let r=null;try{const M=PM.from(smi);M.fixH();const G=M.G();const nm=nameMolecule(G,{centres:{},dbs:{}});r=nm&&nm.name?(nm.common?`${nm.name} (${nm.common})`:nm.name):null}catch(e){r=null}PRC[smi]=r;return r}
+function prCanon(smi){try{const M=PM.from(smi);M.fixH();return M.smiles()}catch(e){return smi}}
+/* ---- functional group helpers ---- */
+const isC=(M,i)=>M.A[i].el==='C',isHal=(M,i)=>['Cl','Br','I'].includes(M.A[i].el);
+const cNbrs=(M,i)=>M.nb(i).filter(n=>M.A[n.to].el==='C'&&!M.A[n.to].dead);
+const pDeg=(M,i)=>cNbrs(M,i).length;
+const sp3=(M,i)=>isC(M,i)&&!M.A[i].ar&&M.nb(i).every(n=>n.o===1);
+const carbonylO=(M,i)=>{if(!isC(M,i))return-1;const n=M.nb(i).find(n=>n.o===2&&M.A[n.to].el==='O'&&!M.A[n.to].ch);return n?n.to:-1};
+const pIsCO=(M,i)=>carbonylO(M,i)>=0;
+const hetSingles=(M,i)=>M.nb(i).filter(n=>n.o===1&&!['C','H'].includes(M.A[n.to].el));
+function acylKind(M,i){/* aldehyde, ketone, acid, ester, acylCl, amide, anhydride */if(!pIsCO(M,i))return null;const h=hetSingles(M,i);if(!h.length){const c=pDeg(M,i);return c>=2?'ketone':'aldehyde'}
+  const x=h[0].to,el=M.A[x].el;if(el==='Cl'||el==='Br')return'acylCl';if(el==='N')return'amide';if(el==='O'){if(M.A[x].h>=1)return'acid';if(M.A[x].ch===-1)return'carboxylate';const o=M.nb(x).find(n=>n.to!==i);if(o&&pIsCO(M,o.to))return'anhydride';return'ester'}return null}
+function fg(M){
+  const F={alcohol:[],phenol:[],halide:[],sulfonate:[],alkene:[],alkyne:[],aldehyde:[],ketone:[],acid:[],ester:[],acylCl:[],amide:[],anhydride:[],nitrile:[],nitro:[],epoxide:[],amine:[],aniline:[],arom:prRings(M),ether:[]};
+  M.A.forEach((a,i)=>{if(a.dead)return;
+    if(a.el==='O'&&!a.ch){const n=M.nb(i);if(a.h===1&&n.length===1&&n[0].o===1&&isC(M,n[0].to)){const c=n[0].to;if(M.A[c].ar)F.phenol.push({o:i,c});else if(!pIsCO(M,c)&&sp3(M,c))F.alcohol.push({o:i,c,deg:pDeg(M,c)})}
+      if(n.length===2&&n.every(x=>x.o===1&&isC(M,x.to))){const[p,q]=n.map(x=>x.to);if(M.bond(p,q)>=0)F.epoxide.push({o:i,c1:p,c2:q});else if(!pIsCO(M,p)&&!pIsCO(M,q))F.ether.push({o:i,c1:p,c2:q})}
+      if(n.length===2){const s=n.find(x=>M.A[x.to].el==='S'),c=n.find(x=>isC(M,x.to));if(s&&c&&M.nb(s.to).filter(y=>y.o===2&&M.A[y.to].el==='O').length===2&&sp3(M,c.to))F.sulfonate.push({x:i,c:c.to,deg:pDeg(M,c.to)})}}
+    if(isHal(M,i)&&!a.ch){const n=M.nb(i);if(n.length===1&&isC(M,n[0].to)){const c=n[0].to;if(sp3(M,c))F.halide.push({x:i,c,deg:pDeg(M,c)});else F.halide.push({x:i,c,deg:pDeg(M,c),bad:M.A[c].ar?'aryl':'vinyl'})}}
+    if(isC(M,i)){const k=acylKind(M,i);if(k&&F[k])F[k].push({c:i,o:carbonylO(M,i)});const tn=M.nb(i).find(n=>n.o===3&&M.A[n.to].el==='N');if(tn)F.nitrile.push({c:i,n:tn.to})}
+    if(a.el==='N'&&a.ch===1&&M.nb(i).some(n=>n.o===2&&M.A[n.to].el==='O')){const c=M.nb(i).find(n=>isC(M,n.to));if(c)F.nitro.push({n:i,c:c.to})}
+    if(a.el==='N'&&!a.ch&&M.nb(i).every(n=>n.o===1)&&!a.ar&&!M.nb(i).some(n=>pIsCO(M,n.to))){const cs=cNbrs(M,i);if(cs.some(n=>M.A[n.to].ar))F.aniline.push({n:i,c:cs.find(n=>M.A[n.to].ar).to,k:cs.length});else F.amine.push({n:i,k:cs.length})}
+  });
+  M.B.forEach(b=>{if(b.dead||!isC(M,b.a)||!isC(M,b.b)||M.A[b.a].ar||M.A[b.b].ar)return;if(b.o===2)F.alkene.push({a:b.a,b:b.b});if(b.o===3)F.alkyne.push({a:b.a,b:b.b})});
+  return F}
+function prRings(M){/* benzene-type rings as ordered 6-cycles of aromatic carbons */const out=[],key=new Set();
+  const ar=i=>!M.A[i].dead&&M.A[i].ar&&isC(M,i);
+  M.A.forEach((a,s)=>{if(!ar(s))return;const walk=(path)=>{const last=path[path.length-1];if(path.length===6){if(M.bond(last,s)>=0){const k=[...path].sort((x,y)=>x-y).join(',');if(!key.has(k)){key.add(k);out.push(path.slice())}}return}
+    for(const n of M.nb(last))if(ar(n.to)&&!path.includes(n.to))walk([...path,n.to])};walk([s])});
+  return out}
+/* ---- reagents ---- */
+const PR_RG={
+  nabh4:['nabh4','sodium borohydride'],nabh3cn:['nabh3cn','nabh(oac)3','stab','sodium cyanoborohydride','sodium triacetoxyborohydride'],
+  lialh4:['lialh4','lah','lithium aluminium hydride','lithium aluminum hydride'],dibal:['dibal-h','dibal','dibalh'],
+  h2:['h2','hydrogen'],cat:['pd/c','pd-c','pd','pt','pto2','ni','raney ni','raney nickel','palladium','platinum','rh'],lindlar:['lindlar','lindlar\'s catalyst','lindlar catalyst','pd/caco3','pd/baso4'],
+  na:['na','li','sodium metal','lithium metal'],nh3:['nh3','ammonia','nh3(l)','liquid ammonia','liquid nh3'],
+  hydrazine:['n2h4','nh2nh2','h2nnh2','hydrazine'],znhg:['zn(hg)','zn/hg','zinc amalgam'],zn:['zn'],snfe:['sn','fe','sncl2','tin','iron'],
+  pcc:['pcc','pdc','pyridinium chlorochromate'],dmp:['dmp','dess-martin','dess-martin periodinane'],swern:['swern','(cocl)2','oxalyl chloride'],tempo:['tempo'],
+  jones:['jones','jones reagent','cro3','h2cro4','na2cr2o7','k2cr2o7','chromic acid','dichromate','na2cr2o7'],kmno4:['kmno4','permanganate'],
+  oso4:['oso4','osmium tetroxide'],nmo:['nmo'],o3:['o3','ozone'],dms:['dms','me2s','(ch3)2s','zn/acoh','pph3'],h2o2:['h2o2','hydrogen peroxide'],
+  mcpba:['mcpba','m-cpba','peracid','peroxyacid','rco3h','mmpp','ch3co3h'],bh3:['bh3','b2h6','borane','9-bbn','bh3-thf','bh3thf','sia2bh','disiamylborane'],
+  hgoac:['hg(oac)2','mercuric acetate','mercury(ii) acetate'],hgso4:['hgso4'],
+  br2:['br2','bromine'],cl2:['cl2','chlorine'],i2:['i2','iodine'],nbs:['nbs'],hbr:['hbr'],hcl:['hcl'],hi:['hi'],
+  roor:['roor','peroxide','peroxides','(phco2)2','bz2o2','(phcoo)2','tbuooh'],light:['hv','hν','light','uv'],
+  febr3:['febr3'],fecl3:['fecl3'],alcl3:['alcl3','lewis acid'],fe:['fe filings'],
+  h2so4:['h2so4','sulfuric acid','sulphuric acid','conc. h2so4'],hno3:['hno3','nitric acid'],so3:['so3','oleum','fuming sulfuric acid','fuming h2so4'],h3po4:['h3po4','phosphoric acid'],
+  tsoh:['tsoh','ptsa','p-tsoh','ptsoh'],acid:['h+','h3o+','acid','dilute acid','aqueous acid','hcl(aq)','acidic workup'],
+  h2o:['h2o','water','aqueous'],socl2:['socl2','thionyl chloride'],pbr3:['pbr3'],pcl3:['pcl3','pcl5'],pocl3:['pocl3'],py:['pyridine','py','pyr'],
+  tscl:['tscl','tosyl chloride','p-tscl'],mscl:['mscl','mesyl chloride'],et3n:['et3n','net3','triethylamine','dipea','iprnet2','i-pr2net'],
+  nah:['nah','sodium hydride'],naoh:['naoh','koh','lioh','hydroxide','oh-','ho-','sodium hydroxide','potassium hydroxide'],
+  naome:['naome','meona','sodium methoxide','meo-','ch3ona','ch3o-'],naoet:['naoet','etona','sodium ethoxide','eto-','ch3ch2ona','ethoxide'],
+  tbuok:['t-buok','tbuok','kotbu','kot-bu','potassium tert-butoxide','t-buo-','tbuo-','potassium t-butoxide'],lda:['lda','lithium diisopropylamide','lihmds','khmds','nahmds'],dbu:['dbu','dbn'],
+  nanh2:['nanh2','sodium amide','sodamide'],k2co3:['k2co3','cs2co3','na2co3'],
+  nacn:['nacn','kcn','cn-','hcn','cyanide','sodium cyanide'],nan3:['nan3','azide','n3-','sodium azide'],nai:['nai','ki','iodide','sodium iodide'],
+  nash:['nash','hs-','sodium hydrosulfide'],nasme:['nasme','mesna','mes-','ch3sna','sodium thiomethoxide'],naoac:['naoac','acetate','ch3coona','ch3co2na'],
+  mg:['mg','magnesium'],co2:['co2','dry ice','carbon dioxide'],
+  dmso:['dmso'],dmf:['dmf'],acetone:['acetone'],thf:['thf'],ether:['et2o','ether','diethyl ether'],dcm:['ch2cl2','dcm'],mecn:['mecn','acetonitrile','ch3cn'],hexane:['hexane','hexanes'],
+  meoh:['meoh','methanol','ch3oh'],etoh:['etoh','ethanol','ch3ch2oh'],tbuoh:['t-buoh','tbuoh'],acoh:['acoh','acetic acid','ch3co2h','ch3cooh','hoac'],
+  glycol:['ethylene glycol','hoch2ch2oh','ethane-1,2-diol','(ch2oh)2'],
+  tollens:['tollens','tollens\'','tollens\' reagent','ag2o','[ag(nh3)2]+','agno3','ag(nh3)2+'],
+  nano2:['nano2','sodium nitrite','hono'],cucl:['cucl'],cubr:['cubr'],cucn:['cucn'],hbf4:['hbf4'],h3po2:['h3po2'],
+  dcc:['dcc','edc','edci'],ch2n2:['ch2n2','diazomethane'],nh2oh:['nh2oh','hydroxylamine'],tbaf:['tbaf'],tfa:['tfa','trifluoroacetic acid'],
+  bu3snh:['bu3snh','tributyltin hydride'],ac2o:['ac2o','acetic anhydride','(ch3co)2o'],heat:['heat','δ','reflux','hot','warm','high temperature','heating','boil'],cold:['cold','ice','ice bath','dilute'],
+};
+const PR_R=[['ch3ch2ch2ch2','CCCC'],['ch3ch2ch2','CCC'],['(ch3)2ch','C(C)C'],['(ch3)3c','C(C)(C)C'],['ch3ch2','CC'],['ch3','C'],['me','C'],['et','CC'],['n-pr','CCC'],['npr','CCC'],['pr','CCC'],['i-pr','C(C)C'],['ipr','C(C)C'],['n-bu','CCCC'],['nbu','CCCC'],['bu','CCCC'],['t-bu','C(C)(C)C'],['tbu','C(C)(C)C'],['sec-bu','C(C)CC'],['ph','c1ccccc1'],['c6h5','c1ccccc1'],['bn','Cc1ccccc1'],['phch2','Cc1ccccc1'],['c6h5ch2','Cc1ccccc1'],['benzyl','Cc1ccccc1'],['allyl','CC=C'],['vinyl','C=C']];
+const PR_RNAME={C:'methyl',CC:'ethyl',CCC:'propyl','C(C)C':'isopropyl',CCCC:'butyl','C(C)(C)C':'tert-butyl','C(C)CC':'sec-butyl','c1ccccc1':'phenyl','Cc1ccccc1':'benzyl','CC=C':'allyl','C=C':'vinyl'};
+const PR_AMINES=[['nh3',''],['ammonia',''],['ch3nh2','C'],['menh2','C'],['methylamine','C'],['etnh2','CC'],['ch3ch2nh2','CC'],['ethylamine','CC'],['me2nh','C.C'],['(ch3)2nh','C.C'],['dimethylamine','C.C'],['et2nh','CC.CC'],['diethylamine','CC.CC'],['pyrrolidine','ring5'],['piperidine','ring6'],['morpholine','morph'],['aniline','c1ccccc1'],['phnh2','c1ccccc1'],['bnnh2','Cc1ccccc1'],['benzylamine','Cc1ccccc1']];
+function prNormText(s){return glNorm(String(s||'')).toLowerCase().replace(/[·•]/g,' ').replace(/[“”"]/g,'').replace(/\s+/g,' ').trim()}
+function prParse(text){
+  const t=prNormText(text),R=new Set(),found=[];
+  const all=[];for(const[k,al]of Object.entries(PR_RG))for(const a of al)all.push([a,k]);all.sort((x,y)=>y[0].length-x[0].length);
+  const used=new Array(t.length).fill(false);const bnd=c=>!c||!/[a-z0-9]/.test(c);
+  for(const[a,k]of all){let i=t.indexOf(a);while(i>=0){const e=i+a.length;if(bnd(t[i-1])&&bnd(t[e])&&!used.slice(i,e).some(Boolean)){R.add(k);found.push(a);for(let j=i;j<e;j++)used[j]=true}i=t.indexOf(a,i+1)}}
+  const free=t.split('').map((c,i)=>used[i]?' ':c).join('');
+  const ctx={R,text:t,free,heat:R.has('heat'),cold:R.has('cold')};
+  const temp=[...t.matchAll(/(-?\d{1,3})\s*°?\s*c\b/g)].map(m=>+m[1]);if(temp.some(x=>x>=60))ctx.heat=true;if(temp.some(x=>x<=0))ctx.cold=true;
+  /* organometallics, alkyl halides, amines, ylides and acyl chlorides named in the reagents */
+  const rg=PR_R.map(r=>glEsc(r[0])).join('|');
+  let m=new RegExp(`(?:^|[^a-z0-9])(${rg})(mgbr|mgcl|mgi|li)(?![a-z0-9])`).exec(t);if(m){ctx.rm={frag:PR_R.find(r=>r[0]===m[1])[1],kind:m[2]==='li'?'RLi':'RMgX',txt:m[1]+m[2]}}
+  else if(/grignard/.test(t))ctx.rmUnknown=true;
+  m=new RegExp(`(?:^|[^a-z0-9])(${rg})2culi(?![a-z0-9])`).exec(t);if(m)ctx.cu={frag:PR_R.find(r=>r[0]===m[1])[1]};
+  m=new RegExp(`(?:^|[^a-z0-9])(${rg})(i|br|cl|otf|ots|oms)(?![a-z0-9])`).exec(free);if(m)ctx.rx={frag:PR_R.find(r=>r[0]===m[1])[1],x:m[2]};
+  else if(/methyl iodide|iodomethane/.test(t))ctx.rx={frag:'C',x:'i'};else if(/ethyl bromide|bromoethane/.test(t))ctx.rx={frag:'CC',x:'br'};else if(/benzyl bromide/.test(t))ctx.rx={frag:'Cc1ccccc1',x:'br'};
+  m=/(?:^|[^a-z0-9])(ch3cocl|accl|acetyl chloride|ch3ch2cocl|propanoyl chloride|phcocl|bzcl|benzoyl chloride|c6h5cocl)(?![a-z0-9])/.exec(t);if(m)ctx.acyl={frag:/ph|bz|benzoyl|c6h5/.test(m[1])?'C(=O)c1ccccc1':/ch2|propanoyl/.test(m[1])?'C(=O)CC':'C(=O)C',src:'chloride'};
+  else if(R.has('ac2o'))ctx.acyl={frag:'C(=O)C',src:'anhydride'};
+  m=/ph3p=(ch2|chch3|chph|c\(ch3\)2|chco2et|chcooet|chch2ch3)/.exec(t);if(m)ctx.ylide={ch2:'C',chch3:'CC',chph:'Cc1ccccc1','c(ch3)2':'C(C)C',chco2et:'CC(=O)OCC',chcooet:'CC(=O)OCC',chch2ch3:'CCC'}[m[1]];else if(/wittig|ylide/.test(t))ctx.ylide='C';
+  for(const[a,f]of PR_AMINES){if(new RegExp(`(?:^|[^a-z0-9])${glEsc(a)}(?![a-z0-9])`).test(t)&&!(a==='nh3'&&R.has('na'))){ctx.amine={frag:f,name:a};break}}
+  if(/sodium acetylide|hc≡cna|nac≡ch|hc≡c-|lic≡ch/.test(t))ctx.alkynide='C#C';
+  ctx.protic=R.has('h2o')||R.has('meoh')||R.has('etoh')||R.has('tbuoh')||R.has('acoh');
+  ctx.aprotic=R.has('dmso')||R.has('dmf')||R.has('acetone')||R.has('thf')||R.has('mecn')||R.has('dcm')||R.has('ether');
+  ctx.acidAny=['h2so4','hcl','hbr','hi','h3po4','tsoh','acid','hno3'].some(k=>R.has(k));
+  ctx.has=(...ks)=>ks.some(k=>R.has(k));
+  return ctx}
+/* ---- outcome builders ---- */
+const prOut=(title,type,extra)=>Object.assign({title,type,products:[],why:[],warn:[],lib:null},extra||{});
+const prKey=smi=>smi.split('.').map(x=>prName(x)||prCanon(x)).sort().join('+');
+function prPush(out,M,label,note,stereo){M.fixH();const parts=M.comps().map(c=>c.smiles(stereo)).filter(Boolean);const smi=parts.join('.');if(!smi)return;const k=prKey(smi)+(stereo?JSON.stringify(Object.values(stereo)):'');if(out.products.some(p=>p.key===k))return;out.products.push({smi,label,note:note||'',key:k,ez:stereo&&parts.length===1?Object.values(stereo)[0]:null})}
+function prPushSmi(out,smi,label,note){if(!smi)return;const k=prKey(smi);if(out.products.some(p=>p.key===k))return;out.products.push({smi,label,note:note||'',key:k})}
+/* carbocation: one 1,2-shift if it gives a more substituted cation */
+function prShift(M,c){
+  if(pDeg(M,c)>=3||M.nb(c).some(n=>M.A[n.to].ar))return{c,M,how:null};
+  for(const n of cNbrs(M,c)){const j=n.to;if(!sp3(M,j))continue;
+    if(M.A[j].h>=1&&pDeg(M,j)>pDeg(M,c)&&pDeg(M,j)>=3)return{c:j,M,how:'hydride'};}
+  for(const n of cNbrs(M,c)){const j=n.to;if(!sp3(M,j)||pDeg(M,j)!==4)continue;const me=cNbrs(M,j).map(x=>x.to).find(k=>k!==c&&M.A[k].h===3&&pDeg(M,k)===1);if(me==null)continue;
+    const M2=M.clone();M2.unlink(j,me);M2.link(c,me);M2.fixH();return{c:j,M:M2,how:'methyl'}}
+  return{c,M,how:null}}
+function prMarkov(M,a,b){/* carbon that carries the cation (more substituted; benzylic wins) */const sc=i=>pDeg(M,i)+(M.nb(i).some(n=>M.A[n.to].ar)?1.5:0);return sc(a)>=sc(b)?[a,b]:[b,a]}
+/* elimination products from carbon c (which loses a group): returns [{M,subs,beta}] */
+function prElims(M,c,removeFn){const out=[];for(const n of cNbrs(M,c)){const b=n.to;if(!sp3(M,b)||M.A[b].h<1)continue;const M2=M.clone();removeFn(M2);M2.setO(c,b,2);M2.fixH();const subs=pDeg(M2,c)-1+pDeg(M2,b)-1;out.push({M:M2,subs,beta:b})}
+  const seen=new Set();return out.filter(o=>{const s=o.M.smiles(),k=prKey(s);if(seen.has(k))return false;seen.add(k);o.smi=s;return true}).sort((x,y)=>y.subs-x.subs)}
+function prTransStereo(M,c,b){/* (E) label for a simple disubstituted alkene */const oc=cNbrs(M,c).filter(n=>n.to!==b),ob=cNbrs(M,b).filter(n=>n.to!==c);if(oc.length===1&&ob.length===1&&M.A[c].h===1&&M.A[b].h===1)return{[c+'-'+b]:'E'};return null}
+/* ---- substitution vs elimination at an sp3 carbon with a leaving group ---- */
+function prSubElim(M,site,ctx,lgName){
+  const R=ctx.R,c=site.c,d=site.deg,betaH=cNbrs(M,c).some(n=>sp3(M,n.to)&&M.A[n.to].h>0),stab=M.nb(c).some(n=>M.A[n.to].ar)||cNbrs(M,c).some(n=>M.nb(n.to).some(x=>x.o===2&&isC(M,x.to)&&!M.A[x.to].ar));
+  const neo=d===1&&cNbrs(M,c).some(n=>pDeg(M,n.to)===4);
+  let base='none',nu=null,nuName='';
+  if(R.has('tbuok')||R.has('lda')||R.has('dbu')){base='bulky';nuName=R.has('tbuok')?'tert-butoxide':R.has('lda')?'LDA':'DBU';nu=R.has('tbuok')?'OC(C)(C)C':null}
+  else if(R.has('nanh2')){base='strong';nuName='amide (NH₂⁻)';nu='N'}
+  else if(R.has('naoet')){base='strong';nuName='ethoxide';nu='OCC'}else if(R.has('naome')){base='strong';nuName='methoxide';nu='OC'}else if(R.has('naoh')){base='strong';nuName='hydroxide';nu='O'}
+  else if(R.has('nai')){base='nuc';nuName='iodide';nu='I'}else if(R.has('nacn')){base='nuc';nuName='cyanide';nu='C#N'}else if(R.has('nan3')){base='nuc';nuName='azide';nu='N=[N+]=[N-]'}
+  else if(R.has('nash')){base='nuc';nuName='hydrosulfide';nu='S'}else if(R.has('nasme')){base='nuc';nuName='methanethiolate';nu='SC'}else if(R.has('naoac')){base='nuc';nuName='acetate';nu='OC(C)=O'}
+  else if(ctx.alkynide){base='strongnuc';nuName='acetylide';nu='C#C'}
+  else if(ctx.amine){base='nuc';nuName=ctx.amine.name==='nh3'||ctx.amine.name==='ammonia'?'ammonia':ctx.amine.name;nu=ctx.amine.frag===''?'N':ctx.amine.frag.includes('.')?'N('+ctx.amine.frag.split('.')[0]+')'+ctx.amine.frag.split('.')[1]:ctx.amine.frag.startsWith('ring')||ctx.amine.frag==='morph'?null:'N'+ctx.amine.frag}
+  else if(R.has('hbr')||R.has('hcl')||R.has('hi')){base='weak';}
+  else if(R.has('h2o')||R.has('meoh')||R.has('etoh')||R.has('acoh')||R.has('tbuoh')||!R.size){base='weak'}
+  if(base==='none')return null;
+  /* solvent for SN1/E1 */
+  const solv=R.has('meoh')?['OC','methanol']:R.has('etoh')?['OCC','ethanol']:R.has('acoh')?['OC(C)=O','acetic acid']:['O','water'];
+  if(base==='weak'){nu=solv[0];nuName=solv[1]}
+  const out=prOut('','',{mech:{scores:{SN2:0,SN1:0,E2:0,E1:0},reasons:[]}});const S=out.mech.scores,why=out.mech.reasons;
+  const cls=['methyl','primary','secondary','tertiary'][Math.min(3,d)];
+  why.push(`The carbon carrying the leaving group (${lgName}) is <b>${cls}</b>${stab?' and next to a C=C or benzene ring (allylic/benzylic), so a carbocation there is stabilised':''}.`);
+  const bName={bulky:`${nuName} is a strong, bulky base`,strong:`${nuName} is a strong base and a good nucleophile`,strongnuc:`${nuName} is a strong base and a good nucleophile`,nuc:`${nuName} is a good nucleophile but a weak base`,weak:`${nuName} is a weak nucleophile and a weak base`}[base];why.push(bName+'.');
+  if(d===0){if(base==='weak'){S.SN2=10}else S.SN2=100}
+  else if(d===1){if(base==='bulky'){S.E2=90;S.SN2=15}else if(base==='strong'||base==='strongnuc'){S.SN2=85;S.E2=30}else if(base==='nuc'){S.SN2=100}else{if(stab){S.SN1=70;S.E1=20}else S.SN2=15}
+    if(neo){S.SN2=Math.min(S.SN2,10);why.push('The neighbouring carbon is quaternary (neopentyl), which blocks backside attack, so SN2 is extremely slow.')}}
+  else if(d===2){if(base==='bulky'){S.E2=95;S.SN2=5}else if(base==='strong'||base==='strongnuc'){S.E2=80;S.SN2=35}else if(base==='nuc'){S.SN2=85;S.E2=10}else{S.SN1=stab?70:55;S.E1=45}}
+  else{if(base==='bulky'||base==='strong'||base==='strongnuc'){S.E2=100}else if(base==='nuc'){S.SN1=65;S.E1=35;why.push('A tertiary carbon is too crowded for SN2, so substitution has to go through a carbocation.')}else{S.SN1=60;S.E1=40}}
+  if(ctx.heat){if(S.E1)S.E1+=30;if(S.E2)S.E2+=15;if(S.SN1)S.SN1-=15;if(S.SN2&&S.E2)S.SN2-=15;why.push('Heat favours elimination, because it makes more molecules (entropy).')}
+  if(!betaH){S.E1=0;S.E2=0;why.push('There is no hydrogen on a neighbouring carbon (β-H), so elimination is impossible.')}
+  if(base==='nuc'&&ctx.aprotic&&S.SN2)why.push('A polar aprotic solvent leaves the nucleophile unsolvated and speeds up SN2.');
+  if((S.SN1||S.E1)&&ctx.protic)why.push('A polar protic solvent stabilises the carbocation and the leaving group, helping SN1/E1.');
+  const rank=Object.entries(S).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  if(!rank.length||rank[0][1]<20){out.title='Very slow or no reaction';out.type='Substitution / elimination';out.mech.winner=null;why.push(d===0||d===1?'A primary or methyl carbon cannot form a carbocation, and this nucleophile is too weak for SN2, so almost nothing happens.':'Neither substitution nor elimination is favourable here.');return out}
+  const win=rank[0][0];out.mech.winner=win;out.title=`${win} ${win[0]==='S'?'substitution':'elimination'}`;out.type=win[0]==='S'?'Nucleophilic substitution':'Elimination';out.lib={SN2:'sn2',SN1:'sn1',E2:'e2',E1:'e1'}[win];
+  const subst=(MM,cc,label,note)=>{if(!nu){out.warn.push(`Bondline can't draw the substitution product with ${nuName} yet.`);return}const M2=MM.clone();site.remove(M2);M2.attach(cc,nu);prPush(out,M2,label,note)};const shiftNote=h=>h?`After a 1,2-${h} shift. `:'';
+  const elim=(MM,cc,label,hof,pre)=>{const E=prElims(MM,cc,M2=>site.remove(M2));if(!E.length)return;const pick=hof?E[E.length-1]:E[0];const st=prTransStereo(pick.M,cc,pick.beta);prPush(out,pick.M,label,(pre||'')+(E.length>1?(hof?'Hofmann product: the bulky base removes the most accessible H, giving the less substituted alkene.':'Zaitsev product: the more substituted alkene.'):''),st);if(E.length>1){const other=hof?E[0]:E[E.length-1];prPush(out,other.M,'Minor product',hof?'Zaitsev alkene':'Less substituted alkene')}};
+  const order=rank.filter(x=>x[1]>=25||x===rank[0]);
+  order.forEach(([k],ix)=>{const label=ix===0?'Major product':'Minor product';
+    if(k==='SN2')subst(M,c,label,M.A[c].h<2&&d>=1?'Inversion of configuration at the carbon that was attacked.':'');
+    else if(k==='E2')elim(M,c,label,base==='bulky','');
+    else{const sh=prShift(M,c);const MM=sh.M,cc=sh.c;if(sh.how&&ix===0)why.push(`The ${cls} carbocation rearranges by a 1,2-${sh.how} shift to a more stable ${['','','secondary','tertiary'][Math.min(3,pDeg(MM,cc))]} carbocation before reacting.`);
+      if(k==='SN1')subst(MM,cc,label,shiftNote(sh.how)+'If the carbon is a stereocentre, SN1 gives a racemic mixture.');else elim(MM,cc,label,false,shiftNote(sh.how))}});
+  return out}
+/* ---- the rules ---- */
+function prRules(M,F,ctx){
+  const R=ctx.R,has=ctx.has,res=[];const add=o=>{if(o&&o.products.length)res.push(o);return o};
+  /* --- alkenes and alkynes --- */
+  if(F.alkene.length||F.alkyne.length){
+    if(has('o3')){const ox=has('h2o2');const o=prOut('Ozonolysis',ox?'Oxidative cleavage of C=C':'Cleavage of C=C (reductive workup)',{lib:null});const M2=M.clone();
+      for(const e of F.alkene){M2.unlink(e.a,e.b);for(const x of[e.a,e.b]){M2.attach(x,'O',2)}}M2.fixH();if(ox)for(const e of F.alkene)for(const x of[e.a,e.b])if(M2.A[x].h>=1)M2.attach(x,'O');
+      prPush(o,M2,'Products');o.why.push('Ozone cuts each C=C in two and puts a C=O on each carbon.',ox?'H₂O₂ oxidises any aldehyde carbon on to a carboxylic acid.':'Me₂S (or Zn) workup stops at aldehydes and ketones.');return[add(o)]}
+    if(has('bh3')&&(has('h2o2')||has('naoh'))){const o=prOut('Hydroboration–oxidation','Anti-Markovnikov addition of H and OH (syn)');const M2=M.clone();
+      for(const e of F.alkene){const[mk,less]=prMarkov(M2,e.a,e.b);M2.setO(e.a,e.b,1);M2.attach(less,'O')}
+      for(const e of F.alkyne){M2.setO(e.a,e.b,2);const[mk,less]=prMarkov(M2,e.a,e.b);M2.unlink(e.a,e.b);M2.link(e.a,e.b,1);M2.attach(less,'O',2)}
+      prPush(o,M2,'Product');o.why.push('Boron adds to the less substituted carbon (less crowded), and H to the other carbon, on the same face (syn).','Oxidation replaces C–B with C–OH with retention, so OH ends up on the less substituted carbon. No carbocation, so no rearrangement.');if(F.alkyne.length)o.why.push('With an alkyne the enol formed tautomerises to an aldehyde (terminal alkyne) or ketone.');return[add(o)]}
+    if(has('hgoac')||(has('hgso4')&&F.alkyne.length)){const o=prOut(F.alkyne.length?'Mercury-catalysed hydration of an alkyne':'Oxymercuration–demercuration','Markovnikov addition of water, no rearrangement');const M2=M.clone();const rO=has('meoh')?'OC':has('etoh')?'OCC':'O';
+      for(const e of F.alkene){const[mk]=prMarkov(M2,e.a,e.b);M2.setO(e.a,e.b,1);M2.attach(mk,rO)}
+      for(const e of F.alkyne){const[mk]=prMarkov(M2,e.a,e.b);M2.setO(e.a,e.b,1);M2.attach(mk,'O',2)}
+      prPush(o,M2,'Product');o.why.push('The mercurinium ion is opened at the more substituted carbon, so OH (or OR) goes there: Markovnikov.','Unlike acid-catalysed hydration there is no free carbocation, so no rearrangement.');if(F.alkyne.length)o.why.push('The enol tautomerises to a ketone.');return[add(o)]}
+    if(has('oso4')||(has('kmno4')&&!ctx.heat&&!ctx.acidAny)){const o=prOut('Syn-dihydroxylation','Addition of two OH groups to the same face');const M2=M.clone();for(const e of F.alkene){M2.setO(e.a,e.b,1);M2.attach(e.a,'O');M2.attach(e.b,'O')}prPush(o,M2,'Product (cis/syn diol)');o.why.push(`${has('oso4')?'OsO₄':'Cold, dilute KMnO₄'} adds both oxygens at once through a cyclic ester, so both OH groups end up on the same face.`);if(F.alkene.length)return[add(o)]}
+    if(has('kmno4')&&(ctx.heat||ctx.acidAny)&&F.alkene.length){const o=prOut('Oxidative cleavage with hot KMnO₄','Cleavage of C=C');const M2=M.clone();for(const e of F.alkene){M2.unlink(e.a,e.b);for(const x of[e.a,e.b])M2.attach(x,'O',2)}M2.fixH();for(const e of F.alkene)for(const x of[e.a,e.b])if(M2.A[x].h>=1)M2.attach(x,'O');
+      M2.fixH();let co2=false;for(const C of M2.comps()){const cs=C.A.map((a,i)=>i).filter(i=>!C.A[i].dead&&C.A[i].el==='C');if(cs.length===1){co2=true;C.A.forEach((a,i)=>{if(!a.dead)M2.kill(i)})}}prPush(o,M2,'Products');if(co2)prPushSmi(o,'O=C=O','Also formed');o.why.push('Hot or acidic KMnO₄ cleaves the C=C completely. Carbons with H become carboxylic acids (a =CH₂ end becomes CO₂); fully substituted carbons become ketones.');return[add(o)]}
+    if(has('mcpba')&&F.alkene.length){const o=prOut('Epoxidation','Syn addition of one O across C=C',{lib:'epoxidation'});const M2=M.clone();for(const e of F.alkene){M2.setO(e.a,e.b,1);const ox=M2.add('O');M2.link(e.a,ox);M2.link(e.b,ox)}prPush(o,M2,'Product (epoxide)');o.why.push('The peroxyacid delivers one oxygen to the same face of the alkene in one step, so the alkene geometry is kept (cis stays cis).');return[add(o)]}
+    if((has('br2')||has('cl2'))&&!has('febr3','fecl3','alcl3','light')&&F.alkene.length){const X=has('br2')?'Br':'Cl',wet=has('h2o')||has('meoh');const o=prOut(wet?'Halohydrin formation':'Halogen addition',wet?`Anti addition of ${X} and OH`:`Anti addition of ${X}₂`,{lib:wet?null:'br2'});const M2=M.clone();
+      for(const e of F.alkene){const[mk,less]=prMarkov(M2,e.a,e.b);M2.setO(e.a,e.b,1);if(wet){M2.attach(mk,has('meoh')?'OC':'O');M2.attach(less,X)}else{M2.attach(e.a,X);M2.attach(e.b,X)}}
+      prPush(o,M2,'Product (anti addition)');o.why.push(`${X}₂ forms a cyclic ${X==='Br'?'bromonium':'chloronium'} ion on one face; it is opened from the other face, so the two new groups are anti.`);if(wet)o.why.push('Water is the solvent, so it opens the ion instead of halide, at the more substituted carbon (which carries more positive charge).');return[add(o)]}
+    if((has('hbr')||has('hcl')||has('hi'))&&F.alkene.length&&!F.alcohol.length){const X=has('hbr')?'Br':has('hcl')?'Cl':'I',rad=X==='Br'&&(has('roor')||has('light'));const o=prOut(rad?'Radical addition of HBr':`Addition of H${X}`,rad?'Anti-Markovnikov addition (radical chain)':'Markovnikov addition',{lib:rad?null:'hbr'});
+      for(const e of F.alkene.slice(0,1)){const[mk,less]=prMarkov(M,e.a,e.b);const M2=M.clone();M2.setO(e.a,e.b,1);
+        if(rad){M2.attach(less,X);prPush(o,M2,'Product');o.why.push('Peroxides start a radical chain: Br• adds to the less substituted carbon to give the more stable radical, so Br ends up on the less substituted carbon (anti-Markovnikov).')}
+        else{M2.fixH();const sh=prShift(M2,mk);sh.M.attach(sh.c,X);prPush(o,sh.M,sh.how?'Major product':'Product',sh.how?`After a 1,2-${sh.how} shift`:'');o.why.push(`H⁺ adds to give the more stable carbocation, then ${X}⁻ attacks it: Markovnikov.`);if(sh.how){o.why.push(`The carbocation first rearranges by a 1,2-${sh.how} shift to a tertiary carbocation.`);const M3=M.clone();M3.setO(e.a,e.b,1);M3.attach(mk,X);prPush(o,M3,'Minor product','Without rearrangement')}}}
+      return[add(o)]}
+    if((has('h2o')||has('acid'))&&has('h2so4','acid','h3po4','tsoh')&&!ctx.heat&&F.alkene.length&&!F.alcohol.length&&!ctx.rm&&!ctx.cu&&!has('lialh4','nabh4','dibal','nabh3cn','mg')){const o=prOut('Acid-catalysed hydration','Markovnikov addition of water',{lib:'hydration'});for(const e of F.alkene.slice(0,1)){const[mk]=prMarkov(M,e.a,e.b);const M2=M.clone();M2.setO(e.a,e.b,1);M2.fixH();const sh=prShift(M2,mk);sh.M.attach(sh.c,'O');prPush(o,sh.M,sh.how?'Major product':'Product',sh.how?`After a 1,2-${sh.how} shift`:'');o.why.push('Protonation gives the more stable carbocation, which water attacks: OH on the more substituted carbon.');if(sh.how)o.why.push(`The carbocation rearranges by a 1,2-${sh.how} shift first.`)}return[add(o)]}
+    if(has('h2')&&has('lindlar')&&F.alkyne.length){const o=prOut('Partial hydrogenation (Lindlar)','Syn addition of H₂ to the alkyne');const M2=M.clone();let st=null;for(const e of F.alkyne){M2.setO(e.a,e.b,2);M2.fixH();const oa=cNbrs(M2,e.a).filter(n=>n.to!==e.b),ob=cNbrs(M2,e.b).filter(n=>n.to!==e.a);if(oa.length===1&&ob.length===1)st={[e.a+'-'+e.b]:'Z'}}prPush(o,M2,'Product (cis alkene)','',st);o.why.push('Lindlar’s poisoned catalyst adds both H atoms to the same face and stops at the alkene, so the alkene is cis (Z).');return[add(o)]}
+    if(has('na')&&has('nh3')&&F.alkyne.length){const o=prOut('Dissolving-metal reduction','Anti addition of H₂ to the alkyne');const M2=M.clone();let st=null;for(const e of F.alkyne){M2.setO(e.a,e.b,2);M2.fixH();const oa=cNbrs(M2,e.a).filter(n=>n.to!==e.b),ob=cNbrs(M2,e.b).filter(n=>n.to!==e.a);if(oa.length===1&&ob.length===1)st={[e.a+'-'+e.b]:'E'}}prPush(o,M2,'Product (trans alkene)','',st);o.why.push('Electrons from Na add one at a time; the radical anion and vinyl anion prefer the trans arrangement, giving the (E) alkene.');return[add(o)]}
+    if(has('h2')&&(has('cat')||!has('lindlar'))&&!has('lindlar')){const o=prOut('Catalytic hydrogenation','Syn addition of H₂');const M2=M.clone();for(const e of[...F.alkene,...F.alkyne])M2.setO(e.a,e.b,1);for(const nx of F.nitro){M2.kill(nx.n);M2.attach(nx.c,'N')}prPush(o,M2,'Product');o.why.push('H₂ on the metal surface adds to C=C and C≡C on the same face until the carbons are saturated.','Benzene rings and C=O groups are not reduced under these conditions.');if(F.nitro.length)o.why.push('Nitro groups are reduced to amines too.');return[add(o)]}
+    if(has('nanh2')&&ctx.rx&&F.alkyne.length){const term=F.alkyne.flatMap(e=>[e.a,e.b]).filter(i=>M.A[i].h===1);if(term.length){const o=prOut('Alkylation of a terminal alkyne','SN2 by an acetylide ion');const M2=M.clone();M2.attach(term[0],ctx.rx.frag);prPush(o,M2,'Product');o.why.push('NaNH₂ removes the acidic alkyne H (pKa 25) to make an acetylide, which does SN2 on the alkyl halide.');return[add(o)]}}
+  }
+  /* --- aromatic rings: electrophilic substitution --- */
+  if(F.arom.length&&!F.alkene.length){
+    let E=null;
+    if(has('hno3')&&has('h2so4'))E={frag:'[N+](=O)[O-]',t:'Nitration',e:'NO₂⁺ (nitronium ion)',lib:'nitration'};
+    else if(has('br2')&&has('febr3','alcl3','fe','fecl3'))E={frag:'Br',t:'Bromination',e:'Br⁺ (from Br₂ and the Lewis acid)',lib:'brbenzene'};
+    else if(has('cl2')&&has('alcl3','fecl3','febr3','fe'))E={frag:'Cl',t:'Chlorination',e:'Cl⁺ (from Cl₂ and the Lewis acid)'};
+    else if(has('so3')||(has('h2so4')&&ctx.heat&&!has('hno3')&&!F.alcohol.length))E={frag:'S(=O)(=O)O',t:'Sulfonation',e:'SO₃'};
+    else if(has('alcl3','fecl3')&&ctx.acyl)E={frag:ctx.acyl.frag,t:'Friedel–Crafts acylation',e:'an acylium ion',lib:'fcacyl',fc:true};
+    else if(has('alcl3','fecl3')&&ctx.rx){let fr=ctx.rx.frag,re=null;if(fr==='CCC'){fr='C(C)C';re='propyl'}else if(fr==='CCCC'){fr='C(C)CC';re='butyl'}E={frag:fr,t:'Friedel–Crafts alkylation',e:'a carbocation',lib:'fcalkyl',fc:true,re}}
+    if(E){const o=prOut(E.t,'Electrophilic aromatic substitution',{lib:E.lib});const ring=F.arom[0];
+      const subs=ring.map((r,k)=>({k,r,s:M.nb(r).find(n=>!ring.includes(n.to))})).filter(x=>x.s);
+      const kind=s=>{const a=M.A[s.to],i=s.to;if(a.el==='O'){return{d:'op',act:3,n:M.A[i].h?'OH':'OR'}}if(a.el==='N'){if(a.ch===1)return M.nb(i).some(n=>M.A[n.to].el==='O')?{d:'m',act:-3,n:'NO₂'}:{d:'m',act:-3,n:'NR₃⁺'};if(M.nb(i).some(n=>pIsCO(M,n.to)))return{d:'op',act:2,n:'NHC(O)R'};return{d:'op',act:3,n:'NH₂/NR₂',amine:true}}
+        if(['F','Cl','Br','I'].includes(a.el))return{d:'op',act:-1,n:a.el};if(a.el==='S')return{d:'m',act:-3,n:'SO₃H'};if(a.el==='C'){if(pIsCO(M,i))return{d:'m',act:-2,n:'C=O'};if(M.nb(i).some(n=>n.o===3))return{d:'m',act:-3,n:'C≡N'};if(M.nb(i).filter(n=>M.A[n.to].el==='F').length===3)return{d:'m',act:-3,n:'CF₃'};return{d:'op',act:1,n:a.ar?'phenyl':'alkyl'}}return{d:'op',act:0,n:a.el}};
+      const K=subs.map(x=>({...x,...kind(x.s)}));
+      if(E.fc&&K.some(x=>x.act<=-2||x.amine)){o.title=E.t+': no reaction';o.why.push(K.some(x=>x.amine)?'The amine group binds to AlCl₃ and switches the ring off, so Friedel–Crafts reactions fail on anilines.':'The ring carries a strongly deactivating group, and Friedel–Crafts reactions fail on deactivated rings.');o.products=[];o.none=true;res.push(o);return res}
+      const free=k=>M.A[ring[k]].h>=1;let major=[],minor=[];
+      if(!K.length){major=[0]}
+      else{const lead=K.slice().sort((a,b)=>b.act-a.act)[0];const at=k=>((lead.k+k)%6+6)%6;
+        if(lead.d==='op'){const para=at(3),orthos=[at(1),at(-1)].filter(free);
+          if(free(para))major=[para];if(orthos.length)(major.length?minor:major).push(orthos[0]);
+          o.why.push(`The ${lead.n} group is ${lead.act>0?'activating':'deactivating'} and an ortho/para director, ${lead.act<=0?'because its lone pairs still stabilise ortho/para attack by resonance, even though it withdraws electrons overall':['alkyl','phenyl'].includes(lead.n)?'because it donates electron density (hyperconjugation) and stabilises the arenium ion best when the electrophile adds ortho or para':'because its lone pair stabilises the arenium ion by resonance when the electrophile adds ortho or para'}.`);if(major.length&&free(para))o.why.push('Para is usually major because the ortho positions are more crowded.')}
+        else{const ms=[at(2),at(-2)].filter(free);if(ms.length)major=[ms[0]];o.why.push(`The ${lead.n} group withdraws electrons and is a meta director: ortho and para attack would put the positive charge next to it.`)}
+        if(K.length>1)o.why.push('With several substituents, the strongest activating group decides where the new group goes.')}
+      const mk=(k,label)=>{const M2=M.clone();M2.attach(ring[k],E.frag);prPush(o,M2,label)};
+      major.forEach(k=>mk(k,'Major product'));minor.forEach(k=>mk(k,'Minor product'));
+      o.why.unshift(`The electrophile is ${E.e}; the ring attacks it and then loses H⁺ to become aromatic again.`);
+      if(E.re)o.warn.push(`The primary ${E.re} cation rearranges to a secondary one, so the ring gets a branched group. Use Friedel–Crafts acylation then reduction to add a straight chain.`);
+      if(E.lib==='fcalkyl')o.warn.push('The alkylated product is more reactive than the starting material, so over-alkylation is common.');
+      return[add(o)]}
+    /* side-chain oxidation */
+    if(has('kmno4','jones')&&(ctx.heat||has('kmno4'))){const o=prOut('Side-chain oxidation','Benzylic oxidation to a carboxylic acid');const M2=M.clone();let n=0;for(const ring of F.arom)for(const r of ring)for(const s of M.nb(r)){if(ring.includes(s.to)||!sp3(M,s.to)||M.A[s.to].h<1)continue;for(const x of M.nb(s.to))if(x.to!==r)M2.killBranch(x.to,s.to);M2.attach(s.to,'O',2);M2.attach(s.to,'O');n++}
+      if(n){prPush(o,M2,'Product');o.why.push('Any alkyl group with at least one benzylic H is oxidised all the way down to COOH; the rest of the chain is lost. A tert-butyl group (no benzylic H) survives.');return[add(o)]}}
+    if(F.nitro.length&&((has('snfe','zn')&&(has('hcl')||has('acid')))||(has('h2')&&has('cat')))){const o=prOut('Reduction of a nitro group','Nitro → amine');const M2=M.clone();for(const nx of F.nitro){M2.killBranch(nx.n,nx.c);M2.attach(nx.c,'N')}prPush(o,M2,'Product');o.why.push('Metal and acid transfer six electrons and six protons to the nitro group, giving the aniline (after neutralising).');return[add(o)]}
+    if(F.aniline.length&&has('nano2')){const a=F.aniline.find(x=>x.k===1&&M.A[x.n].h===2);if(a){const tgt=has('cucl')?['Cl','Sandmeyer reaction (CuCl)']:has('cubr')?['Br','Sandmeyer reaction (CuBr)']:has('cucn')?['C#N','Sandmeyer reaction (CuCN)']:has('nai')?['I','Iodination (KI)']:has('hbf4')?['F','Schiemann reaction (HBF₄)']:has('h3po2')?[null,'Deamination (H₃PO₂)']:ctx.heat&&has('h2o')?['O','Hydrolysis to a phenol']:null;
+      const o=prOut(tgt?tgt[1]:'Diazotisation',tgt?'Replacement of a diazonium group':'Aryl amine → diazonium salt');const M2=M.clone();M2.kill(a.n);if(tgt){if(tgt[0])M2.attach(a.c,tgt[0])}else M2.attach(a.c,'[N+]#N');prPush(o,M2,tgt?'Product':'Product (diazonium ion)');o.why.push('NaNO₂ and acid make HNO₂, which turns ArNH₂ into ArN₂⁺ at 0–5 °C.');if(tgt)o.why.push('N₂ is an excellent leaving group, so the diazonium group is replaced.');return[add(o)]}}
+  }
+  /* --- carbonyl compounds --- */
+  const CO=[...F.aldehyde,...F.ketone];
+  if(has('lialh4')&&!has('dibal')){const o=prOut('Reduction with LiAlH₄','Hydride reduction',{lib:F.ester.length?'lialh4':'nabh4'});const M2=M.clone();let any=false;
+    for(const x of CO){M2.setO(x.c,x.o,1);any=true}
+    for(const x of[...F.acid,...F.acylCl]){const lg=M.nb(x.c).find(n=>n.o===1&&['O','Cl','Br'].includes(M.A[n.to].el));if(lg)M2.kill(lg.to);M2.setO(x.c,x.o,1);any=true}
+    for(const x of F.ester){const or=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.unlink(x.c,or.to);M2.setO(x.c,x.o,1);any=true}
+    for(const x of F.amide){M2.kill(x.o);any=true}
+    for(const x of F.nitrile){M2.setO(x.c,x.n,1);any=true}
+    for(const x of F.epoxide){const[a,b]=pDeg(M,x.c1)>=pDeg(M,x.c2)?[x.c1,x.c2]:[x.c2,x.c1];M2.unlink(b,x.o);any=true}
+    if(any){prPush(o,M2,'Product');o.why.push('LiAlH₄ delivers H⁻ to C=O carbons. Esters and acids are reduced all the way to primary alcohols (an ester also releases its alcohol part); amides become amines and nitriles become primary amines.');if(F.epoxide.length)o.why.push('Hydride opens the epoxide at the less hindered carbon.');o.why.push('An aqueous acid workup protonates the alkoxides.');return[add(o)]}}
+  if(has('dibal')&&(F.ester.length||F.nitrile.length)){const o=prOut('Partial reduction with DIBAL-H','Ester or nitrile → aldehyde');const M2=M.clone();for(const x of F.ester){const or=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.unlink(x.c,or.to)}for(const x of F.nitrile){M2.kill(x.n);M2.attach(x.c,'O',2)}prPush(o,M2,'Product');o.why.push('At −78 °C DIBAL-H adds only one hydride; the tetrahedral intermediate survives until workup, which releases the aldehyde.');return[add(o)]}
+  if(has('nabh4')&&!ctx.amine&&CO.length){const o=prOut('Reduction with NaBH₄','Aldehyde/ketone → alcohol',{lib:'nabh4'});const M2=M.clone();for(const x of CO)M2.setO(x.c,x.o,1);prPush(o,M2,'Product');o.why.push('NaBH₄ adds H⁻ to the C=O carbon; the solvent protonates the alkoxide. Aldehydes give primary alcohols and ketones give secondary alcohols.');if(F.ester.length||F.acid.length||F.amide.length)o.why.push('NaBH₄ is too mild to reduce the ester, acid or amide, which survive unchanged (chemoselectivity).');if(F.alkene.length)o.why.push('C=C bonds are not touched.');return[add(o)]}
+  if((has('hydrazine')&&(has('naoh')||ctx.heat))||(has('znhg')&&has('hcl'))){if(CO.length){const wk=has('hydrazine');const o=prOut(wk?'Wolff–Kishner reduction':'Clemmensen reduction','C=O → CH₂');const M2=M.clone();for(const x of CO)M2.kill(x.o);prPush(o,M2,'Product');o.why.push(wk?'Hydrazine forms a hydrazone; strong base and heat then lose N₂, leaving CH₂ (basic conditions).':'Zinc amalgam and HCl remove the oxygen completely (acidic conditions).');return[add(o)]}}
+  if((ctx.rm||ctx.rmUnknown)&&(CO.length||F.ester.length||F.acylCl.length||F.epoxide.length||F.nitrile.length||has('co2'))){
+    if(!ctx.rm){const o=prOut('Grignard addition','Which Grignard reagent?');o.why.push('Name the Grignard reagent so Bondline knows which group adds, e.g. “CH3MgBr, then H3O+” or “PhMgBr”.');o.none=true;res.push(o);return res}
+    const R1=ctx.rm.frag,nm=PR_RNAME[R1]||'R';const o=prOut(`${ctx.rm.kind==='RLi'?'Organolithium':'Grignard'} addition`,`Adds a ${nm} group to the carbonyl carbon`,{lib:'grignard'});const M2=M.clone();
+    for(const x of CO){M2.setO(x.c,x.o,1);M2.attach(x.c,R1)}
+    for(const x of[...F.ester,...F.acylCl]){const lg=M.nb(x.c).find(n=>n.o===1&&n.to!==x.o&&!isC(M,n.to));if(lg){M2.unlink(x.c,lg.to);if(M.A[lg.to].el!=='O')M2.kill(lg.to)}M2.setO(x.c,x.o,1);M2.attach(x.c,R1);M2.attach(x.c,R1)}
+    for(const x of F.nitrile){M2.kill(x.n);M2.attach(x.c,'O',2);M2.attach(x.c,R1)}
+    for(const x of F.epoxide){const[a,b]=pDeg(M,x.c1)>=pDeg(M,x.c2)?[x.c1,x.c2]:[x.c2,x.c1];M2.unlink(b,x.o);M2.attach(b,R1)}
+    prPush(o,M2,'Product (after acid workup)');o.why.push(`The carbon of ${ctx.rm.txt||'the reagent'} is a strong nucleophile and adds to the electrophilic C=O carbon; acid workup protonates the alkoxide.`);
+    if(CO.length)o.why.push(`${F.aldehyde.length&&!F.ketone.length?(F.aldehyde.some(x=>M.A[x.c].h===2)?'Formaldehyde gives a primary alcohol.':'An aldehyde gives a secondary alcohol.'):'A ketone gives a tertiary alcohol.'}`);
+    if(F.ester.length||F.acylCl.length)o.why.push('Esters and acid chlorides react twice: the first addition expels the leaving group to give a ketone, which is more reactive and adds a second equivalent, giving a tertiary alcohol.');
+    if(F.nitrile.length)o.why.push('With a nitrile the imine salt is hydrolysed in the workup to a ketone.');
+    if(F.alcohol.length||F.acid.length)o.warn.push('The O–H group in the starting material would destroy the Grignard reagent first (an acid–base reaction), so it needs protecting or extra reagent.');
+    return[add(o)]}
+  if(ctx.cu&&(F.acylCl.length||CO.length||F.halide.length)){const o=prOut('Gilman (organocuprate) reaction','Soft carbon nucleophile');const M2=M.clone();const R1=ctx.cu.frag;let done=false;
+    for(const x of F.acylCl){const cl=M.nb(x.c).find(n=>M.A[n.to].el==='Cl');M2.kill(cl.to);M2.attach(x.c,R1);done=true;o.why.push('Cuprates turn acid chlorides into ketones and, unlike Grignard reagents, stop there.')}
+    if(!done)for(const x of CO){const a=M.nb(x.c).find(n=>isC(M,n.to)&&M.nb(n.to).some(y=>y.o===2&&isC(M,y.to)));if(a){const b=M.nb(a.to).find(y=>y.o===2&&isC(M,y.to)).to;M2.setO(a.to,b,1);M2.attach(b,R1);done=true;o.type='Conjugate (1,4-) addition';o.lib='michael';o.why.push('The soft cuprate adds to the β-carbon of the enone (1,4-addition) rather than to the C=O.')}}
+    if(!done)for(const x of F.halide.filter(h=>!h.bad)){M2.kill(x.x);M2.attach(x.c,R1);done=true;o.why.push('Cuprates couple with alkyl halides, replacing the halogen with the R group.')}
+    if(done){prPush(o,M2,'Product');return[add(o)]}}
+  if(ctx.ylide&&CO.length){const o=prOut('Wittig reaction','C=O → C=C',{lib:'wittig'});const M2=M.clone();for(const x of CO){M2.kill(x.o);M2.attach(x.c,ctx.ylide,2)}prPush(o,M2,'Product');o.why.push('The ylide carbon attacks the C=O to form an oxaphosphetane, which falls apart to the alkene and Ph₃P=O. The new C=C sits exactly where the C=O was.');return[add(o)]}
+  if(has('nacn')&&(has('acid','hcl','h2so4')||R.has('nacn'))&&CO.length&&!F.halide.length&&!F.sulfonate.length){const o=prOut('Cyanohydrin formation','Addition of HCN to C=O',{lib:'cyanohydrin'});const M2=M.clone();for(const x of CO){M2.setO(x.c,x.o,1);M2.attach(x.c,'C#N')}prPush(o,M2,'Product');o.why.push('Cyanide adds to the C=O carbon; the alkoxide is then protonated by HCN.');return[add(o)]}
+  if(CO.length&&ctx.amine&&(has('nabh3cn')||(has('nabh4')&&ctx.amine))){const o=prOut('Reductive amination','C=O + amine → amine');const M2=M.clone();const am=ctx.amine.frag;for(const x of CO.slice(0,1)){M2.kill(x.o);if(am==='')M2.attach(x.c,'N');else if(am.includes('.')){const[p,q]=am.split('.');M2.attach(x.c,`N(${p})${q}`)}else if(am.startsWith('ring')||am==='morph')M2.attach(x.c,am==='ring5'?'N1CCCC1':am==='ring6'?'N1CCCCC1':'N1CCOCC1');else M2.attach(x.c,'N'+am)}prPush(o,M2,'Product');o.why.push('The amine and carbonyl form an imine (or iminium ion), which the mild hydride reduces faster than the C=O itself.');return[add(o)]}
+  if(CO.length&&has('nh2oh')){const o=prOut('Oxime formation','C=O + NH₂OH → C=N–OH');const M2=M.clone();for(const x of CO){M2.kill(x.o);M2.attach(x.c,'NO',2)}prPush(o,M2,'Product');return[add(o)]}
+  if(CO.length&&has('hydrazine')){const o=prOut('Hydrazone formation','C=O + N₂H₄ → C=N–NH₂');const M2=M.clone();for(const x of CO){M2.kill(x.o);M2.attach(x.c,'NN',2)}prPush(o,M2,'Product');o.why.push('Add KOH and heat to carry on to the Wolff–Kishner reduction (C=O → CH₂).');return[add(o)]}
+  if(CO.length&&ctx.amine&&!has('lialh4','nabh4','nabh3cn')){const am=ctx.amine.frag;const sec=am.includes('.')||am.startsWith('ring')||am==='morph';const o=prOut(sec?'Enamine formation':'Imine formation',sec?'C=O + secondary amine → C=C–NR₂':'C=O + primary amine → C=N–R',{lib:sec?null:'imine'});const M2=M.clone();const x=CO[0];
+    if(!sec){M2.kill(x.o);M2.attach(x.c,am===''?'N':'N'+am,2);prPush(o,M2,'Product');o.why.push('The amine adds to C=O, then water is lost (acid catalysis, best near pH 5) to give the C=N.')}
+    else{const a=cNbrs(M,x.c).find(n=>sp3(M,n.to)&&M.A[n.to].h>0);if(!a){o.why.push('There is no α-hydrogen, so an enamine can’t form.');o.none=true;res.push(o);return res}M2.kill(x.o);const amS=am==='ring5'?'N1CCCC1':am==='ring6'?'N1CCCCC1':am==='morph'?'N1CCOCC1':`N(${am.split('.')[0]})${am.split('.')[1]}`;M2.attach(x.c,amS);M2.setO(x.c,a.to,2);prPush(o,M2,'Product');o.why.push('A secondary amine can’t form a neutral C=N, so the iminium ion loses an α-H instead, giving a C=C–N (enamine).')}
+    return[add(o)]}
+  if(CO.length&&(has('meoh','etoh','glycol'))&&(has('tsoh','h2so4','acid','hcl'))&&!F.acid.length){const gly=has('glycol');const o=prOut(gly?'Cyclic acetal formation':'Acetal formation','C=O → C(OR)₂',{lib:'acetal'});const M2=M.clone();for(const x of CO){M2.kill(x.o);if(gly){const o1=M2.attach(x.c,'OCCO');const o2=o1+3;M2.link(x.c,o2)}else{const r=has('meoh')?'OC':'OCC';M2.attach(x.c,r);M2.attach(x.c,r)}}prPush(o,M2,'Product');o.why.push('Acid catalysis: the alcohol adds to give a hemiacetal, which loses water to an oxocarbenium ion; a second alcohol adds to give the acetal. Removing water drives it forward.','Acetals are stable to bases, Grignard reagents and hydrides, so they are used to protect C=O groups.');return[add(o)]}
+  if(CO.length&&has('jones','kmno4','tollens')&&F.aldehyde.length){const o=prOut(has('tollens')?'Tollens’ oxidation':'Oxidation of an aldehyde','Aldehyde → carboxylic acid');const M2=M.clone();for(const x of F.aldehyde)M2.attach(x.c,'O');prPush(o,M2,'Product');if(has('tollens'))o.why.push('Ag⁺ is reduced to a silver mirror; ketones don’t react, so this is a test for aldehydes.');else o.why.push('The aldehyde hydrate is oxidised to the carboxylic acid.');return[add(o)]}
+  if(F.ketone.length&&has('mcpba')){const o=prOut('Baeyer–Villiger oxidation','Ketone → ester');const M2=M.clone();const x=F.ketone[0];const sides=cNbrs(M,x.c).filter(n=>n.to!==x.o).map(n=>n.to);const apt=i=>M.A[i].ar?3:pDeg(M,i);
+    const mig=sides.sort((a,b)=>apt(b)-apt(a))[0];M2.unlink(x.c,mig);const ox=M2.add('O');M2.link(x.c,ox);M2.link(ox,mig);prPush(o,M2,'Product');o.why.push('The peroxyacid adds to C=O; then the group best able to carry positive charge migrates to oxygen. Order: tertiary > secondary ≈ phenyl > primary > methyl.');return[add(o)]}
+  if(F.aldehyde.length&&has('naoh','naoet','naome')&&!ctx.rx&&!has('i2','br2','cl2')){const ald=F.aldehyde[0];const a=cNbrs(M,ald.c).find(n=>sp3(M,n.to)&&M.A[n.to].h>=1);
+    if(a){const o=prOut(ctx.heat?'Aldol condensation':'Aldol reaction',ctx.heat?'Two aldehydes join, then lose water':'Two aldehydes join',{lib:ctx.heat?'aldolcond':'aldol'});const M2=M.clone();const n0=M.A.length;const B=M.clone();
+      /* add a second copy of the molecule */B.A.forEach(q=>M2.A.push({...q}));B.B.forEach(b=>M2.B.push({...b,a:b.a+n0,b:b.b+n0}));M2.link(a.to+n0,ald.c);M2.setO(ald.c,ald.o,1);
+      if(ctx.heat){M2.kill(ald.o);M2.setO(a.to+n0,ald.c,2)}prPush(o,M2,ctx.heat?'Product (α,β-unsaturated aldehyde)':'Product (β-hydroxy aldehyde)');o.why.push('Base removes an α-H to make an enolate, which attacks the C=O of a second molecule.');if(ctx.heat)o.why.push('Heating removes water (E1cB) to give the conjugated C=C–C=O.');return[add(o)]}}
+  if(F.ester.length&&has('naoet','naome')&&!F.halide.length&&!ctx.rx&&!has('h2o')){const es=F.ester[0];const a=cNbrs(M,es.c).find(n=>sp3(M,n.to)&&M.A[n.to].h>=2);if(a){const o=prOut('Claisen condensation','Two esters join to a β-keto ester',{lib:'claisen'});const M2=M.clone();const n0=M.A.length;const B=M.clone();B.A.forEach(q=>M2.A.push({...q}));B.B.forEach(b=>M2.B.push({...b,a:b.a+n0,b:b.b+n0}));
+    const or=M.nb(es.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.killBranch(or.to,es.c);M2.link(a.to+n0,es.c);prPush(o,M2,'Product (β-keto ester)');o.why.push('The ester enolate attacks a second ester; the tetrahedral intermediate expels the alkoxide. Deprotonating the acidic β-keto ester drives the reaction, so a full equivalent of base is needed; acid workup gives the neutral product.');return[add(o)]}}
+  if(F.ketone.length&&ctx.rx&&has('lda','nah','naoet')){const k=F.ketone[0];const al=cNbrs(M,k.c).filter(n=>sp3(M,n.to)&&M.A[n.to].h>=1).sort((x,y)=>has('lda')?pDeg(M,x.to)-pDeg(M,y.to):pDeg(M,y.to)-pDeg(M,x.to));if(al.length){const o=prOut('Enolate alkylation','α-alkylation of a ketone');const M2=M.clone();M2.attach(al[0].to,ctx.rx.frag);prPush(o,M2,'Product');o.why.push(has('lda')?'LDA at −78 °C removes the more accessible α-H fastest, giving the kinetic (less substituted) enolate, which does SN2 on the alkyl halide.':'The enolate does SN2 on the alkyl halide at the α-carbon.');return[add(o)]}}
+  if(F.ketone.length&&has('i2','br2','cl2')&&has('naoh')){const k=F.ketone.find(x=>cNbrs(M,x.c).some(n=>M.A[n.to].h===3));if(k){const me=cNbrs(M,k.c).find(n=>M.A[n.to].h===3).to;const o=prOut('Haloform reaction','Methyl ketone → carboxylic acid + CHX₃');const M2=M.clone();M2.kill(me);M2.attach(k.c,'O');prPush(o,M2,'Product (after acidification)');const X=has('i2')?'I':has('br2')?'Br':'Cl';prPushSmi(o,`${X}C(${X})${X}`,X==='I'?'By-product: iodoform (yellow precipitate)':'By-product: haloform');o.why.push('Base and halogen replace all three H of the CH₃ group; then hydroxide attacks the C=O and CX₃⁻ leaves.');return[add(o)]}}
+  if(CO.length&&has('br2','cl2')&&has('acoh','acid','hbr')){const k=CO[0];const al=cNbrs(M,k.c).filter(n=>sp3(M,n.to)&&M.A[n.to].h>=1).sort((x,y)=>pDeg(M,y.to)-pDeg(M,x.to));if(al.length){const o=prOut('α-Halogenation (acid)','Halogen at the α-carbon');const M2=M.clone();M2.attach(al[0].to,has('br2')?'Br':'Cl');prPush(o,M2,'Product');o.why.push('Acid forms the enol (the more substituted one), which attacks the halogen; only one halogen adds under acidic conditions.');return[add(o)]}}
+  /* --- carboxylic acids and derivatives --- */
+  if(F.acid.length&&has('socl2','pcl3')){const o=prOut('Acid chloride formation','RCOOH → RCOCl');const M2=M.clone();for(const x of F.acid){const oh=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.kill(oh.to);M2.attach(x.c,'Cl')}for(const x of F.alcohol){M2.kill(x.o);M2.attach(x.c,'Cl')}prPush(o,M2,'Product');o.why.push('SOCl₂ turns the OH into a chlorosulfite leaving group, which chloride replaces; SO₂ and HCl escape as gases.');return[add(o)]}
+  if(F.acid.length&&has('meoh','etoh')&&has('h2so4','tsoh','acid','hcl')){const r=has('meoh')?'OC':'OCC';const o=prOut('Fischer esterification','Acid + alcohol → ester',{lib:'fischer'});const M2=M.clone();for(const x of F.acid){const oh=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.kill(oh.to);M2.attach(x.c,r)}prPush(o,M2,'Product');o.why.push('Acid activates the C=O; the alcohol adds, and water is lost from the tetrahedral intermediate. It is an equilibrium, so excess alcohol is used.');return[add(o)]}
+  if(F.acid.length&&has('ch2n2')){const o=prOut('Methyl ester formation','RCOOH + CH₂N₂ → RCOOMe');const M2=M.clone();for(const x of F.acid){const oh=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.attach(oh.to,'C')}prPush(o,M2,'Product');return[add(o)]}
+  if((F.acylCl.length||F.anhydride.length)&&(ctx.amine||has('meoh','etoh','h2o')||F.alcohol.length===0)){const nuc=ctx.amine?(ctx.amine.frag===''?'N':ctx.amine.frag.includes('.')?`N(${ctx.amine.frag.split('.')[0]})${ctx.amine.frag.split('.')[1]}`:ctx.amine.frag.startsWith('ring')?(ctx.amine.frag==='ring5'?'N1CCCC1':'N1CCCCC1'):ctx.amine.frag==='morph'?'N1CCOCC1':'N'+ctx.amine.frag):has('meoh')?'OC':has('etoh')?'OCC':has('h2o')?'O':null;
+    if(nuc){const o=prOut(ctx.amine?'Amide formation':nuc==='O'?'Hydrolysis of an acid derivative':'Ester formation','Nucleophilic acyl substitution',{lib:ctx.amine?'amide':nuc==='O'?'acylhydrolysis':null});const M2=M.clone();
+      for(const x of F.acylCl){const cl=M.nb(x.c).find(n=>M.A[n.to].el==='Cl'||M.A[n.to].el==='Br');M2.kill(cl.to);M2.attach(x.c,nuc)}
+      for(const x of F.anhydride){const ob=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.unlink(x.c,ob.to);M2.attach(x.c,nuc)}
+      prPush(o,M2,'Products');o.why.push('The nucleophile adds to the C=O to form a tetrahedral intermediate, which collapses and expels the leaving group (Cl⁻ or a carboxylate).');if(ctx.amine)o.why.push('Two equivalents of amine (or pyridine/Et₃N) are used, to mop up the HCl formed.');return[add(o)]}}
+  if((F.alcohol.length||F.phenol.length||F.amine.length||F.aniline.length)&&ctx.acyl&&!has('alcl3')){const o=prOut('Acylation','O- or N-acylation');const M2=M.clone();const tgt=[...F.amine.filter(x=>M.A[x.n].h>=1).map(x=>x.n),...F.aniline.filter(x=>M.A[x.n].h>=1).map(x=>x.n),...F.alcohol.map(x=>x.o),...F.phenol.map(x=>x.o)][0];M2.attach(tgt,ctx.acyl.frag);prPush(o,M2,'Product');o.why.push(`The ${M.A[tgt].el==='N'?'amine':'alcohol'} attacks the ${ctx.acyl.src==='anhydride'?'anhydride':'acid chloride'}, which loses its leaving group (nucleophilic acyl substitution).`);return[add(o)]}
+  if((F.ester.length||F.amide.length||F.nitrile.length)&&(has('naoh')||((has('acid','h2so4','hcl'))&&(ctx.heat||has('h2o'))))){const basic=has('naoh');const o=prOut(basic&&F.ester.length?'Saponification':'Hydrolysis',basic?'Base hydrolysis':'Acid hydrolysis',{lib:basic&&F.ester.length?'saponification':null});const M2=M.clone();
+    for(const x of F.ester){const or=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.unlink(x.c,or.to);M2.attach(x.c,'O')}
+    for(const x of F.amide){const nn=M.nb(x.c).find(n=>M.A[n.to].el==='N');M2.unlink(x.c,nn.to);M2.attach(x.c,'O')}
+    for(const x of F.nitrile){M2.kill(x.n);M2.attach(x.c,'O',2);M2.attach(x.c,'O')}
+    prPush(o,M2,basic?'Products (after acidifying)':'Products');o.why.push(basic?'Hydroxide attacks the C=O; the alkoxide leaves and immediately deprotonates the acid, which makes saponification irreversible. Adding acid at the end gives the free carboxylic acid.':'Acid and water (with heat) break the C–O, C–N or C≡N bonds to give the carboxylic acid.');return[add(o)]}
+  if(F.acid.length&&ctx.amine&&has('dcc')){const o=prOut('Amide coupling','Acid + amine → amide');const M2=M.clone();const x=F.acid[0];const oh=M.nb(x.c).find(n=>n.o===1&&M.A[n.to].el==='O');M2.kill(oh.to);M2.attach(x.c,ctx.amine.frag===''?'N':'N'+ctx.amine.frag.replace('.',''));prPush(o,M2,'Product');o.why.push('DCC turns the acid OH into a good leaving group (an O-acylisourea), which the amine replaces.');return[add(o)]}
+  /* --- alcohols --- */
+  if(F.alcohol.length){const al=F.alcohol;
+    if(has('pcc','dmp','swern','tempo')){const o=prOut('Mild oxidation','Alcohol → aldehyde or ketone');const M2=M.clone();let n=0;for(const x of al){if(x.deg===3)continue;M2.setO(x.c,x.o,2);n++}if(!n){o.title='No reaction';o.why.push('Tertiary alcohols have no H on the carbinol carbon, so they can’t be oxidised.');o.none=true;res.push(o);return res}prPush(o,M2,'Product');o.why.push(`${has('pcc')?'PCC':has('dmp')?'Dess–Martin periodinane':has('swern')?'The Swern oxidation':'TEMPO'} oxidises primary alcohols to aldehydes without going on to acids (no water present), and secondary alcohols to ketones.`);if(al.some(x=>x.deg===3))o.why.push('Any tertiary alcohol is left unchanged.');return[add(o)]}
+    if(has('jones','kmno4')){const o=prOut('Strong oxidation','Alcohol → carboxylic acid or ketone');const M2=M.clone();let n=0;for(const x of al){if(x.deg===3)continue;M2.setO(x.c,x.o,2);if(M.A[x.c].h>=2)M2.attach(x.c,'O');n++}if(!n){o.title='No reaction';o.why.push('Tertiary alcohols can’t be oxidised.');o.none=true;res.push(o);return res}prPush(o,M2,'Product');o.why.push('Chromium(VI) in water (or KMnO₄) oxidises primary alcohols through the aldehyde hydrate on to carboxylic acids, and secondary alcohols to ketones.');return[add(o)]}
+    if(has('socl2','pbr3','pcl3')||(has('hbr','hcl','hi')&&!F.alkene.length)){const X=has('pbr3')||has('hbr')?'Br':has('hi')?'I':'Cl';const viaHX=has('hbr','hcl','hi')&&!has('socl2','pbr3','pcl3');const x=al[0];
+      if(viaHX&&x.deg>=2){const o=prOut(`Alcohol → alkyl ${X==='Br'?'bromide':X==='I'?'iodide':'chloride'} (SN1)`,'Substitution through a carbocation',{lib:'sn1'});const M2=M.clone();M2.kill(x.o);M2.fixH();const sh=prShift(M2,x.c);sh.M.attach(sh.c,X);prPush(o,sh.M,sh.how?'Major product':'Product',sh.how?`After a 1,2-${sh.how} shift`:'');o.why.push('H⁺ turns OH into H₂O, a good leaving group. A secondary or tertiary carbocation forms and halide attacks it.');if(sh.how)o.why.push(`The carbocation rearranges by a 1,2-${sh.how} shift first.`);return[add(o)]}
+      const o=prOut(`Alcohol → alkyl ${X==='Br'?'bromide':X==='I'?'iodide':'chloride'}`,viaHX?'SN2 on the protonated alcohol':'Substitution with inversion (SN2)',{lib:'sn2'});const M2=M.clone();for(const y of al){if(y.deg===3&&!viaHX)continue;M2.kill(y.o);M2.attach(y.c,X)}prPush(o,M2,'Product');o.why.push(viaHX?'Primary alcohols are protonated, then halide displaces water by SN2.':`${has('socl2')?'SOCl₂':has('pbr3')?'PBr₃':'PCl₃'} converts OH into a good leaving group, which halide displaces by SN2, so no rearrangement and inversion at a stereocentre.`);return[add(o)]}
+    if(has('tscl','mscl')){const ts=has('tscl');const o=prOut(ts?'Tosylate formation':'Mesylate formation','OH → good leaving group');const M2=M.clone();for(const x of al)M2.attach(x.o,ts?'S(=O)(=O)c1ccc(C)cc1':'S(=O)(=O)C');prPush(o,M2,'Product');o.why.push('The alcohol oxygen attacks the sulfonyl chloride; the C–O bond is not touched, so configuration at carbon is kept. The sulfonate is now an excellent leaving group for SN2 or E2.');return[add(o)]}
+    if(has('pocl3')&&has('py')){const x=al[0];const o=prOut('Dehydration with POCl₃/pyridine','E2 elimination of water');const E=prElims(M,x.c,M2=>M2.kill(x.o));if(E.length){prPush(o,E[0].M,'Major product',E.length>1?'Zaitsev product: the more substituted alkene.':'');o.why.push('POCl₃ converts OH into a leaving group and pyridine removes a β-H in one E2 step: no carbocation, so no rearrangement.');return[add(o)]}}
+    if(has('h2so4','h3po4','tsoh')&&ctx.heat){const x=al[0];const o=prOut('Acid-catalysed dehydration','E1 elimination of water',{lib:'e1'});const M2=M.clone();M2.kill(x.o);M2.fixH();const sh=x.deg>=2?prShift(M2,x.c):{M:M2,c:x.c,how:null};
+      const E=prElims(sh.M,sh.c,()=>{});if(E.length){const st=prTransStereo(E[0].M,sh.c,E[0].beta);prPush(o,E[0].M,'Major product',(sh.how?`After a 1,2-${sh.how} shift. `:'')+(E.length>1?'Zaitsev product: the more substituted alkene.':''),st);if(E.length>1)prPush(o,E[E.length-1].M,'Minor product','Less substituted alkene');o.why.push('Acid protonates OH to give water, which leaves to form a carbocation; loss of a β-H gives the more substituted alkene.');if(sh.how)o.why.push(`The carbocation rearranges by a 1,2-${sh.how} shift first.`);if(x.deg===1)o.why.push('Primary alcohols need harsh conditions and react by E2 on the protonated alcohol.');return[add(o)]}}
+    if(has('nah','naoh','k2co3','na')&&ctx.rx){const x=al[0];const o=prOut('Williamson ether synthesis','Alkoxide + alkyl halide → ether',{lib:'williamson'});const M2=M.clone();M2.attach(x.o,ctx.rx.frag);prPush(o,M2,'Product');o.why.push('The base removes the OH proton; the alkoxide does SN2 on the alkyl halide.');if(['C(C)C','C(C)(C)C','C(C)CC'].includes(ctx.rx.frag))o.warn.push('With a secondary or tertiary alkyl halide, E2 would compete strongly.');return[add(o)]}
+  }
+  if(F.phenol.length&&ctx.rx&&has('naoh','k2co3','nah')){const o=prOut('Williamson ether synthesis','Phenoxide + alkyl halide → aryl ether',{lib:'williamson'});const M2=M.clone();M2.attach(F.phenol[0].o,ctx.rx.frag);prPush(o,M2,'Product');o.why.push('Phenols (pKa 10) are acidic enough to be deprotonated by NaOH or K₂CO₃; the phenoxide does SN2 on the alkyl halide.');return[add(o)]}
+  /* --- epoxides --- */
+  if(F.epoxide.length){const x=F.epoxide[0];const acidic=ctx.acidAny;const nu=has('naome')?'OC':has('naoet')?'OCC':has('naoh')?'O':has('nacn')?'C#N':has('nan3')?'N=[N+]=[N-]':acidic?(has('meoh')?'OC':has('etoh')?'OCC':has('hbr')?'Br':has('hcl')?'Cl':'O'):null;
+    if(nu){const[more,less]=pDeg(M,x.c1)>=pDeg(M,x.c2)?[x.c1,x.c2]:[x.c2,x.c1];const at=acidic?more:less;const o=prOut(`Epoxide ring opening (${acidic?'acid':'base'})`,'Anti addition across the ring',{lib:acidic?'epoxideacid':'epoxide'});const M2=M.clone();M2.unlink(at,x.o);M2.attach(at,nu);prPush(o,M2,'Product');o.why.push(acidic?'Acid protonates the epoxide oxygen; the C–O bond to the more substituted carbon is weaker and carries more positive charge, so the nucleophile attacks there (SN1-like).':'A strong nucleophile attacks the less hindered carbon by SN2, opening the strained ring.','Attack is from the back, so the OH and the nucleophile end up anti (trans).');return[add(o)]}}
+  /* --- alkyl halides and sulfonates --- */
+  const LG=[...F.halide.filter(h=>!h.bad).map(h=>({c:h.c,deg:h.deg,name:M.A[h.x].el==='Br'?'bromide':M.A[h.x].el==='Cl'?'chloride':'iodide',remove:M2=>M2.kill(h.x),x:h.x})),...F.sulfonate.map(s=>({c:s.c,deg:s.deg,name:'sulfonate',remove:M2=>M2.killBranch(s.x,s.c),x:s.x}))];
+  if(LG.length){
+    if(has('mg')&&F.halide.length){const h=F.halide[0];const o=prOut('Grignard reagent formation','R–X + Mg → R–MgX');const M2=M.clone();M2.kill(h.x);const mg=M2.add('Mg');M2.link(h.c,mg);const x=M2.add(M.A[h.x].el);M2.link(mg,x);if(has('co2')){const M3=M.clone();M3.kill(h.x);M3.attach(h.c,'C(=O)O');o.title='Grignard carboxylation';o.type='R–X → R–COOH';prPush(o,M3,'Product (after acid workup)');o.why.push('Mg inserts into C–X to form RMgX; it adds to CO₂ to give a carboxylate, protonated in the workup.')}else{prPush(o,M2,'Product (Grignard reagent)');o.why.push('Mg inserts into the C–X bond in dry ether or THF, reversing the polarity of the carbon: it becomes a strong nucleophile and base.')}return[add(o)]}
+    if(has('bu3snh')){const h=LG[0];const o=prOut('Radical dehalogenation','C–X → C–H');const M2=M.clone();h.remove(M2);prPush(o,M2,'Product');o.why.push('Bu₃Sn• abstracts the halogen to give a carbon radical, which takes H from Bu₃SnH.');return[add(o)]}
+    if(has('nanh2')&&F.halide.length>=2){const[h1,h2]=F.halide;if(h1.c===h2.c||M.bond(h1.c,h2.c)>=0){const o=prOut('Double elimination','Dihalide → alkyne');const M2=M.clone();M2.kill(h1.x);M2.kill(h2.x);let a=h1.c,b=h2.c;if(a===b){b=cNbrs(M,a).find(n=>sp3(M,n.to)&&M.A[n.to].h>=2).to}M2.setO(a,b,3);prPush(o,M2,'Product');o.why.push('Two successive E2 eliminations with the very strong base NaNH₂ remove two HX to form a C≡C.');return[add(o)]}}
+    const site=LG.sort((a,b)=>b.deg-a.deg)[0];const r=prSubElim(M,site,ctx,site.name);if(r){if(!r.products.length&&r.mech&&r.mech.winner==null)r.none=true;res.push(r);if(LG.length>1)r.warn.push('Only one leaving group was considered; the others would react similarly.');return res}
+  }
+  if(F.halide.some(h=>h.bad)&&has('naoh','naoet','naome','nacn','nan3','nai')){const o=prOut('No SN1 or SN2','Aryl and vinyl halides');o.why.push('The C–X carbon is sp², so backside attack is blocked and the cation would be very unstable. Aryl and vinyl halides don’t do SN1 or SN2 (aryl halides only react by SNAr if strongly activated by NO₂ groups).');o.none=true;res.push(o);return res}
+  /* --- radical halogenation of alkanes / allylic positions --- */
+  if((has('br2','cl2')&&has('light','heat'))||(has('nbs')&&(has('light','roor')||has('heat')))){const X=has('cl2')?'Cl':'Br';const C=M.A.map((a,i)=>i).filter(i=>sp3(M,i)&&M.A[i].h>=1);if(C.length){const score=i=>pDeg(M,i)+(M.nb(i).some(n=>M.A[n.to].ar)?3:0)+(cNbrs(M,i).some(n=>M.nb(n.to).some(y=>y.o===2&&isC(M,y.to)))?2.5:0);const best=C.sort((a,b)=>score(b)-score(a))[0];
+    const o=prOut(has('nbs')?'Allylic/benzylic bromination (NBS)':`Radical ${X==='Br'?'bromination':'chlorination'}`,'Radical chain substitution of C–H');const M2=M.clone();M2.attach(best,X);prPush(o,M2,'Major product');o.why.push('A halogen radical removes the H that gives the most stable carbon radical (benzylic/allylic > tertiary > secondary > primary), then the radical takes X from X₂.');if(X==='Cl')o.warn.push('Chlorination is much less selective than bromination, so expect a mixture of isomers.');return[add(o)]}}
+  /* --- deprotections --- */
+  if(has('tbaf')){const si=M.A.map((a,i)=>i).filter(i=>M.A[i].el==='Si');if(si.length){const o=prOut('Silyl ether deprotection','TBS/TMS removed with fluoride');const M2=M.clone();for(const s of si){const oo=M.nb(s).find(n=>M.A[n.to].el==='O');if(oo)M2.killBranch(s,oo.to)}prPush(o,M2,'Product');o.why.push('Fluoride attacks silicon (the Si–F bond is very strong), releasing the alcohol.');return[add(o)]}}
+  return res}
+/* ---- run a prediction ---- */
+function prPredict(subText,reagText){
+  const sub=String(subText||'').trim();if(!sub)return{err:'Type a starting material: a name like 2-bromobutane, or a SMILES string like CC(Br)CC.'};
+  let smi=null,how='';
+  try{const r=nameToSmiles(sub);if(r&&r.smiles){smi=r.smiles;how='name'}}catch(e){}
+  if(!smi){try{const M=PM.from(sub.replace(/\s+/g,''));if(M.A.length){smi=sub.replace(/\s+/g,'');how='smiles'}}catch(e){}}
+  if(!smi)return{err:`Bondline couldn't read “${sub}” as a name or a SMILES string.`};
+  if(smi.includes('.'))return{err:'Use one starting material at a time. Put the second reactant in the reagents box (e.g. “CH3MgBr” or “MeOH, H2SO4”).',smi};
+  const ctx=prParse(reagText);if(!ctx.R.size&&!ctx.rm&&!ctx.rx&&!ctx.amine&&!ctx.acyl&&!ctx.ylide&&!ctx.cu&&!ctx.rmUnknown)return{err:'Type the reagents and conditions, e.g. “NaOEt, EtOH, heat” or “1. BH3·THF 2. H2O2, NaOH”.',smi};
+  let M;try{M=PM.from(smi);M.fixH()}catch(e){return{err:'Bondline couldn\'t read that structure.'}}
+  const F=fg(M);let res=[];try{res=prRules(M,F,ctx)}catch(e){console.warn('predictor',e);return{err:'Something went wrong predicting this reaction.',smi}}
+  return{smi:prCanon(smi),name:prName(prCanon(smi)),how,ctx,res:res.filter(Boolean)}}
+/* ---- dialog ---- */
+const PRD={last:null};
+const PR_EXAMPLES=[['2-bromo-2-methylpropane','NaOEt, EtOH, heat'],['1-bromobutane','NaCN, DMSO'],['2-bromobutane','t-BuOK'],['2-bromo-2-methylpropane','H2O'],['propene','HBr'],['3-methylbut-1-ene','HBr'],['1-methylcyclohexene','1. BH3·THF 2. H2O2, NaOH'],['cyclohexanone','NaBH4, MeOH'],['ethyl benzoate','LiAlH4, then H3O+'],['butanal','CH3MgBr, then H3O+'],['toluene','HNO3, H2SO4'],['benzene','CH3COCl, AlCl3'],['butan-1-ol','PCC, CH2Cl2'],['pent-2-yne','H2, Lindlar'],['cyclohexene','mCPBA'],['propanoic acid','EtOH, H2SO4']];
+function openPredictor(){
+  $('#prdScrim').hidden=false;document.body.classList.add('sk-lock');
+  const sel=$('#prdFromDraw');let opts=[];
+  if(App.mode==='notes'&&App.active&&App.active.d&&App.active.d.atoms.length){try{opts=analyseDrawing(App.active.d).filter(x=>x.smiles).map(x=>({smi:x.smiles,name:x.name&&x.name.name||x.smiles}))}catch(e){}}
+  sel.hidden=!opts.length;sel.innerHTML='<option value="">Use a molecule from the selected drawing…</option>'+opts.map(o=>`<option value="${esc(o.smi)}">${esc(o.name)}</option>`).join('');
+  $('#prdEx').innerHTML=PR_EXAMPLES.map(([s,r],i)=>`<button class="tf" data-prex="${i}">${esc(s)} + ${esc(r)}</button>`).join('');
+  prdPreview();setTimeout(()=>$('#prdSub').focus(),30)}
+function closePredictor(){$('#prdScrim').hidden=true;document.body.classList.remove('sk-lock')}
+let prdT;function prdPreview(){clearTimeout(prdT);prdT=setTimeout(()=>{const v=$('#prdSub').value.trim(),box=$('#prdSubPrev');if(!v){box.innerHTML='<span class="hm-muted">The starting material appears here.</span>';return}
+  let smi=null;try{const r=nameToSmiles(v);if(r&&r.smiles)smi=r.smiles}catch(e){}if(!smi){try{PM.from(v.replace(/\s+/g,''));smi=v.replace(/\s+/g,'')}catch(e){}}
+  if(!smi){box.innerHTML='<span class="hm-muted">Not recognised yet. Try an IUPAC name (2-bromobutane) or a SMILES string (CC(Br)CC).</span>';return}
+  let svg='';try{svg=smilesSVG(smi,0.9)}catch(e){}const nm=prName(prCanon(smi));box.innerHTML=`<div class="prd-mol">${svg}</div><span>${esc(nm||smi)}</span>`},200)}
+function prdRun(){
+  const r=prPredict($('#prdSub').value,$('#prdReag').value);PRD.last=r;const out=$('#prdOut');
+  if(r.err){out.innerHTML=`<p class="prd-err">${esc(r.err)}</p>`;return}
+  if(!r.res.length){out.innerHTML=`<div class="prd-card"><h3>No prediction</h3><p>Bondline doesn't know a reaction between <b>${esc(r.name||r.smi)}</b> and these reagents. It may not react, or the reaction may not be in Bondline's set yet.</p><p class="hm-muted">Bondline can predict additions to alkenes and alkynes, oxidations and reductions, Grignard and Wittig reactions, acetal and imine formation, aldol and Claisen reactions, acid derivative chemistry, aromatic substitution, alcohol reactions and SN1/SN2/E1/E2 at alkyl halides.</p></div>`;return}
+  out.innerHTML=r.res.map((o,k)=>{const mech=o.mech&&o.mech.winner!==undefined?`<div class="prd-mech"><h4>Which mechanism?</h4><div class="prd-bars">${['SN2','SN1','E2','E1'].map(m=>{const v=Math.max(0,Math.min(100,o.mech.scores[m]||0));return`<div class="prd-bar${o.mech.winner===m?' win':''}"><span>${m}</span><i><b style="width:${v}%"></b></i></div>`}).join('')}</div><ul>${o.mech.reasons.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:'';
+    return`<div class="prd-card"><div class="prd-head"><div><h3>${esc(o.title)}</h3><span class="hm-muted">${esc(o.type)}</span></div>${o.lib&&RXN.some(x=>x.id===o.lib)?`<button class="btn small" data-prlib="${o.lib}">Mechanism ↗</button>`:''}</div>
+    ${o.products.length?`<div class="prd-prods">${o.products.map((p,i)=>{let svg='';try{svg=smilesSVG(p.smi,0.95)}catch(e){}const names=p.smi.split('.').map(s=>prName(s)).filter(Boolean).map(x=>p.ez&&!/^\(/.test(x)?`(${p.ez})-${x}`:x);return`<figure class="prd-prod"><figcaption class="prd-role${i===0?' major':''}">${esc(p.label)}</figcaption><div class="prd-mol">${svg}</div><div class="prd-name">${names.length?names.map(esc).join(' + '):'<span class="hm-muted">(no name available)</span>'}</div>${p.note?`<small>${esc(p.note)}</small>`:''}<button class="btn small" data-pradd="${k}:${i}">Add to note</button></figure>`}).join('')}</div>`:''}
+    ${mech}${o.why.length&&!o.mech?`<ul class="prd-why">${o.why.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}${o.mech&&o.why.length?`<ul class="prd-why">${o.why.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}${o.warn.map(w=>`<p class="prd-warn">⚠ ${w}</p>`).join('')}</div>`}).join('')+`<p class="hm-muted prd-foot">Predictions follow the standard rules taught in organic chemistry courses. Real reactions can give mixtures, so check against your course notes.</p>`;
+}
+function prdAdd(k,i){const r=PRD.last;if(!r||!r.res[k])return;const p=r.res[k].products[i];const reag=$('#prdReag').value.trim().slice(0,48);
+  let d;try{d=mechRow({steps:[{s:r.smi,r:reag},{s:p.smi}]},0,{noCurls:true}).d}catch(e){toast('Couldn\'t draw this reaction.');return}
+  let n=App.mode==='notes'&&App.cur&&!App.cur.readonly?App.cur:null;
+  if(!n){n={id:uid(),title:r.res[k].title,tag:'',tags:[],updated:Date.now(),blocks:[]};App.notes.push(n)}
+  const b={id:uid(),type:'scheme',data:normScheme(d)};const txt={id:uid(),type:'text',html:`<p><b>${esc(r.res[k].title)}</b>: ${esc(r.name||r.smi)} → ${esc(p.smi.split('.').map(s=>prName(s)||s).join(' + '))}</p>`};
+  const at=App.active&&n===App.cur?n.blocks.findIndex(x=>x.data===App.active.d):-1;if(at>=0)n.blocks.splice(at+1,0,txt,b);else n.blocks.push(txt,b);
+  App.noteChanged(n);closePredictor();setMode('notes');openNoteKeep(n);const el=document.querySelector(`.block[data-id="${b.id}"]`);if(el)el.scrollIntoView({block:'center'});toast('Reaction added to the note')}
+function wirePredictor(){
+  $('#prdClose').onclick=closePredictor;$('#prdScrim').addEventListener('click',e=>{if(e.target.id==='prdScrim')closePredictor()});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#prdScrim').hidden)return;e.stopPropagation();e.preventDefault();closePredictor()},true);$('#prdScrim').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('#prdSub,#prdReag')){e.preventDefault();prdRun()}});
+  $('#prdSub').addEventListener('input',prdPreview);$('#prdGo').onclick=prdRun;
+  $('#prdFromDraw').onchange=e=>{if(e.target.value){$('#prdSub').value=e.target.value;prdPreview()}};
+  $('#prdEx').addEventListener('click',e=>{const b=e.target.closest('[data-prex]');if(!b)return;const[s,r]=PR_EXAMPLES[+b.dataset.prex];$('#prdSub').value=s;$('#prdReag').value=r;prdPreview();prdRun()});
+  $('#prdOut').addEventListener('click',e=>{const a=e.target.closest('[data-pradd]');if(a){const[k,i]=a.dataset.pradd.split(':').map(Number);prdAdd(k,i);return}const l=e.target.closest('[data-prlib]');if(l){closePredictor();openLibrary(l.dataset.prlib)}});
+}
+
+/* ---------- shared notebooks: collaborators, invites, live per-block sync ---------- */
+const SH={nbs:new Map(),subs:new Map(),state:new Map(),last:new Map(),pres:new Map(),invites:[],root:null,inv:null,started:false,busy:{},again:{},presNb:null,dlg:null};
+const NB_ROLE={owner:'Owner',editor:'Can edit',viewer:'Can view and comment'};
+const FV=()=>firebase.firestore.FieldValue;
+const shUid=()=>FB.user&&FB.user.uid;
+function shMe(){const u=FB.user||{};return{n:String(u.displayName||(u.email||'').split('@')[0]||'Someone').slice(0,80),e:String(u.email||'').toLowerCase().slice(0,120)}}
+const shRole=nb=>{const d=SH.nbs.get(nb);return d&&d.roles?d.roles[shUid()]||null:null};
+const shCanEdit=nb=>['owner','editor'].includes(shRole(nb));
+const shIsOwner=nb=>shRole(nb)==='owner';
+const shRef=id=>FB.db.collection('notebooks').doc(id);
+const shKey=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),x=>'abcdefghijklmnopqrstuvwxyz0123456789'[x%36]).join('');
+/* stable JSON so key order never makes two equal blocks look different */
+function stab(v){if(Array.isArray(v))return'['+v.map(stab).join(',')+']';if(v&&typeof v==='object')return'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stab(v[k])).join(',')+'}';return JSON.stringify(v===undefined?null:v)}
+function shClean(b){const t=normNote({id:'x',title:'',blocks:[JSON.parse(JSON.stringify(b))]});return t.blocks[0]}
+function shSnap(n){return{title:n.title,tags:stab(noteTags(n)),comments:stab(n.comments||[]),blocks:new Map(n.blocks.map((b,i)=>[b.id,{j:stab(b),pos:i}]))}}
+function shErr(e){setStatus('err');const c=e&&e.code||'';toast(c==='permission-denied'?'You don\'t have permission to change that. Ask the notebook\'s owner.':c==='resource-exhausted'||c==='invalid-argument'?'That shared note is too large to save. Split it into smaller notes.':'Couldn\'t save to the shared notebook. Your changes are kept on this device.');console.warn('shared',e)}
+/* ---- start listening once signed in ---- */
+function shStart(){
+  if(SH.started||Store.mode!=='cloud'||!FB.user||!FB.db)return;SH.started=true;
+  SH.root=FB.db.collection('notebooks').where('memberIds','array-contains',shUid()).onSnapshot(snap=>{
+    const seen=new Set();snap.forEach(doc=>{seen.add(doc.id);SH.nbs.set(doc.id,{id:doc.id,...doc.data()});shListen(doc.id)});
+    for(const id of[...SH.nbs.keys()])if(!seen.has(id))shDrop(id);
+    if(App.cur&&App.cur.nb&&App.mode==='notes')shAfterOpen();renderFolders();renderList();if(SH.dlg)renderNotebook();
+  },e=>{console.warn('notebooks',e);SH.started=false});
+  if(FB.user.email&&FB.user.emailVerified){SH.inv=FB.db.collection('notebooks').where('inviteEmails','array-contains',FB.user.email.toLowerCase()).onSnapshot(snap=>{SH.invites=snap.docs.map(d=>({id:d.id,...d.data()})).filter(d=>!SH.nbs.has(d.id));renderFolders()},()=>{})}
+  shCheckJoin();
+}
+function shListen(nb){if(SH.subs.has(nb))return;const st={notes:new Map(),blocks:new Map(),ready:0};SH.state.set(nb,st);const ref=shRef(nb),subs=[];
+  const lost=e=>{if(e&&e.code==='permission-denied')shDrop(nb)};
+  subs.push(ref.collection('notes').onSnapshot(snap=>{const ch=new Set();snap.docChanges().forEach(c=>{if(c.type==='removed')st.notes.delete(c.doc.id);else st.notes.set(c.doc.id,c.doc.data());ch.add(c.doc.id)});st.ready|=1;shApply(nb,ch)},lost));
+  subs.push(ref.collection('blocks').onSnapshot(snap=>{const ch=new Set();snap.docChanges().forEach(c=>{const d=c.doc.data()||{};const note=c.type==='removed'?(st.blocks.get(c.doc.id)||d).note:d.note;if(c.type==='removed')st.blocks.delete(c.doc.id);else st.blocks.set(c.doc.id,d);if(note)ch.add(note)});st.ready|=2;shApply(nb,ch)},lost));
+  subs.push(ref.collection('presence').onSnapshot(snap=>{const m=new Map();snap.forEach(d=>m.set(d.id,d.data()));SH.pres.set(nb,m);shPresenceUI()},()=>{}));
+  SH.subs.set(nb,subs)}
+function shDrop(nb){(SH.subs.get(nb)||[]).forEach(u=>{try{u()}catch(e){}});SH.subs.delete(nb);SH.state.delete(nb);SH.pres.delete(nb);const had=SH.nbs.delete(nb);
+  const gone=App.notes.filter(n=>n.nb===nb);if(gone.length){App.notes=App.notes.filter(n=>n.nb!==nb);gone.forEach(n=>SH.last.delete(n.id));if(App.cur&&App.cur.nb===nb){openNote(null);toast('You no longer have access to that shared notebook.')}}
+  if(VIEW.folder==='nb:'+nb)VIEW.folder='all';if(had||gone.length){renderFolders();renderList()}}
+/* ---- remote → local ---- */
+function shApply(nb,ids){const st=SH.state.get(nb);if(!st||st.ready!==3)return;
+  if(!st.init){st.init=true;ids=new Set([...st.notes.keys(),...App.notes.filter(n=>n.nb===nb).map(n=>n.id)])}
+  let list=false;
+  for(const id of ids){const meta=st.notes.get(id);const i=App.notes.findIndex(x=>x.id===id);let n=i>=0?App.notes[i]:null;
+    if(!meta){if(n&&n.nb===nb&&SH.last.has(id)){App.notes.splice(i,1);SH.last.delete(id);list=true;if(App.cur===n){openNote(null);toast('Someone deleted this note from the shared notebook.')}}continue}
+    const rb=[...st.blocks.entries()].filter(([,v])=>v.note===id&&v.b).map(([k,v])=>({id:k,...v})).sort((a,b)=>(a.pos-b.pos)||(a.u-b.u));
+    const R={title:String(meta.title||'').slice(0,500),tags:Array.isArray(meta.tags)?meta.tags.map(String).slice(0,20):[],comments:Array.isArray(meta.comments)?meta.comments:[],updated:+meta.updated||Date.now(),by:meta.by,blocks:rb.map(b=>shClean({...b.b,id:b.id}))};
+    if(!n){n=normNote({id,title:R.title,tags:R.tags,tag:R.tags[0]||'',comments:R.comments,updated:R.updated,blocks:R.blocks});n.nb=nb;App.notes.push(n);SH.last.set(id,shSnap(n));list=true;continue}
+    if(n.nb!==nb)n.nb=nb;shMerge(n,R);list=true}
+  if(list){renderList();renderFolders()}}
+function shMerge(n,R){
+  const L=SH.last.get(n.id)||{title:null,tags:null,comments:null,blocks:new Map()};
+  const ae=document.activeElement,inPage=App.cur===n&&ae&&ae.closest&&ae.closest('#notesPage');
+  const focusId=inPage&&ae.closest('.block')?ae.closest('.block').dataset.id:null,titleFocus=inPage&&ae.id==='noteTitle';
+  const loc=new Map(n.blocks.map(b=>[b.id,b])),out=[],changed=new Set();
+  for(const rb of R.blocks){const lb=loc.get(rb.id),was=L.blocks.get(rb.id);
+    if(lb&&((was&&was.j!==stab(lb))||(!was&&L.title!==null&&stab(lb)!==stab(rb))||rb.id===focusId)){out.push(lb);continue}/* local edits not saved yet, or you're typing in it: keep yours */
+    if(lb&&stab(lb)===stab(rb)){out.push(lb);continue}
+    changed.add(rb.id);out.push(rb)}
+  n.blocks.forEach((b,i)=>{if(R.blocks.some(r=>r.id===b.id))return;const was=L.blocks.get(b.id);
+    if(was&&was.j===stab(b)&&b.id!==focusId){changed.add(b.id);return}/* deleted by someone else */
+    const prev=i>0?n.blocks[i-1].id:null;const at=prev?out.findIndex(x=>x.id===prev)+1:0;out.splice(Math.max(0,at),0,b)});
+  const metaCh={};
+  if(!titleFocus&&(L.title===null||n.title===L.title)&&n.title!==R.title){n.title=R.title;metaCh.title=1}
+  if((L.tags===null||stab(noteTags(n))===L.tags)&&stab(noteTags(n))!==stab(R.tags)){n.tags=R.tags;n.tag=R.tags[0]||'';metaCh.tags=1}
+  if((L.comments===null||stab(n.comments||[])===L.comments)&&stab(n.comments||[])!==stab(R.comments)){n.comments=R.comments;metaCh.comments=1}
+  const order=out.map(b=>b.id).join()!==n.blocks.map(b=>b.id).join();
+  n.blocks=out;n.updated=Math.max(n.updated||0,R.updated);
+  SH.last.set(n.id,{title:R.title,tags:stab(R.tags),comments:stab(R.comments),blocks:new Map(R.blocks.map((b,i)=>[b.id,{j:stab(b),pos:i}]))});
+  if(App.cur===n&&App.mode==='notes'&&(changed.size||order||Object.keys(metaCh).length))shPatchOpen(n,changed,focusId,metaCh)}
+function shPatchOpen(n,changed,focusId,metaCh){
+  const ae=document.activeElement;if(!(ae&&ae.closest&&ae.closest('#notesPage'))){openNoteKeep(n);return}
+  const ti=$('#noteTitle');if(ti&&ae!==ti&&ti.value!==n.title){ti.value=n.title;ti.style.height='auto';ti.style.height=ti.scrollHeight+'px'}
+  const box=$('#blocks');
+  [...box.children].forEach(sec=>{if(sec.classList.contains('block')&&!n.blocks.some(b=>b.id===sec.dataset.id)&&sec.dataset.id!==focusId)sec.remove()});
+  let prev=null;
+  for(const b of n.blocks){let sec=[...box.children].find(s=>s.dataset&&s.dataset.id===b.id);
+    if(sec&&changed.has(b.id)&&b.id!==focusId){const ns=blockEl(b,n);sec.replaceWith(ns);sec=ns}
+    else if(!sec){sec=blockEl(b,n);if(prev)prev.after(sec);else box.prepend(sec)}
+    else if(b.id!==focusId&&sec!==(prev?prev.nextElementSibling:box.firstElementChild)){if(prev)prev.after(sec);else box.prepend(sec)}
+    prev=sec}
+  App.editors=App.editors.filter(e=>e.host.isConnected);App.sketches=(App.sketches||[]).filter(s=>s.host.isConnected);App.decks=(App.decks||[]).filter(d=>d.host.isConnected);
+  if(App.active&&!App.active.host.isConnected)App.setActive(null);
+  if(metaCh&&metaCh.comments&&CM.open)renderComments();syncCmtButton();markCommentSpans();refreshOutline();if(n.readonly)shApplyRO(n)}
+/* ---- local → remote ---- */
+async function shSave(n){
+  const nb=n.nb,id=n.id;if(!nb||!FB.db||!FB.user)return;if(!shRole(nb)){setStatus('err');return}
+  if(SH.busy[id]){SH.again[id]=true;return}SH.busy[id]=true;
+  try{const ref=shRef(nb),L=SH.last.get(id)||{title:null,tags:null,comments:null,blocks:new Map()},me=shUid(),now=Date.now(),can=shCanEdit(nb),isNew=L.title===null;
+    const meta={},w=[];
+    if(can&&(isNew||n.title!==L.title))meta.title=String(n.title||'').slice(0,500);
+    if(can&&(isNew||stab(noteTags(n))!==L.tags))meta.tags=noteTags(n).slice(0,20);
+    if(isNew||stab(n.comments||[])!==L.comments)meta.comments=JSON.parse(JSON.stringify(n.comments||[]));
+    const nextBlocks=new Map(L.blocks);
+    if(can){n.blocks.forEach((b,i)=>{const x=L.blocks.get(b.id),j=stab(b);if(!x||x.j!==j||x.pos!==i){const{id:_,...body}=b;w.push(ref.collection('blocks').doc(b.id).set(JSON.parse(JSON.stringify({note:id,pos:i,b:body,u:now,by:me}))));nextBlocks.set(b.id,{j,pos:i})}});
+      for(const bid of L.blocks.keys())if(!n.blocks.some(b=>b.id===bid)){w.push(ref.collection('blocks').doc(bid).delete());nextBlocks.delete(bid)}}
+    if(Object.keys(meta).length||w.length){meta.updated=now;meta.by=me;w.unshift(ref.collection('notes').doc(id).set(meta,{merge:true}))}
+    SH.last.set(id,{title:can?n.title:L.title,tags:can?stab(noteTags(n)):L.tags,comments:stab(n.comments||[]),blocks:nextBlocks});
+    if(!w.length){setStatus('cloud');return}
+    if(!navigator.onLine){Promise.all(w).then(()=>setStatus('cloud')).catch(shErr);setStatus('offline');return}
+    await Promise.all(w);setStatus('cloud')}
+  catch(e){SH.last.delete(id);shErr(e)}
+  finally{SH.busy[id]=false;if(SH.again[id]){SH.again[id]=false;shSave(n)}}}
+async function shDeleteDocs(nb,n){const ref=shRef(nb),ids=new Set([...(SH.last.get(n.id)||{blocks:new Map()}).blocks.keys(),...n.blocks.map(b=>b.id)]);
+  const st=SH.state.get(nb);if(st)for(const[k,v]of st.blocks)if(v.note===n.id)ids.add(k);
+  await Promise.all([...ids].map(b=>ref.collection('blocks').doc(b).delete()));await ref.collection('notes').doc(n.id).delete()}
+/* ---- moving notes in and out ---- */
+async function shMoveIn(n,nb,quiet){
+  if(!SH.nbs.has(nb))return;if(!shCanEdit(nb)){toast('You can only view that notebook, so you can\'t add notes to it.');return}if(n.nb===nb)return;
+  if(n.nb&&!shCanEdit(n.nb)){toast('You can only view the notebook this note is in.');return}
+  clearTimeout(saveT[n.id]);const old=n.nb;
+  if(old){try{await shDeleteDocs(old,n)}catch(e){shErr(e);return}}
+  else if(Store.mode==='cloud'&&!n.example)Store.remove(n.id).catch(()=>{});
+  delete n.folder;delete n.pinned;delete n.share;delete n.example;n.nb=nb;SH.last.delete(n.id);persistLocal();await shSave(n);
+  renderFolders();renderList();if(App.cur===n)openNoteKeep(n);if(!quiet)toast(`Moved to “${SH.nbs.get(nb).name}”. Everyone in the notebook can see it now.`)}
+async function shMoveOut(n,folder){const nb=n.nb,name=(SH.nbs.get(nb)||{}).name||'the notebook';
+  try{await shDeleteDocs(nb,n)}catch(e){shErr(e);return}
+  delete n.nb;delete n.readonly;SH.last.delete(n.id);n.folder=folder||'';App.noteChanged(n);renderFolders();renderList();if(App.cur===n)openNoteKeep(n);toast(`Moved to your own notes and removed from “${name}” for everyone.`)}
+function shCopyOut(n){const c=normNote(JSON.parse(JSON.stringify({...n,id:uid(),title:(n.title||'Untitled note')+' (copy)',updated:Date.now(),comments:[]})));delete c.nb;delete c.readonly;delete c.share;App.notes.push(c);App.noteChanged(c);openNote(c.id);toast('Saved a copy to your own notes')}
+/* ---- presence ---- */
+function shPresence(){if(!SH.started||!FB.user)return;const n=App.cur,nb=n&&n.nb&&App.mode==='notes'?n.nb:null,me=shUid();
+  if(SH.presNb&&SH.presNb!==nb&&SH.nbs.has(SH.presNb))shRef(SH.presNb).collection('presence').doc(me).delete().catch(()=>{});
+  SH.presNb=nb;if(nb)shRef(nb).collection('presence').doc(me).set({note:n.id,at:Date.now(),n:shMe().n}).catch(()=>{});shPresenceUI()}
+function shPresenceUI(){const box=$('#shPres');if(!box)return;const n=App.cur;if(!n||!n.nb){box.innerHTML='';return}const m=SH.pres.get(n.nb),me=shUid(),now=Date.now();
+  const who=m?[...m.entries()].filter(([k,v])=>k!==me&&v&&v.note===n.id&&now-(+v.at||0)<100000).map(([,v])=>String(v.n||'Someone')):[];
+  box.innerHTML=who.slice(0,4).map(nm=>`<span class="sh-av" title="${esc(nm)} is viewing this note">${esc((nm.trim()[0]||'?').toUpperCase())}</span>`).join('')+(who.length?`<span class="sh-here">${who.length===1?esc(who[0])+' is here':who.length+' others here'}</span>`:'')}
+setInterval(()=>{if(document.visibilityState==='visible'&&App.cur&&App.cur.nb)shPresence()},45000);
+addEventListener('pagehide',()=>{if(SH.presNb&&FB.user)shRef(SH.presNb).collection('presence').doc(shUid()).delete().catch(()=>{})});
+/* ---- note header for shared notes; read-only for viewers ---- */
+function shApplyRO(n){const ro=!!(n&&n.nb&&!shCanEdit(n.nb));n.readonly=ro;$('#notesPage').classList.toggle('ro',ro);if(!ro)return;
+  document.querySelectorAll('#blocks .text-body').forEach(b=>{b.contentEditable='false';b.removeAttribute('role')});const ti=$('#noteTitle');if(ti)ti.readOnly=true;const fs=$('#noteFolder');if(fs)fs.disabled=true;const tg=$('#noteTags input');if(tg)tg.disabled=true;App.setActive(null)}
+function shAfterOpen(){const page=$('#notesPage');if(!page)return;page.classList.remove('ro');page.classList.toggle('sh-on',!!(App.cur&&App.cur.nb));const old=$('#shBar');if(old)old.remove();const n=App.cur;
+  if(!n||!n.nb){if(n)delete n.readonly;shPresence();return}
+  const nb=SH.nbs.get(n.nb),role=shRole(n.nb)||'viewer',ro=!shCanEdit(n.nb);
+  const bar=document.createElement('div');bar.className='sh-bar';bar.id='shBar';
+  bar.innerHTML=`<span class="sh-nb"><span aria-hidden="true">👥</span> ${esc(nb?nb.name:'Shared notebook')}</span><span class="sh-role">${esc(NB_ROLE[role]||'')}</span><span class="sh-pres" id="shPres" aria-live="polite"></span><span class="np-sp"></span>${ro?'<button class="btn small" data-shcopy="1">Copy to my notes</button>':''}<button class="btn small" data-shmanage="1">People</button>`;
+  const head=$('#noteHead .note-head');if(head)head.prepend(bar);
+  bar.onclick=e=>{if(e.target.closest('[data-shcopy]'))shCopyOut(n);else if(e.target.closest('[data-shmanage]'))openNotebook(n.nb)};
+  const fs=$('#noteFolder');if(fs)fs.value='nb:'+n.nb;
+  const sb=$('#shareBtn');if(sb)sb.hidden=true;const del=$('#delNote');if(del)del.hidden=ro;
+  shApplyRO(n);shPresence()}
+/* ---- joining: invite links and email invitations ---- */
+function shPendingJoin(){const m=/[#&]join=([a-z0-9]{20,40})/.exec(location.hash);if(m){try{localStorage.setItem('bondline.pendingJoin',m[1])}catch(e){}history.replaceState(null,'',location.pathname+location.search)}try{return localStorage.getItem('bondline.pendingJoin')}catch(e){return null}}
+async function shCheckJoin(){const key=shPendingJoin();if(!key)return;
+  if(!FB.cfg){toast('Shared notebooks need the installed Bondline app with sign-in.');try{localStorage.removeItem('bondline.pendingJoin')}catch(e){}return}
+  if(!(Store.mode==='cloud'&&FB.user)){nbDialog(`<h2 id="nbTitle">Join a shared notebook</h2><p>Someone has invited you to a shared notebook in Bondline. Sign in (or create a free account) to join it.</p><div class="np-row"><span class="np-sp"></span><button class="btn" data-nb="close">Not now</button><button class="btn primary" data-nb="signin">Sign in</button></div>`);return}
+  let inv=null;try{const d=await FB.db.collection('invites').doc(key).get();inv=d.exists?d.data():null}catch(e){}
+  try{localStorage.removeItem('bondline.pendingJoin')}catch(e){}
+  if(!inv||!inv.on){nbDialog(`<h2 id="nbTitle">This invite link doesn't work</h2><p>The link may have been turned off by the notebook's owner. Ask them for a new one.</p><div class="np-row"><span class="np-sp"></span><button class="btn primary" data-nb="close">OK</button></div>`);return}
+  if(SH.nbs.has(inv.nb)){closeNotebook();shShowNb(inv.nb);toast(`You're already in “${inv.name}”`);return}
+  nbDialog(`<h2 id="nbTitle">Join “${esc(inv.name)}”?</h2><p><b>${esc(inv.from||'Someone')}</b> invited you to this shared notebook. You'll be able to <b>${inv.role==='editor'?'view and edit':'view and comment on'}</b> its notes, and the other members will see your name.</p><div class="np-row"><span class="np-sp"></span><button class="btn" data-nb="close">Not now</button><button class="btn primary" data-nbjoinkey="${esc(key)}" data-nbid="${esc(inv.nb)}" data-role="${inv.role==='editor'?'editor':'viewer'}">Join notebook</button></div>`)}
+async function shJoinLink(key,nb,role){const me=shUid(),F=FV();try{await shRef(nb).update({['roles.'+me]:role,['people.'+me]:shMe(),memberIds:F.arrayUnion(me),joinKey:key});closeNotebook();toast('Joined the shared notebook');setTimeout(()=>shShowNb(nb),800)}catch(e){shErr(e)}}
+async function shJoinEmail(nb){const me=shUid(),F=FV(),inv=SH.invites.find(x=>x.id===nb),em=shMe().e;if(!inv)return;const role=(inv.inviteEditors||[]).includes(em)?'editor':'viewer';
+  try{await shRef(nb).update({['roles.'+me]:role,['people.'+me]:shMe(),memberIds:F.arrayUnion(me),inviteEmails:F.arrayRemove(em),inviteEditors:F.arrayRemove(em)});SH.invites=SH.invites.filter(x=>x.id!==nb);toast(`Joined “${inv.name}”`);setTimeout(()=>shShowNb(nb),800)}catch(e){shErr(e)}}
+async function shDecline(nb){const F=FV(),em=shMe().e;try{await shRef(nb).update({inviteEmails:F.arrayRemove(em),inviteEditors:F.arrayRemove(em)});SH.invites=SH.invites.filter(x=>x.id!==nb);renderFolders();toast('Invitation declined')}catch(e){shErr(e)}}
+function shShowNb(nb){VIEW.folder='nb:'+nb;VIEW.tag=null;if(App.mode!=='notes'&&App.mode!=='home')setMode('notes');renderFolders();renderList();if(innerWidth<=820)$('#side').classList.add('open')}
+/* ---- creating and managing notebooks ---- */
+function nbDialog(html){$('#nbBody').innerHTML=html;$('#nbScrim').hidden=false;SH.dlg=SH.dlg||{};const f=$('#nbBody').querySelector('input:not([type=hidden]),button.primary');if(f)setTimeout(()=>f.focus(),40)}
+function closeNotebook(){$('#nbScrim').hidden=true;SH.dlg=null}
+function shNeedSignIn(){if(!FB.cfg){toast('Shared notebooks need the installed Bondline app with sign-in.');return true}if(!(Store.mode==='cloud'&&FB.user)){nbDialog(`<h2 id="nbTitle">Sign in to share</h2><p>Shared notebooks are stored in your Bondline account, so you and the people you invite need to be signed in.</p><div class="np-row"><span class="np-sp"></span><button class="btn" data-nb="close">Not now</button><button class="btn primary" data-nb="signin">Sign in</button></div>`);return true}return false}
+function newNotebook(){if(shNeedSignIn())return;SH.dlg={mode:'new'};nbDialog(`<h2 id="nbTitle">New shared notebook</h2><p class="hm-muted">A shared notebook is a folder you share with classmates or colleagues. Everyone in it sees the same notes, and changes appear live.</p><label class="nb-f">Name<input id="nbName" maxlength="100" placeholder="e.g. Organic chemistry study group"></label><div class="np-row"><span class="np-sp"></span><button class="btn" data-nb="close">Cancel</button><button class="btn primary" data-nb="create">Create</button></div>`)}
+async function shCreate(){const name=($('#nbName').value||'').trim().slice(0,100);if(!name){$('#nbName').focus();return}const me=shUid(),id=shKey(20);
+  try{await shRef(id).set({name,owner:me,roles:{[me]:'owner'},people:{[me]:shMe()},memberIds:[me],inviteEmails:[],inviteEditors:[],at:Date.now()});SH.nbs.set(id,{id,name,owner:me,roles:{[me]:'owner'},people:{[me]:shMe()},memberIds:[me],inviteEmails:[],inviteEditors:[]});shListen(id);shShowNb(id);openNotebook(id);toast(`Created “${name}”. Invite people below.`)}catch(e){shErr(e)}}
+function openNotebook(nb){if(!SH.nbs.has(nb))return;SH.dlg={mode:'manage',nb};renderNotebook();$('#nbScrim').hidden=false}
+function shLink(key){return location.origin+location.pathname.replace(/index\.html$/,'')+'#join='+key}
+function renderNotebook(){const D=SH.dlg;if(!D||D.mode!=='manage')return;const d=SH.nbs.get(D.nb);if(!d){closeNotebook();return}const own=shIsOwner(D.nb),me=shUid(),people=d.people||{},roles=d.roles||{};
+  const ppl=(d.memberIds||[]).map(u=>({u,p:people[u]||{n:'Member',e:''},r:roles[u]||'viewer'})).sort((a,b)=>(a.r==='owner'?-1:b.r==='owner'?1:0)||String(a.p.n).localeCompare(String(b.p.n)));
+  const inv=(d.inviteEmails||[]).map(e=>({e,r:(d.inviteEditors||[]).includes(e)?'editor':'viewer'}));
+  const verifyNote=FB.user&&FB.user.email&&!FB.user.emailVerified?`<p class="nb-note">Your email address isn't verified yet, so you won't see email invitations others send you. <button class="linkbtn" data-nb="verify">Send a verification email</button></p>`:'';
+  $('#nbBody').innerHTML=`<div class="nb-head">${own?`<input class="nb-title-in" id="nbRename" value="${esc(d.name)}" maxlength="100" aria-label="Notebook name">`:`<h2 id="nbTitle">${esc(d.name)}</h2>`}<span class="sh-role">${esc(NB_ROLE[roles[me]]||'')}</span></div>
+   <section class="nb-sec"><h3>People (${ppl.length})</h3><div class="nb-ppl">${ppl.map(x=>`<div class="nb-p"><span class="acct-av sm" aria-hidden="true">${esc((String(x.p.n).trim()[0]||'?').toUpperCase())}</span><span class="nb-who"><b>${esc(x.p.n)}${x.u===me?' (you)':''}</b><small>${esc(x.p.e||'')}</small></span>${own&&x.r!=='owner'?`<select data-nbrole="${esc(x.u)}" aria-label="Role for ${esc(x.p.n)}"><option value="editor"${x.r==='editor'?' selected':''}>Can edit</option><option value="viewer"${x.r==='viewer'?' selected':''}>Can view</option></select><button class="linkbtn danger" data-nbkick="${esc(x.u)}">Remove</button>`:`<span class="nb-r">${esc(NB_ROLE[x.r]||'')}</span>`}</div>`).join('')}</div></section>
+   ${own?`<section class="nb-sec"><h3>Invite by email</h3><p class="hm-muted">They'll see the invitation in their sidebar after signing in to Bondline with this email. Bondline doesn't send an email, so let them know.</p><div class="nb-inv-row"><input id="nbEmail" type="email" placeholder="name@example.com" aria-label="Email address"><select id="nbEmailRole" aria-label="Role"><option value="editor">Can edit</option><option value="viewer">Can view</option></select><button class="btn primary" data-nb="invite">Invite</button></div>${inv.length?`<div class="nb-pending">${inv.map(x=>`<div class="nb-p"><span class="nb-who"><b>${esc(x.e)}</b><small>Invited · ${x.r==='editor'?'can edit':'can view'}</small></span><button class="linkbtn danger" data-nbuninvite="${esc(x.e)}">Cancel</button></div>`).join('')}</div>`:''}</section>
+   <section class="nb-sec"><h3>Invite link</h3>${d.linkKey?`<p class="hm-muted">Anyone signed in who opens this link can join as <b>${(d.linkRole||'editor')==='editor'?'an editor':'a viewer'}</b>.</p><div class="sh-link"><input readonly value="${esc(shLink(d.linkKey))}" aria-label="Invite link"><button class="btn small" data-nb="copy">Copy</button></div><button class="linkbtn danger" data-nb="linkoff">Turn off this link</button>`:`<p class="hm-muted">Make a link you can send in a group chat. Anyone signed in who opens it can join.</p><div class="nb-inv-row"><select id="nbLinkRole" aria-label="Role for people who join with the link"><option value="editor">People who join can edit</option><option value="viewer">People who join can only view</option></select><button class="btn" data-nb="link">Create link</button></div>`}</section>`:''}
+   ${verifyNote}
+   <div class="np-row nb-foot">${own?'<button class="linkbtn danger" data-nb="delete">Delete notebook</button>':'<button class="linkbtn danger" data-nb="leave">Leave notebook</button>'}<span class="np-sp"></span><button class="btn primary" data-nb="close">Done</button></div>`}
+async function nbAction(e){const t=e.target;const F=()=>FV();const D=SH.dlg||{},nb=D.nb,ref=nb?shRef(nb):null;
+  const a=t.closest('[data-nb]');const k=a&&a.dataset.nb;
+  try{
+    if(k==='close'){closeNotebook();return}
+    if(k==='signin'){closeNotebook();if(typeof openAuth==='function')openAuth('in');return}
+    if(k==='create'){a.disabled=true;await shCreate();a.disabled=false;return}
+    if(k==='verify'){await FB.user.sendEmailVerification();toast('Verification email sent. Open the link in it, then sign in again.');return}
+    if(k==='invite'){const em=($('#nbEmail').value||'').trim().toLowerCase(),role=$('#nbEmailRole').value;if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){toast('Type a valid email address');$('#nbEmail').focus();return}
+      await ref.update({inviteEmails:F().arrayUnion(em),inviteEditors:role==='editor'?F().arrayUnion(em):F().arrayRemove(em)});toast(`Invited ${em}. Let them know to sign in to Bondline with that email.`);return}
+    if(k==='link'){const key=shKey(28),role=$('#nbLinkRole').value==='viewer'?'viewer':'editor',d=SH.nbs.get(nb);a.disabled=true;
+      await FB.db.collection('invites').doc(key).set({nb,role,by:shUid(),name:String(d.name).slice(0,100),from:shMe().n,on:true,at:Date.now()});await ref.update({linkKey:key,linkRole:role});return}
+    if(k==='copy'){const v=$('#nbBody .sh-link input').value;try{await navigator.clipboard.writeText(v);toast('Invite link copied')}catch(err){$('#nbBody .sh-link input').select();toast('Press Ctrl+C to copy the link')}return}
+    if(k==='linkoff'){const d=SH.nbs.get(nb);if(!a.classList.contains('armed')){a.classList.add('armed');a.textContent='Click again to turn the link off';return}if(d.linkKey)await FB.db.collection('invites').doc(d.linkKey).delete().catch(()=>{});await ref.update({linkKey:F().delete(),linkRole:F().delete()});toast('The invite link no longer works');return}
+    if(k==='leave'){if(!a.classList.contains('armed')){a.classList.add('armed');a.textContent='Click again to leave';return}const me=shUid();await ref.collection('presence').doc(me).delete().catch(()=>{});await ref.update({['roles.'+me]:F().delete(),['people.'+me]:F().delete(),memberIds:F().arrayRemove(me)});closeNotebook();shDrop(nb);toast('You left the notebook');return}
+    if(k==='delete'){if(!a.classList.contains('armed')){a.classList.add('armed');a.textContent='Delete it and all its notes for everyone? Click again';return}a.disabled=true;
+      const d=SH.nbs.get(nb);for(const col of['blocks','notes','presence']){const s=await ref.collection(col).get();await Promise.all(s.docs.map(x=>x.ref.delete()))}if(d.linkKey)await FB.db.collection('invites').doc(d.linkKey).delete().catch(()=>{});await ref.delete();closeNotebook();shDrop(nb);toast(`Deleted “${d.name}”`);return}
+    const kick=t.closest('[data-nbkick]');if(kick){if(!kick.classList.contains('armed')){kick.classList.add('armed');kick.textContent='Click again to remove';return}const u=kick.dataset.nbkick;await ref.update({['roles.'+u]:F().delete(),['people.'+u]:F().delete(),memberIds:F().arrayRemove(u)});toast('Removed from the notebook');return}
+    const un=t.closest('[data-nbuninvite]');if(un){const em=un.dataset.nbuninvite;await ref.update({inviteEmails:F().arrayRemove(em),inviteEditors:F().arrayRemove(em)});return}
+    const jk=t.closest('[data-nbjoinkey]');if(jk){jk.disabled=true;await shJoinLink(jk.dataset.nbjoinkey,jk.dataset.nbid,jk.dataset.role);return}
+  }catch(err){shErr(err);if(a)a.disabled=false}}
+/* ---- sidebar section ---- */
+function shSideHTML(){if(!FB.cfg)return'';const signed=Store.mode==='cloud'&&FB.user;const nbs=[...SH.nbs.values()].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const cnt=id=>App.notes.filter(n=>n.nb===id).length;
+  return`<div class="fd-sec"><span>Shared</span><button class="org-add" data-nbnew="1" title="New shared notebook" aria-label="New shared notebook">+</button></div>`
+    +nbs.map(d=>`<div class="fd-item fd-nb${VIEW.folder==='nb:'+d.id?' on':''}" data-folder="nb:${esc(d.id)}" tabindex="0" role="treeitem"><span class="fd-tw"></span><span class="fd-ic" aria-hidden="true">👥</span><span class="fd-name">${esc(d.name)}</span><span class="fd-n">${cnt(d.id)||''}</span><button class="fd-more" data-nbmenu="${esc(d.id)}" aria-label="Options for ${esc(d.name)}">⋯</button></div>`).join('')
+    +SH.invites.map(d=>`<div class="fd-inv"><span><b>${esc(d.name)}</b><small>Invitation from ${esc(((d.people||{})[d.owner]||{}).n||'someone')}</small></span><span class="fd-inv-b"><button class="btn small primary" data-nbjoin="${esc(d.id)}">Join</button><button class="linkbtn" data-nbdecline="${esc(d.id)}">Decline</button></span></div>`).join('')
+    +(!nbs.length&&!SH.invites.length?`<button class="fd-hint" data-nbnew="1">${signed?'Share a notebook with classmates':'Sign in to share notebooks'}</button>`:'')}
+function shMenu(nb,anchor){closeFolderMenu();const own=shIsOwner(nb),can=shCanEdit(nb);const m=document.createElement('div');m.className='fd-menu';m.setAttribute('role','menu');
+  m.innerHTML=`<button data-nbm="people">People and invites</button>${can?'<button data-nbm="note">New note here</button>':''}<button data-nbm="${own?'manage':'leave'}" class="danger">${own?'Delete or rename…':'Leave notebook…'}</button>`;
+  document.body.appendChild(m);const r=anchor.getBoundingClientRect();m.style.left=Math.min(innerWidth-200,r.left)+'px';m.style.top=(r.bottom+4)+'px';App.fmenu=m;
+  m.addEventListener('click',e=>{const b=e.target.closest('[data-nbm]');if(!b)return;closeFolderMenu();const k=b.dataset.nbm;if(k==='note'){VIEW.folder='nb:'+nb;newNote()}else openNotebook(nb)})}
+/* ---- hooks into the rest of the app ---- */
+const _renderFolders=renderFolders;renderFolders=function(){_renderFolders();const box=$('#folderTree');if(box&&FB.cfg)box.insertAdjacentHTML('beforeend',shSideHTML());
+  if(VIEW.folder.startsWith('nb:')){const d=SH.nbs.get(VIEW.folder.slice(3)),lbl=$('#viewLabel');if(lbl)lbl.innerHTML=`<span aria-hidden="true">👥</span> ${esc(d?d.name:'Shared notebook')}`+(VIEW.tag?` · <span class="tag">${esc(VIEW.tag)}</span> <button class="linkbtn" data-cleartag="1" aria-label="Clear tag filter">✕</button>`:'')}};
+const _inView=inView;inView=function(n){if(VIEW.folder.startsWith('nb:')){if(VIEW.tag&&!noteTags(n).includes(VIEW.tag))return false;return n.nb===VIEW.folder.slice(3)}if(n.nb&&VIEW.folder!=='all'&&VIEW.folder!=='pinned')return false;return _inView(n)};
+const _flush=flush;flush=async function(id){const n=App.notes.find(x=>x.id===id);if(n&&n.nb){persistLocal();try{snapshot(n,false,'')}catch(e){}return shSave(n)}return _flush(id)};
+const _persistLocal=persistLocal;persistLocal=function(){const all=App.notes;App.notes=all.filter(n=>!n.nb);try{return _persistLocal()}finally{App.notes=all}};
+const _trashNote=trashNote;trashNote=function(n){if(!n.nb)return _trashNote(n);if(!shCanEdit(n.nb)){toast('Only editors can delete notes in this notebook.');return}
+  const nb=n.nb,name=(SH.nbs.get(nb)||{}).name||'the notebook';const copy=normNote(JSON.parse(JSON.stringify(n)));delete copy.nb;delete copy.readonly;copy.id=uid();
+  App.notes=App.notes.filter(x=>x!==n);copy.deleted=Date.now();copy.updated=copy.deleted;App.trash.unshift(copy);if(Store.mode==='cloud')Store.save(copy).catch(()=>{});persistLocal();
+  shDeleteDocs(nb,n).catch(shErr);SH.last.delete(n.id);
+  const next=sortedNotes(App.notes.filter(inView))[0]||sortedNotes(App.notes.slice())[0];openNote(next?next.id:null);renderTrashLink();renderFolders();
+  toastAction(`Deleted from “${name}” for everyone. A copy is in your Trash.`,'Undo',()=>{App.trash=App.trash.filter(x=>x!==copy);if(Store.mode==='cloud')Store.remove(copy.id).catch(()=>{});n.nb=nb;App.notes.push(n);SH.last.delete(n.id);shSave(n);persistLocal();renderTrashLink();renderFolders();openNote(n.id)})};
+const _moveNote=moveNote;moveNote=function(n,folder){folder=folder||'';if(folder.startsWith('nb:'))return shMoveIn(n,folder.slice(3));if(n.nb){if(!shCanEdit(n.nb)){toast('Only editors can move notes out of a shared notebook. Use “Copy to my notes” instead.');return}return shMoveOut(n,folder)}return _moveNote(n,folder)};
+const _folderOptions=folderOptions;folderOptions=function(sel){let h=_folderOptions(sel);const nbs=[...SH.nbs.values()];if(nbs.length)h+=`<optgroup label="Shared notebooks">${nbs.map(d=>`<option value="nb:${esc(d.id)}"${shCanEdit(d.id)?'':' disabled'}>👥 ${esc(d.name)}</option>`).join('')}</optgroup>`;return h};
+const _newNote=newNote;newNote=function(){const nb=VIEW.folder.startsWith('nb:')?VIEW.folder.slice(3):null;if(nb&&!shCanEdit(nb)){toast('You can only view this notebook.');return}_newNote();if(nb&&App.cur&&!App.cur.nb)shMoveIn(App.cur,nb,true)};
+$('#newNote').onclick=()=>newNote();$('#newNote2').onclick=()=>newNote();
+const _openNote=openNote;openNote=function(id){_openNote(id);try{shAfterOpen()}catch(e){console.warn(e)}};
+const _loadAll2=Store.loadAll;Store.loadAll=async function(){const r=await _loadAll2.call(this);setTimeout(()=>{try{shStart()}catch(e){console.warn(e)}glCloudLoad()},300);return r};
+function wireShared(){
+  $('#nbScrim').addEventListener('click',e=>{if(e.target.id==='nbScrim'){closeNotebook();return}nbAction(e)});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#nbScrim').hidden)return;e.stopPropagation();e.preventDefault();closeNotebook()},true);$('#nbScrim').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nbName'){e.preventDefault();shCreate()}else if(e.key==='Enter'&&e.target.id==='nbEmail'){e.preventDefault();$('#nbBody [data-nb="invite"]').click()}});
+  $('#nbScrim').addEventListener('change',async e=>{const s=e.target.closest('[data-nbrole]');if(s&&SH.dlg&&SH.dlg.nb){try{await shRef(SH.dlg.nb).update({['roles.'+s.dataset.nbrole]:s.value==='viewer'?'viewer':'editor'});toast('Role updated')}catch(err){shErr(err)}}});
+  $('#nbScrim').addEventListener('focusout',async e=>{if(e.target.id==='nbRename'&&SH.dlg&&SH.dlg.nb){const v=e.target.value.trim().slice(0,100),d=SH.nbs.get(SH.dlg.nb);if(v&&d&&v!==d.name){try{await shRef(SH.dlg.nb).update({name:v});toast('Notebook renamed')}catch(err){shErr(err)}}}});
+  $('#folderTree').addEventListener('click',e=>{const t=e.target;let b;
+    if((b=t.closest('[data-nbnew]'))){e.stopPropagation();newNotebook();return}
+    if((b=t.closest('[data-nbmenu]'))){e.stopPropagation();shMenu(b.dataset.nbmenu,b);return}
+    if((b=t.closest('[data-nbjoin]'))){e.stopPropagation();b.disabled=true;shJoinEmail(b.dataset.nbjoin);return}
+    if((b=t.closest('[data-nbdecline]'))){e.stopPropagation();shDecline(b.dataset.nbdecline);return}
+    if(t.closest('.fd-inv'))e.stopPropagation()},true);
+  addEventListener('hashchange',()=>{if(/[#&]join=/.test(location.hash)){if(SH.started)shCheckJoin();else{shPendingJoin();setTimeout(()=>{if(!SH.started)shCheckJoin()},1500)}}});
+  if(/[#&]join=/.test(location.hash)||(()=>{try{return localStorage.getItem('bondline.pendingJoin')}catch(e){return null}})()){shPendingJoin();setTimeout(()=>{if(!SH.started)shCheckJoin()},4000)}
+}
+
+if(/[?&]bltest\b/.test(location.search))window.__bl={prPredict,prName,prParse,GL,SH,stab,glFind,PM};
+
+/* ---------- v13: icon rail, sidebar sections, panel title ---------- */
+const SEC_KEY='bondline.secs';
+const SEC=(()=>{try{return JSON.parse(localStorage.getItem(SEC_KEY)||'{}')||{}}catch(e){return{}}})();
+function secOpen(k){
+  if(Object.prototype.hasOwnProperty.call(SEC,k))return !!SEC[k];
+  if(k==='folders')return true;
+  if(k==='shared')return String(VIEW.folder||'').startsWith('nb:')||(typeof SH!=='undefined'&&(SH.invites.length>0||SH.nbs.size>0));
+  if(k==='tags')return !!VIEW.tag;
+  return true;
+}
+function secToggle(k){SEC[k]=!secOpen(k);try{localStorage.setItem(SEC_KEY,JSON.stringify(SEC))}catch(e){}secApply()}
+function secApply(){
+  const org=$('#org'),box=$('#folderTree');if(!org||!box)return;
+  for(const k of['folders','shared','tags']){const o=secOpen(k);org.classList.toggle('c-'+k,!o);org.querySelectorAll(`[data-sectg="${k}"]`).forEach(b=>b.setAttribute('aria-expanded',o))}
+}
+const secHead=(k,label,extra,n)=>`<div class="fd-sec sec-h" data-sechead="${k}"><button class="sec-tg" data-sectg="${k}" aria-expanded="true" type="button">${label}${n?`<span class="sec-n">${n}</span>`:''}</button>${extra||''}</div>`;
+{
+  const _rf=renderFolders;
+  renderFolders=function(){
+    _rf();
+    const box=$('#folderTree');if(!box)return;
+    // header above the user's own folders (and Unfiled)
+    const top=[...box.children].filter(el=>el.matches('[data-folder="all"],[data-folder="pinned"]'));
+    const after=top.length?top[top.length-1]:null;
+    const fh=secHead('folders','Folders','<button class="org-add" data-secnew="folder" title="New folder" aria-label="New folder">+</button>',App.folders.length||'');
+    if(after)after.insertAdjacentHTML('afterend',fh);else box.insertAdjacentHTML('afterbegin',fh);
+    // turn the Shared label into a toggle
+    const sh=[...box.querySelectorAll('.fd-sec')].find(el=>!el.dataset.sechead);
+    if(sh){sh.dataset.sechead='shared';sh.classList.add('sec-h');const sp=sh.querySelector('span');const n=typeof SH!=='undefined'?SH.nbs.size+SH.invites.length:0;
+      if(sp)sp.outerHTML=`<button class="sec-tg" data-sectg="shared" aria-expanded="true" type="button">Shared${n?`<span class="sec-n">${n}</span>`:''}</button>`}
+    // mark which section each row belongs to
+    let cur='top';for(const el of box.children){if(el.dataset.sechead){cur=el.dataset.sechead;continue}el.dataset.in=cur}
+    const tf=$('#tagFilter'),th=$('#tagsHead');
+    if(th){const n=tf?tf.querySelectorAll('[data-tagf]').length:0;th.hidden=!n;const c=th.querySelector('.sec-n');if(c)c.textContent=n&&!App.allTags&&tf.querySelector('[data-tagmore]')?'':n||''}
+    secApply();
+  };
+}
+function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals'}[mode]||'Notes'}
+{
+  const _sm=setMode;
+  setMode=function(mode){_sm(mode);setPanelTitle(App.mode)};
+}
+function wireV13(){
+  const org=$('#org');
+  org.classList.remove('closed');$('#orgToggle').setAttribute('aria-expanded','true');
+  org.addEventListener('click',e=>{
+    const t=e.target.closest('[data-sectg]');if(t){e.stopPropagation();secToggle(t.dataset.sectg);return}
+    const nf=e.target.closest('[data-secnew]');if(nf){e.stopPropagation();SEC.folders=true;secApply();$('#newFolder').click()}
+  },true);
+  $('#railPredict').onclick=()=>{$('#side').classList.remove('open');openPredictor()};
+  $('#railGloss').onclick=()=>{$('#side').classList.remove('open');openGlossary()};
+  setPanelTitle(App.mode);
+  secApply();
+}
+
+
+/* ---------- v14: spectroscopy data ----------
+   Approximate literature values (CDCl3, 400 MHz for 1H). Each compound:
+   h:  [shift, nH, multiplicity, J (Hz, number or list; for 'm' the spread in ppm), assignment, environments lumped (default 1)]
+   c:  [shift, DEPT type, assignment]
+   ir: [wavenumber, s|m|w, width ('b' broad, 'vb' very broad, number = half-width), label for key peaks]
+   ms: [m/z, relative intensity, label] */
+const SP_BANK=[
+ {id:'etoh',n:'ethanol',s:'CCO',f:'C2H6O',M:46,cls:'alcohol',
+  h:[[3.69,2,'q',7.0,'OCH₂, next to CH₃'],[2.6,1,'br s',0,'OH, exchanges'],[1.22,3,'t',7.0,'CH₃, next to CH₂']],
+  c:[[58.3,'CH2','CH₂OH'],[18.4,'CH3','CH₃']],
+  ir:[[3350,'s','b','O–H (H-bonded)'],[2975,'s'],[2885,'m'],[1450,'m'],[1380,'m'],[1090,'m'],[1050,'s',0,'C–O'],[880,'m']],
+  ms:[[46,22,'M⁺'],[45,50],[31,100,'CH₂=OH⁺'],[29,25],[27,22]]},
+ {id:'pr1ol',n:'propan-1-ol',s:'CCCO',f:'C3H8O',M:60,cls:'alcohol',
+  h:[[3.58,2,'t',6.7,'OCH₂, next to CH₂'],[2.2,1,'br s',0,'OH'],[1.57,2,'sext',7.0,'CH₂ between CH₃ and CH₂'],[0.93,3,'t',7.4,'CH₃']],
+  c:[[64.2,'CH2','CH₂OH'],[25.9,'CH2','CH₂'],[10.2,'CH3','CH₃']],
+  ir:[[3330,'s','b','O–H'],[2960,'s'],[2875,'m'],[1460,'m'],[1060,'s',0,'C–O'],[970,'m']],
+  ms:[[60,8,'M⁺'],[59,10],[42,15],[31,100,'CH₂=OH⁺'],[29,16],[27,15]]},
+ {id:'pr2ol',n:'propan-2-ol',s:'CC(C)O',f:'C3H8O',M:60,cls:'alcohol',
+  h:[[4.01,1,'sept',6.1,'CH–O, next to two CH₃'],[2.1,1,'br s',0,'OH'],[1.20,6,'d',6.1,'2 × CH₃, next to CH']],
+  c:[[64.0,'CH','CH–OH'],[25.3,'CH3','2 × CH₃']],
+  ir:[[3360,'s','b','O–H'],[2970,'s'],[2880,'m'],[1380,'m'],[1370,'m'],[1130,'s',0,'C–O'],[950,'m'],[820,'m']],
+  ms:[[60,4,'M⁺'],[59,6],[45,100,'CH₃CH=OH⁺'],[43,16],[27,14]]},
+ {id:'meoet',n:'methoxyethane',s:'CCOC',f:'C3H8O',M:60,cls:'ether',
+  h:[[3.46,2,'q',7.0,'OCH₂, next to CH₃'],[3.31,3,'s',0,'OCH₃, no neighbours'],[1.18,3,'t',7.0,'CH₃ of ethyl']],
+  c:[[67.9,'CH2','OCH₂'],[57.8,'CH3','OCH₃'],[14.9,'CH3','CH₃']],
+  ir:[[2980,'s'],[2930,'m'],[2820,'m'],[1450,'m'],[1120,'s',0,'C–O–C'],[1000,'w']],
+  ms:[[60,22,'M⁺'],[45,100,'CH₂=O⁺CH₃'],[31,18],[29,40],[15,10]]},
+ {id:'acetone',n:'propanone (acetone)',s:'CC(C)=O',f:'C3H6O',M:58,cls:'ketone',
+  h:[[2.17,6,'s',0,'2 × CH₃, no neighbouring H']],
+  c:[[206.6,'C','C=O (ketone)'],[30.8,'CH3','2 × CH₃']],
+  ir:[[3005,'w'],[2965,'m'],[2925,'w'],[1715,'s',0,'C=O (ketone)'],[1420,'m'],[1365,'s'],[1220,'s'],[1095,'m'],[530,'m']],
+  ms:[[58,30,'M⁺'],[43,100,'CH₃CO⁺'],[42,8],[15,22]]},
+ {id:'propanal',n:'propanal',s:'CCC=O',f:'C3H6O',M:58,cls:'aldehyde',
+  h:[[9.79,1,'t',1.4,'CHO'],[2.46,2,'qd',[7.3,1.4],'CH₂ next to CH₃ and CHO'],[1.13,3,'t',7.3,'CH₃']],
+  c:[[203.0,'CH','CHO'],[37.3,'CH2','CH₂'],[6.0,'CH3','CH₃']],
+  ir:[[2980,'m'],[2940,'m'],[2820,'w',0,'C–H (aldehyde)'],[2720,'w',0,'C–H (aldehyde)'],[1730,'s',0,'C=O (aldehyde)'],[1460,'m'],[1395,'m'],[1100,'m']],
+  ms:[[58,70,'M⁺'],[57,20],[29,100,'CHO⁺ / C₂H₅⁺'],[28,60],[27,40]]},
+ {id:'butanone',n:'butan-2-one',s:'CCC(C)=O',f:'C4H8O',M:72,cls:'ketone',
+  h:[[2.44,2,'q',7.3,'CH₂, next to CH₃'],[2.14,3,'s',0,'CH₃ on C=O, no neighbours'],[1.06,3,'t',7.3,'CH₃ of ethyl']],
+  c:[[209.3,'C','C=O'],[36.9,'CH2','CH₂'],[29.4,'CH3','C(=O)CH₃'],[7.9,'CH3','CH₂CH₃']],
+  ir:[[2980,'m'],[2940,'w'],[1715,'s',0,'C=O (ketone)'],[1460,'m'],[1415,'m'],[1365,'s'],[1170,'s'],[945,'m'],[760,'w']],
+  ms:[[72,25,'M⁺'],[57,8],[43,100,'CH₃CO⁺'],[29,15],[27,10]]},
+ {id:'butanal',n:'butanal',s:'CCCC=O',f:'C4H8O',M:72,cls:'aldehyde',
+  h:[[9.77,1,'t',1.8,'CHO'],[2.42,2,'td',[7.3,1.8],'CH₂ next to CHO'],[1.68,2,'sext',7.4,'middle CH₂'],[0.97,3,'t',7.4,'CH₃']],
+  c:[[202.7,'CH','CHO'],[45.8,'CH2','CH₂CHO'],[15.7,'CH2','CH₂'],[13.7,'CH3','CH₃']],
+  ir:[[2965,'s'],[2875,'m'],[2820,'w',0,'C–H (aldehyde)'],[2720,'w',0,'C–H (aldehyde)'],[1728,'s',0,'C=O (aldehyde)'],[1460,'m'],[1390,'m'],[1120,'w']],
+  ms:[[72,50,'M⁺'],[57,10],[44,100,'McLafferty'],[43,40],[29,50],[27,40]]},
+ {id:'mepropanal',n:'2-methylpropanal',s:'CC(C)C=O',f:'C4H8O',M:72,cls:'aldehyde',
+  h:[[9.62,1,'d',1.3,'CHO, next to CH'],[2.44,1,'m',0.05,'CH, next to 2 × CH₃ and CHO'],[1.12,6,'d',7.0,'2 × CH₃, next to CH']],
+  c:[[204.9,'CH','CHO'],[41.1,'CH','CH'],[15.5,'CH3','2 × CH₃']],
+  ir:[[2975,'s'],[2880,'m'],[2810,'w',0,'C–H (aldehyde)'],[2710,'w',0,'C–H (aldehyde)'],[1730,'s',0,'C=O (aldehyde)'],[1470,'m'],[1390,'w'],[910,'m']],
+  ms:[[72,40,'M⁺'],[43,100,'(CH₃)₂CH⁺'],[41,50],[29,30],[27,35]]},
+ {id:'thf',n:'tetrahydrofuran (oxolane)',s:'C1CCOC1',f:'C4H8O',M:72,cls:'ether',
+  h:[[3.74,4,'m',0.05,'2 × OCH₂'],[1.85,4,'m',0.05,'2 × CH₂']],
+  c:[[67.9,'CH2','OCH₂'],[25.7,'CH2','CH₂']],
+  ir:[[2975,'s'],[2860,'s'],[1460,'m'],[1365,'w'],[1070,'s',0,'C–O–C'],[910,'m']],
+  ms:[[72,35,'M⁺'],[71,25],[42,100],[41,40],[27,25]]},
+ {id:'etoac',n:'ethyl ethanoate (ethyl acetate)',s:'CCOC(C)=O',f:'C4H8O2',M:88,cls:'ester',
+  h:[[4.12,2,'q',7.1,'OCH₂, next to CH₃'],[2.05,3,'s',0,'CH₃ on C=O'],[1.26,3,'t',7.1,'CH₃ of ethyl']],
+  c:[[171.1,'C','C=O (ester)'],[60.5,'CH2','OCH₂'],[21.0,'CH3','C(=O)CH₃'],[14.2,'CH3','CH₂CH₃']],
+  ir:[[2985,'m'],[2940,'w'],[1742,'s',0,'C=O (ester)'],[1445,'m'],[1373,'s'],[1240,'s',0,'C–O'],[1047,'s'],[938,'m'],[848,'w']],
+  ms:[[88,8,'M⁺'],[73,4],[70,12],[61,15],[45,15],[43,100,'CH₃CO⁺'],[29,25]]},
+ {id:'meprop',n:'methyl propanoate',s:'CCC(=O)OC',f:'C4H8O2',M:88,cls:'ester',
+  h:[[3.67,3,'s',0,'OCH₃'],[2.32,2,'q',7.6,'CH₂ on C=O, next to CH₃'],[1.14,3,'t',7.6,'CH₃']],
+  c:[[174.9,'C','C=O (ester)'],[51.5,'CH3','OCH₃'],[27.5,'CH2','CH₂'],[9.2,'CH3','CH₃']],
+  ir:[[2985,'m'],[2955,'m'],[1740,'s',0,'C=O (ester)'],[1440,'m'],[1360,'m'],[1200,'s',0,'C–O'],[1085,'m'],[810,'w']],
+  ms:[[88,20,'M⁺'],[59,30],[57,100,'CH₃CH₂CO⁺'],[29,60],[27,30]]},
+ {id:'butacid',n:'butanoic acid',s:'CCCC(=O)O',f:'C4H8O2',M:88,cls:'acid',
+  h:[[11.8,1,'br s',0,'COOH'],[2.35,2,'t',7.4,'CH₂ on C=O'],[1.68,2,'sext',7.4,'middle CH₂'],[0.98,3,'t',7.4,'CH₃']],
+  c:[[180.6,'C','COOH'],[36.0,'CH2','CH₂CO'],[18.4,'CH2','CH₂'],[13.7,'CH3','CH₃']],
+  ir:[[3000,'m','vb','O–H (acid, very broad)'],[2965,'m'],[1710,'s',0,'C=O (acid)'],[1415,'m'],[1290,'m'],[1230,'m'],[935,'m',40]],
+  ms:[[88,3,'M⁺'],[73,25],[60,100,'McLafferty'],[45,20],[41,25],[27,25]]},
+ {id:'ibacid',n:'2-methylpropanoic acid',s:'CC(C)C(=O)O',f:'C4H8O2',M:88,cls:'acid',
+  h:[[11.9,1,'br s',0,'COOH'],[2.58,1,'sept',7.0,'CH, next to 2 × CH₃'],[1.21,6,'d',7.0,'2 × CH₃']],
+  c:[[184.0,'C','COOH'],[33.9,'CH','CH'],[18.8,'CH3','2 × CH₃']],
+  ir:[[3000,'m','vb','O–H (acid, very broad)'],[2980,'m'],[1705,'s',0,'C=O (acid)'],[1470,'m'],[1280,'m'],[1230,'m'],[940,'m',40]],
+  ms:[[88,10,'M⁺'],[73,20],[43,100,'(CH₃)₂CH⁺'],[41,40],[27,30]]},
+ {id:'acoh',n:'ethanoic acid (acetic acid)',s:'CC(=O)O',f:'C2H4O2',M:60,cls:'acid',
+  h:[[11.4,1,'br s',0,'COOH'],[2.10,3,'s',0,'CH₃']],
+  c:[[178.0,'C','COOH'],[20.8,'CH3','CH₃']],
+  ir:[[3000,'m','vb','O–H (acid, very broad)'],[1712,'s',0,'C=O (acid)'],[1410,'m'],[1295,'s'],[935,'m',40]],
+  ms:[[60,75,'M⁺'],[45,90,'COOH⁺'],[43,100,'CH₃CO⁺'],[15,15]]},
+ {id:'meoac',n:'methyl ethanoate (methyl acetate)',s:'CC(=O)OC',f:'C3H6O2',M:74,cls:'ester',
+  h:[[3.67,3,'s',0,'OCH₃'],[2.06,3,'s',0,'CH₃ on C=O']],
+  c:[[171.4,'C','C=O (ester)'],[51.6,'CH3','OCH₃'],[20.6,'CH3','C(=O)CH₃']],
+  ir:[[2960,'w'],[1745,'s',0,'C=O (ester)'],[1440,'m'],[1375,'m'],[1245,'s',0,'C–O'],[1050,'m'],[845,'w']],
+  ms:[[74,15,'M⁺'],[59,5],[43,100,'CH₃CO⁺'],[42,10],[15,15]]},
+ {id:'propacid',n:'propanoic acid',s:'CCC(=O)O',f:'C3H6O2',M:74,cls:'acid',
+  h:[[11.7,1,'br s',0,'COOH'],[2.38,2,'q',7.5,'CH₂, next to CH₃'],[1.16,3,'t',7.5,'CH₃']],
+  c:[[181.5,'C','COOH'],[27.6,'CH2','CH₂'],[8.9,'CH3','CH₃']],
+  ir:[[3000,'m','vb','O–H (acid, very broad)'],[2985,'m'],[1715,'s',0,'C=O (acid)'],[1420,'m'],[1240,'s'],[935,'m',40]],
+  ms:[[74,80,'M⁺'],[73,40],[57,30],[45,50],[29,100],[28,80]]},
+ {id:'pent2one',n:'pentan-2-one',s:'CCCC(C)=O',f:'C5H10O',M:86,cls:'ketone',
+  h:[[2.41,2,'t',7.3,'CH₂ on C=O'],[2.13,3,'s',0,'CH₃ on C=O'],[1.60,2,'sext',7.4,'middle CH₂'],[0.92,3,'t',7.4,'CH₃ of propyl']],
+  c:[[209.0,'C','C=O'],[45.7,'CH2','CH₂CO'],[29.9,'CH3','C(=O)CH₃'],[17.4,'CH2','CH₂'],[13.7,'CH3','CH₃']],
+  ir:[[2960,'s'],[2875,'m'],[1717,'s',0,'C=O (ketone)'],[1460,'m'],[1365,'s'],[1165,'m']],
+  ms:[[86,15,'M⁺'],[71,10],[58,15,'McLafferty'],[43,100,'CH₃CO⁺'],[27,15]]},
+ {id:'pent3one',n:'pentan-3-one',s:'CCC(=O)CC',f:'C5H10O',M:86,cls:'ketone',
+  h:[[2.44,4,'q',7.3,'2 × CH₂, next to CH₃'],[1.06,6,'t',7.3,'2 × CH₃']],
+  c:[[211.9,'C','C=O'],[35.5,'CH2','2 × CH₂'],[7.9,'CH3','2 × CH₃']],
+  ir:[[2980,'s'],[2940,'m'],[1715,'s',0,'C=O (ketone)'],[1460,'m'],[1375,'m'],[1110,'m'],[950,'m']],
+  ms:[[86,20,'M⁺'],[57,100,'CH₃CH₂CO⁺'],[29,60],[27,25]]},
+ {id:'mbutanone',n:'3-methylbutan-2-one',s:'CC(C)C(C)=O',f:'C5H10O',M:86,cls:'ketone',
+  h:[[2.59,1,'sept',7.0,'CH, next to 2 × CH₃'],[2.14,3,'s',0,'CH₃ on C=O'],[1.10,6,'d',7.0,'2 × CH₃ on CH']],
+  c:[[212.9,'C','C=O'],[41.6,'CH','CH'],[27.5,'CH3','C(=O)CH₃'],[18.1,'CH3','2 × CH₃']],
+  ir:[[2970,'s'],[2875,'m'],[1715,'s',0,'C=O (ketone)'],[1465,'m'],[1355,'m'],[1180,'m']],
+  ms:[[86,15,'M⁺'],[71,5],[43,100,'CH₃CO⁺ / C₃H₇⁺'],[41,20],[27,15]]},
+ {id:'chexone',n:'cyclohexanone',s:'O=C1CCCCC1',f:'C6H10O',M:98,cls:'ketone',
+  h:[[2.34,4,'m',0.04,'2 × CH₂ next to C=O'],[1.86,4,'m',0.05,'2 × CH₂'],[1.72,2,'m',0.05,'CH₂ opposite C=O']],
+  c:[[212.0,'C','C=O'],[42.0,'CH2','2 × CH₂CO'],[27.1,'CH2','2 × CH₂'],[25.1,'CH2','CH₂']],
+  ir:[[2940,'s'],[2860,'m'],[1715,'s',0,'C=O (ketone)'],[1450,'m'],[1310,'m'],[1220,'m'],[1120,'m']],
+  ms:[[98,35,'M⁺'],[69,25],[55,100],[42,85]]},
+ {id:'chexene',n:'cyclohexene',s:'C1=CCCCC1',f:'C6H10',M:82,cls:'alkene',
+  h:[[5.67,2,'m',0.03,'CH=CH'],[1.99,4,'m',0.04,'2 × allylic CH₂'],[1.61,4,'m',0.04,'2 × CH₂']],
+  c:[[127.3,'CH','CH=CH'],[25.3,'CH2','allylic CH₂'],[22.9,'CH2','CH₂']],
+  ir:[[3025,'m',0,'=C–H'],[2930,'s'],[2860,'m'],[1650,'w',0,'C=C'],[1440,'m'],[1140,'w'],[720,'m']],
+  ms:[[82,35,'M⁺'],[67,100],[54,60,'retro-Diels–Alder'],[41,30]]},
+ {id:'hexyne',n:'hex-1-yne',s:'C#CCCCC',f:'C6H10',M:82,cls:'alkyne',
+  h:[[2.18,2,'td',[7.1,2.6],'CH₂ next to C≡C'],[1.94,1,'t',2.6,'≡C–H'],[1.52,2,'m',0.04,'CH₂'],[1.42,2,'m',0.04,'CH₂'],[0.91,3,'t',7.2,'CH₃']],
+  c:[[84.6,'C','–C≡'],[68.2,'CH','≡CH'],[30.7,'CH2','CH₂'],[21.9,'CH2','CH₂'],[18.2,'CH2','CH₂C≡'],[13.6,'CH3','CH₃']],
+  ir:[[3310,'s',14,'≡C–H'],[2960,'s'],[2870,'m'],[2120,'w',0,'C≡C'],[1465,'m'],[630,'s',20]],
+  ms:[[82,5,'M⁺'],[67,60],[54,40],[41,100],[39,50]]},
+ {id:'hexene',n:'hex-1-ene',s:'C=CCCCC',f:'C6H12',M:84,cls:'alkene',
+  h:[[5.81,1,'m',0.04,'=CH'],[4.97,2,'m',0.05,'=CH₂ (two different H)',2],[2.05,2,'m',0.03,'allylic CH₂'],[1.36,4,'m',0.05,'2 × CH₂',2],[0.90,3,'t',7.0,'CH₃']],
+  c:[[139.2,'CH','=CH'],[114.2,'CH2','=CH₂'],[33.6,'CH2','CH₂'],[31.2,'CH2','CH₂'],[22.3,'CH2','CH₂'],[14.0,'CH3','CH₃']],
+  ir:[[3080,'m',0,'=C–H'],[2960,'s'],[2925,'s'],[1640,'m',0,'C=C'],[1460,'m'],[990,'m'],[910,'s',0,'=CH₂ bend']],
+  ms:[[84,30,'M⁺'],[69,25],[56,90],[55,60],[41,100]]},
+ {id:'bromobutane',n:'1-bromobutane',s:'CCCCBr',f:'C4H9Br',M:136,cls:'haloalkane',
+  h:[[3.41,2,'t',6.8,'CH₂Br'],[1.85,2,'quint',7.0,'CH₂ next to CH₂Br'],[1.47,2,'sext',7.3,'CH₂ next to CH₃'],[0.94,3,'t',7.3,'CH₃']],
+  c:[[34.8,'CH2','CH₂'],[33.4,'CH2','CH₂Br'],[21.4,'CH2','CH₂'],[13.2,'CH3','CH₃']],
+  ir:[[2960,'s'],[2875,'m'],[1465,'m'],[1250,'m'],[1210,'m'],[645,'m',0,'C–Br'],[560,'m']],
+  ms:[[138,8,'M+2 (⁸¹Br)'],[136,8,'M⁺ (⁷⁹Br)'],[57,100,'C₄H₉⁺'],[41,60],[29,40],[27,35]]},
+ {id:'bromobutane2',n:'2-bromobutane',s:'CCC(C)Br',f:'C4H9Br',M:136,cls:'haloalkane',
+  h:[[4.11,1,'m',0.05,'CHBr'],[1.83,2,'m',0.06,'CH₂'],[1.71,3,'d',6.7,'CH₃ on CHBr'],[1.03,3,'t',7.3,'CH₃ of ethyl']],
+  c:[[53.4,'CH','CHBr'],[34.3,'CH2','CH₂'],[26.1,'CH3','CH₃ on CHBr'],[12.2,'CH3','CH₃']],
+  ir:[[2970,'s'],[2880,'m'],[1455,'m'],[1380,'m'],[1220,'m'],[600,'m',0,'C–Br']],
+  ms:[[138,5,'M+2 (⁸¹Br)'],[136,5,'M⁺ (⁷⁹Br)'],[57,100,'C₄H₉⁺'],[41,45],[29,40]]},
+ {id:'tbubr',n:'2-bromo-2-methylpropane',s:'CC(C)(C)Br',f:'C4H9Br',M:136,cls:'haloalkane',
+  h:[[1.80,9,'s',0,'3 × CH₃, no neighbouring H']],
+  c:[[62.5,'C','C–Br'],[36.4,'CH3','3 × CH₃']],
+  ir:[[2975,'s'],[1460,'m'],[1370,'s'],[1160,'s'],[540,'m',0,'C–Br']],
+  ms:[[138,1,'M+2'],[136,1,'M⁺'],[57,100,'(CH₃)₃C⁺'],[41,40],[29,25]]},
+ {id:'chloropropane',n:'1-chloropropane',s:'CCCCl',f:'C3H7Cl',M:78,cls:'haloalkane',
+  h:[[3.51,2,'t',6.6,'CH₂Cl'],[1.80,2,'sext',7.0,'middle CH₂'],[1.04,3,'t',7.4,'CH₃']],
+  c:[[46.7,'CH2','CH₂Cl'],[26.0,'CH2','CH₂'],[11.4,'CH3','CH₃']],
+  ir:[[2970,'s'],[2880,'m'],[1460,'m'],[1300,'m'],[730,'m',0,'C–Cl'],[650,'m']],
+  ms:[[80,7,'M+2 (³⁷Cl)'],[78,20,'M⁺ (³⁵Cl)'],[63,5],[42,100],[29,40],[27,40]]},
+ {id:'chloropropane2',n:'2-chloropropane',s:'CC(C)Cl',f:'C3H7Cl',M:78,cls:'haloalkane',
+  h:[[4.17,1,'sept',6.5,'CHCl, next to 2 × CH₃'],[1.52,6,'d',6.5,'2 × CH₃']],
+  c:[[53.8,'CH','CHCl'],[27.3,'CH3','2 × CH₃']],
+  ir:[[2975,'s'],[2930,'m'],[1450,'m'],[1380,'m'],[1260,'m'],[610,'m',0,'C–Cl']],
+  ms:[[80,7,'M+2 (³⁷Cl)'],[78,20,'M⁺ (³⁵Cl)'],[63,15],[43,100,'(CH₃)₂CH⁺'],[27,30]]},
+ {id:'etbz',n:'ethylbenzene',s:'CCc1ccccc1',f:'C8H10',M:106,cls:'arene',
+  h:[[7.22,5,'m',0.12,'5 aromatic H',3],[2.65,2,'q',7.6,'CH₂, next to CH₃'],[1.24,3,'t',7.6,'CH₃']],
+  c:[[144.2,'C','ring C–CH₂'],[128.3,'CH','ring CH'],[127.8,'CH','ring CH'],[125.6,'CH','ring CH (para)'],[28.9,'CH2','CH₂'],[15.6,'CH3','CH₃']],
+  ir:[[3060,'w',0,'aromatic C–H'],[3030,'w'],[2965,'m'],[2875,'w'],[1605,'w',0,'aromatic C=C'],[1495,'m'],[1455,'m'],[745,'s'],[695,'s',0,'monosubstituted ring']],
+  ms:[[106,30,'M⁺'],[91,100,'C₇H₇⁺ (tropylium)'],[77,8],[65,10],[51,8]]},
+ {id:'pxylene',n:'1,4-dimethylbenzene (p-xylene)',s:'Cc1ccc(C)cc1',f:'C8H10',M:106,cls:'arene',
+  h:[[7.05,4,'s',0,'4 equivalent aromatic H'],[2.30,6,'s',0,'2 × ArCH₃']],
+  c:[[134.7,'C','ring C–CH₃'],[129.0,'CH','ring CH'],[21.0,'CH3','CH₃']],
+  ir:[[3020,'w',0,'aromatic C–H'],[2920,'m'],[2865,'w'],[1515,'s',0,'aromatic C=C'],[1450,'m'],[795,'s',0,'para-disubstituted ring']],
+  ms:[[106,60,'M⁺'],[105,20],[91,100,'C₇H₇⁺'],[77,10],[51,8]]},
+ {id:'acphen',n:'1-phenylethanone (acetophenone)',s:'CC(=O)c1ccccc1',f:'C8H8O',M:120,cls:'ketone',
+  h:[[7.96,2,'d',7.6,'2 aromatic H next to C=O'],[7.56,1,'t',7.4,'para H'],[7.46,2,'t',7.6,'2 meta H'],[2.61,3,'s',0,'CH₃ on C=O']],
+  c:[[198.1,'C','C=O (conjugated ketone)'],[137.1,'C','ring C–CO'],[133.1,'CH','para CH'],[128.6,'CH','ring CH'],[128.3,'CH','ring CH'],[26.6,'CH3','CH₃']],
+  ir:[[3060,'w',0,'aromatic C–H'],[3005,'w'],[1685,'s',0,'C=O (conjugated)'],[1600,'m'],[1450,'m'],[1360,'m'],[1265,'s'],[760,'s'],[690,'s']],
+  ms:[[120,30,'M⁺'],[105,100,'C₆H₅CO⁺'],[77,80,'C₆H₅⁺'],[51,30],[43,15]]},
+ {id:'tolual',n:'4-methylbenzaldehyde',s:'Cc1ccc(C=O)cc1',f:'C8H8O',M:120,cls:'aldehyde',
+  h:[[9.96,1,'s',0,'CHO'],[7.77,2,'d',8.0,'2 ring H next to CHO'],[7.33,2,'d',8.0,'2 ring H next to CH₃'],[2.43,3,'s',0,'ArCH₃']],
+  c:[[192.0,'CH','CHO'],[145.5,'C','ring C–CH₃'],[134.2,'C','ring C–CHO'],[129.8,'CH','ring CH'],[129.7,'CH','ring CH'],[21.8,'CH3','CH₃']],
+  ir:[[3030,'w'],[2920,'w'],[2820,'w',0,'C–H (aldehyde)'],[2730,'w',0,'C–H (aldehyde)'],[1700,'s',0,'C=O (conjugated aldehyde)'],[1605,'s'],[1210,'m'],[1170,'m'],[815,'s']],
+  ms:[[120,75,'M⁺'],[119,100,'M–H'],[91,85,'C₇H₇⁺'],[65,25]]},
+ {id:'bnoh',n:'phenylmethanol (benzyl alcohol)',s:'OCc1ccccc1',f:'C7H8O',M:108,cls:'alcohol',
+  h:[[7.32,5,'m',0.08,'5 aromatic H',3],[4.65,2,'s',0,'CH₂O'],[2.1,1,'br s',0,'OH']],
+  c:[[140.9,'C','ring C–CH₂'],[128.5,'CH','ring CH'],[127.6,'CH','ring CH (para)'],[127.0,'CH','ring CH'],[65.2,'CH2','CH₂OH']],
+  ir:[[3330,'s','b','O–H'],[3030,'w',0,'aromatic C–H'],[2875,'w'],[1495,'m'],[1455,'m'],[1020,'s',0,'C–O'],[735,'s'],[700,'s']],
+  ms:[[108,90,'M⁺'],[107,65],[91,20],[79,100],[77,70]]},
+ {id:'anisole',n:'methoxybenzene (anisole)',s:'COc1ccccc1',f:'C7H8O',M:108,cls:'ether',
+  h:[[7.29,2,'m',0.04,'2 meta H'],[6.93,3,'m',0.05,'ortho and para H',2],[3.80,3,'s',0,'OCH₃']],
+  c:[[159.6,'C','ring C–O'],[129.5,'CH','meta CH'],[120.7,'CH','para CH'],[114.0,'CH','ortho CH'],[55.1,'CH3','OCH₃']],
+  ir:[[3060,'w',0,'aromatic C–H'],[3000,'w'],[2950,'w'],[2835,'w'],[1600,'s'],[1495,'s'],[1250,'s',0,'aryl C–O'],[1040,'s'],[755,'s'],[690,'m']],
+  ms:[[108,100,'M⁺'],[93,15],[78,40],[77,25],[65,40]]},
+ {id:'mebenz',n:'methyl benzoate',s:'COC(=O)c1ccccc1',f:'C8H8O2',M:136,cls:'ester',
+  h:[[8.04,2,'d',7.6,'2 ortho H'],[7.55,1,'t',7.4,'para H'],[7.43,2,'t',7.7,'2 meta H'],[3.91,3,'s',0,'OCH₃']],
+  c:[[167.1,'C','C=O (ester)'],[132.9,'CH','para CH'],[130.2,'C','ring C–CO'],[129.6,'CH','ortho CH'],[128.4,'CH','meta CH'],[52.1,'CH3','OCH₃']],
+  ir:[[3065,'w',0,'aromatic C–H'],[2955,'w'],[1725,'s',0,'C=O (conjugated ester)'],[1600,'m'],[1450,'m'],[1280,'s',0,'C–O'],[1110,'s'],[710,'s']],
+  ms:[[136,30,'M⁺'],[105,100,'C₆H₅CO⁺'],[77,60,'C₆H₅⁺'],[51,25]]},
+ {id:'phacoh',n:'phenylethanoic acid',s:'OC(=O)Cc1ccccc1',f:'C8H8O2',M:136,cls:'acid',
+  h:[[11.5,1,'br s',0,'COOH'],[7.30,5,'m',0.08,'5 aromatic H',3],[3.64,2,'s',0,'CH₂']],
+  c:[[178.0,'C','COOH'],[133.3,'C','ring C–CH₂'],[129.4,'CH','ring CH'],[128.7,'CH','ring CH'],[127.4,'CH','ring CH (para)'],[41.1,'CH2','CH₂']],
+  ir:[[3000,'m','vb','O–H (acid, very broad)'],[3030,'w'],[1700,'s',0,'C=O (acid)'],[1495,'m'],[1410,'m'],[1250,'m'],[930,'m',40],[700,'s']],
+  ms:[[136,40,'M⁺'],[91,100,'C₇H₇⁺'],[65,15],[45,8]]},
+ {id:'propnitrile',n:'propanenitrile',s:'CCC#N',f:'C3H5N',M:55,cls:'nitrile',
+  h:[[2.36,2,'q',7.6,'CH₂ next to C≡N'],[1.30,3,'t',7.6,'CH₃']],
+  c:[[120.8,'C','C≡N'],[10.9,'CH2','CH₂'],[10.6,'CH3','CH₃']],
+  ir:[[2990,'m'],[2950,'m'],[2250,'m',0,'C≡N'],[1465,'m'],[1430,'m'],[1075,'w'],[780,'w']],
+  ms:[[55,15,'M⁺'],[54,100,'M–H'],[28,60],[27,30]]},
+ {id:'butamine',n:'butan-1-amine',s:'CCCCN',f:'C4H11N',M:73,cls:'amine1',
+  h:[[2.68,2,'t',7.0,'CH₂N'],[1.42,2,'m',0.03,'CH₂'],[1.33,2,'m',0.03,'CH₂'],[1.15,2,'br s',0,'NH₂, exchanges'],[0.91,3,'t',7.2,'CH₃']],
+  c:[[42.2,'CH2','CH₂N'],[36.1,'CH2','CH₂'],[20.1,'CH2','CH₂'],[13.9,'CH3','CH₃']],
+  ir:[[3370,'m',35,'N–H (two bands, NH₂)'],[3290,'m',35],[2960,'s'],[2870,'s'],[1600,'m',0,'N–H bend'],[1465,'m'],[1070,'m'],[800,'m','b']],
+  ms:[[73,8,'M⁺'],[30,100,'CH₂=NH₂⁺']]},
+ {id:'et2nh',n:'N-ethylethanamine (diethylamine)',s:'CCNCC',f:'C4H11N',M:73,cls:'amine2',
+  h:[[2.65,4,'q',7.1,'2 × CH₂N'],[1.10,6,'t',7.1,'2 × CH₃'],[0.8,1,'br s',0,'NH']],
+  c:[[44.1,'CH2','CH₂N'],[15.3,'CH3','CH₃']],
+  ir:[[3290,'w',30,'N–H (one band, NH)'],[2965,'s'],[2810,'m'],[1450,'m'],[1140,'m'],[730,'m','b']],
+  ms:[[73,25,'M⁺'],[58,100,'α-cleavage'],[44,20],[30,50]]},
+ {id:'nmeacetamide',n:'N-methylethanamide',s:'CNC(C)=O',f:'C3H7NO',M:73,cls:'amide',
+  h:[[6.3,1,'br s',0,'NH'],[2.80,3,'d',4.8,'NCH₃, next to NH'],[1.98,3,'s',0,'CH₃ on C=O']],
+  c:[[171.0,'C','C=O (amide)'],[26.2,'CH3','NCH₃'],[22.8,'CH3','C(=O)CH₃']],
+  ir:[[3290,'m',40,'N–H'],[3090,'w'],[2940,'w'],[1655,'s',0,'C=O (amide I)'],[1565,'s',0,'N–H bend (amide II)'],[1370,'m'],[1300,'m']],
+  ms:[[73,70,'M⁺'],[58,35],[43,40,'CH₃CO⁺'],[30,100]]},
+ {id:'phbr',n:'bromobenzene',s:'Brc1ccccc1',f:'C6H5Br',M:156,cls:'haloarene',
+  h:[[7.50,2,'d',7.8,'2 ortho H'],[7.30,1,'t',7.5,'para H'],[7.23,2,'t',7.7,'2 meta H']],
+  c:[[131.6,'CH','ortho CH'],[130.0,'CH','meta CH'],[126.9,'CH','para CH'],[122.6,'C','C–Br']],
+  ir:[[3065,'w',0,'aromatic C–H'],[1580,'m'],[1475,'s'],[1070,'m'],[1020,'m'],[735,'s'],[685,'s']],
+  ms:[[158,97,'M+2 (⁸¹Br)'],[156,100,'M⁺ (⁷⁹Br)'],[77,60,'C₆H₅⁺'],[51,30]]},
+];
+const SP_BY=Object.fromEntries(SP_BANK.map(c=>[c.id,c]));
+
+const SP_TOPICS=[{id:'ir',title:'Infrared (IR)'},{id:'hnmr',title:'¹H NMR'},{id:'cnmr',title:'¹³C NMR'},{id:'ms',title:'Mass spectrometry'},{id:'combo',title:'Solving structures'}];
+
+/* concept questions: q, options (first is correct), why */
+const SP_CONCEPT=[
+ ['ir','c-ir1','A strong, sharp absorption near 1715 cm⁻¹ most likely comes from:',['a C=O stretch (ketone)','a C=C stretch','an O–H stretch','a C–O stretch'],'Carbonyl stretches are strong and sit at 1650–1820 cm⁻¹. A simple ketone absorbs near 1715 cm⁻¹. C=C is weaker and lower (1620–1680), O–H is above 3000 and C–O is at 1000–1300.'],
+ ['ir','c-ir2','Which feature tells a carboxylic acid apart from an alcohol in IR?',['a very broad O–H band from 2500 to 3300 cm⁻¹ together with C=O near 1710 cm⁻¹','a sharp band at 3600 cm⁻¹','a band at 1050 cm⁻¹','a weak band near 2100 cm⁻¹'],'Acids form strongly hydrogen-bonded dimers, so the O–H band is extremely broad and runs right through the C–H stretches. They also have a C=O band. Alcohols show a rounder O–H band at 3200–3550 cm⁻¹ and no C=O.'],
+ ['ir','c-ir3','Two weak bands at about 2720 and 2820 cm⁻¹, together with C=O near 1730 cm⁻¹, suggest:',['an aldehyde','a ketone','an ester','an alkyne'],'The C–H bond of an aldehyde (O=C–H) gives a characteristic pair of weak bands near 2720 and 2820 cm⁻¹. Ketones and esters have no such C–H.'],
+ ['ir','c-ir4','Conjugating a C=O group with a C=C or a benzene ring moves its IR stretch:',['to lower wavenumber, by about 20–30 cm⁻¹','to higher wavenumber, by about 20–30 cm⁻¹','it doesn\'t change','it disappears'],'Conjugation delocalises the π electrons, so the C=O bond has slightly less double-bond character and a smaller force constant. Acetophenone absorbs near 1685 cm⁻¹ against 1715 cm⁻¹ for acetone.'],
+ ['ir','c-ir5','A sharp, strong band at 3300 cm⁻¹ and a weak band near 2120 cm⁻¹ point to:',['a terminal alkyne (R–C≡C–H)','an alcohol','a nitrile','an amine'],'The ≡C–H stretch is sharp at about 3300 cm⁻¹ and the C≡C stretch is weak at 2100–2260 cm⁻¹. An alcohol O–H band would be broad, and a nitrile absorbs near 2250 cm⁻¹ with no 3300 band.'],
+ ['ir','c-ir6','Why are alcohol O–H bands broad?',['hydrogen bonding gives a range of slightly different O–H bond strengths','O–H bonds are very weak','oxygen is a heavy atom','alcohols absorb UV light'],'In a liquid or concentrated solution, molecules hydrogen-bond to each other in many ways. Each arrangement has a slightly different O–H stretching frequency, so the band smears out. A dilute solution in CCl₄ shows a sharp "free" O–H near 3600 cm⁻¹.'],
+ ['ir','c-ir7','Which of these carbonyl compounds absorbs at the highest wavenumber?',['an acid chloride (RCOCl)','an amide (RCONH₂)','a ketone','a carboxylic acid'],'The electronegative Cl withdraws electrons and barely donates by resonance, so the C=O bond stays strong: about 1800 cm⁻¹. Amides are lowest (1650–1690 cm⁻¹) because nitrogen\'s lone pair donates strongly into the C=O.'],
+ ['ir','c-ir8','In the N–H region, a primary amine (RNH₂) shows:',['two bands, from symmetric and asymmetric N–H stretches','one band','no bands','a very broad band from 2500 to 3300 cm⁻¹'],'An NH₂ group can stretch in phase and out of phase, giving two bands near 3300 and 3400 cm⁻¹. A secondary amine (R₂NH) has one N–H and one band; a tertiary amine has none.'],
+ ['ir','c-ir9','A medium band near 2250 cm⁻¹ and nothing else unusual most likely means:',['a nitrile (C≡N)','a ketone','an alkene','an ether'],'Very little absorbs between 2000 and 2300 cm⁻¹. C≡N stretches appear at 2210–2260 cm⁻¹ with medium intensity; C≡C is in the same region but usually weaker.'],
+ ['hnmr','c-h1','Which proton usually appears furthest downfield (highest δ)?',['a carboxylic acid O–H','an aldehyde C–H','an aromatic C–H','an alkene C–H'],'COOH protons appear at δ 10–13, aldehyde protons at δ 9–10, aromatic protons at δ 6.5–8.5 and alkene protons at δ 4.5–6.5.'],
+ ['hnmr','c-h2','A ¹H NMR signal is a quartet. How many equivalent H are on the neighbouring carbons?',['3','4','2','1'],'The n + 1 rule: n equivalent neighbouring H split a signal into n + 1 lines. A quartet (4 lines) means 3 neighbours, typically a CH₃.'],
+ ['hnmr','c-h3','What does the integration of a ¹H NMR signal tell you?',['the relative number of H giving that signal','how many neighbouring H there are','how electronegative the nearby atoms are','the coupling constant'],'The area under each signal is proportional to the number of protons in that environment. Splitting tells you about neighbours, and the chemical shift tells you about electronegative groups nearby.'],
+ ['hnmr','c-h4','Why does an alcohol O–H often appear as a broad singlet that doesn\'t split its neighbours?',['the OH proton exchanges rapidly between molecules','oxygen has no nuclear spin, so it can\'t couple','the OH proton has no neighbours','OH protons are invisible in NMR'],'Traces of acid or water make OH protons hop between molecules faster than the NMR timescale, so coupling averages out. The same happens with NH protons.'],
+ ['hnmr','c-h5','What happens to an O–H or N–H signal when you shake the sample with D₂O?',['it disappears, because H is replaced by D','it doubles in size','it splits into a doublet','it moves to δ 0'],'The exchangeable H swaps for deuterium, which doesn\'t show in a ¹H spectrum. This "D₂O shake" is a quick way to identify OH and NH signals.'],
+ ['hnmr','c-h6','The classic pattern for an ethyl group (–CH₂CH₃) attached to a group with no H is:',['a 2H quartet and a 3H triplet','a 2H triplet and a 3H quartet','a 2H singlet and a 3H singlet','a 1H septet and a 6H doublet'],'The CH₂ has 3 neighbours (quartet) and the CH₃ has 2 neighbours (triplet). The septet-and-doublet pattern belongs to an isopropyl group.'],
+ ['hnmr','c-h7','An isopropyl group, –CH(CH₃)₂, gives:',['a 1H septet and a 6H doublet','a 1H quartet and a 6H triplet','a 2H quartet and a 3H triplet','a 9H singlet'],'The CH has 6 equivalent neighbours (septet, 7 lines); each CH₃ has 1 neighbour (doublet), and both CH₃ groups are equivalent, so the doublet integrates to 6H.'],
+ ['hnmr','c-h8','Protons on a benzene ring usually appear at about:',['δ 6.5–8.5','δ 0.9–1.5','δ 2–3','δ 9.5–10'],'The ring current of the aromatic π system deshields the ring protons strongly, moving them to δ 6.5–8.5.'],
+ ['hnmr','c-h9','Why are H on a carbon attached to oxygen (H–C–O) found at δ 3.3–4.5?',['the electronegative oxygen pulls electron density away, deshielding them','oxygen shields them','they exchange with water','they are acidic'],'Less electron density around a proton means less shielding from the applied field, so it resonates at a higher δ. The more electronegative the neighbour, the bigger the effect.'],
+ ['hnmr','c-h10','A benzene ring with two different groups in the 1,4 (para) positions often shows in its aromatic region:',['two doublets, 2H each','one singlet, 4H','a 5H multiplet','four separate 1H signals'],'The two H next to one group are equivalent, as are the two next to the other. Each pair couples to its neighbour, giving two doublets (as in 4-methylbenzaldehyde).'],
+ ['cnmr','c-c1','In a routine (proton-decoupled) ¹³C NMR spectrum, each signal is:',['a single line (singlet)','split by the H on that carbon','split by neighbouring carbons','always the same height'],'Decoupling removes C–H splitting, and ¹³C–¹³C coupling is rare because only 1.1% of carbon is ¹³C. So each carbon environment gives one line.'],
+ ['cnmr','c-c2','A ¹³C signal at δ 200–220 indicates:',['the C=O of a ketone or aldehyde','the C=O of an ester or acid','an aromatic carbon','a C–O single bond'],'Ketone and aldehyde carbonyls appear at δ 190–220. Ester, acid and amide carbonyls are lower, at δ 160–185, because the attached O or N donates electron density.'],
+ ['cnmr','c-c3','In a DEPT-135 spectrum, CH₂ carbons appear:',['as negative (downward) peaks','as positive peaks, like CH and CH₃','not at all','twice'],'DEPT-135 shows CH and CH₃ pointing up and CH₂ pointing down. Carbons with no H (C=O, quaternary C) don\'t appear.'],
+ ['cnmr','c-c4','Where do ester, acid and amide C=O carbons appear in ¹³C NMR?',['δ 160–185','δ 190–220','δ 100–150','δ 50–90'],'The lone pair on the O or N next to the carbonyl donates electron density and shields the carbon a little, compared with a ketone.'],
+ ['cnmr','c-c5','Why don\'t you integrate a routine ¹³C spectrum to count carbons?',['peak heights depend on relaxation and the NOE, not just the number of carbons','¹³C signals are too broad','every peak is the same height','the solvent hides them'],'Carbons with no attached H relax slowly and get little NOE boost, so they give small peaks. Count environments, not peak sizes.'],
+ ['cnmr','c-c6','Aromatic and alkene carbons appear in ¹³C NMR at about:',['δ 100–150','δ 0–40','δ 160–185','δ 190–220'],'sp² carbons of C=C and aromatic rings appear at δ 100–150. A nitrile carbon (115–125) also falls in this range.'],
+ ['cnmr','c-c7','A carbon single-bonded to oxygen (C–O, as in alcohols and ethers) appears at about:',['δ 50–90','δ 0–30','δ 100–150','δ 190–220'],'Oxygen\'s electronegativity deshields the carbon. Halogen- and nitrogen-bearing carbons appear at somewhat lower δ (about 25–65).'],
+ ['ms','c-m1','Peaks at M and M+2 in a ratio of about 3:1 show that the molecule contains:',['one chlorine atom','one bromine atom','one sulfur atom','one nitrogen atom'],'Chlorine is about 75% ³⁵Cl and 25% ³⁷Cl, so molecules with one Cl give M and M+2 peaks in a 3:1 ratio.'],
+ ['ms','c-m2','Peaks at M and M+2 of almost equal height show that the molecule contains:',['one bromine atom','one chlorine atom','two oxygen atoms','one fluorine atom'],'Bromine is about 50.7% ⁷⁹Br and 49.3% ⁸¹Br, so M and M+2 are nearly 1:1. Fluorine and iodine have only one isotope.'],
+ ['ms','c-m3','The base peak in a mass spectrum is:',['the tallest peak, set to 100% abundance','the molecular ion','the peak at the highest m/z','the peak at the lowest m/z'],'Heights are scaled to the tallest peak, which comes from the most stable or most easily formed ion. It is often a fragment rather than M⁺.'],
+ ['ms','c-m4','A compound has M⁺ at m/z 73 (an odd number). It contains:',['an odd number of nitrogen atoms','no nitrogen','a halogen','an even number of nitrogen atoms'],'The nitrogen rule: a neutral molecule with an odd nominal mass has an odd number of N atoms, because nitrogen has an even mass but an odd valence.'],
+ ['ms','c-m5','A strong peak at m/z 91 in the spectrum of an alkylbenzene is usually:',['C₇H₇⁺, the benzyl / tropylium cation','C₆H₅⁺, the phenyl cation','CH₃CO⁺','the molecular ion'],'Alkylbenzenes cleave at the benzylic bond. The benzyl cation rearranges to the very stable aromatic tropylium ion, C₇H₇⁺ at m/z 91.'],
+ ['ms','c-m6','A strong peak at m/z 43 in the spectrum of a methyl ketone is usually:',['CH₃CO⁺, an acylium ion','CO₂⁺','C₆H₅⁺','CH₂=OH⁺'],'α-Cleavage next to the carbonyl gives a resonance-stabilised acylium ion. For methyl ketones, CH₃C≡O⁺ appears at m/z 43 (C₃H₇⁺ also has m/z 43).'],
+ ['ms','c-m7','A peak 15 mass units below M⁺ corresponds to loss of:',['a methyl radical, CH₃•','water','an ethyl radical','CO'],'Common losses: 15 (CH₃), 18 (H₂O), 28 (CO or C₂H₄), 29 (C₂H₅ or CHO), 31 (OCH₃) and 45 (OC₂H₅ or COOH).'],
+ ['ms','c-m8','The M+1 peak is mainly caused by:',['¹³C, which is about 1.1% of carbon','²H (deuterium)','loss of a hydrogen atom','¹⁵N'],'Each carbon has a 1.1% chance of being ¹³C, so the M+1 peak is roughly 1.1% × (number of carbons) of the M peak. An M+1 of 11% suggests about 10 carbons.'],
+ ['combo','c-k1','A degree of unsaturation of 4 in a compound with at least six carbons often means:',['a benzene ring (one ring + three C=C)','four separate rings','a single triple bond','a carboxylic acid'],'Each ring or π bond counts as one degree of unsaturation. Benzene has one ring and three double bonds, so 4. A C=O on top would take it to 5, as in acetophenone.'],
+ ['combo','c-k2','Which technique is quickest for telling an aldehyde from a ketone?',['¹H NMR (a CHO signal at δ 9–10) or IR (C–H bands at 2720/2820)','mass spectrometry only','counting ¹³C signals','UV–vis'],'The aldehyde C–H is unmistakable in ¹H NMR at δ 9–10 and gives two weak IR bands near 2720 and 2820 cm⁻¹. In DEPT-135 the aldehyde carbon is a CH, while a ketone carbon disappears.'],
+ ['combo','c-k3','What is the best first step when you get a formula and a set of spectra?',['work out the degree of unsaturation from the formula','assign the smallest ¹H signal','guess a structure and check it','look at the fingerprint region'],'The degree of unsaturation tells you how many rings and π bonds you are looking for. Then use IR for functional groups, ¹³C for the number of carbon types and ¹H for how the pieces join.'],
+];
+
+
+/* ---------- v14: spectroscopy lessons and practice ---------- */
+const SP={view:null,lesson:null,qz:null,setupSel:null,setupLen:10};
+const fmlHTML=f=>esc(f).replace(/(\d+)/g,'<sub>$1</sub>');
+function spSeed(s){let h=2166136261;for(const ch of String(s)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return((h>>>0)%100000)/100000}}
+function spAtoms(f){const m={};for(const[,e,n]of String(f).matchAll(/([A-Z][a-z]?)(\d*)/g))m[e]=(m[e]||0)+(n===''?1:+n);return m}
+function spDoU(f){const a=spAtoms(f),X=(a.F||0)+(a.Cl||0)+(a.Br||0)+(a.I||0);return(2*(a.C||0)+2+(a.N||0)-(a.H||0)-X)/2}
+const SP_MULT={s:'singlet',d:'doublet',t:'triplet',q:'quartet',quint:'quintet',sext:'sextet',sept:'septet',dd:'doublet of doublets',td:'triplet of doublets',qd:'quartet of doublets',dt:'doublet of triplets',m:'multiplet','br s':'broad singlet'};
+const SP_NEIGH={s:0,d:1,t:2,q:3,quint:4,sext:5,sept:6};
+const spHEnv=c=>c.h.reduce((s,r)=>s+(r[5]||1),0);
+/* --- line patterns for 1H multiplets: [offset (Hz or ppm), weight] --- */
+function spPattern(r){
+  const[sh,n,mu,J]=r,binom=k=>{let row=[1];for(let i=0;i<k;i++)row=row.map((v,j)=>v+(row[j-1]||0)).concat(1);return row};
+  const split=(lines,k,j)=>{const b=binom(k),out=[];for(const[o,w]of lines)b.forEach((bw,i)=>out.push([o+(i-k/2)*j,w*bw]));return out};
+  const Js=Array.isArray(J)?J:[J];
+  const code={d:[[1,0]],t:[[2,0]],q:[[3,0]],quint:[[4,0]],sext:[[5,0]],sept:[[6,0]],dd:[[1,0],[1,1]],td:[[2,0],[1,1]],qd:[[3,0],[1,1]],dt:[[1,0],[2,1]]}[mu];
+  if(mu==='m'){const rnd=spSeed(sh+':'+n),sp=J||.05,k=7+Math.floor(rnd()*4),out=[];for(let i=0;i<k;i++)out.push([(i/(k-1)-.5)*2*sp*400,.5+rnd()]);return{lines:out,ppm:false}}
+  if(!code)return{lines:[[0,1]],ppm:false};
+  let lines=[[0,1]];for(const[k,ji]of code)lines=split(lines,k,Js[ji]||Js[0]);return{lines,ppm:false};
+}
+const spAxis=(x0,x1,y,ticks,fmt,lbl,w)=>`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" class="sp-ax"/>${ticks.map(([x,v])=>`<line x1="${x}" y1="${y}" x2="${x}" y2="${y+4}" class="sp-ax"/><text x="${x}" y="${y+16}" class="sp-tk">${fmt(v)}</text>`).join('')}<text x="${(x0+x1)/2}" y="${y+31}" class="sp-al">${lbl}</text>`;
+function spRows(items,maxRows){const ends=[];for(const it of items.sort((a,b)=>a.x-b.x)){let r=ends.findIndex(e=>e+6<it.x-it.w/2);if(r<0){r=ends.length<maxRows?ends.length:ends.indexOf(Math.min(...ends))}ends[r]=it.x+it.w/2;it.row=r}return Math.max(1,ends.length)}
+function spSVG(w,h,inner,title){return`<svg class="sp-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(title)}">${inner}</svg>`}
+/* IR spectrum */
+function spIR(c,o={}){
+  const w=640,h=o.h||236,L=46,R=12,T=14,B=40,pw=w-L-R,ph=h-T-B,lo=450,hi=4000,x=nu=>L+(hi-nu)/(hi-lo)*pw;
+  const pk=c.ir.map(p=>({nu:p[0],d:{s:.8,m:.5,w:.22}[p[1]]||.4,hw:p[2]==='vb'?300:p[2]==='b'?110:(typeof p[2]==='number'&&p[2]>0?p[2]:p[0]>2600?16:8),lab:p[3]}));
+  const rnd=spSeed('ir'+c.id);for(let k=0;k<8;k++)pk.push({nu:620+rnd()*820,d:.06+rnd()*.16,hw:4+rnd()*6});
+  const T_=nu=>{let t=.95-.04*(nu-lo)/(hi-lo);for(const p of pk){const dx=nu-p.nu;t*=1-p.d*p.hw*p.hw/(dx*dx+p.hw*p.hw)}return t};
+  let d='';for(let nu=hi;nu>=lo;nu-=2){const X=x(nu),Y=T+ph*(1-T_(nu));d+=(d?'L':'M')+X.toFixed(1)+' '+Y.toFixed(1)}
+  const ticks=[4000,3500,3000,2500,2000,1500,1000,500].map(v=>[x(v),v]);
+  const labs=o.labels===false?'':pk.filter(p=>p.lab).map(p=>{const X=x(p.nu),Y=T+ph*(1-T_(p.nu));return`<text x="${X.toFixed(1)}" y="${Math.min(T+ph-2,Y+13).toFixed(1)}" class="sp-pl">${p.nu}</text>`}).join('');
+  const grid=[0,50,100].map(v=>{const Y=T+ph*(1-v/100);return`<line x1="${L}" y1="${Y}" x2="${L+pw}" y2="${Y}" class="sp-gr"/><text x="${L-6}" y="${Y+4}" class="sp-tk" text-anchor="end">${v}</text>`}).join('');
+  return spSVG(w,h,`${grid}<path d="${d}" class="sp-tr"/>${labs}${spAxis(L,L+pw,T+ph,ticks,v=>v,'Wavenumber (cm⁻¹)')}<text x="12" y="${T+ph/2}" class="sp-al" transform="rotate(-90 12 ${T+ph/2})">% T</text>`,'IR spectrum')}
+/* 1H NMR spectrum */
+function spH(c,o={}){
+  const w=640,L=14,R=14,B=40,pw=w-L-R;
+  const top=Math.max(10,Math.ceil(Math.max(...c.h.map(r=>r[0]))+.6)),lo=-.4,x=d=>L+(top-d)/(top-lo)*pw,pxHz=.55,pxPpm=pw/(top-lo);
+  const lab=c.h.map(r=>{const t=`${r[1]}H${o.mult===false?'':', '+(r[2]==='br s'?'br s':r[2])}`;return{x:x(r[0]),t,w:t.length*6.8}}),nr=spRows(lab,3);
+  const T=14+nr*14,h=(o.h||220)+nr*14,ph=h-T-B;
+  const lines=[];
+  c.h.forEach((r,si)=>{const br=r[2]==='br s',p=spPattern(r),sum=p.lines.reduce((s,l)=>s+l[1],0);const cx=x(r[0]);
+    for(const[o2,wt]of p.lines)lines.push({x:cx+(r[2]==='m'?o2/400*pxPpm:o2*pxHz),a:r[1]*wt/sum,g:br?6:.75,si})});
+  lines.push({x:x(0),a:.6,g:.7,si:-1});
+  const xs=[];for(let X=L;X<=L+pw;X+=.5)xs.push(X);
+  const ys=xs.map(X=>{let y=0;for(const l of lines){const dx=X-l.x;y+=l.a*l.g*l.g/(dx*dx+l.g*l.g)/(l.g>2?3.2:1)}return y});
+  const mx=Math.max(...ys)||1;let d='';xs.forEach((X,i)=>{d+=(i?'L':'M')+X.toFixed(1)+' '+(T+ph-ys[i]/mx*ph*.92).toFixed(1)});
+  const lt=lab.map(l=>`<text x="${l.x.toFixed(1)}" y="${12+l.row*14}" class="sp-pl">${esc(l.t)}</text>`).join('');
+  const ticks=[];for(let v=Math.floor(top);v>=0;v--)ticks.push([x(v),v]);
+  return spSVG(w,h,`<path d="${d}" class="sp-tr"/>${lt}<text x="${x(0)}" y="${T+ph-ph*.6*.92/mx-6}" class="sp-pl sp-tms">TMS</text>${spAxis(L,L+pw,T+ph,ticks,v=>v,'δ (ppm)')}`,'1H NMR spectrum')}
+/* 13C NMR spectrum */
+function spC(c,o={}){
+  const w=640,L=14,R=14,B=40,pw=w-L-R,top=220,x=d=>L+(top-d)/top*pw,rnd=spSeed('c'+c.id),lh=o.dept?26:14;
+  const sticks=c.c.map(r=>({x:x(r[0]),f:r[1]==='C'?.35:.72+rnd()*.28,r,w:o.dept?24:18})),nr=spRows(sticks,4);
+  const T=14+nr*lh,h=(o.h||176)+nr*lh,ph=h-T-B;
+  const s=sticks.map(k=>{const y0=12+k.row*lh,tag=o.dept?`<text x="${k.x.toFixed(1)}" y="${y0+12}" class="sp-dept">${k.r[1].replace(/(\d)/,'<tspan baseline-shift="sub" font-size="70%">$1</tspan>')}</text>`:'';
+    return`<line x1="${k.x.toFixed(1)}" y1="${T+ph}" x2="${k.x.toFixed(1)}" y2="${(T+ph-k.f*ph*.92).toFixed(1)}" class="sp-st"/><line x1="${k.x.toFixed(1)}" y1="${y0+(o.dept?16:4)}" x2="${k.x.toFixed(1)}" y2="${(T+ph-k.f*ph*.92-3).toFixed(1)}" class="sp-lead"/><text x="${k.x.toFixed(1)}" y="${y0}" class="sp-pl">${k.r[0].toFixed(0)}</text>${tag}`}).join('');
+  const ticks=[220,200,180,160,140,120,100,80,60,40,20,0].map(v=>[x(v),v]);
+  return spSVG(w,h,`${s}${spAxis(L,L+pw,T+ph,ticks,v=>v,'δ (ppm)')}`,'13C NMR spectrum')}
+/* mass spectrum */
+function spMS(c,o={}){
+  const w=640,h=o.h||220,L=40,R=14,T=30,B=40,pw=w-L-R,ph=h-T-B,hi=Math.ceil((Math.max(...c.ms.map(p=>p[0]))+12)/10)*10,lo=10,x=m=>L+(m-lo)/(hi-lo)*pw;
+  const labs=c.ms.filter(p=>p[1]>=8||p[2]).map(p=>({x:x(p[0]),w:String(p[0]).length*7,p}));spRows(labs,3);const lr=new Map(labs.map(l=>[l.p,l.row]));
+  const bars=c.ms.map(p=>{const X=x(p[0]),Y=T+ph*(1-p[1]/100),r=lr.get(p);return`<line x1="${X.toFixed(1)}" y1="${T+ph}" x2="${X.toFixed(1)}" y2="${Y.toFixed(1)}" class="sp-bar"/>${r!=null?`<text x="${X.toFixed(1)}" y="${(Y-5-r*12).toFixed(1)}" class="sp-pl sp-sm">${p[0]}</text>`:''}`}).join('');
+  const rnd=spSeed('ms'+c.id);let noise='';for(let k=0;k<10;k++){const m=Math.round(lo+5+rnd()*(c.M-12));if(c.ms.some(p=>Math.abs(p[0]-m)<1))continue;const X=x(m);noise+=`<line x1="${X.toFixed(1)}" y1="${T+ph}" x2="${X.toFixed(1)}" y2="${(T+ph*(1-(1+rnd()*5)/100)).toFixed(1)}" class="sp-bar"/>`}
+  const ticks=[];const step=hi>120?20:10;for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step)ticks.push([x(v),v]);
+  const grid=[0,50,100].map(v=>{const Y=T+ph*(1-v/100);return`<line x1="${L}" y1="${Y}" x2="${L+pw}" y2="${Y}" class="sp-gr"/><text x="${L-6}" y="${Y+4}" class="sp-tk" text-anchor="end">${v}</text>`}).join('');
+  return spSVG(w,h,`${grid}${noise}${bars}${spAxis(L,L+pw,T+ph,ticks,v=>v,'m/z')}<text x="12" y="${T+ph/2}" class="sp-al" transform="rotate(-90 12 ${T+ph/2})">Rel. abundance</text>`,'Mass spectrum')}
+function spFig(kind,id,cap,o){const c=SP_BY[id];if(!c)return'';const f={ir:spIR,h:spH,c:spC,dept:(c2,o2)=>spC(c2,{...o2,dept:true}),ms:spMS}[kind];
+  return`<figure class="sp-fig"><figcaption><b>${esc(cap||c.n)}</b> <span>${fmlHTML(c.f)} · ${{ir:'IR',h:'¹H NMR',c:'¹³C NMR',dept:'¹³C NMR with DEPT',ms:'Mass spectrum'}[kind]}</span></figcaption>${f(c,o||{})}</figure>`}
+function spTable(rows,head){return`<div class="nm-tablewrap"><table class="nm-table sp-table"><thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+/* shift range chart */
+function spRanges(rows,top,unit){
+  const w=640,L=150,R=14,rh=20,h=rows.length*rh+44,pw=w-L-R,x=d=>L+(top-d)/top*pw;
+  const bars=rows.map(([lbl,a,b],i)=>{const y=10+i*rh;return`<text x="${L-8}" y="${y+12}" class="sp-rl" text-anchor="end">${lbl}</text><rect x="${x(b).toFixed(1)}" y="${y+3}" width="${Math.max(4,x(a)-x(b)).toFixed(1)}" height="${rh-8}" rx="4" class="sp-rb"/>`}).join('');
+  const ticks=[];const st=top>50?20:1;for(let v=top;v>=0;v-=st)ticks.push([x(v),v]);
+  return spSVG(w,h,bars+spAxis(L,L+pw,10+rows.length*rh+4,ticks,v=>v,unit),'Chemical shift ranges')}
+const SP_LESSONS=[
+ {id:'intro',title:'How to solve a structure',lede:'Each technique answers a different question. Used together, they pin down a structure.',sections:[
+  {h:'What each technique tells you',html:spTable([['Mass spectrometry','Molecular mass (M⁺), chlorine or bromine from isotope peaks, nitrogen from an odd mass, and pieces of the molecule from fragments.'],['Infrared (IR)','Which functional groups are present: O–H, N–H, C=O, C≡N, C≡C, C=C.'],['¹³C NMR','How many different carbon environments, and what type each is (C=O, aromatic, C–O, alkyl). DEPT shows CH₃, CH₂, CH and C.'],['¹H NMR','How many H environments, how many H in each (integration), what they are near (chemical shift) and how many neighbours they have (splitting).']],['Technique','What it tells you'])},
+  {h:'Degree of unsaturation',html:'<p>Before looking at any spectrum, work out how many rings and π bonds the formula allows:</p><p class="sp-eq">DoU = C + 1 + N/2 − (H + X)/2</p><p>where X is the number of halogens. Oxygen and sulfur don\'t count. Each ring or double bond is 1, a triple bond is 2 and a benzene ring is 4.</p>'+spTable([['C₄H₈O','4 + 1 − 4 = <b>1</b>','one C=O, one C=C or one ring'],['C₈H₈O','8 + 1 − 4 = <b>5</b>','benzene ring (4) + C=O (1)'],['C₃H₅N','3 + 1 + 0.5 − 2.5 = <b>2</b>','C≡N'],['C₄H₉Br','4 + 1 − 5 = <b>0</b>','no rings, no π bonds']],['Formula','Calculation','Likely meaning'])},
+  {h:'A step-by-step strategy',html:'<ol><li>Find the formula and work out the degree of unsaturation.</li><li>Use IR to spot the functional groups. Is there a C=O? An O–H or N–H?</li><li>Count the ¹³C signals. Look for C=O (160–220), aromatic or alkene (100–150) and C–O (50–90) carbons.</li><li>Use ¹H integration to count H in each environment, then chemical shift and splitting to see which groups are next to each other.</li><li>Draw candidate structures and check every signal against them, including the mass spectrum fragments.</li></ol>'}]},
+ {id:'ir',title:'Infrared spectroscopy',lede:'Bonds absorb infrared light at frequencies that depend on how strong the bond is and how heavy its atoms are. Each functional group has tell-tale bands.',sections:[
+  {h:'Reading an IR spectrum',html:'<p>The x-axis is the <b>wavenumber</b> (cm⁻¹), running from 4000 on the left to about 500 on the right. Absorptions point downwards (lower % transmittance). Stronger, stiffer bonds and lighter atoms absorb at higher wavenumbers: C≡C > C=C > C–C, and C–H > C–C.</p><p>The region above 1500 cm⁻¹ holds the diagnostic stretches. Below 1500 cm⁻¹ is the <b>fingerprint region</b>: complex, and unique to each compound, but hard to assign.</p>'},
+  {h:'Key absorptions',html:spTable([['O–H (alcohol)','3200–3550','strong, broad'],['O–H (carboxylic acid)','2500–3300','strong, very broad'],['N–H','3300–3500','medium; two bands for NH₂, one for NH'],['≡C–H','≈ 3300','strong, sharp'],['=C–H (alkene, aromatic)','3000–3100','medium'],['C–H (alkyl)','2850–2960','strong'],['C–H (aldehyde)','2720 and 2820','two weak bands'],['C≡N','2210–2260','medium'],['C≡C','2100–2260','weak'],['C=O','1650–1820','strong (see below)'],['C=C (alkene)','1620–1680','weak to medium'],['C=C (aromatic)','1450–1600','several, medium'],['C–O','1000–1300','strong']],['Bond','Wavenumber (cm⁻¹)','Appearance'])},
+  {h:'Telling carbonyls apart',html:'<p>Where a C=O absorbs depends on what is attached to it:</p>'+spTable([['Acid chloride','≈ 1800'],['Anhydride','≈ 1820 and 1760 (two bands)'],['Ester','1735–1750'],['Aldehyde','1720–1740'],['Ketone','≈ 1715'],['Carboxylic acid','1700–1725'],['Amide','1650–1690']],['Carbonyl','Wavenumber (cm⁻¹)'])+'<p>Conjugation with C=C or a benzene ring lowers each value by about 20–30 cm⁻¹.</p>'},
+  {h:'Three examples',html:'<div class="sp-figs">{{ir:pr2ol:Alcohol: broad O–H, C–O}}{{ir:acetone:Ketone: strong C=O at 1715}}{{ir:propacid:Carboxylic acid: very broad O–H and C=O}}</div>'}]},
+ {id:'hnmr',title:'¹H NMR spectroscopy',lede:'Proton NMR tells you how many kinds of hydrogen there are, how many of each, what is near them and how many neighbours they have.',sections:[
+  {h:'Equivalent hydrogens',html:'<p>Hydrogens in the same environment (related by symmetry or by fast rotation) give one signal. The three H of a CH₃ are always equivalent. Both CH₃ groups of propan-2-ol are equivalent, so it shows just three signals.</p>'},
+  {h:'Chemical shift',html:'<p>Shifts are measured in ppm (δ) from TMS at δ 0. Electronegative atoms, π bonds and aromatic rings pull electron density away from nearby H and move them <b>downfield</b> (higher δ).</p>'+spRanges([['R–CH₃, R–CH₂–R',0.8,1.6],['C=C–CH, Ar–CH₃',1.6,2.6],['O=C–CH',2.0,2.7],['N–CH',2.2,3.0],['Hal–CH',3.0,4.2],['O–CH',3.3,4.5],['C=C–H',4.5,6.5],['Ar–H',6.5,8.5],['O=C–H (aldehyde)',9.0,10.0],['COOH',10.0,13.0],['R–OH, R–NH (variable)',1.0,5.0]],13,'δ (ppm)')},
+  {h:'Integration',html:'<p>The area under each signal is proportional to the number of H causing it. Spectra here print the result above each signal (for example "2H").</p>'},
+  {h:'Splitting: the n + 1 rule',html:'<p>A signal is split by H on <b>neighbouring</b> carbons. With n equivalent neighbours it has n + 1 lines:</p>'+spTable([['0','singlet (s)','1'],['1','doublet (d)','1 : 1'],['2','triplet (t)','1 : 2 : 1'],['3','quartet (q)','1 : 3 : 3 : 1'],['4','quintet','1 : 4 : 6 : 4 : 1'],['6','septet','1 : 6 : 15 : 20 : 15 : 6 : 1']],['Neighbouring H','Pattern','Line ratio'])+'<p>Coupled signals share the same spacing (the coupling constant J, in Hz). OH and NH protons usually exchange quickly, so they appear as broad singlets and don\'t split their neighbours. Spectra here widen the splitting so you can see the lines.</p>'},
+  {h:'Classic patterns',html:'<div class="sp-figs">{{h:etoac:Ethyl group: 2H quartet + 3H triplet}}{{h:pr2ol:Isopropyl group: 1H septet + 6H doublet}}{{h:tolual:Para-disubstituted ring: two 2H doublets}}</div>'}]},
+ {id:'cnmr',title:'¹³C NMR spectroscopy',lede:'Carbon NMR counts the carbon environments in a molecule and tells you what kind of carbon each one is.',sections:[
+  {h:'One line per carbon environment',html:'<p>Spectra are run with the hydrogens decoupled, so each different carbon gives a single line. Count the lines to count the environments: symmetry reduces the number, as in pentan-3-one (3 signals for 5 carbons).</p><p>Peak heights are not reliable: carbons with no H attached are usually small.</p>'},
+  {h:'Chemical shift',html:spRanges([['C=O (ketone, aldehyde)',190,220],['C=O (acid, ester, amide)',160,185],['C=C, aromatic',100,150],['C≡N',115,125],['C≡C',65,90],['C–O',50,90],['C–N',30,65],['C–Hal',25,65],['alkyl C',0,50]],220,'δ (ppm)')},
+  {h:'DEPT: how many H on each carbon',html:'<p>A DEPT-135 experiment shows CH and CH₃ carbons pointing up, CH₂ carbons pointing down, and leaves out carbons with no H. Here the type is printed above each line instead.</p><div class="sp-figs">{{dept:butanone:Butan-2-one}}{{dept:butanal:Butanal}}</div><p>Both are C₄H₈O carbonyl compounds, but the aldehyde\'s C=O carbon is a CH while the ketone\'s has no H.</p>'}]},
+ {id:'ms',title:'Mass spectrometry',lede:'A mass spectrometer ionises molecules, breaks some of them into pieces and sorts the ions by mass.',sections:[
+  {h:'The molecular ion and the base peak',html:'<p>The <b>molecular ion</b> (M⁺) is the molecule minus one electron, so its m/z is the molecular mass. It is usually the peak furthest to the right (ignoring small isotope peaks). The tallest peak, the <b>base peak</b>, is set to 100%.</p><p><b>Nitrogen rule</b>: an odd molecular mass means an odd number of nitrogen atoms.</p>'},
+  {h:'Isotope patterns',html:'<p>Chlorine and bromine have two common isotopes two mass units apart:</p>'+spTable([['one Cl','M : M+2 ≈ 3 : 1'],['one Br','M : M+2 ≈ 1 : 1'],['carbon','M+1 ≈ 1.1% × number of C']],['Atoms','Pattern'])+'<div class="sp-figs">{{ms:chloropropane2:2-Chloropropane: 3 : 1 at m/z 78 / 80}}{{ms:phbr:Bromobenzene: 1 : 1 at m/z 156 / 158}}</div>'},
+  {h:'Common fragments',html:spTable([['M − 15','loss of CH₃'],['M − 18','loss of H₂O (alcohols)'],['M − 29','loss of C₂H₅ or CHO'],['M − 31','loss of OCH₃ (methyl esters)'],['m/z 29','CHO⁺ or C₂H₅⁺'],['m/z 31','CH₂=OH⁺ (primary alcohols)'],['m/z 43','CH₃CO⁺ or C₃H₇⁺'],['m/z 57','C₄H₉⁺ or C₂H₅CO⁺'],['m/z 77','C₆H₅⁺'],['m/z 91','C₇H₇⁺ (tropylium, from benzyl groups)'],['m/z 105','C₆H₅CO⁺']],['Peak','Usually means'])+'<p>Cleavage next to a C=O or a heteroatom (α-cleavage) gives stabilised cations. Carbonyl compounds with an H three carbons away can also lose an alkene in a <b>McLafferty rearrangement</b>, as with butanal (m/z 44).</p>'}]},
+ {id:'combo',title:'Putting it together',lede:'A worked example using every technique on one unknown.',sections:[
+  {h:'The data',html:'<p>An unknown liquid has the formula <b>C₄H₈O₂</b>.</p><div class="sp-figs">{{ms:etoac:Mass spectrum}}{{ir:etoac:IR spectrum}}{{c:etoac:¹³C NMR}}{{h:etoac:¹H NMR}}</div>'},
+  {h:'Working through it',html:'<ol><li><b>Degree of unsaturation</b>: 4 + 1 − 4 = 1, so one C=O, C=C or ring.</li><li><b>Mass spectrum</b>: M⁺ at m/z 88 fits C₄H₈O₂. The base peak at m/z 43 suggests CH₃CO⁺.</li><li><b>IR</b>: a strong band at 1742 cm⁻¹ (ester C=O) and a strong band at 1240 cm⁻¹ (C–O), but no O–H. So probably an ester.</li><li><b>¹³C</b>: four signals, so four different carbons. δ 171 is an ester C=O; δ 60 is a carbon on oxygen.</li><li><b>¹H</b>: a 2H quartet at δ 4.1 (OCH₂ next to CH₃), a 3H singlet at δ 2.0 (CH₃ on C=O, no neighbours) and a 3H triplet at δ 1.3 (CH₃ next to CH₂).</li></ol><p>Everything fits <b>ethyl ethanoate</b>, CH₃COOCH₂CH₃. Its isomer methyl propanoate would show an OCH₃ singlet at δ 3.7 and a quartet at δ 2.3 instead.</p>'}]},
+];
+function spLessonHTML(html){return html.replace(/\{\{(ir|h|c|dept|ms):([a-z0-9]+):([^}]*)\}\}/g,(m,k,id,cap)=>spFig(k,id,cap))}
+/* question pool (stable ids for progress tracking) */
+const SP_ISO=(()=>{const g={};SP_BANK.forEach(c=>(g[c.f]=g[c.f]||[]).push(c.id));return g})();
+const SP_SPLIT_SKIP=new Set(['hexyne:1','nmeacetamide:1']);
+function spPool(){
+  const P=[];
+  for(const c of SP_BANK){
+    const iso=SP_ISO[c.f].length;
+    if(!['haloalkane','haloarene'].includes(c.cls))P.push({id:'sp:ir:'+c.id,t:'ir',k:'idIR',c});
+    if(iso>=2)P.push({id:'sp:h:'+c.id,t:'hnmr',k:'idH',c});
+    if(c.id!=='hexene')P.push({id:'sp:nh:'+c.id,t:'hnmr',k:'countH',c});
+    const si=c.h.findIndex((r,i)=>SP_NEIGH[r[2]]!=null&&r[0]<6.5&&!SP_SPLIT_SKIP.has(c.id+':'+i)&&r[2]!=='s');
+    if(si>=0)P.push({id:'sp:sp:'+c.id,t:'hnmr',k:'split',c,si});
+    P.push({id:'sp:nc:'+c.id,t:'cnmr',k:'countC',c});
+    if(iso>=2)P.push({id:'sp:c:'+c.id,t:'cnmr',k:'idC',c});
+    P.push({id:'sp:ms:'+c.id,t:'ms',k:'idMS',c});
+    if(iso>=2)P.push({id:'sp:all:'+c.id,t:'combo',k:'idAll',c});
+  }
+  for(const f of Object.keys(SP_ISO))P.push({id:'sp:dou:'+f,t:'combo',k:'dou',f});
+  for(const[t,id,q,opts,why]of SP_CONCEPT)P.push({id:'sp:'+id,t,k:'concept',q,opts,why});
+  return P;
+}
+let SP_POOL=null;const spPoolGet=()=>SP_POOL||(SP_POOL=spPool());
+function spTopicStats(t){const qs=spPoolGet().filter(q=>q.t===t);return{m:qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,n:qs.length}}
+function spAllStats(){const qs=spPoolGet();return{m:qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,n:qs.length}}
+/* build one question */
+function spDistractors(c,pred,n){const pool=shuffle(SP_BANK.filter(x=>x.id!==c.id&&pred(x)));return pool.slice(0,n)}
+function spStructOpts(c,k){
+  let others=[];
+  if(k==='idIR'){const iso=SP_BANK.filter(x=>x.f===c.f&&x.cls!==c.cls&&!['haloalkane','haloarene'].includes(x.cls));others=shuffle(iso).slice(0,3);
+    if(others.length<3)others=others.concat(spDistractors(c,x=>x.cls!==c.cls&&!others.includes(x)&&!['haloalkane','haloarene'].includes(x.cls)&&Math.abs(x.M-c.M)<40,3-others.length))}
+  else if(k==='idMS'){const used=new Set([c.M]);for(const x of shuffle(SP_BANK)){if(others.length>=3)break;if(x.id===c.id||used.has(x.M))continue;const sameHal=(/Cl|Br/.test(x.f))===(/Cl|Br/.test(c.f));if(Math.abs(x.M-c.M)>50&&!sameHal)continue;used.add(x.M);others.push(x)}}
+  else{others=shuffle(SP_BANK.filter(x=>x.f===c.f&&x.id!==c.id)).slice(0,3);if(others.length<2)others=others.concat(spDistractors(c,x=>x.f!==c.f&&!others.includes(x)&&Math.abs(x.M-c.M)<=16&&x.cls!==c.cls,3-others.length))}
+  return shuffle([c,...others])}
+function spNumOpts(ans){const s=new Set([ans]);const cand=shuffle([ans-2,ans-1,ans+1,ans+2,ans+3].filter(v=>v>0));for(const v of cand){if(s.size>=4)break;s.add(v)}return[...s].sort((a,b)=>a-b)}
+function spBuild(q){
+  const c=q.c;
+  if(q.k==='concept'){const o=shuffle(q.opts);return{prompt:esc(q.q),kind:'text',opts:o,ans:q.opts[0],why:q.why}}
+  if(q.k==='dou'){const d=spDoU(q.f);return{prompt:`What is the degree of unsaturation of <b>${fmlHTML(q.f)}</b>?`,kind:'text',opts:spNumOpts(d).map(String),ans:String(d),why:`DoU = C + 1 + N/2 − (H + X)/2. For ${fmlHTML(q.f)}: ${(()=>{const a=spAtoms(q.f),X=(a.F||0)+(a.Cl||0)+(a.Br||0)+(a.I||0);return`${a.C||0} + 1${a.N?' + '+a.N+'/2':''} − (${a.H||0}${X?' + '+X:''})/2 = ${d}`})()}.`}}
+  const sig=c.h.map(r=>`δ ${r[0]} (${r[1]}H, ${SP_MULT[r[2]]||r[2]}): ${esc(r[4])}`).join('<br>');
+  const keyIR=c.ir.filter(p=>p[3]).map(p=>`${p[0]} cm⁻¹: ${esc(p[3])}`).join('<br>');
+  const cs=c.c.map(r=>`δ ${r[0]} (${r[1].replace(/(\d)/,'<sub>$1</sub>')}): ${esc(r[2])}`).join('<br>');
+  const msx=c.ms.filter(p=>p[2]).map(p=>`m/z ${p[0]}: ${esc(p[2])}`).join('<br>');
+  if(q.k==='idIR')return{prompt:`This IR spectrum belongs to a compound with formula <b>${fmlHTML(c.f)}</b>. Which compound is it?`,figs:spIR(c),kind:'struct',opts:spStructOpts(c,q.k),ans:c,why:`The answer is <b>${esc(c.n)}</b>. Key bands:<br>${keyIR||'only C–H bands'}`}
+  if(q.k==='idH')return{prompt:`This ¹H NMR spectrum belongs to a compound with formula <b>${fmlHTML(c.f)}</b>. Which compound is it?`,figs:spH(c),kind:'struct',opts:spStructOpts(c,q.k),ans:c,why:`The answer is <b>${esc(c.n)}</b>.<br>${sig}`}
+  if(q.k==='idC')return{prompt:`This ¹³C NMR spectrum (with the DEPT type of each carbon) belongs to a compound with formula <b>${fmlHTML(c.f)}</b>. Which compound is it?`,figs:spC(c,{dept:true}),kind:'struct',opts:spStructOpts(c,q.k),ans:c,why:`The answer is <b>${esc(c.n)}</b>: ${c.c.length} carbon environment${c.c.length>1?'s':''}.<br>${cs}`}
+  if(q.k==='idMS')return{prompt:'Which compound gives this mass spectrum?',figs:spMS(c),kind:'struct',opts:spStructOpts(c,q.k),ans:c,why:`The answer is <b>${esc(c.n)}</b>, ${fmlHTML(c.f)}, molecular mass ${c.M}.${msx?'<br>'+msx:''}`}
+  if(q.k==='idAll')return{prompt:`An unknown has formula <b>${fmlHTML(c.f)}</b> (degree of unsaturation ${spDoU(c.f)}). Use all four spectra to identify it.`,figs:`<div class="sp-tabs" role="tablist">${['¹H NMR','¹³C NMR','IR','Mass spec'].map((t,i)=>`<button class="sp-tab${i?'':' on'}" data-sptab="${i}" role="tab" aria-selected="${!i}">${t}</button>`).join('')}</div><div class="sp-tabp">${spH(c)}</div><div class="sp-tabp" hidden>${spC(c,{dept:true})}</div><div class="sp-tabp" hidden>${spIR(c)}</div><div class="sp-tabp" hidden>${spMS(c)}</div>`,kind:'struct',opts:spStructOpts(c,q.k),ans:c,why:`The answer is <b>${esc(c.n)}</b>.<br><b>¹H:</b><br>${sig}${keyIR?'<br><b>IR:</b><br>'+keyIR:''}`}
+  if(q.k==='countH'){const n=spHEnv(c);return{prompt:'How many signals would this compound give in its ¹H NMR spectrum (one per H environment)?',struct:c,kind:'text',opts:spNumOpts(n).map(String),ans:String(n),why:`${esc(c.n)} has ${n} hydrogen environments.<br>${sig}${c.h.some(r=>r[5]>1)?'<br>Aromatic H often overlap in a real spectrum, but they are still different environments.':''}`}}
+  if(q.k==='countC'){const n=c.c.length,nc=spAtoms(c.f).C;return{prompt:'How many signals would this compound give in its ¹³C NMR spectrum?',struct:c,kind:'text',opts:spNumOpts(n).map(String),ans:String(n),why:`${esc(c.n)} has ${nc} carbons but ${n} carbon environment${n>1?'s':''}${n<nc?' because of symmetry':''}.<br>${cs}`}}
+  if(q.k==='split'){const r=c.h[q.si],n=SP_NEIGH[r[2]],ans=SP_MULT[r[2]],names=['singlet','doublet','triplet','quartet','quintet','sextet','septet'],cand=new Set([ans]);for(const v of shuffle([n-1,n+1,n-2,n+2,0].filter(v=>v>=0&&v<=6)))if(cand.size<4)cand.add(names[v]);
+    return{prompt:`In the ¹H NMR spectrum of this compound, how is the signal at <b>δ ${r[0]}</b> (${r[1]}H) split?`,struct:c,kind:'text',opts:[...cand].sort((a,b)=>names.indexOf(a)-names.indexOf(b)),ans,why:`That signal is the ${esc(r[4])}. It has ${n} neighbouring H, so by the n + 1 rule it is a ${ans} (${n+1} lines).`}}
+}
+function spPick(pool,len){const w=q=>{const r=App.quiz.q[q.id];return!r?0:r.last===0?1:2};const g=[0,1,2].map(k=>shuffle(pool.filter(q=>w(q)===k)));return g.flat().slice(0,len||pool.length)}
+/* side pane + pages */
+function renderSpecSide(){
+  const cur=SP.view==='lesson'?SP.lesson:null;const box=$('#specList');if(!box)return;
+  box.innerHTML=SP_LESSONS.map((l,i)=>{const t=SP_TOPICS.find(x=>x.id===l.id),s=t?spTopicStats(t.id):null;return`<button class="item${cur===l.id?' on':''}" data-splesson="${l.id}"><span class="t">${esc(l.title)}</span><span class="m">${s?`${s.m} of ${s.n} mastered`:'Start here'}</span>${s?`<span class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*s.m/s.n)}%"></i></span>`:''}</button>`}).join('');
+}
+function spOpen(){if(!SP.view)spLesson('intro');else renderSpecSide()}
+function spLesson(id){
+  const i=SP_LESSONS.findIndex(l=>l.id===id),l=SP_LESSONS[i];if(!l)return;SP.view='lesson';SP.lesson=id;const next=SP_LESSONS[i+1],topic=SP_TOPICS.find(t=>t.id===id);
+  $('#specPage').innerHTML=`<article class="nm-lesson sp-lesson"><header class="nm-head"><div class="nm-kicker">${i===0?'Start here':`Lesson ${i} of ${SP_LESSONS.length-1}`}</div><h1>${esc(l.title)}</h1><p class="nm-lede">${esc(l.lede)}</p></header>
+   ${l.sections.map(s=>`<section class="nm-sec"><h2>${esc(s.h)}</h2>${spLessonHTML(s.html)}</section>`).join('')}
+   <div class="nm-actions"><button class="btn primary" data-sppractice="${topic?topic.id:''}">${topic?'Practise this topic':'Start practising'}</button>${next?`<button class="btn" data-splesson="${next.id}">Next: ${esc(next.title)}</button>`:''}<button class="btn" data-spref="1">Spectroscopy tables</button></div></article>`;
+  renderSpecSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+function spSetup(topics){
+  SP.view='setup';const sel=new Set(topics&&topics.length?topics:SP_TOPICS.map(t=>t.id));SP.setupSel=sel;
+  $('#specPage').innerHTML=`<section class="qz-setup"><header class="nm-head"><div class="nm-kicker">Practice</div><h1>Spectroscopy practice</h1><p class="nm-lede">Identify compounds from their spectra, count signals, predict splitting and read isotope patterns. Questions you haven't seen or got wrong come up first.</p></header>
+   <h2 class="qz-h">Topics</h2><div class="qz-chips" id="spTopics">${SP_TOPICS.map(t=>{const s=spTopicStats(t.id);return`<button class="qz-chip${sel.has(t.id)?' on':''}" data-sptopic="${t.id}" aria-pressed="${sel.has(t.id)}"><span>${esc(t.title)}</span><small>${s.m}/${s.n}</small></button>`}).join('')}</div>
+   <div class="qz-row"><button class="linkbtn" id="spAll">Select all</button><button class="linkbtn" id="spNone">Clear</button></div>
+   <h2 class="qz-h">Length</h2><div class="qz-len">${[10,20].map(n=>`<label class="qz-lenopt"><input type="radio" name="splen" value="${n}"${SP.setupLen===n?' checked':''}><span>${n} questions</span></label>`).join('')}</div>
+   <div class="nm-actions"><button class="btn primary" id="spStart">Start practice</button></div></section>`;
+  const sync=()=>{document.querySelectorAll('#spTopics .qz-chip').forEach(b=>{const on=sel.has(b.dataset.sptopic);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});$('#spStart').disabled=!sel.size};
+  $('#spTopics').onclick=e=>{const b=e.target.closest('.qz-chip');if(!b)return;sel.has(b.dataset.sptopic)?sel.delete(b.dataset.sptopic):sel.add(b.dataset.sptopic);sync()};
+  $('#spAll').onclick=()=>{SP_TOPICS.forEach(t=>sel.add(t.id));sync()};$('#spNone').onclick=()=>{sel.clear();sync()};
+  $('#spStart').onclick=()=>{SP.setupLen=+document.querySelector('input[name="splen"]:checked').value;spStart({topics:[...sel],len:SP.setupLen})};
+  sync();renderSpecSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+function spStart(cfg){
+  const pool=cfg.ids?spPoolGet().filter(q=>cfg.ids.includes(q.id)):spPoolGet().filter(q=>cfg.topics.includes(q.t));if(!pool.length)return toast('Choose at least one topic.');
+  const items=(cfg.ids?shuffle(pool):spPick(pool,cfg.len)).map(q=>({q,b:spBuild(q)}));
+  SP.qz={cfg,items,i:0,score:0,answered:false,results:[]};SP.view='quiz';spRenderQ();
+}
+function spRenderQ(){
+  const Z=SP.qz,it=Z.items[Z.i],b=it.b,n=Z.items.length,topic=SP_TOPICS.find(t=>t.id===it.q.t);
+  const opts=b.kind==='struct'?`<div class="qz-sopts" role="group" aria-label="Structures">${b.opts.map((c,k)=>`<button class="qz-sopt" data-spk="${k}" aria-label="Option ${k+1}"><span class="qz-key">${k+1}</span>${smilesSVG(c.s,.9)}</button>`).join('')}</div>`
+    :`<div class="qz-opts" role="group" aria-label="Answers">${b.opts.map((o,k)=>`<button class="qz-opt" data-spk="${k}"><span class="qz-key">${k+1}</span><span>${esc(o)}</span></button>`).join('')}</div>`;
+  $('#specPage').innerHTML=`<section class="qz sp-qz"><div class="qz-top"><span><b>Question ${Z.i+1}</b> of ${n}</span><span class="qz-topic">${esc(topic?topic.title:'')}</span><span class="qz-score">Score ${Z.score}</span><button class="linkbtn" id="spQuit">End practice</button></div>
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*Z.i/n)}%"></i></div><div class="qz-card"><p class="qz-prompt">${b.prompt}</p>${b.struct?`<div class="qz-struct">${smilesSVG(b.struct.s,1.2)}</div>`:''}${b.figs?`<div class="sp-qfig">${b.figs}</div>`:''}${opts}<div class="qz-fb" id="spFb" hidden></div></div></section>`;
+  Z.answered=false;$('#spQuit').onclick=()=>spFinish(true);renderSpecSide();$('#main').scrollTop=0;
+}
+function spAnswer(k){
+  const Z=SP.qz;if(!Z||Z.answered)return;const it=Z.items[Z.i],b=it.b,ok=b.opts[k]===b.ans;
+  document.querySelectorAll('#specPage [data-spk]').forEach((el,j)=>{el.disabled=true;if(b.opts[j]===b.ans)el.classList.add('right');else if(j===k)el.classList.add('wrong')});
+  const r=App.quiz.q[it.q.id]||{c:0,w:0};ok?r.c++:r.w++;r.last=ok?1:0;r.at=Date.now();App.quiz.q[it.q.id]=r;if(ok)Z.score++;Z.results.push({q:it.q,ok});Z.answered=true;saveQuiz();
+  const last=Z.i===Z.items.length-1,fb=$('#spFb');fb.className='qz-fb '+(ok?'ok':'bad');fb.hidden=false;
+  const ansTxt=b.kind==='struct'?esc(b.ans.n):esc(b.ans);
+  fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':b.kind==='struct'?'Not quite.':`Not quite. The answer is <b>${ansTxt}</b>.`}</p><p class="qz-why">${b.why}</p><div class="qz-next"><button class="btn primary" id="spNext">${last?'See results':'Next question'}</button><span class="qz-hint">or press Enter</span></div>`;
+  $('#spNext').onclick=spNext;$('.qz-score').textContent='Score '+Z.score;fb.scrollIntoView({block:'nearest',behavior:'smooth'});setTimeout(()=>{const x=$('#spNext');if(x)x.focus({preventScroll:true})},50);
+}
+function spNext(){const Z=SP.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.length-1)return spFinish(false);Z.i++;spRenderQ()}
+function spFinish(early){
+  const Z=SP.qz;if(!Z)return;if(early&&!Z.results.length){SP.qz=null;return spSetup(Z.cfg.topics)}
+  SP.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);
+  const byT={};res.forEach(r=>{const b=byT[r.q.t]=byT[r.q.t]||{ok:0,n:0};b.n++;if(r.ok)b.ok++});
+  const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. The lessons cover anything you missed.':'Keep going. Each lesson has tables and example spectra.';
+  $('#specPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Practice results</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
+   <div class="qz-break">${Object.entries(byT).map(([t,b])=>`<div class="qz-brow"><span>${esc((SP_TOPICS.find(x=>x.id===t)||{}).title||t)}</span><span class="nm-meter"><i style="width:${Math.round(100*b.ok/b.n)}%"></i></span><b>${b.ok}/${b.n}</b></div>`).join('')}</div>
+   <div class="nm-actions">${missed.length?`<button class="btn primary" id="spRetry">Retry the ${missed.length} I missed</button>`:''}<button class="btn${missed.length?'':' primary'}" id="spNew">New practice</button><button class="btn" data-splesson="${Z.cfg.topics&&Z.cfg.topics.length===1?Z.cfg.topics[0]:'intro'}">Back to lessons</button></div></section>`;
+  if(missed.length)$('#spRetry').onclick=()=>spStart({ids:missed.map(r=>r.q.id),topics:Z.cfg.topics});
+  $('#spNew').onclick=()=>spSetup(Z.cfg.topics);SP.qz=null;renderSpecSide();$('#main').scrollTop=0;
+}
+function spKey(e){
+  if(SP.view!=='quiz'||!SP.qz)return false;if(e.target.closest&&e.target.closest('input,textarea,[contenteditable="true"]'))return false;const Z=SP.qz;
+  if(e.key==='Enter'&&Z.answered&&!(e.target&&e.target.id==='spNext')){e.preventDefault();spNext();return true}
+  if(!Z.answered&&/^[1-4]$/.test(e.key)&&+e.key<=Z.items[Z.i].b.opts.length){spAnswer(+e.key-1);return true}
+  return false}
+function wireSpectra(){
+  const go=e=>{const l=e.target.closest('[data-splesson]');if(l){spLesson(l.dataset.splesson);return}
+    const p=e.target.closest('[data-sppractice]');if(p){spSetup(p.dataset.sppractice?[p.dataset.sppractice]:null);return}
+    const s=e.target.closest('[data-spsetup]');if(s){spSetup();return}
+    const r=e.target.closest('[data-spref]');if(r){openRef('spec');return}
+    const k=e.target.closest('[data-spk]');if(k){spAnswer(+k.dataset.spk);return}
+    const t=e.target.closest('[data-sptab]');if(t){const i=+t.dataset.sptab,box=t.closest('.sp-qfig');box.querySelectorAll('.sp-tab').forEach((b,j)=>{b.classList.toggle('on',j===i);b.setAttribute('aria-selected',j===i)});box.querySelectorAll('.sp-tabp').forEach((p2,j)=>p2.hidden=j!==i)}};
+  $('#specPage').addEventListener('click',go);$('#specSide').addEventListener('click',go);
+}
+
+
+/* ---------- v14: orbitals, MO diagrams and 3D orbital viewer ---------- */
+const OB={view:null,atomic:'2pz',hybrid:'sp3',hybP:true,hybOne:true,dia:'O2',diaMo:null,pi:'benzene',piMo:null,cut:false,axes:true};
+const OB_PAGES=[{id:'intro',t:'MO theory basics',m:'Start here'},{id:'atomic',t:'Atomic orbitals in 3D',m:'s, p and d orbitals'},{id:'hybrid',t:'Hybrid orbitals',m:'sp, sp² and sp³'},{id:'dia',t:'Diatomic MO diagrams',m:'H₂ to Ne₂, CO and NO'},{id:'pi',t:'π molecular orbitals',m:'Conjugation and aromaticity'}];
+const OB_POS='#3f7ff6',OB_NEG='#ef5b5b';
+const SUP=s=>String(s).replace(/[0-9+\-−]/g,ch=>({'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','−':'⁻'}[ch]));
+/* ---- hydrogen-like atomic orbitals (Z = 1, distances in bohr) ---- */
+const OS2=Math.SQRT2,OS3=Math.sqrt(3),OS6=Math.sqrt(6),OS30=Math.sqrt(30),YS=.28209479,YP=.48860251,YD=1.09254843,YD2=.54627422,YDZ=.31539157;
+const AO={
+ '1s':{n:1,l:0,lab:'1s',f:(x,y,z,r)=>2*Math.exp(-r)*YS},
+ '2s':{n:2,l:0,lab:'2s',f:(x,y,z,r)=>(2-r)*Math.exp(-r/2)/(2*OS2)*YS},
+ '2px':{n:2,l:1,lab:'2p<sub>x</sub>',f:(x,y,z,r)=>Math.exp(-r/2)/(2*OS6)*YP*x},
+ '2py':{n:2,l:1,lab:'2p<sub>y</sub>',f:(x,y,z,r)=>Math.exp(-r/2)/(2*OS6)*YP*y},
+ '2pz':{n:2,l:1,lab:'2p<sub>z</sub>',f:(x,y,z,r)=>Math.exp(-r/2)/(2*OS6)*YP*z},
+ '3s':{n:3,l:0,lab:'3s',f:(x,y,z,r)=>2/(81*OS3)*(27-18*r+2*r*r)*Math.exp(-r/3)*YS},
+ '3px':{n:3,l:1,lab:'3p<sub>x</sub>',f:(x,y,z,r)=>4/(81*OS6)*(6-r)*Math.exp(-r/3)*YP*x},
+ '3py':{n:3,l:1,lab:'3p<sub>y</sub>',f:(x,y,z,r)=>4/(81*OS6)*(6-r)*Math.exp(-r/3)*YP*y},
+ '3pz':{n:3,l:1,lab:'3p<sub>z</sub>',f:(x,y,z,r)=>4/(81*OS6)*(6-r)*Math.exp(-r/3)*YP*z},
+ '3dxy':{n:3,l:2,lab:'3d<sub>xy</sub>',f:(x,y,z,r)=>4/(81*OS30)*Math.exp(-r/3)*YD*x*y},
+ '3dxz':{n:3,l:2,lab:'3d<sub>xz</sub>',f:(x,y,z,r)=>4/(81*OS30)*Math.exp(-r/3)*YD*x*z},
+ '3dyz':{n:3,l:2,lab:'3d<sub>yz</sub>',f:(x,y,z,r)=>4/(81*OS30)*Math.exp(-r/3)*YD*y*z},
+ '3dx2y2':{n:3,l:2,lab:'3d<sub>x²−y²</sub>',f:(x,y,z,r)=>4/(81*OS30)*Math.exp(-r/3)*YD2*(x*x-y*y)},
+ '3dz2':{n:3,l:2,lab:'3d<sub>z²</sub>',f:(x,y,z,r)=>4/(81*OS30)*Math.exp(-r/3)*YDZ*(3*z*z-r*r)},
+};
+const AO_INFO={
+ '1s':'Spherical, with no nodes. The lowest-energy orbital: the one hydrogen\'s electron occupies.',
+ '2s':'Spherical, with one radial node: a sphere where ψ = 0. The inner part has the opposite phase to the outer part. Turn on the cutaway to see it.',
+ '2p':'Two lobes of opposite phase either side of a nodal plane through the nucleus. The three 2p orbitals point along x, y and z and have the same energy.',
+ '3s':'Spherical, with two radial nodes, so three nested shells of alternating phase. Turn on the cutaway to see them.',
+ '3p':'Like a 2p orbital, with a nodal plane through the nucleus, plus one radial node that gives each lobe a small inner lobe of opposite phase.',
+ '3d':'Two angular nodes. Four of the d orbitals have four lobes between or along the axes; 3d<sub>z²</sub> has two lobes along z and a ring (torus) around the middle, separated by two nodal cones.'};
+/* ---- Slater-type orbitals for molecules (three.js coordinates) ---- */
+const sto1s=(z)=>{const N=Math.sqrt(z**3/Math.PI);return(dx,dy,dz)=>N*Math.exp(-z*Math.hypot(dx,dy,dz))};
+const sto2s=(z)=>{const N=Math.sqrt(z**5/(3*Math.PI));return(dx,dy,dz)=>{const r=Math.hypot(dx,dy,dz);return N*r*Math.exp(-z*r)}};
+const sto2p=(z,ax)=>{const N=Math.sqrt(z**5/Math.PI);return(dx,dy,dz)=>N*(ax==='x'?dx:ax==='y'?dy:dz)*Math.exp(-z*Math.hypot(dx,dy,dz))};
+/* ---- symmetric eigenproblem (Jacobi) ---- */
+function obEig(A){const n=A.length,a=A.map(r=>r.slice()),v=A.map((r,i)=>r.map((_,j)=>i===j?1:0));
+  for(let sweep=0;sweep<100;sweep++){let off=0;for(let p=0;p<n;p++)for(let q=p+1;q<n;q++)off+=a[p][q]**2;if(off<1e-20)break;
+    for(let p=0;p<n;p++)for(let q=p+1;q<n;q++){if(Math.abs(a[p][q])<1e-15)continue;const th=(a[q][q]-a[p][p])/(2*a[p][q]),t=Math.sign(th||1)/(Math.abs(th)+Math.sqrt(th*th+1)),c=1/Math.sqrt(t*t+1),s=t*c;
+      for(let k=0;k<n;k++){const akp=a[k][p],akq=a[k][q];a[k][p]=c*akp-s*akq;a[k][q]=s*akp+c*akq}
+      for(let k=0;k<n;k++){const apk=a[p][k],aqk=a[q][k];a[p][k]=c*apk-s*aqk;a[q][k]=s*apk+c*aqk}
+      for(let k=0;k<n;k++){const vkp=v[k][p],vkq=v[k][q];v[k][p]=c*vkp-s*vkq;v[k][q]=s*vkp+c*vkq}}}
+  return a.map((_,i)=>({x:a[i][i],c:v.map(r=>r[i])})).sort((p,q)=>q.x-p.x)}
+/* fill orbitals (Aufbau + Hund). levels: [{deg}] in energy order → occupancy per orbital */
+function obFill(levels,ne){let left=ne;return levels.map(L=>{const occ=new Array(L.deg).fill(0);for(let pass=0;pass<2;pass++)for(let i=0;i<L.deg&&left>0;i++){occ[i]++;left--}return occ})}
+/* ---- diatomic species ---- */
+const OB_DIA={
+ 'H2+':{l:'H₂⁺',A:'H',B:'H',e:1,s1:true},'H2':{l:'H₂',A:'H',B:'H',e:2,s1:true},'He2+':{l:'He₂⁺',A:'He',B:'He',e:3,s1:true},'He2':{l:'He₂',A:'He',B:'He',e:4,s1:true},
+ 'Li2':{l:'Li₂',A:'Li',e:2,mix:true},'Be2':{l:'Be₂',A:'Be',e:4,mix:true},'B2':{l:'B₂',A:'B',e:6,mix:true},'C2':{l:'C₂',A:'C',e:8,mix:true},'N2':{l:'N₂',A:'N',e:10,mix:true},'N2+':{l:'N₂⁺',A:'N',e:9,mix:true},
+ 'O2':{l:'O₂',A:'O',e:12},'O2+':{l:'O₂⁺',A:'O',e:11},'O2-':{l:'O₂⁻ (superoxide)',A:'O',e:13},'O22-':{l:'O₂²⁻ (peroxide)',A:'O',e:14},'F2':{l:'F₂',A:'F',e:14},'Ne2':{l:'Ne₂',A:'Ne',e:16},
+ 'CO':{l:'CO',A:'C',B:'O',e:10,mix:true,het:true},'CN-':{l:'CN⁻',A:'C',B:'N',e:10,mix:true,het:true},'NO+':{l:'NO⁺',A:'N',B:'O',e:10,mix:true,het:true},'NO':{l:'NO',A:'N',B:'O',e:11,mix:true,het:true}};
+const OB_DIA_GROUPS=[['Hydrogen and helium',['H2+','H2','He2+','He2']],['Second row',['Li2','Be2','B2','C2','N2','O2','F2','Ne2']],['Ions',['N2+','O2+','O2-','O22-']],['Heteronuclear',['CO','CN-','NO+','NO']]];
+const OB_DIA_NOTE={
+ 'H2+':'One electron in a bonding orbital gives a bond order of ½. H₂⁺ exists, but its bond is weaker and longer than H₂\'s.',
+ 'H2':'Both electrons are in the bonding σ orbital, so the bond order is 1: a single bond.',
+ 'He2+':'The third electron goes into σ*, cancelling half the bonding. He₂⁺ (bond order ½) can be made in a gas discharge.',
+ 'He2':'Two bonding and two antibonding electrons cancel: bond order 0. That is why helium stays as single atoms.',
+ 'Li2':'Two electrons in σ2s give a bond order of 1. Li₂ exists in lithium vapour.',
+ 'Be2':'σ2s and σ*2s are both full, so the bond order is 0. Be₂ is at best a very weakly bound pair.',
+ 'B2':'With s–p mixing, the π orbitals are lower than σ2p, so the last two electrons go one into each π orbital (Hund\'s rule). B₂ is paramagnetic, which proves the mixed ordering.',
+ 'C2':'Bond order 2, with both bonds π bonds and all electrons paired.',
+ 'N2':'Bond order 3: a triple bond (one σ, two π). This very strong bond (945 kJ mol⁻¹) makes N₂ unreactive. Its HOMO is σ2p.',
+ 'N2+':'Removing an electron from the σ2p HOMO lowers the bond order to 2½.',
+ 'O2':'Without s–p mixing, σ2p lies below π2p. The last two electrons go one into each π* orbital with parallel spins, so O₂ is paramagnetic: liquid oxygen sticks to a magnet. A Lewis structure (O=O, all paired) can\'t explain this.',
+ 'O2+':'Removing an antibonding π* electron strengthens the bond: bond order 2½, shorter than in O₂.',
+ 'O2-':'An extra π* electron lowers the bond order to 1½. Superoxide has one unpaired electron.',
+ 'O22-':'π* is full, so the bond order is 1: the O–O single bond of peroxides, which is weak.',
+ 'F2':'Bond order 1. The many antibonding electrons make the F–F bond unusually weak (159 kJ mol⁻¹).',
+ 'Ne2':'Every bonding orbital is matched by an antibonding one: bond order 0, so neon is monatomic.',
+ 'CO':'Isoelectronic with N₂, with bond order 3. The oxygen orbitals are lower in energy, so bonding MOs have more O character and antibonding MOs more C character. The HOMO is a σ orbital concentrated on carbon, which is why CO binds metals through C.',
+ 'CN-':'Isoelectronic with N₂ and CO: bond order 3. Cyanide also binds metals through carbon.',
+ 'NO+':'Isoelectronic with N₂: bond order 3. The nitrosonium ion is a strong electrophile, used in diazotisation.',
+ 'NO':'One more electron than N₂, in π*: bond order 2½ and one unpaired electron. NO is a stable radical, and a signalling molecule in the body.'};
+function obDiaLevels(sp){
+  const D=OB_DIA[sp];
+  if(D.s1)return[{lab:'σ1s',b:1,deg:1,y:-1.3,kind:'1s'},{lab:'σ*1s',b:-1,deg:1,y:1.6,kind:'1s'}];
+  return D.mix?[{lab:'σ2s',b:1,deg:1,y:-1.25,kind:'2s'},{lab:'σ*2s',b:-1,deg:1,y:.95,kind:'2s'},{lab:'π2p',b:1,deg:2,y:3.0,kind:'pi'},{lab:'σ2p',b:1,deg:1,y:3.65,kind:'sp'},{lab:'π*2p',b:-1,deg:2,y:5.25,kind:'pi'},{lab:'σ*2p',b:-1,deg:1,y:6.5,kind:'sp'}]
+   :[{lab:'σ2s',b:1,deg:1,y:-1.45,kind:'2s'},{lab:'σ*2s',b:-1,deg:1,y:.85,kind:'2s'},{lab:'σ2p',b:1,deg:1,y:2.6,kind:'sp'},{lab:'π2p',b:1,deg:2,y:3.25,kind:'pi'},{lab:'π*2p',b:-1,deg:2,y:5.05,kind:'pi'},{lab:'σ*2p',b:-1,deg:1,y:6.65,kind:'sp'}]}
+const OB_VAL={H:1,He:2,Li:1,Be:2,B:3,C:4,N:5,O:6,F:7,Ne:8};
+function obDiaCalc(sp){const D=OB_DIA[sp],L=obDiaLevels(sp),occ=obFill(L,D.e);let bo=0,un=0;L.forEach((l,i)=>{const n=occ[i].reduce((a,b)=>a+b,0);bo+=l.b*n;un+=occ[i].filter(x=>x===1).length});
+  let homo=-1;occ.forEach((o,i)=>{if(o.some(x=>x>0))homo=i});const lumo=occ.findIndex(o=>o.some(x=>x<2));
+  const cfg=L.map((l,i)=>{const n=occ[i].reduce((a,b)=>a+b,0);return n?`(${l.lab})${SUP(n)}`:''}).join('');
+  return{D,L,occ,bo:bo/2,un,homo,lumo,cfg}}
+const arrow=(x,y,up,cls)=>up?`<path class="ob-e ${cls||''}" d="M${x} ${y+8}V${y-8}l-3.2 4.2"/>`:`<path class="ob-e ${cls||''}" d="M${x} ${y-8}V${y+8}l3.2 -4.2"/>`;
+function obElectrons(cx,y,n,w){if(!n)return'';if(n===1)return arrow(cx,y,true);return arrow(cx-5,y,true)+arrow(cx+5,y,false)}
+function obDiaSVG(sp,o={}){
+  const R=obDiaCalc(sp),{D,L,occ}=R,W=560,H=o.small?300:440,top=26,bot=H-26,het=!!D.het;
+  const ys=L.map(l=>l.y),aoY=D.s1?{s:0}:{s:0,p:4};const all=ys.concat(Object.values(aoY).map(v=>v+(het?.9:0)),Object.values(aoY).map(v=>v-(het?.7:0)));
+  const lo=Math.min(...all)-.6,hi=Math.max(...all)+.6,Y=v=>bot-(v-lo)/(hi-lo)*(bot-top);
+  const xA=90,xB=W-90,xM=W/2,lw=46,mw=50;
+  const A=D.A,B=D.B||D.A,dA=het?.9:0,dB=het?-.7:0;let s='';
+  /* correlation lines */
+  const aoLines=(side)=>{const x=side<0?xA:xB,d=side<0?dA:dB;return Object.entries(aoY).map(([k,v])=>({k,x,y:Y(v+d)}))};
+  const AOl=aoLines(-1),AOr=aoLines(1);
+  L.forEach((l,i)=>{const yy=Y(l.y),key=l.kind==='1s'?'s':l.kind==='2s'?'s':'p';const la=AOl.find(a=>a.k===key),ra=AOr.find(a=>a.k===key);const half=l.deg===2?mw+6:mw/2;
+    if(la)s+=`<line x1="${la.x+lw/2+(key==='p'?20:0)}" y1="${la.y}" x2="${xM-half}" y2="${yy}" class="ob-cor"/>`;
+    if(ra)s+=`<line x1="${ra.x-lw/2-(key==='p'?20:0)}" y1="${ra.y}" x2="${xM+half}" y2="${yy}" class="ob-cor"/>`});
+  /* AO levels with electrons of the neutral atoms */
+  const aoE=(el)=>{const v=OB_VAL[el];if(D.s1)return{s:v};return{s:Math.min(2,v),p:Math.max(0,v-2)}};
+  for(const[side,list,el]of[[-1,AOl,A],[1,AOr,B]]){const ne=aoE(el);for(const a of list){
+    if(a.k==='s'){s+=`<line x1="${a.x-lw/2}" y1="${a.y}" x2="${a.x+lw/2}" y2="${a.y}" class="ob-lv"/>`+obElectrons(a.x,a.y,ne.s);s+=`<text x="${a.x+(side<0?-lw/2-8:lw/2+8)}" y="${a.y+4}" class="ob-t" text-anchor="${side<0?'end':'start'}">${D.s1?'1s':'2s'}</text>`}
+    else{const occp=obFill([{deg:3}],ne.p)[0];[-1,0,1].forEach((k,j)=>{const cx=a.x+k*22;s+=`<line x1="${cx-9}" y1="${a.y}" x2="${cx+9}" y2="${a.y}" class="ob-lv"/>`+obElectrons(cx,a.y,occp[j])});s+=`<text x="${a.x+(side<0?-46:46)}" y="${a.y+4}" class="ob-t" text-anchor="${side<0?'end':'start'}">2p</text>`}}
+    s+=`<text x="${side<0?xA:xB}" y="${top-8}" class="ob-h" text-anchor="middle">${el}</text>`}
+  s+=`<text x="${xM}" y="${top-8}" class="ob-h" text-anchor="middle">${D.l}</text>`;
+  /* MO levels */
+  L.forEach((l,i)=>{const yy=Y(l.y),sel=!o.small&&OB.diaMo===i,tag=i===R.homo?(occ[i].some(x=>x===1)?'SOMO':'HOMO'):i===R.lumo&&i!==R.homo?'LUMO':'';
+    const xs=l.deg===2?[xM-mw/2-4,xM+mw/2+4]:[xM];let g='';xs.forEach((cx,j)=>{g+=`<line x1="${cx-mw/2+(l.deg===2?6:0)}" y1="${yy}" x2="${cx+mw/2-(l.deg===2?6:0)}" y2="${yy}" class="ob-lv ob-mol${l.b<0?' anti':''}"/>`+obElectrons(cx,yy,occ[i][j])});
+    const lx=xM+(l.deg===2?mw+12:mw/2+10);
+    s+=`<g class="ob-mo${sel?' sel':''}"${o.small?'':` data-dmo="${i}" tabindex="0" role="button" aria-label="${l.lab}${tag?', '+tag:''}"`}><rect x="${xM-mw-14}" y="${yy-13}" width="${2*mw+80}" height="26" rx="6" class="ob-hit"/>${g}<text x="${lx}" y="${yy+4}" class="ob-t ob-ml">${l.lab.replace('*','<tspan class="ob-star">*</tspan>')}</text>${tag?`<text x="${xM-(l.deg===2?mw+12:mw/2+10)}" y="${yy+4}" class="ob-tag" text-anchor="end">${tag}</text>`:''}</g>`});
+  s+=`<line x1="18" y1="${bot}" x2="18" y2="${top}" class="ob-ax"/><path d="M14 ${top+6}L18 ${top-2}L22 ${top+6}" class="ob-ax"/><text x="24" y="${top+4}" class="ob-t ob-sm">Energy</text>`;
+  return`<svg class="ob-svg${o.small?' small':''}" viewBox="0 0 ${W} ${H}" role="img" aria-label="MO diagram of ${esc(D.l)}">${s}</svg>`}
+/* ---- Hückel π systems ---- */
+const obChain=n=>Array.from({length:n},(_,i)=>[i*1.212,i%2?.7:0]);
+const obRing=n=>{const R=1.40/(2*Math.sin(Math.PI/n));return Array.from({length:n},(_,i)=>{const a=-Math.PI/2+2*Math.PI*i/n+Math.PI/n;return[R*Math.cos(a),R*Math.sin(a)]})};
+const OB_PI={
+ ethene:{l:'Ethene',n:2,e:2},allylp:{l:'Allyl cation',n:3,e:2},allyl:{l:'Allyl radical',n:3,e:3},allylm:{l:'Allyl anion',n:3,e:4},butadiene:{l:'Buta-1,3-diene',n:4,e:4},hexatriene:{l:'Hexa-1,3,5-triene',n:6,e:6},
+ formald:{l:'Formaldehyde (C=O)',n:2,e:2,el:['C','O'],h:[0,1],k:1},
+ cprop:{l:'Cyclopropenyl cation',ring:3,e:2},cbd:{l:'Cyclobutadiene',ring:4,e:4},cpm:{l:'Cyclopentadienyl anion',ring:5,e:6},cpp:{l:'Cyclopentadienyl cation',ring:5,e:4},
+ benzene:{l:'Benzene',ring:6,e:6},pyridine:{l:'Pyridine',ring:6,e:6,el:['N','C','C','C','C','C'],h:[.5,0,0,0,0,0],k:1},trop:{l:'Tropylium cation',ring:7,e:6},cot:{l:'Cyclooctatetraene (planar)',ring:8,e:8}};
+const OB_PI_GROUPS=[['Chains',['ethene','allylp','allyl','allylm','butadiene','hexatriene','formald']],['Rings',['cprop','cbd','cpm','cpp','benzene','pyridine','trop','cot']]];
+const OB_PI_NOTE={
+ ethene:'One bonding π orbital (α + β) and one antibonding π* (α − β). The two π electrons fill the bonding one.',
+ allylp:'Three p orbitals give three MOs. The middle one (ψ₂) is nonbonding, with a node on the central carbon. In the cation ψ₂ is the empty LUMO, so the positive charge sits on the two end carbons.',
+ allyl:'The odd electron is in nonbonding ψ₂, which has density only on the end carbons: the radical character is shared between them.',
+ allylm:'ψ₂ is the HOMO. Its node on the middle carbon means the negative charge, and the nucleophilic reactivity, is on the end carbons.',
+ butadiene:'Four MOs with 0, 1, 2 and 3 nodes. ψ₂ (HOMO) and ψ₃ (LUMO) are the frontier orbitals used in the Diels–Alder reaction. Delocalisation lowers the π energy by 0.47β compared with two separate C=C bonds.',
+ hexatriene:'Six MOs, from no nodes up to five. The HOMO–LUMO gap shrinks as conjugation gets longer, which is why long polyenes absorb visible light and are coloured.',
+ formald:'Oxygen is more electronegative, so the bonding π orbital is concentrated on O and the empty π* (LUMO) has its larger lobe on carbon. Nucleophiles attack C=O at carbon because that is where the LUMO is biggest.',
+ cprop:'2 π electrons fit Hückel\'s 4n + 2 rule (n = 0). They fill the single low-lying bonding orbital, so the cyclopropenyl cation is aromatic, the smallest aromatic ion.',
+ cbd:'4 π electrons (4n). After the bonding MO, two electrons go into a pair of nonbonding orbitals, one each: a diradical with no extra stability. Square cyclobutadiene is antiaromatic; the real molecule distorts to a rectangle and is extremely reactive.',
+ cpm:'6 π electrons (4n + 2) fill all three bonding MOs, giving a closed shell. The cyclopentadienyl anion is aromatic, which is why cyclopentadiene is unusually acidic (pKa ≈ 16).',
+ cpp:'4 π electrons: two are unpaired in a degenerate pair. The cyclopentadienyl cation is antiaromatic and very unstable.',
+ benzene:'6 π electrons fill the three bonding MOs (one at α + 2β and a degenerate pair at α + β). The π energy is 2β lower than three separate C=C bonds: the aromatic stabilisation.',
+ pyridine:'Like benzene, with 6 π electrons in three bonding MOs. Nitrogen lowers the orbital energies and pulls π density towards itself. Its lone pair lies in the ring plane and isn\'t part of the π system, so pyridine is basic.',
+ trop:'6 π electrons in seven p orbitals: a closed shell, so the tropylium (cycloheptatrienyl) cation is aromatic. It is the stable C₇H₇⁺ ion at m/z 91 in mass spectra.',
+ cot:'8 π electrons (4n) would leave two unpaired electrons in nonbonding orbitals if the ring were flat. Real cyclooctatetraene avoids this by folding into a tub shape, so it is non-aromatic, with ordinary alternating double bonds.'};
+function obPiCalc(id){
+  const P=OB_PI[id],n=P.ring||P.n,pos=P.ring?obRing(n):obChain(n),bonds=[];
+  for(let i=0;i<n-1;i++)bonds.push([i,i+1]);if(P.ring)bonds.push([n-1,0]);
+  const M=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?((P.h||[])[i]||0):0));for(const[a,b]of bonds){M[a][b]=M[b][a]=P.k||1}
+  const ev=obEig(M);const levels=[];for(const e of ev){const last=levels[levels.length-1];if(last&&Math.abs(last.x-e.x)<1e-6){last.mos.push(e);last.deg++}else levels.push({x:e.x,deg:1,mos:[e]})}
+  const occ=obFill(levels,P.e);const mos=[];levels.forEach((L,i)=>L.mos.forEach((m,j)=>mos.push({...m,lv:i,occ:occ[i][j]})));
+  let homo=-1;mos.forEach((m,i)=>{if(m.occ>0)homo=i});const lumo=mos.findIndex(m=>m.occ<2&&m.occ===0)>=0?mos.findIndex(m=>m.occ===0):-1;
+  const Epi=mos.reduce((s,m)=>s+m.occ*m.x,0),un=mos.filter(m=>m.occ===1).length;
+  const hydro=!P.h&&P.e===n&&n%2===0;const de=hydro?Epi-P.e:null;
+  let arom=null;if(P.ring){const closed=!un&&!levels.some((L,i)=>occ[i].some(x=>x>0)&&occ[i].some(x=>x<2)&&L.x>-1e-6);arom=(P.e-2)%4===0?'aromatic':P.e%4===0?'antiaromatic':null;if(id==='cot')arom='antiaromatic if planar'}
+  return{P,n,pos,bonds,levels,occ,mos,homo,lumo,Epi,un,de,arom}}
+const fmtX=x=>{const a=Math.abs(x);if(a<5e-4)return'α';const v=+a.toFixed(3);return`α ${x>0?'+':'−'} ${Math.abs(v-1)<5e-4?'':v}β`};
+function obPiDiagram(R){
+  const W=400,H=340,top=24,bot=H-24,xs=R.levels.map(l=>l.x),hi=Math.max(2.2,...xs)+.2,lo=Math.min(-2.2,...xs)-.2,Y=x=>top+(hi-x)/(hi-lo)*(bot-top),cx=230;
+  let s=`<line x1="${cx-150}" y1="${Y(0)}" x2="${cx+110}" y2="${Y(0)}" class="ob-cor"/><text x="${cx-150}" y="${Y(0)-6}" class="ob-t ob-sm">nonbonding</text>`;
+  let k=0;R.levels.forEach((L,i)=>{const yy=Y(L.x),w=L.deg>2?30:40,gap=8,tot=L.deg*w+(L.deg-1)*gap,x0=cx-tot/2;
+    s+=`<text x="${cx-tot/2-12}" y="${yy+4}" class="ob-t" text-anchor="end">${fmtX(L.x)}</text>`;
+    for(let j=0;j<L.deg;j++){const m=R.mos[k],mx=x0+j*(w+gap)+w/2,sel=OB.piMo===k,tag=k===R.homo?(m.occ===1?'SOMO':'HOMO'):k===R.lumo?'LUMO':'';
+      s+=`<g class="ob-mo${sel?' sel':''}" data-pmo="${k}" tabindex="0" role="button" aria-label="ψ${k+1}${tag?', '+tag:''}"><rect x="${mx-w/2-4}" y="${yy-14}" width="${w+8}" height="28" rx="6" class="ob-hit"/><line x1="${mx-w/2}" y1="${yy}" x2="${mx+w/2}" y2="${yy}" class="ob-lv ob-mol${L.x<-1e-6?' anti':''}"/>${obElectrons(mx,yy,m.occ)}${tag&&j===L.deg-1?`<text x="${mx+w/2+8}" y="${yy+4}" class="ob-tag">${tag}</text>`:''}</g>`;k++}});
+  s+=`<line x1="18" y1="${bot}" x2="18" y2="${top}" class="ob-ax"/><path d="M14 ${top+6}L18 ${top-2}L22 ${top+6}" class="ob-ax"/><text x="24" y="${top+4}" class="ob-t ob-sm">Energy</text>`;
+  if(R.P.ring){const n=R.n,r=44,fx=W-58,fy=H-62;let poly='';for(let i=0;i<n;i++){const a=Math.PI/2+2*Math.PI*i/n;poly+=(i?'L':'M')+(fx+r*Math.cos(a)).toFixed(1)+' '+(fy+r*Math.sin(a)).toFixed(1)}
+    s+=`<g class="ob-frost"><circle cx="${fx}" cy="${fy}" r="${r}"/><path d="${poly}Z"/><text x="${fx}" y="${fy+r+16}" class="ob-t ob-sm" text-anchor="middle">Frost circle</text></g>`}
+  return`<svg class="ob-svg ob-pid" viewBox="0 0 ${W} ${H}" role="img" aria-label="π MO energy diagram">${s}</svg>`}
+function obPiCard(R,k){
+  const m=R.mos[k],xs=R.pos.map(p=>p[0]),ys=R.pos.map(p=>p[1]),mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys),sc=Math.min(36,92/Math.max(1,mxx-mnx),60/Math.max(.7,mxy-mny));
+  const W=150,H=112,cx=W/2-(mnx+mxx)/2*sc,cy=H/2-(mny+mxy)/2*sc+4,P=p=>[cx+p[0]*sc,cy+p[1]*sc];
+  let s=R.bonds.map(([a,b])=>{const[x1,y1]=P(R.pos[a]),[x2,y2]=P(R.pos[b]);return`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="ob-bd"/>`}).join('');
+  m.c.forEach((c,i)=>{const[x,y]=P(R.pos[i]),rr=Math.abs(c)<.02?0:4+17*Math.abs(c);s+=rr?`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr.toFixed(1)}" class="ob-lobe ${c>0?'pos':'neg'}"/>`:`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" class="ob-node"/>`;const el=(R.P.el||[])[i];if(el&&el!=='C')s+=`<text x="${x.toFixed(1)}" y="${(y+4).toFixed(1)}" class="ob-el" text-anchor="middle">${el}</text>`});
+  const nodes=R.bonds.filter(([a,b])=>m.c[a]*m.c[b]<-1e-6).length,tag=k===R.homo?(m.occ===1?'SOMO':'HOMO'):k===R.lumo?'LUMO':'';
+  return`<button class="ob-card${OB.piMo===k?' on':''}" data-pmo="${k}"><svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${s}</svg><b>ψ<sub>${k+1}</sub>${tag?` <span class="ob-ctag">${tag}</span>`:''}</b><small>${fmtX(m.x)} · ${nodes} node${nodes===1?'':'s'} · ${m.occ} e⁻</small></button>`}
+/* ---- 3D engine ---- */
+const OBV={r:null,scene:null,cam:null,pivot:null,world:null,zoom:1,fit:30,cache:new Map(),ro:null,stage:null,raf:0};
+async function obEnsure(){
+  await loadLib('THREE');if(OBV.r)return;
+  const r=new THREE.WebGLRenderer({antialias:true});r.localClippingEnabled=true;r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.domElement.className='ob-canvas';
+  const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(35,1,.1,2000);scene.add(new THREE.HemisphereLight(0xffffff,0x40454f,.75));const dl=new THREE.DirectionalLight(0xffffff,.8);dl.position.set(4,6,8);cam.add(dl);scene.add(cam);
+  const pivot=new THREE.Group(),world=new THREE.Group();pivot.add(world);scene.add(pivot);Object.assign(OBV,{r,scene,cam,pivot,world});
+  OBV.plane=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+  const cv=r.domElement,ptrs=new Map();let pinch=null;
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:OBV.zoom}}});
+  cv.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;if(ptrs.size===2&&pinch){p.x=e.clientX;p.y=e.clientY;const[a,b]=[...ptrs.values()];OBV.zoom=Math.max(.4,Math.min(4,pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d));obDraw();return}
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;const ang=Math.hypot(dx,dy)*.009;if(!ang)return;OBV.pivot.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(dy,dx,0).normalize(),ang));obDraw()});
+  const up=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',e=>{e.preventDefault();OBV.zoom=Math.max(.4,Math.min(4,OBV.zoom*Math.exp(-e.deltaY*.0012)));obDraw()},{passive:false});
+  cv.addEventListener('dblclick',()=>{obResetView();obDraw()});
+  OBV.ro=window.ResizeObserver?new ResizeObserver(()=>obSize()):null;
+}
+function obSize(){const st=OBV.stage;if(!st||!OBV.r)return;const w=st.clientWidth||1,h=st.clientHeight||1;OBV.r.setSize(w,h,false);OBV.cam.aspect=w/h;OBV.cam.updateProjectionMatrix();obDraw()}
+function obDraw(){if(OBV.raf)return;OBV.raf=requestAnimationFrame(()=>{OBV.raf=0;if(!OBV.r||!OBV.stage||!OBV.stage.isConnected)return;OBV.cam.position.set(0,0,OBV.fit/OBV.zoom);OBV.cam.lookAt(0,0,0);OBV.r.render(OBV.scene,OBV.cam)})}
+function obResetView(){const t=OBV.tilt||[.35,-.5,0];OBV.pivot.quaternion.setFromEuler(new THREE.Euler(t[0],t[1],t[2]));OBV.zoom=1}
+/* marching tetrahedra on a regular grid */
+function obMesh(F,nx,ny,nz,o,h,t){
+  const I=(i,j,k)=>i+nx*(j+ny*k),pos=[],nor=[];
+  const grad=(i,j,k)=>{const i0=i>0?i-1:i,i1=i<nx-1?i+1:i,j0=j>0?j-1:j,j1=j<ny-1?j+1:j,k0=k>0?k-1:k,k1=k<nz-1?k+1:k;
+    return[(F[I(i1,j,k)]-F[I(i0,j,k)])/((i1-i0)*h),(F[I(i,j1,k)]-F[I(i,j0,k)])/((j1-j0)*h),(F[I(i,j,k1)]-F[I(i,j,k0)])/((k1-k0)*h)]};
+  const C=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]],TET=[[0,5,1,6],[0,1,2,6],[0,2,3,6],[0,3,7,6],[0,7,4,6],[0,4,5,6]];
+  const v=new Float64Array(8),P=[],G=[];for(let q=0;q<8;q++){P.push([0,0,0]);G.push(null)}
+  const ed=(a,b)=>{const m=(t-v[a])/(v[b]-v[a]),pa=P[a],pb=P[b];G[a]=G[a]||grad(...P[a].ijk);G[b]=G[b]||grad(...P[b].ijk);const ga=G[a],gb=G[b];
+    const n=[-(ga[0]+m*(gb[0]-ga[0])),-(ga[1]+m*(gb[1]-ga[1])),-(ga[2]+m*(gb[2]-ga[2]))],l=Math.hypot(...n)||1;return{p:[pa[0]+m*(pb[0]-pa[0]),pa[1]+m*(pb[1]-pa[1]),pa[2]+m*(pb[2]-pa[2])],n:[n[0]/l,n[1]/l,n[2]/l]}};
+  const tri=(A,B,Cc)=>{const ux=B.p[0]-A.p[0],uy=B.p[1]-A.p[1],uz=B.p[2]-A.p[2],wx=Cc.p[0]-A.p[0],wy=Cc.p[1]-A.p[1],wz=Cc.p[2]-A.p[2];
+    const cx=uy*wz-uz*wy,cy=uz*wx-ux*wz,cz=ux*wy-uy*wx,nx2=A.n[0]+B.n[0]+Cc.n[0],ny2=A.n[1]+B.n[1]+Cc.n[1],nz2=A.n[2]+B.n[2]+Cc.n[2];
+    const vs=cx*nx2+cy*ny2+cz*nz2<0?[A,Cc,B]:[A,B,Cc];for(const q of vs){pos.push(q.p[0],q.p[1],q.p[2]);nor.push(q.n[0],q.n[1],q.n[2])}};
+  for(let k=0;k<nz-1;k++)for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){
+    let inn=0;for(let q=0;q<8;q++){const c=C[q],ii=i+c[0],jj=j+c[1],kk=k+c[2];v[q]=F[I(ii,jj,kk)];if(v[q]>t)inn++}
+    if(inn===0||inn===8)continue;
+    for(let q=0;q<8;q++){const c=C[q],ii=i+c[0],jj=j+c[1],kk=k+c[2];P[q]=[o[0]+ii*h,o[1]+jj*h,o[2]+kk*h];P[q].ijk=[ii,jj,kk];G[q]=null}
+    for(const T of TET){const ins=T.filter(q=>v[q]>t),out=T.filter(q=>v[q]<=t);
+      if(ins.length===1){const a=ins[0];tri(ed(a,out[0]),ed(a,out[1]),ed(a,out[2]))}
+      else if(ins.length===3){const d=out[0];tri(ed(ins[0],d),ed(ins[1],d),ed(ins[2],d))}
+      else if(ins.length===2){const[a,b]=ins,[c,d]=out,ac=ed(a,c),ad=ed(a,d),bd=ed(b,d),bc=ed(b,c);tri(ac,ad,bd);tri(ac,bd,bc)}}}
+  return{pos:new Float32Array(pos),nor:new Float32Array(nor)}}
+function obGrid(box,fn,N){
+  const ext=box.map(b=>b[1]-b[0]),h=Math.max(...ext)/(N||64),n=ext.map(e=>Math.max(2,Math.round(e/h)+1)),o=box.map(b=>b[0]),F=new Float32Array(n[0]*n[1]*n[2]);
+  let q=0;for(let k=0;k<n[2];k++){const z=o[2]+k*h;for(let j=0;j<n[1];j++){const y=o[1]+j*h;for(let i=0;i<n[0];i++)F[q++]=fn(o[0]+i*h,y,z)}}return{F,n,o,h}}
+function obThreshold(F,frac){const sq=new Float32Array(F.length);let tot=0;for(let i=0;i<F.length;i++){sq[i]=F[i]*F[i];tot+=sq[i]}sq.sort();let acc=0;for(let i=sq.length-1;i>=0;i--){acc+=sq[i];if(acc>=frac*tot)return Math.sqrt(sq[i])}return 0}
+function obBuild(spec){
+  const g=new THREE.Group();
+  for(const it of spec.items){const Gd=obGrid(spec.box,it.fn,spec.N||64),t=it.t||obThreshold(Gd.F,it.frac||.9);if(!t)continue;
+    const phases=[[1,it.pos],[-1,it.neg]];for(const[sg,col]of phases){if(!col)continue;const F=sg>0?Gd.F:Gd.F.map(x=>-x);const m=obMesh(F,Gd.n[0],Gd.n[1],Gd.n[2],Gd.o,Gd.h,t);if(!m.pos.length)continue;
+      const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(m.pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(m.nor,3));
+      const op=it.op||.92,mat=new THREE.MeshPhongMaterial({color:new THREE.Color(col),side:THREE.DoubleSide,transparent:op<1,opacity:op,depthWrite:op>.6,shininess:28,specular:0x141414});mat.userData.clip=true;
+      const mesh=new THREE.Mesh(geo,mat);mesh.renderOrder=op>.6?0:1;g.add(mesh)}}
+  const am=new THREE.MeshPhongMaterial({color:0x8a919c,shininess:40}),sg=new THREE.SphereGeometry(1,20,14);
+  for(const a of spec.atoms||[]){const s=new THREE.Mesh(sg,am);s.scale.setScalar(a[3]||.32);s.position.set(a[0],a[1],a[2]);g.add(s)}
+  for(const[a,b]of spec.bonds||[]){const A=new THREE.Vector3(...spec.atoms[a].slice(0,3)),B=new THREE.Vector3(...spec.atoms[b].slice(0,3)),d=B.clone().sub(A),c=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,d.length(),10),am);c.position.copy(A).add(B).multiplyScalar(.5);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());g.add(c)}
+  if(spec.axes){const L=spec.axLen||Math.max(...spec.box.map(b=>b[1]))*1.05,mat=new THREE.LineBasicMaterial({color:0x9099a6});
+    for(const[dir,lab]of[[[1,0,0],'x'],[[0,1,0],'z'],[[0,0,-1],'y']]){const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...dir.map(v=>-v*L)),new THREE.Vector3(...dir.map(v=>v*L))]);const ln=new THREE.Line(geo,mat);ln.userData.axis=true;g.add(ln);
+      const cv=document.createElement('canvas');cv.width=cv.height=64;const cx=cv.getContext('2d');cx.font='600 40px sans-serif';cx.fillStyle='#8a93a0';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(lab,32,34);
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false}));sp.scale.setScalar(L*.09);sp.position.set(...dir.map(v=>v*L*1.07));sp.userData.axis=true;g.add(sp)}}
+  return g}
+async function obShow(stageSel,spec){
+  const st=$(stageSel);if(!st)return;st.innerHTML='<div class="ob-load">Loading 3D…</div>';
+  try{await obEnsure()}catch(e){st.innerHTML='<div class="ob-load">The 3D viewer couldn\'t load. Check your connection and try again.</div>';return}
+  if(!OBV.r.getContext()){st.innerHTML='<div class="ob-load">3D needs WebGL, which this browser has turned off.</div>';return}
+  st.innerHTML='<div class="ob-load">Calculating…</div>';await new Promise(r=>setTimeout(r,16));if(!st.isConnected)return;
+  let g=OBV.cache.get(spec.key);if(!g){g=obBuild(spec);OBV.cache.set(spec.key,g);if(OBV.cache.size>24){const k0=OBV.cache.keys().next().value;OBV.cache.delete(k0)}}
+  OBV.world.clear();OBV.world.add(g);obApplyOpts();
+  st.innerHTML='';st.appendChild(OBV.r.domElement);OBV.stage=st;if(OBV.ro){OBV.ro.disconnect();OBV.ro.observe(st)}
+  const bg=getComputedStyle(st).backgroundColor;try{OBV.r.setClearColor(new THREE.Color(bg),1)}catch(e){}
+  OBV.fit=spec.fit||Math.max(...spec.box.map(b=>b[1]-b[0]))*(spec.kind==='atom'?1.5:1.3);OBV.tilt=spec.tilt;if(spec.reset!==false&&OBV.lastKind!==spec.kind)obResetView();OBV.lastKind=spec.kind;obSize();
+}
+function obApplyOpts(){if(!OBV.world)return;OBV.world.traverse(o=>{if(o.userData.axis)o.visible=OB.axes;if(o.material&&o.material.userData&&o.material.userData.clip){o.material.clippingPlanes=OB.cut?[OBV.plane]:[];o.material.needsUpdate=true}});obDraw()}
+/* spec builders (three.js coordinates: chemistry x → X, y → −Z, z → Y) */
+function obAtomicSpec(id){const A=AO[id],R={1:6,2:16,3:27}[A.n];return{key:'ao:'+id,kind:'atom',box:[[-R,R],[-R,R],[-R,R]],tilt:[.35,-.55,0],axes:true,N:A.n===3?72:64,items:[{fn:(X,Y,Z)=>{const x=X,y=-Z,z=Y;return A.f(x,y,z,Math.hypot(x,y,z))},pos:OB_POS,neg:OB_NEG,frac:.9}]}}
+const OB_HYB={
+ sp:{l:'sp',geo:'linear, 180°',ex:'the carbons of ethyne (HC≡CH) and CO₂, BeH₂',dirs:[[0,0,1],[0,0,-1]],s:1/OS2,left:['2px','2py']},
+ sp2:{l:'sp²',geo:'trigonal planar, 120°',ex:'the carbons of ethene and benzene, the C of C=O, BF₃',dirs:[[1,0,0],[-.5,OS3/2,0],[-.5,-OS3/2,0]],s:1/OS3,left:['2pz']},
+ sp3:{l:'sp³',geo:'tetrahedral, 109.5°',ex:'the carbon of CH₄, the N of NH₃, the O of H₂O',dirs:[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(d=>d.map(v=>v/OS3)),s:.5,left:[]}};
+const OB_HCOL=['#3f7ff6','#20a77a','#e8962e','#9b6ef0'];
+function obHybridSpec(id,showP,one){const H=OB_HYB[id],R=6.5,z=1,fs=sto2s(z),fx=sto2p(z,'x'),fy=sto2p(z,'y'),fz=sto2p(z,'z'),ps=Math.sqrt(1-H.s*H.s);
+  /* chemistry (x,y,z) → three.js (X, −Z... ) : x = X, y = −Z, z = Y */
+  const items=H.dirs.map((d,k)=>({fn:(X,Y,Z)=>{const x=X,y=-Z,zz=Y;return H.s*fs(x,y,zz)+ps*(d[0]*fx(x,y,zz)+d[1]*fy(x,y,zz)+d[2]*fz(x,y,zz))},pos:OB_HCOL[k],neg:one&&k?null:'#9aa3ae',frac:.6,op:one&&k?.16:.9}));
+  if(showP)for(const p of H.left){const f=sto2p(z,p.slice(-1));items.push({fn:(X,Y,Z)=>f(X,-Z,Y),pos:OB_POS,neg:OB_NEG,frac:.42,op:.35})}
+  return{key:'hy:'+id+':'+(showP?1:0)+(one?1:0),kind:'atom',box:[[-R,R],[-R,R],[-R,R]],tilt:[.35,-.55,0],axes:true,items}}
+function obDiaSpec(sp,i){const D=OB_DIA[sp],L=obDiaLevels(sp)[i],h1=!!D.s1,R=h1?1.4:2.2,z=h1?1.24:1.55,xa=-R/2,xb=R/2,het=!!D.het;
+  let cA=1,cB=L.b>0?1:-1;if(het){const big=.83,sm=.56;if(L.b>0){cA=sm;cB=big}else{cA=big;cB=-sm}}
+  let fa,fb;if(L.kind==='1s'){const f=sto1s(z);fa=f;fb=f}else if(L.kind==='2s'){const f=sto2s(z);fa=f;fb=f}
+  else if(L.kind==='sp'){const f=sto2p(z,'x');fa=f;fb=f;cB=-cB}else{const f=sto2p(z,'y');fa=f;fb=f}
+  const ext=h1?4.2:6.5;return{key:'di:'+sp+':'+i,kind:'dia',box:[[xa-ext,xb+ext],[-ext,ext],[-ext,ext]],tilt:[.25,-.4,0],atoms:[[xa,0,0,h1?.22:.3],[xb,0,0,h1?.22:.3]],bonds:[[0,1]],
+    items:[{fn:(X,Y,Z)=>cA*fa(X-xa,Y,Z)+cB*fb(X-xb,Y,Z),pos:OB_POS,neg:OB_NEG,frac:.88}]}}
+function obPiSpec(id,k){const R=obPiCalc(id),B=1.8897,z=1.625,f=sto2p(z,'y'),m=R.mos[k];const xs=R.pos.map(p=>p[0]*B),zs=R.pos.map(p=>p[1]*B),cx=(Math.min(...xs)+Math.max(...xs))/2,cz=(Math.min(...zs)+Math.max(...zs))/2;
+  const at=R.pos.map((p,i)=>[xs[i]-cx,0,zs[i]-cz,.28]),mg=4.2;
+  return{key:'pi:'+id+':'+k,kind:'pi',box:[[Math.min(...at.map(a=>a[0]))-mg,Math.max(...at.map(a=>a[0]))+mg],[-5,5],[Math.min(...at.map(a=>a[2]))-mg,Math.max(...at.map(a=>a[2]))+mg]],tilt:[.75,0,0],atoms:at,bonds:R.bonds,
+    items:[{fn:(X,Y,Z)=>{let s=0;for(let i=0;i<at.length;i++){const c=m.c[i];if(Math.abs(c)>1e-4)s+=c*f(X-at[i][0],Y,Z-at[i][2])}return s},pos:OB_POS,neg:OB_NEG,frac:.86}]}}
+/* ---- pages ---- */
+function renderOrbSide(){const box=$('#orbList');if(!box)return;box.innerHTML=OB_PAGES.map(p=>`<button class="item${OB.view===p.id?' on':''}" data-obpage="${p.id}"><span class="t">${esc(p.t)}</span><span class="m">${esc(p.m)}</span></button>`).join('')}
+function obOpen(){obPage(OB.view||'intro')}
+const obStage=(cap)=>`<div class="ob-viewer"><div class="ob-stage" id="obStage"></div><div class="ob-ctl"><label class="v3d-check"><input type="checkbox" id="obCut"${OB.cut?' checked':''}> Cutaway</label><label class="v3d-check"><input type="checkbox" id="obAxes"${OB.axes?' checked':''}> Axes</label><button class="btn small" id="obReset">Reset view</button><span class="ob-hint">Drag to rotate · scroll or pinch to zoom</span></div>${cap?`<p class="ob-cap" id="obCap">${cap}</p>`:''}</div>`;
+const obLegend=`<span class="ob-leg"><i class="pos"></i>positive phase <i class="neg"></i>negative phase</span>`;
+function obChips(groups,cur,attr,label){return groups.map(([g,ids])=>`<div class="ob-grp"><span>${esc(g)}</span><div class="qz-chips">${ids.map(id=>`<button class="qz-chip${cur===id?' on':''}" data-${attr}="${id}" aria-pressed="${cur===id}"><span>${label(id)}</span></button>`).join('')}</div></div>`).join('')}
+function obPage(id){
+  OB.view=id;const pg=$('#orbPage');
+  if(id==='intro'){pg.innerHTML=`<article class="nm-lesson ob-lesson"><header class="nm-head"><div class="nm-kicker">Start here</div><h1>Molecular orbital theory</h1><p class="nm-lede">Electrons in molecules live in molecular orbitals that spread over the whole molecule. Building them from atomic orbitals explains bond strength, magnetism, colour, aromaticity and where reactions happen.</p></header>
+   <section class="nm-sec"><h2>Atomic orbitals</h2><p>An orbital is a wavefunction, ψ. Its square, ψ², gives the probability of finding the electron at each point. Pictures show the surface that contains about 90% of that probability.</p><p>ψ can be positive or negative: its <b>phase</b>, shown here in blue and red. Where ψ changes sign there is a <b>node</b>, where the electron is never found. An orbital with quantum numbers n and l has <b>l angular nodes</b> (planes or cones) and <b>n − l − 1 radial nodes</b> (spheres).</p><div class="nm-actions"><button class="btn" data-obpage="atomic">Explore atomic orbitals in 3D</button></div></section>
+   <section class="nm-sec"><h2>Combining orbitals</h2><p>When two atoms approach, their orbitals overlap and combine (a "linear combination of atomic orbitals", LCAO). Two atomic orbitals always make two molecular orbitals:</p><ul><li><b>In phase</b> (same colour overlapping): electron density builds up between the nuclei. This <b>bonding</b> orbital is lower in energy than the atomic orbitals.</li><li><b>Out of phase</b>: a node appears between the nuclei. This <b>antibonding</b> orbital (marked *) is higher in energy.</li></ul><p>Overlap along the bond axis gives <b>σ</b> orbitals; side-on overlap of p orbitals gives <b>π</b> orbitals, with a nodal plane containing the bond axis.</p></section>
+   <section class="nm-sec"><h2>Filling the orbitals and bond order</h2><p>Electrons go into the lowest orbitals first, at most two per orbital with opposite spins, and spread out singly across orbitals of equal energy before pairing (Hund's rule).</p><p class="sp-eq">bond order = ½ (bonding electrons − antibonding electrons)</p><div class="ob-two">${obDiaSVG('H2',{small:true})}${obDiaSVG('He2',{small:true})}</div><p>H₂ has bond order 1. He₂ has 2 bonding and 2 antibonding electrons, so its bond order is 0 and it doesn't form.</p><div class="nm-actions"><button class="btn" data-obpage="dia">Open the MO diagrams</button></div></section>
+   <section class="nm-sec"><h2>Why oxygen is magnetic</h2><p>The Lewis structure of O₂ has every electron paired, yet liquid oxygen is attracted to a magnet. The MO diagram explains it: the last two electrons occupy two π* orbitals of equal energy, one each, with parallel spins. O₂ is a diradical with bond order 2.</p></section>
+   <section class="nm-sec"><h2>s–p mixing</h2><p>For B₂, C₂ and N₂ the 2s and 2p orbitals are close enough in energy to mix. This pushes σ2p above π2p. For O₂ and F₂ the 2s–2p gap is larger, mixing is small and σ2p stays below π2p. The diagrams here switch ordering automatically.</p></section>
+   <section class="nm-sec"><h2>HOMO and LUMO: where reactions happen</h2><p>The highest occupied MO (<b>HOMO</b>) holds the most reactive electrons; the lowest unoccupied MO (<b>LUMO</b>) is where incoming electrons go. In a reaction, electrons flow from the HOMO of the nucleophile into the LUMO of the electrophile, and the new bond forms where those orbitals are largest.</p><ul><li>The π* LUMO of C=O is biggest on carbon, so nucleophiles add to the carbon.</li><li>In SN2 the nucleophile attacks the back lobe of the C–X σ* orbital, which is why the reaction inverts the stereocentre.</li><li>The Diels–Alder reaction joins the HOMO of the diene to the LUMO of the dienophile.</li></ul></section>
+   <section class="nm-sec"><h2>Conjugation and aromaticity</h2><p>Hückel theory combines the p orbitals of a conjugated system into π MOs. In a flat ring of p orbitals, the MO energies follow the corners of a polygon drawn point-down inside a circle (the <b>Frost circle</b>). A ring with <b>4n + 2</b> π electrons fills its bonding orbitals exactly and is <b>aromatic</b>. One with <b>4n</b> electrons has two unpaired electrons in nonbonding orbitals and is <b>antiaromatic</b>.</p><div class="nm-actions"><button class="btn primary" data-obpage="pi">Explore π molecular orbitals</button></div></section></article>`}
+  else if(id==='atomic'){const groups=[['n = 1',['1s']],['n = 2',['2s','2px','2py','2pz']],['n = 3',['3s','3px','3py','3pz','3dxy','3dxz','3dyz','3dx2y2','3dz2']]];
+   const A=AO[OB.atomic],fam=A.l===0?OB.atomic:OB.atomic.slice(0,2),info=AO_INFO[fam]||'';
+   pg.innerHTML=`<section class="ob-page"><header class="nm-head"><div class="nm-kicker">Orbitals</div><h1>Atomic orbitals in 3D</h1><p class="nm-lede">Hydrogen-atom orbitals, drawn as the surface that holds 90% of the electron probability. Turn on the cutaway to look inside.</p></header>
+    ${obChips(groups,OB.atomic,'ao',k=>AO[k].lab)}
+    <div class="ob-split"><div>${obStage(`<b>${A.lab}</b> · n = ${A.n}, l = ${A.l} · ${A.l} angular node${A.l===1?'':'s'}, ${A.n-A.l-1} radial node${A.n-A.l-1===1?'':'s'}`)}</div><div class="ob-info"><h2>${A.lab}</h2><p>${info}</p>${obLegend}<p class="hm-muted">Phase (the sign of ψ) matters when orbitals overlap: same-phase overlap makes a bond, opposite-phase overlap makes a node.</p></div></div></section>`;
+   obShow('#obStage',obAtomicSpec(OB.atomic))}
+  else if(id==='hybrid'){const H=OB_HYB[OB.hybrid];
+   pg.innerHTML=`<section class="ob-page"><header class="nm-head"><div class="nm-kicker">Orbitals</div><h1>Hybrid orbitals</h1><p class="nm-lede">Mixing an atom's 2s orbital with one, two or three 2p orbitals gives hybrid orbitals that point towards the bonds. Each colour is one hybrid. Highlight one to see its shape: a large lobe pointing along the bond, and a small grey back lobe of opposite phase.</p></header>
+    <div class="qz-chips">${Object.keys(OB_HYB).map(k=>`<button class="qz-chip${OB.hybrid===k?' on':''}" data-hyb="${k}" aria-pressed="${OB.hybrid===k}">${OB_HYB[k].l}</button>`).join('')}<label class="v3d-check ob-p"><input type="checkbox" id="obHybOne"${OB.hybOne?' checked':''}> Highlight one hybrid</label><label class="v3d-check ob-p"><input type="checkbox" id="obHybP"${OB.hybP?' checked':''}${H.left.length?'':' disabled'}> Show unhybridised p</label></div>
+    <div class="ob-split"><div>${obStage(`<b>${H.l}</b>: ${H.dirs.length} hybrids, ${H.geo}`)}</div><div class="ob-info"><h2>${H.l} hybridisation</h2><p><b>Made from:</b> one 2s and ${H.dirs.length-1} 2p orbital${H.dirs.length-1>1?'s':''} (${Math.round(100*H.s*H.s)}% s character).</p><p><b>Shape:</b> ${H.geo}.</p><p><b>Examples:</b> ${H.ex}.</p>${H.left.length?`<p>The ${H.left.length===1?'leftover p orbital stands':'two leftover p orbitals stand'} at right angles to the hybrids and ${H.left.length===1?'forms':'form'} the π bond${H.left.length>1?'s':''}.</p>`:'<p>All three p orbitals are used, so sp³ atoms make only σ bonds.</p>'}<p class="hm-muted">More s character means electrons held closer to the nucleus: sp C–H bonds are shorter and more acidic (ethyne pKa ≈ 25, ethane ≈ 50).</p></div></div></section>`;
+   obShow('#obStage',obHybridSpec(OB.hybrid,OB.hybP&&H.left.length>0,OB.hybOne))}
+  else if(id==='dia'){const R=obDiaCalc(OB.dia);if(OB.diaMo==null||OB.diaMo>=R.L.length)OB.diaMo=Math.max(0,R.homo);const L=R.L[OB.diaMo];
+   pg.innerHTML=`<section class="ob-page"><header class="nm-head"><div class="nm-kicker">Orbitals</div><h1>Diatomic MO diagrams</h1><p class="nm-lede">Pick a molecule or ion. Click any molecular orbital to see its shape in 3D.</p></header>
+    ${obChips(OB_DIA_GROUPS,OB.dia,'dia',k=>OB_DIA[k].l.replace(/ \(.*\)/,''))}
+    <div class="ob-split ob-dsplit"><div class="ob-dia">${obDiaSVG(OB.dia)}<div class="ob-facts"><div><span>Bond order</span><b>${R.bo%1?Math.floor(R.bo)+'½':R.bo}</b></div><div><span>Unpaired electrons</span><b>${R.un}</b></div><div><span>Magnetism</span><b>${R.un?'paramagnetic':'diamagnetic'}</b></div><div><span>${R.D.s1?'Electrons':'Valence electrons'}</span><b>${R.D.e}</b></div></div><p class="ob-cfg">${R.cfg}</p><p>${OB_DIA_NOTE[OB.dia]||''}</p>${R.D.s1?'':`<p class="hm-muted">Only valence orbitals are shown. ${R.D.mix?'s–p mixing puts π2p below σ2p.':'Without s–p mixing, σ2p is below π2p.'} The 3D shapes show the main atomic orbitals in each MO, without mixing.</p>`}</div>
+    <div>${obStage(`<b>${L.lab}</b>: ${L.b>0?'bonding':'antibonding'} ${L.kind==='pi'?'π':'σ'} orbital${L.deg===2?' (one of a pair of equal energy)':''}`)}${obLegend}</div></div></section>`;
+   obShow('#obStage',obDiaSpec(OB.dia,OB.diaMo))}
+  else if(id==='pi'){const R=obPiCalc(OB.pi);if(OB.piMo==null||OB.piMo>=R.mos.length)OB.piMo=Math.max(0,R.homo);const m=R.mos[OB.piMo];
+   const pe=`${R.P.e}α ${R.Epi<0?'−':'+'} ${(+Math.abs(R.Epi).toFixed(3)).toString()}β`;
+   pg.innerHTML=`<section class="ob-page"><header class="nm-head"><div class="nm-kicker">Orbitals</div><h1>π molecular orbitals</h1><p class="nm-lede">Hückel calculations of the π MOs of conjugated molecules and rings. β is negative, so α + β is lower in energy than α. Click an orbital to see it in 3D.</p></header>
+    ${obChips(OB_PI_GROUPS,OB.pi,'pi',k=>OB_PI[k].l.replace(/ \(.*\)/,''))}
+    <div class="ob-split ob-dsplit"><div class="ob-dia">${obPiDiagram(R)}<div class="ob-facts"><div><span>π electrons</span><b>${R.P.e}</b></div><div><span>π energy</span><b>${pe}</b></div>${R.de!=null?`<div><span>Delocalisation energy</span><b>${Math.abs(R.de)<5e-4?'0':(+Math.abs(R.de).toFixed(2))+'β'}</b></div>`:''}${R.arom?`<div><span>Hückel rule</span><b>${R.arom}</b></div>`:''}</div><p>${OB_PI_NOTE[OB.pi]||''}</p></div>
+    <div>${obStage(`<b>ψ<sub>${OB.piMo+1}</sub></b>: ${fmtX(m.x)}, ${m.occ} electron${m.occ===1?'':'s'}`)}${obLegend}</div></div>
+    <h2 class="qz-h">All π orbitals, lowest energy first</h2><p class="hm-muted">Circle size shows the coefficient on each atom; colour shows its phase. Neighbouring atoms of opposite colour have a node between them.</p><div class="ob-cards">${R.mos.map((_,k)=>obPiCard(R,k)).join('')}</div></section>`;
+   obShow('#obStage',obPiSpec(OB.pi,OB.piMo))}
+  const wireOpts=()=>{const c=$('#obCut'),a=$('#obAxes'),r=$('#obReset');if(c)c.onchange=e=>{OB.cut=e.target.checked;obApplyOpts()};if(a)a.onchange=e=>{OB.axes=e.target.checked;obApplyOpts()};if(r)r.onclick=()=>{if(OBV.pivot){obResetView();obDraw()}};const hp=$('#obHybP');if(hp)hp.onchange=e=>{OB.hybP=e.target.checked;obPage('hybrid')};const h1=$('#obHybOne');if(h1)h1.onchange=e=>{OB.hybOne=e.target.checked;obPage('hybrid')}};
+  wireOpts();renderOrbSide();$('#side').classList.remove('open');
+}
+function wireOrbitals(){
+  const go=e=>{const p=e.target.closest('[data-obpage]');if(p){obPage(p.dataset.obpage);$('#main').scrollTop=0;return}
+    const a=e.target.closest('[data-ao]');if(a){OB.atomic=a.dataset.ao;obPage('atomic');return}
+    const h=e.target.closest('[data-hyb]');if(h){OB.hybrid=h.dataset.hyb;obPage('hybrid');return}
+    const d=e.target.closest('[data-dia]');if(d){OB.dia=d.dataset.dia;OB.diaMo=null;obPage('dia');return}
+    const dm=e.target.closest('[data-dmo]');if(dm){OB.diaMo=+dm.dataset.dmo;obPage('dia');return}
+    const pi=e.target.closest('[data-pi]');if(pi){OB.pi=pi.dataset.pi;OB.piMo=null;obPage('pi');return}
+    const pm=e.target.closest('[data-pmo]');if(pm){const y=$('#main').scrollTop;OB.piMo=+pm.dataset.pmo;obPage('pi');$('#main').scrollTop=y;return}};
+  $('#orbPage').addEventListener('click',go);$('#orbSide').addEventListener('click',go);
+  $('#orbPage').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-dmo],[data-pmo]')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}))}});
+}
+
+if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl,{SP_BANK,spPoolGet,spBuild,spDoU,spHEnv,obPiCalc,obDiaCalc,obEig,obMesh,obGrid,obThreshold,AO});
+wireV13();wireSpectra();wireOrbitals();
 boot();
 })();
