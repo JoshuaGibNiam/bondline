@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 11)
+# Bondline: organic chemistry notebook (version 12)
 
 An installable web app for organic chemistry:
 
@@ -9,7 +9,53 @@ An installable web app for organic chemistry:
 
 ## Upload
 
-Drag the whole `bondline-app` folder onto your Netlify site's **Deploys** page. Firestore rules are unchanged from version 9, and nothing in version 11 needs a Firebase change (`firestore.rules` is included in case you need it).
+Drag the whole `bondline-app` folder onto your Netlify site's **Deploys** page. Version 12 needs updated Firestore rules (see below) (`firestore.rules` is included in case you need it).
+
+## Updating to version 12: one extra step in Firebase
+
+Version 12 needs **new Firestore security rules** for shared notebooks and your own glossary terms. Without them, shared notebooks won't work and custom glossary terms won't sync (everything else keeps working).
+
+1. Upload the `bondline-app` folder to Netlify as usual.
+2. Open the [Firebase console](https://console.firebase.google.com/) → your Bondline project → **Firestore Database** → **Rules**.
+3. Replace everything there with the contents of `firestore.rules` from this folder, and press **Publish**.
+4. Check that your domain is allowed: **Authentication** → **Settings** → **Authorized domains** should list `bondline.site` (and any test address you use).
+
+To check the rules, use the **Rules Playground** button on the Rules page:
+- Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
+- A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 14
+
+- **Spectra**: lessons on IR, ¹H NMR, ¹³C NMR and mass spectrometry, with drawn example spectra, and a practice mode with hundreds of questions built from about 40 compounds. Progress syncs with your account.
+- **Orbitals**: diatomic MO diagrams with bond order and magnetism, Hückel π molecular orbitals for conjugated chains and aromatic rings, and 3D atomic, hybrid and molecular orbitals you can rotate.
+
+## New in version 13
+
+- A slim bar of icons down the left edge switches between Home, Notes, Cards and Naming, and opens the reaction predictor, glossary, trash, guide and settings. Hiding the sidebar (Ctrl+\) keeps this bar.
+- Folders, Shared and Tags are now sections you can fold away. Bondline remembers which ones you keep open.
+- Fixed: the sync status no longer overlaps the last note on short screens, tags wrap instead of being cut off, and the Home card no longer runs past the edge.
+- Calmer look: one accent colour, quieter tags, simpler note list, and a Home page with a smaller greeting and a Study today strip.
+
+## New in version 12
+
+**Glossary**
+- Over 300 built-in terms: solvents (DMSO, THF, DMF…), reagents (LiAlH₄, PCC, mCPBA, LDA…), abbreviations (Et, Ts, Boc…), concepts (nucleophile, enolate, Zaitsev's rule…) and named reactions (SN2, aldol, Diels–Alder…).
+- Terms in your notes are highlighted. Hover over one (or tap it on a phone or tablet) to see a definition card, with a structure for solvents and reagents.
+- Open the glossary from Home, the command palette (Ctrl K) or ⚙ Settings. Search it, filter by type, and **add your own terms**; they highlight in your notes too and sync with your account.
+- ⚙ Settings → Glossary: highlight every mention, only the first in each note, or turn highlighting off.
+
+**Reaction predictor**
+- Open it from Home, the command palette, or **Predict reaction** at the bottom of a note. Type a starting material (name or SMILES, or pick a molecule from the selected drawing) and the reagents, e.g. `NaOEt, EtOH, heat` or `1. BH3·THF 2. H2O2, NaOH`.
+- For alkyl halides it weighs **SN1, SN2, E1 and E2** (substrate, nucleophile/base, solvent, heat), shows which wins and why, and draws the major and minor products, including Zaitsev vs Hofmann alkenes.
+- It also predicts additions to alkenes and alkynes (Markovnikov, anti-Markovnikov, syn/anti), carbocation rearrangements, oxidations and reductions, Grignard, Wittig, acetal, imine, enamine, aldol and Claisen reactions, acid derivative reactions, alcohol reactions, epoxide opening, aromatic substitution with directing effects, Sandmeyer reactions and more.
+- **Add to note** inserts the reaction as an editable drawing; **Mechanism** opens the matching entry in the reaction library.
+
+**Shared notebooks** (installed app, signed in)
+- Press **+** next to **Shared** in the sidebar to make a notebook, then invite people **by email** (they see the invitation in their sidebar after signing in with that email) or with an **invite link**.
+- Each person **can edit** or **can only view** (viewers can still comment). Only the owner can invite, remove people or delete the notebook.
+- Changes appear live. Two people can edit different paragraphs or drawings of the same note at once; if both edit the same block, the last save wins.
+- See who else is looking at a note; move notes in and out; viewers can **Copy to my notes**. Deleting a shared note keeps a copy in your Trash.
+- Bondline doesn't send emails. Email invitations need a verified email address: Google accounts are verified automatically; email-and-password users can send themselves a verification email from the notebook's People window.
 
 ## New in version 11 (a calmer, roomier look)
 
