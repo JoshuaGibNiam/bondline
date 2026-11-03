@@ -1,0 +1,4 @@
+# Send the old address to the main one so search engines see one site.
+# Only turn this on once everyone has moved: notes saved without an account on bondline.netlify.app
+# stay in that address's browser storage and would not appear on bondline.site.
+# https://bondline.netlify.app/*  https://bondline.site/:splat  301!

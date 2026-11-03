@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 12)
+# Bondline: organic chemistry notebook (version 15)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,32 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 15
+
+- **Landing page.** First-time visitors (and search engines) now see an animated page about Bondline before the notebook opens: a self-drawing molecule, an S<sub>N</sub>2 mechanism that plays as you scroll, sideways-scrolling feature cards, and a FAQ. Returning users, the installed app, share links and invite links skip it and go straight to the notebook. To see it again, open `bondline.site/?about`, or use the **About** link at the bottom of ⚙ Settings.
+- **Small animations around the app.** Pages fade in when you switch sections, dialogs and menus pop in, toasts slide up, and buttons respond when pressed. All animations switch off if the device is set to reduce motion.
+- **Privacy policy** at `/privacy/`, linked from the landing page and ⚙ Settings.
+- **Search engine set-up.** New page title and description, a social-media preview image (`og-image.png`), structured data, `robots.txt` and `sitemap.xml`.
+- Fixed: opening a page other than the app (such as the privacy policy) no longer replaces the app's offline copy.
+
+### Before you upload version 15
+
+1. Upload the `bondline-app` folder to Netlify as usual. No Firebase changes are needed.
+
+### Google Search Console (one-time, about 10 minutes)
+
+1. Go to [search.google.com/search-console](https://search.google.com/search-console), choose **Add property → Domain**, and type `bondline.site`.
+2. Google shows a **TXT record**. In Netlify, open **Domains → bondline.site → DNS settings → Add new record**, choose type **TXT**, leave the name blank (or `@`), paste the value, and save. Back in Search Console, press **Verify**. It can take a few minutes to an hour.
+3. In Search Console, open **Sitemaps** and submit `sitemap.xml`.
+4. Open **URL inspection**, enter `https://bondline.site/`, and press **Request indexing**. Do the same for `https://bondline.site/privacy/`.
+5. Optional: in [Bing Webmaster Tools](https://www.bing.com/webmasters), choose **Import from Google Search Console**. This covers Bing, DuckDuckGo and Copilot too.
+
+Check back after a week or two: **Pages** shows whether Google indexed the site, and **Performance** shows the searches people found it with.
+
+### The old bondline.netlify.app address
+
+The landing page tells search engines that `bondline.site` is the main address. `_redirects` contains a line that would send every visit to `bondline.netlify.app` on to `bondline.site`, but it is switched off: notes saved **without an account** on the old address live in that address's browser storage and would not appear on the new one. Once anyone still using the old address has signed in (or moved over), remove the `#` from that line.
 
 ## New in version 14
 
@@ -135,7 +161,10 @@ To check the rules, use the **Rules Playground** button on the Rules page:
 | File | What it is |
 |---|---|
 | `index.html`, `app.js`, `boot.js` | The app itself |
-| `_headers` | Security settings that Netlify applies automatically |
+| `landing.js` | Animations for the landing page |
+| `privacy/` | The privacy policy page |
+| `robots.txt`, `sitemap.xml`, `og-image.png` | Help search engines and social media show Bondline |
+| `_headers`, `_redirects` | Security settings and redirects that Netlify applies automatically |
 | `firebase-config.js` | Your Firebase settings (already filled in) |
 | `firestore.rules` | Database security rules to paste into Firebase |
 | `manifest.webmanifest`, `sw.js` | Make the app installable and work offline |
@@ -186,4 +215,4 @@ All of these are in the Firebase console for your project.
 
 ## Updating the app later
 
-If you change any files, edit the version on the first line of `sw.js` (for example `bondline-v8` to `bondline-v9`) before uploading. Installed copies then pick up the update the next time they're opened.
+If you change any files, edit the version near the top of `sw.js` (for example `bondline-v15` to `bondline-v16`) before uploading. Installed copies then pick up the update the next time they're opened.

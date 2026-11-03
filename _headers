@@ -19,5 +19,7 @@
   Cache-Control: no-cache
 /boot.js
   Cache-Control: no-cache
+/landing.js
+  Cache-Control: no-cache
 /firebase-config.js
   Cache-Control: no-cache
