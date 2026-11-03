@@ -3,164 +3,99 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy Policy · Bondline</title>
-<meta name="description" content="What Bondline, the free organic chemistry notebook, stores about you, where it is kept, who can see it, and how to delete it.">
-<link rel="canonical" href="https://bondline.site/privacy/">
-<meta name="robots" content="index,follow">
+<title>Organic Chemistry Reagents Cheat Sheet: What Each Reagent Does | Bondline</title>
+<meta name="description" content="A one-page list of common organic reagents and what they do: oxidising and reducing agents, bases, nucleophiles, and reagents for alkenes, carbonyls and benzene.">
+<link rel="canonical" href="https://bondline.site/guides/organic-reagents-cheat-sheet/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Bondline">
+<meta property="og:title" content="Organic Chemistry Reagents Cheat Sheet: What Each Reagent Does | Bondline">
+<meta property="og:description" content="A one-page list of common organic reagents and what they do: oxidising and reducing agents, bases, nucleophiles, and reagents for alkenes, carbonyls and benzene.">
+<meta property="og:url" content="https://bondline.site/guides/organic-reagents-cheat-sheet/">
+<meta property="og:image" content="https://bondline.site/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0a0f17">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<style>
-@font-face{font-family:'Bricolage Grotesque';font-weight:400;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/source-serif-4-latin-400-italic.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
-:root{--k:#0a0f17;--pp:#f3f4f7;--ink:#121a24;--mut:#5a6878;--line:#d8dfe8;--bl:#1f5fd1;--rd:#ff5a5f;color-scheme:light}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--pp);color:var(--ink);font:17px/1.65 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--bl)}
-header{background:var(--k);color:#fff;padding:22px max(16px,5vw) clamp(60px,10vh,110px);position:relative;overflow:hidden}
-header nav{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.brand svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.brand svg .c{stroke:var(--rd)}
-.open{color:#0a0f17;background:#fff;text-decoration:none;font-weight:700;font-size:14.5px;padding:10px 18px;border-radius:999px;transition:background .3s,color .3s}
-.open:hover{background:var(--rd);color:#fff}
-.label{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:clamp(60px,10vh,110px) 0 14px}
-h1{font-size:clamp(46px,8vw,120px);line-height:.92;letter-spacing:-.055em;margin:0}
-h1 em{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--rd)}
-.updated{color:#c7d0dd;margin:22px 0 0}
-main{display:grid;grid-template-columns:240px minmax(0,760px);gap:clamp(30px,6vw,90px);padding:clamp(50px,8vh,90px) max(16px,5vw) 90px}
-.toc{position:sticky;top:24px;align-self:start;font-size:14.5px}
-.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
-.toc li{counter-increment:t}
-.toc a{color:var(--mut);text-decoration:none;display:block;padding:2px 0;transition:color .2s,transform .2s}
-.toc a::before{content:counter(t,decimal-leading-zero) "  ";font-family:"JetBrains Mono",monospace;font-size:12px}
-.toc a:hover{color:var(--ink);transform:translateX(3px)}
-article h2{font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.1;margin:56px 0 14px;scroll-margin-top:24px}
-article h2:first-child{margin-top:0}
-article h3{font-size:19px;margin:26px 0 6px}
-article p,article li{color:#2b3644}
-article ul{padding-left:22px}
-article li{margin:6px 0}
-.summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px}
-.summary ul{margin:10px 0 0}
-table{width:100%;border-collapse:collapse;font-size:15.5px;margin:14px 0}
-th,td{text-align:left;vertical-align:top;padding:12px 12px 12px 0;border-top:1px solid var(--line)}
-th{font-weight:700;width:34%}
-mark{background:#fff3a3;padding:0 4px;border-radius:4px}
-footer{background:var(--k);color:#8b97a8;padding:28px max(16px,5vw);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14.5px}
-footer a{color:#8b97a8;text-decoration:none}footer a:hover{color:#fff}
-@media (max-width:860px){main{grid-template-columns:1fr}.toc{position:static}}
-@media (prefers-reduced-motion:no-preference){
-  h1,.updated,.label{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.label{animation-delay:.05s}h1{animation-delay:.1s}.updated{animation-delay:.25s}
-  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-}
-</style>
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Article", "headline": "Organic chemistry reagents cheat sheet", "description": "A one-page list of common organic reagents and what they do: oxidising and reducing agents, bases, nucleophiles, and reagents for alkenes, carbonyls and benzene.", "url": "https://bondline.site/guides/organic-reagents-cheat-sheet/", "datePublished": "2026-11-03", "dateModified": "2026-11-03", "author": {"@type": "Organization", "name": "Bondline", "url": "https://bondline.site/"}, "publisher": {"@type": "Organization", "name": "Bondline", "logo": {"@type": "ImageObject", "url": "https://bondline.site/icons/icon-512.png"}}, "image": "https://bondline.site/og-image.png", "inLanguage": "en", "about": "Reactions", "educationalLevel": "Upper secondary and undergraduate"}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Bondline", "item": "https://bondline.site/?about"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://bondline.site/guides/"}, {"@type": "ListItem", "position": 3, "name": "Organic chemistry reagents cheat sheet"}]}]}</script>
 </head>
 <body>
-<header>
-  <nav><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="open" href="/?app">Open the notebook</a></nav>
-  <p class="label">Privacy policy</p>
-  <h1>Your notes are <em>yours.</em></h1>
-  <p class="updated">Last updated 3 November 2026</p>
+<header class="top">
+  <nav class="nav" aria-label="Site"><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="l" href="/guides/">Guides</a><a class="l" href="/reactions/">Reactions</a><a class="open" href="/?app">Open the notebook</a></nav>
+  <p class="crumb"><a href="/?about">Bondline</a> / <a href="/guides/">Guides</a></p>
+  <h1>Organic chemistry reagents cheat sheet</h1>
+  <p class="lede">What each common reagent does, grouped by job. Learn the conversions, then test yourself on the synthesis problems.</p>
+  <p class="meta">Reactions · Updated 3 November 2026</p>
 </header>
-
-<main>
-  <aside class="toc" aria-label="Contents"><ol>
-    <li><a href="#summary">In short</a></li>
-    <li><a href="#who">Who runs Bondline</a></li>
-    <li><a href="#without">Without an account</a></li>
-    <li><a href="#account">With an account</a></li>
-    <li><a href="#sharing">Sharing</a></li>
-    <li><a href="#services">Other services</a></li>
-    <li><a href="#cookies">Cookies and storage</a></li>
-    <li><a href="#use">How data is used</a></li>
-    <li><a href="#keep">How long it's kept</a></li>
-    <li><a href="#rights">Your choices and rights</a></li>
-    <li><a href="#children">Children</a></li>
-    <li><a href="#security">Security</a></li>
-    <li><a href="#changes">Changes and contact</a></li>
-  </ol></aside>
-
+<main class="wrap">
   <article>
-    <h2 id="summary">In short</h2>
-    <div class="summary"><ul>
-      <li>You can use Bondline without an account. Your notes then stay in your browser, on your device.</li>
-      <li>If you sign in, your notes and progress are stored in Google Firebase so they can sync between your devices.</li>
-      <li>Bondline has no ads, no analytics and no tracking cookies, and does not sell or share your data for marketing.</li>
-      <li>You can ask for your account and everything in it to be deleted at any time.</li>
-    </ul></div>
 
-    <h2 id="who">Who runs Bondline</h2>
-    <p>Bondline (bondline.site) is a free organic chemistry notebook run by an independent developer based in Malaysia ("we", "us"). We are responsible for the personal data described here. You can reach us at <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
+<h2>Oxidising agents</h2>
+<div class="tbl"><table><thead><tr><th>Reagent</th><th>What it does</th></tr></thead><tbody>
+<tr><td>K₂Cr₂O₇ / H₂SO₄ (acidified dichromate)</td><td>Primary alcohol → aldehyde (distil) or carboxylic acid (reflux). Secondary alcohol → ketone. Orange → green.</td></tr>
+<tr><td>PCC, CH₂Cl₂</td><td>Primary alcohol → aldehyde (stops there). Secondary → ketone.</td></tr>
+<tr><td>KMnO₄, cold and dilute</td><td>Alkene → diol (syn addition of two OH).</td></tr>
+<tr><td>KMnO₄, hot</td><td>Cleaves C=C; oxidises alkyl side chains on benzene to COOH.</td></tr>
+<tr><td>O₃, then Zn/H₂O or (CH₃)₂S</td><td>Ozonolysis: cuts C=C into two C=O compounds.</td></tr>
+<tr><td>mCPBA</td><td>Alkene → epoxide.</td></tr>
+<tr><td>Tollens' reagent [Ag(NH₃)₂]⁺</td><td>Oxidises aldehydes (silver mirror); no reaction with ketones.</td></tr>
+</tbody></table></div>
 
-    <h2 id="without">If you use Bondline without an account</h2>
-    <p>Everything you create (notes, drawings, images, flashcards, comments, folders and tags, quiz and spectra progress, note history, trash and your settings) is saved in your browser's local storage on that device. It is not sent to us, and we cannot see it.</p>
-    <p>Because it lives only in that browser, clearing your browser data or uninstalling the app deletes it, and it does not appear on your other devices.</p>
+<h2>Reducing agents</h2>
+<div class="tbl"><table><thead><tr><th>Reagent</th><th>What it does</th></tr></thead><tbody>
+<tr><td>NaBH₄</td><td>Aldehyde → primary alcohol; ketone → secondary alcohol. Doesn't reduce esters, acids or C=C.</td></tr>
+<tr><td>LiAlH₄, then H₂O</td><td>Also reduces esters and carboxylic acids (→ primary alcohols), amides and nitriles (→ amines).</td></tr>
+<tr><td>H₂, Pd/C (or Pt, Ni)</td><td>C=C and C≡C → alkane.</td></tr>
+<tr><td>H₂, Lindlar catalyst</td><td>Alkyne → cis (Z) alkene.</td></tr>
+<tr><td>Na, NH₃(l)</td><td>Alkyne → trans (E) alkene.</td></tr>
+<tr><td>Sn, conc. HCl, then NaOH</td><td>Nitrobenzene → phenylamine.</td></tr>
+</tbody></table></div>
 
-    <h2 id="account">If you sign in</h2>
-    <p>You can sign in with Google or with an email address and password. Sign-in is handled by Firebase Authentication, a Google service.</p>
-    <table>
-      <tr><th>Account details</th><td>Your email address, a user ID, whether your email is verified, and, if you use Google sign-in, the name on your Google account. Passwords are handled by Firebase and are never visible to us.</td></tr>
-      <tr><th>Your content</th><td>Notes, drawings, images you add, flashcards, comments, folders, tags, trash, glossary terms you add, quiz and spectra progress, and app settings, so they sync across your devices.</td></tr>
-      <tr><th>Where it's stored</th><td>Google Cloud Firestore, in the project that runs Bondline. Google's servers may be outside your country, including outside Malaysia.</td></tr>
-    </table>
-    <p>Database rules mean only you can read or change your personal notes. We can access stored data only as the administrator of the Firebase project, and only do so to run the service, fix problems, or when you ask us to.</p>
-    <p>When you first sign in on a device, the notes already saved on that device are copied into your account. Logging out removes that account's notes from the device.</p>
+<h2>Adding to alkenes</h2>
+<div class="tbl"><table><thead><tr><th>Reagent</th><th>Product</th></tr></thead><tbody>
+<tr><td>HBr</td><td>Bromoalkane, Markovnikov.</td></tr>
+<tr><td>HBr, peroxides</td><td>Bromoalkane, anti-Markovnikov.</td></tr>
+<tr><td>Br₂</td><td>1,2-Dibromide, anti addition. Decolourises bromine water.</td></tr>
+<tr><td>H₂O, H₃PO₄ or H₂SO₄ catalyst</td><td>Alcohol, Markovnikov.</td></tr>
+<tr><td>1. BH₃·THF 2. H₂O₂, NaOH</td><td>Alcohol, anti-Markovnikov, syn.</td></tr>
+</tbody></table></div>
 
-    <h2 id="sharing">Sharing</h2>
-    <h3>Read-only links</h3>
-    <p>If you share a note, a copy of it is stored so that anyone with the link can read it. Turn sharing off to remove that copy.</p>
-    <h3>Shared notebooks</h3>
-    <p>When you create or join a shared notebook, its members can see the notebook's notes and comments, the names and email addresses of the other members and invited people, and who is currently looking at a note. The owner decides who is invited. Email addresses you invite are stored so that the invitation can be shown to that person when they sign in. Bondline does not send emails on your behalf.</p>
+<h2>Nucleophiles, bases and carbon–carbon bonds</h2>
+<div class="tbl"><table><thead><tr><th>Reagent</th><th>What it does</th></tr></thead><tbody>
+<tr><td>NaOH(aq), warm</td><td>Haloalkane → alcohol (substitution).</td></tr>
+<tr><td>KOH in ethanol, hot</td><td>Haloalkane → alkene (elimination).</td></tr>
+<tr><td>KCN in ethanol</td><td>Haloalkane → nitrile (adds one carbon).</td></tr>
+<tr><td>HCN, KCN catalyst</td><td>Aldehyde or ketone → hydroxynitrile (adds one carbon).</td></tr>
+<tr><td>Excess NH₃ in ethanol</td><td>Haloalkane → primary amine.</td></tr>
+<tr><td>RMgBr (Grignard), then H₃O⁺</td><td>With methanal → primary alcohol; other aldehydes → secondary; ketones → tertiary; CO₂ → carboxylic acid.</td></tr>
+<tr><td>Ph₃P=CHR (Wittig)</td><td>Aldehyde or ketone → alkene.</td></tr>
+<tr><td>NaNH₂, then RX</td><td>Terminal alkyne → longer alkyne.</td></tr>
+<tr><td>LDA</td><td>Strong, bulky base: makes enolates.</td></tr>
+<tr><td>NaOEt or NaOMe</td><td>Strong base / nucleophile: E2 with secondary and tertiary halides; Williamson ether synthesis with primary ones.</td></tr>
+</tbody></table></div>
 
-    <h2 id="services">Other services Bondline uses</h2>
-    <ul>
-      <li><b>Google Firebase</b> (Authentication and Cloud Firestore) for sign-in and sync. Google processes this data under the <a href="https://firebase.google.com/support/privacy" rel="noopener">Firebase privacy and security terms</a>.</li>
-      <li><b>Google sign-in</b>, if you choose it. Signing in opens a Google window, where Google's own <a href="https://policies.google.com/privacy" rel="noopener">privacy policy</a> applies.</li>
-      <li><b>PubChem</b>, run by the US National Library of Medicine. When you look up a compound by name or structure, the name or SMILES you typed is sent to PubChem to fetch the answer. Nothing else from your notes is sent.</li>
-      <li><b>Netlify</b>, which hosts the website. Like any web host, it processes your IP address and basic request details to deliver pages and protect the site.</li>
-    </ul>
-    <p>Fonts, the drawing and maths libraries, and the 3D engine are all served from Bondline's own site, so loading them does not contact other companies.</p>
+<h2>Changing OH and making acid derivatives</h2>
+<div class="tbl"><table><thead><tr><th>Reagent</th><th>What it does</th></tr></thead><tbody>
+<tr><td>PBr₃ or SOCl₂</td><td>Alcohol → bromoalkane or chloroalkane.</td></tr>
+<tr><td>SOCl₂ (or PCl₅)</td><td>Carboxylic acid → acyl chloride.</td></tr>
+<tr><td>ROH, conc. H₂SO₄ catalyst, heat</td><td>Carboxylic acid → ester (Fischer esterification).</td></tr>
+<tr><td>Conc. H₂SO₄ or H₃PO₄, heat</td><td>Alcohol → alkene (dehydration).</td></tr>
+<tr><td>NaOH(aq), heat</td><td>Ester → carboxylate + alcohol (saponification).</td></tr>
+</tbody></table></div>
 
-    <h2 id="cookies">Cookies and browser storage</h2>
-    <p>Bondline does not use advertising or analytics cookies. It uses your browser's local storage and IndexedDB to save your notes and settings, to keep you signed in, and to make the app work offline. These are needed for the app to work. Google may set its own cookies in the sign-in window if you use Google sign-in.</p>
-
-    <h2 id="use">How your data is used</h2>
-    <p>Only to provide Bondline: to save and sync your work, sign you in, run shared notebooks and share links, keep the service secure, and answer you if you contact us. We do not sell your data, use it for advertising, or use your notes to train AI models.</p>
-    <p>We process account data because it is needed to provide the service you asked for when you created an account, and based on your consent, which you can withdraw by deleting your account. This policy is written to meet Malaysia's Personal Data Protection Act 2010 and, for users in the EU and UK, the GDPR.</p>
-
-    <h2 id="keep">How long it's kept</h2>
-    <ul>
-      <li>Content in your account stays until you delete it or ask us to delete your account.</li>
-      <li>Deleted notes stay in Trash for 30 days, then are removed.</li>
-      <li>Shared copies stay until you turn sharing off or delete the note.</li>
-      <li>After an account deletion request, we delete your account and content within 30 days.</li>
-    </ul>
-
-    <h2 id="rights">Your choices and rights</h2>
-    <p>You can see and edit everything you have stored in the app itself, and export notes as PDFs. You can also ask us to:</p>
-    <ul>
-      <li>give you a copy of the personal data we hold about you;</li>
-      <li>correct it;</li>
-      <li>delete your account and all of its content;</li>
-      <li>stop processing it.</li>
-    </ul>
-    <p>Email <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a> from the address on your account and we will reply within 21 days. You can also complain to the data protection authority where you live; in Malaysia that is the Personal Data Protection Commissioner.</p>
-
-    <h2 id="children">Children</h2>
-    <p>Bondline is made for students, including school students. If you are under 13, or under the age at which you can agree to this yourself where you live, please ask a parent or guardian before creating an account. You can still use Bondline without an account, which keeps everything on your device. If you are a parent and believe your child has given us personal data without your permission, contact us and we will delete it.</p>
-
-    <h2 id="security">Security</h2>
-    <p>All connections to Bondline use HTTPS. Database rules check every read and write so that people can reach only their own data and the notebooks they belong to, and the site refuses to run code from other sources. No system is perfectly secure, so please use a strong password and sign out on shared computers.</p>
-
-    <h2 id="changes">Changes and contact</h2>
-    <p>If this policy changes, we will update the date at the top of this page. For important changes, we will also let you know in the app. Questions or requests: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
+<h2>Benzene</h2>
+<div class="tbl"><table><thead><tr><th>Reagent</th><th>Product</th></tr></thead><tbody>
+<tr><td>Conc. HNO₃, conc. H₂SO₄, &lt; 55 °C</td><td>Nitrobenzene.</td></tr>
+<tr><td>Br₂, FeBr₃ (or AlBr₃)</td><td>Bromobenzene.</td></tr>
+<tr><td>RCl, AlCl₃</td><td>Alkylbenzene (Friedel–Crafts alkylation).</td></tr>
+<tr><td>RCOCl, AlCl₃</td><td>Aryl ketone (Friedel–Crafts acylation).</td></tr>
+</tbody></table></div>
+<p>Examples: <figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 105 155" width="105" height="155" role="img" aria-label="1-phenylethan-1-one"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="73" x2="77.96" y2="88"/><line x1="53.64" y1="79.73" x2="71.3" y2="89.93"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="88" x2="77.96" y2="118"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="118" x2="51.98" y2="133"/><line x1="71.3" y1="116.07" x2="53.64" y2="126.27"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="133" x2="26" y2="118"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="118" x2="26" y2="88"/><line x1="31" y1="113.2" x2="31" y2="92.8"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="73" x2="26" y2="88"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="43" x2="51.98" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="28" x2="51.98" y2="43"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="53.28" y1="45.25" x2="73.28" y2="33.7"/><line x1="50.68" y1="40.75" x2="70.68" y2="29.2"/></g><text x="73.6" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>O</tspan></text></svg></div><figcaption><b>phenylethanone, from benzene + CH₃COCl / AlCl₃</b></figcaption></figure></p>
+<div class="cta"><p><b>Test yourself with synthesis problems in Bondline</b>Free, works offline, no account needed.</p><a href="/?synth">Open in Bondline</a></div>
   </article>
+  <aside class="side"><h2>More guides</h2><ul><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2 vs E1 vs E2: how to decide</a></li><li><a href="/guides/e-z-vs-cis-trans/">E/Z vs cis/trans isomers explained</a></li><li><a href="/guides/r-and-s-configuration/">How to assign R and S configuration</a></li><li><a href="/guides/nmr-splitting-n-plus-1-rule/">¹H NMR splitting and the n+1 rule</a></li><li><a href="/guides/ir-spectroscopy-table/">IR spectroscopy table and how to read a spectrum</a></li></ul><h2>Mechanisms</h2><ul><li><a href="/reactions/nabh4/">Reduction with NaBH₄</a></li><li><a href="/reactions/lialh4/">Reduction of an ester with LiAlH₄</a></li><li><a href="/reactions/grignard/">Grignard addition</a></li><li><a href="/reactions/wittig/">Wittig reaction</a></li></ul></aside>
 </main>
-
-<footer><span>© 2026 Bondline</span><span><a href="/?about">Home</a> · <a href="/?app">Open the notebook</a></span></footer>
+<footer><span>© 2026 Bondline · free organic chemistry notebook</span><span><a href="/guides/">Guides</a><a href="/reactions/">Reactions</a><a href="/privacy/">Privacy</a></span></footer>
 </body>
 </html>

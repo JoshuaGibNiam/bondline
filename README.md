@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 15)
+# Bondline: organic chemistry notebook (version 16)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,34 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 16
+
+- **Lecture mode.** Press the screen icon at the top of a note (or **Export → Present**) to show it full screen as slides. Each heading starts a slide. Curly arrows appear one at a time as you click, so you can talk through a mechanism. Keys: → / Space / clicker next, ← back, **B** black screen, **W** white screen, **L** laser pointer, **D** draw on the slide, **C** clear, **T** light/dark, **F** full screen, **Esc** exit. **Build** reveals points one at a time.
+- **PowerPoint export.** **Export → PowerPoint slides (.pptx)** makes a deck from the note: headings become slide titles, text keeps bold, italics, subscripts and lists, drawings and images become pictures, and flashcards become a table. The note text goes in the speaker notes.
+- **Synthesis problems** (new **Synthesis** icon on the left). 13 multi-step problems at three levels. Pick the reagents for each step; wrong choices explain what they'd make instead. **Add this route to a note** draws the whole route.
+- **Classes** (new **Classes** icon). A lecturer makes a class and shares its code or invite link (`bondline.site/?class=CODE`). They set naming quizzes, spectra practice, mechanism practice or synthesis problems, and see each student's best score, with a class average and a CSV download. Students see the work set and their own scores only.
+- **Study tips** on Home, after quizzes, after mechanism practice and in Synthesis and Classes.
+- **Guides and reaction pages for search engines.** 9 guides at `/guides/` (SN1 vs SN2, naming alkenes, E/Z, R/S, NMR splitting, IR table, curly arrows, Markovnikov's rule, reagents cheat sheet) and a page for each of the 34 library reactions at `/reactions/`, with the mechanism drawn. The landing page links to them and `sitemap.xml` lists all 47 pages.
+- **Links into the app:** `/?rx=sn2` opens a reaction, `/?practise=sn2` starts practising it, `/?synth` opens Synthesis, `/?class=CODE` opens Classes with the code filled in.
+
+### Updating to version 16: one extra step in Firebase
+
+Classes need **new Firestore security rules**. Without them, everything else works but classes can't be created or joined.
+
+1. Upload the `bondline-app` folder to Netlify as usual.
+2. Firebase console → **Firestore Database** → **Rules**. Replace everything with the contents of `firestore.rules` from this folder and press **Publish**. (If Publish shows an error, nothing changes; send the message to Claude.)
+3. Check the rules in the **Rules Playground** (with **Authenticated** on):
+   - `create` on `/classes/test1` with data `{"name":"Test","owner":"<your uid>","ownerName":"Me","code":"ABCD2345","memberIds":[],"at":1}` → **allowed** when the playground uid matches `owner`, **denied** otherwise.
+   - `get` on `/classCodes/ABCD2345` → **allowed**; `list` on `/classCodes` → **denied**.
+
+Things to know about classes:
+- Scores are worked out in the student's browser, so a determined student could fake one. Treat them as practice records, not exam marks.
+- Students' names and emails are stored in `classes/{class}/members/{student}`, readable only by the lecturer and that student.
+
+### Google Search Console after this update
+
+In Search Console → **Sitemaps**, submit `sitemap.xml` again so Google picks up the 45 new pages. Then use **URL inspection** → **Request indexing** for `https://bondline.site/guides/` and `https://bondline.site/reactions/`. Google will find the rest from those.
 
 ## New in version 15
 
@@ -162,13 +190,14 @@ The landing page tells search engines that `bondline.site` is the main address. 
 |---|---|
 | `index.html`, `app.js`, `boot.js` | The app itself |
 | `landing.js` | Animations for the landing page |
+| `guides/`, `reactions/`, `assets/site.css` | Public guide and reaction pages for search engines |
 | `privacy/` | The privacy policy page |
 | `robots.txt`, `sitemap.xml`, `og-image.png` | Help search engines and social media show Bondline |
 | `_headers`, `_redirects` | Security settings and redirects that Netlify applies automatically |
 | `firebase-config.js` | Your Firebase settings (already filled in) |
 | `firestore.rules` | Database security rules to paste into Firebase |
 | `manifest.webmanifest`, `sw.js` | Make the app installable and work offline |
-| `icons/`, `fonts/`, `vendor/` | Icons, fonts, the PDF tools, the 3D engine and the Firebase library |
+| `icons/`, `fonts/`, `vendor/` | Icons, fonts, the PDF and PowerPoint tools, the 3D engine and the Firebase library |
 
 ## Updating from version 7 (do the steps in this order)
 
@@ -215,4 +244,4 @@ All of these are in the Firebase console for your project.
 
 ## Updating the app later
 
-If you change any files, edit the version near the top of `sw.js` (for example `bondline-v15` to `bondline-v16`) before uploading. Installed copies then pick up the update the next time they're opened.
+If you change any files, edit the version near the top of `sw.js` (for example `bondline-v16` to `bondline-v17`) before uploading. Installed copies then pick up the update the next time they're opened.

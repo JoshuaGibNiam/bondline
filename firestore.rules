@@ -252,6 +252,145 @@ service cloud.firestore {
                 && d.blocks is list && d.blocks.size() <= 400);
     }
 
+    // ---------- Classes (version 16) ----------
+    // A lecturer owns a class. Students join with its 8-character code, which only members can see.
+    // Members read the class and its assignments. Students' names, emails and results are readable
+    // only by the lecturer and by that student.
+    match /classes/{cid} {
+      allow get, list: if signedIn() && (resource.data.owner == request.auth.uid || request.auth.uid in resource.data.memberIds);
+      allow create: if signedIn() && validNewClass(request.resource.data);
+      allow update: if signedIn() && validClass(request.resource.data) && (classOwnerUpdate() || classJoin() || classLeave());
+      allow delete: if signedIn() && resource.data.owner == request.auth.uid;
+
+      match /assignments/{aid} {
+        allow read: if isClassOwner(cid) || isClassMember(cid);
+        allow create, update: if isClassOwner(cid) && validAssignment(request.resource.data);
+        allow delete: if isClassOwner(cid);
+      }
+      // Each student's name and email: readable only by the lecturer and that student.
+      match /members/{uid} {
+        allow read: if isClassOwner(cid) || (signedIn() && request.auth.uid == uid);
+        allow create, update: if signedIn() && request.auth.uid == uid && isClassMember(cid)
+                              && request.resource.data.keys().hasOnly(['n', 'e', 'at'])
+                              && request.resource.data.n is string && request.resource.data.n.size() <= 80
+                              && request.resource.data.e is string && request.resource.data.e.size() <= 120
+                              && request.resource.data.at is number;
+        allow delete: if isClassOwner(cid) || (signedIn() && request.auth.uid == uid);
+      }
+      match /results/{rid} {
+        allow get: if isClassOwner(cid) || (signedIn() && (resource == null || resource.data.uid == request.auth.uid));
+        allow list: if isClassOwner(cid) || (signedIn() && resource.data.uid == request.auth.uid);
+        allow create, update: if isClassMember(cid) && validResult(cid, rid, request.resource.data);
+        allow delete: if isClassOwner(cid) || (signedIn() && resource.data.uid == request.auth.uid);
+      }
+    }
+
+    // Class codes point to a class. Anyone signed in can look up one code they already know, but nobody can list them.
+    match /classCodes/{code} {
+      allow get: if signedIn() && code.size() == 8;
+      allow list, update: if false;
+      allow create: if signedIn() && code.size() == 8
+                    && request.resource.data.keys().hasOnly(['cid', 'by', 'at'])
+                    && request.resource.data.by == request.auth.uid
+                    && request.resource.data.cid is string
+                    && classData(request.resource.data.cid).owner == request.auth.uid
+                    && classData(request.resource.data.cid).code == code;
+      allow delete: if signedIn() && resource.data.by == request.auth.uid;
+    }
+
+    function classData(cid) {
+      return get(/databases/$(database)/documents/classes/$(cid)).data;
+    }
+
+    function isClassOwner(cid) {
+      return signedIn() && classData(cid).owner == request.auth.uid;
+    }
+
+    function isClassMember(cid) {
+      return signedIn() && request.auth.uid in classData(cid).memberIds;
+    }
+
+    function validClass(d) {
+      return d.keys().hasOnly(['name', 'owner', 'ownerName', 'code', 'memberIds', 'at', 'lastJoin'])
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+          && d.owner is string
+          && d.ownerName is string && d.ownerName.size() <= 80
+          && d.code is string && d.code.size() == 8
+          && d.memberIds is list && d.memberIds.size() <= 300
+          && d.at is number
+          && (!('lastJoin' in d) || (d.lastJoin is string && d.lastJoin.size() <= 200))
+          && !(d.owner in d.memberIds);
+    }
+
+    function validNewClass(d) {
+      return validClass(d)
+          && d.owner == request.auth.uid
+          && d.memberIds.size() == 0
+          && !('lastJoin' in d);
+    }
+
+    // The lecturer can rename the class and remove students, but can't add anyone or change the code.
+    function classOwnerUpdate() {
+      let d = request.resource.data;
+      let o = resource.data;
+      return o.owner == request.auth.uid
+          && d.owner == o.owner && d.code == o.code
+          && d.diff(o).affectedKeys().hasOnly(['name', 'ownerName', 'memberIds'])
+          && o.memberIds.toSet().hasAll(d.memberIds);
+    }
+
+    // A student adds only themselves, and proves they know the code by writing "<code>:<their id>".
+    function classJoin() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      return !(me in o.memberIds) && me != o.owner
+          && d.lastJoin == o.code + ':' + me
+          && d.diff(o).affectedKeys().hasOnly(['memberIds', 'lastJoin'])
+          && d.memberIds.toSet() == o.memberIds.toSet().union([me].toSet())
+          && d.memberIds.size() == o.memberIds.size() + 1;
+    }
+
+    // A student removes only themselves.
+    function classLeave() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      return me in o.memberIds
+          && d.diff(o).affectedKeys().hasOnly(['memberIds'])
+          && d.memberIds.toSet() == o.memberIds.toSet().difference([me].toSet());
+    }
+
+    function validAssignment(d) {
+      return d.keys().hasOnly(['title', 'kind', 'cfg', 'due', 'at', 'by'])
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && d.kind in ['naming', 'spectra', 'mech', 'synth']
+          && d.cfg is map && d.cfg.keys().hasOnly(['topics', 'len', 'style', 'ids'])
+          && (!('topics' in d.cfg) || (d.cfg.topics is list && d.cfg.topics.size() <= 12))
+          && (!('ids' in d.cfg) || (d.cfg.ids is list && d.cfg.ids.size() <= 40))
+          && (!('len' in d.cfg) || (d.cfg.len is int && d.cfg.len > 0 && d.cfg.len <= 50))
+          && (!('style' in d.cfg) || (d.cfg.style is string && d.cfg.style.size() <= 10))
+          && (d.due == null || d.due is number)
+          && d.at is number
+          && d.by == request.auth.uid;
+    }
+
+    function validResult(cid, rid, d) {
+      return d.keys().hasOnly(['aid', 'uid', 'n', 'e', 'score', 'total', 'best', 'tries', 'at'])
+          && d.uid == request.auth.uid
+          && d.aid is string && d.aid.size() <= 40
+          && rid == d.aid + '_' + request.auth.uid
+          && d.n is string && d.n.size() <= 80
+          && d.e is string && d.e.size() <= 120
+          && d.score is int && d.total is int && d.best is int && d.tries is int
+          && d.total >= 1 && d.total <= 500
+          && d.score >= 0 && d.score <= d.total
+          && d.best >= 0 && d.best <= d.total
+          && d.tries >= 1 && d.tries <= 100000
+          && d.at is number
+          && exists(/databases/$(database)/documents/classes/$(cid)/assignments/$(d.aid));
+    }
+
     // Everything else is closed.
     match /{path=**} {
       allow read, write: if false;

@@ -2767,13 +2767,13 @@ let qzSaveT;function saveQuiz(){clearTimeout(qzSaveT);qzSaveT=setTimeout(()=>{tr
 function mergeQuiz(remote){if(!remote||!remote.q)return;for(const[id,r]of Object.entries(remote.q)){const l=App.quiz.q[id];if(!l||(r.at||0)>(l.at||0))App.quiz.q[id]=r}}
 function topicStats(t){const qs=NM_BANK.filter(q=>q.t===t);const m=qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:qs.length}}
 function setMode(mode){
-  if(!['home','notes','cards','naming','guide','spectra','orbitals'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
+  if(!['home','notes','cards','naming','guide','spectra','orbitals','synth','classes'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
   App.mode=mode;closePop();
   document.querySelectorAll('.mode').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
-  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';
-  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals'].includes(mode);
+  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';$('#synthSide').hidden=mode!=='synth';$('#classSide').hidden=mode!=='classes';$('#synthPage').hidden=mode!=='synth';$('#classPage').hidden=mode!=='classes';
+  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals','synth','classes'].includes(mode);
   if(mode==='naming'){renderNamingSide();if(!NM.view)openLesson('intro')}
-  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();
+  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();if(mode==='synth')synOpen();if(mode==='classes')clOpen();
   if(mode==='home')renderHome();
   if(mode==='cards')renderCardsPage();
   if(mode==='guide'&&!$('#guidePage').firstChild)renderGuide();
@@ -2873,7 +2873,7 @@ function nextQuestion(){const Z=NM.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.
 function finishQuiz(early){
   const Z=NM.qz;if(!Z)return;
   if(early&&!Z.results.length){NM.qz=null;return quizSetup(Z.cfg.topics)}
-  NM.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);
+  NM.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length)}
   const byT={};res.forEach(r=>{const b=byT[r.q.t]=byT[r.q.t]||{ok:0,n:0};b.n++;if(r.ok)b.ok++});
   const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. Review the ones you missed below.':'Keep going. The lessons cover each rule with examples.';
   $('#namingPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Quiz results</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
@@ -3552,9 +3552,9 @@ const MP={queue:[],i:0,ed:null,prevTool:null,score:0,tried:0};
 function practiceItems(id){const out=[];for(const r of RXN){if(id&&r.id!==id)continue;r.steps.forEach((s,k)=>{if(s.a&&s.a.length)out.push({r,k})})}return out}
 function openPractice(id){MP.queue=id?practiceItems(id):shuffle(practiceItems());MP.i=0;MP.score=0;MP.tried=0;MP.prevTool=App.tool;MP.prevActive=App.active;$('#mechScrim').hidden=false;document.body.classList.add('sk-lock');
   $('#mpWhich').innerHTML=`<option value="">All reactions (mixed)</option>`+RXN.map(r=>`<option value="${r.id}"${r.id===id?' selected':''}>${esc(r.name)}</option>`).join('');showProblem()}
-function closePractice(){$('#mechScrim').hidden=true;document.body.classList.remove('sk-lock');if(MP.prevTool)setTool(MP.prevTool);App.active=null;App.setActive(App.editors.includes(MP.prevActive)?MP.prevActive:(App.editors[0]||null));MP.ed=null}
+function closePractice(){MP.onDone=null;$('#mpWhich').hidden=false;$('#mechScrim').hidden=true;document.body.classList.remove('sk-lock');if(MP.prevTool)setTool(MP.prevTool);App.active=null;App.setActive(App.editors.includes(MP.prevActive)?MP.prevActive:(App.editors[0]||null));MP.ed=null}
 function showProblem(){
-  const it=MP.queue[MP.i];if(!it){$('#mpBody').innerHTML=`<div class="st-end"><div class="st-big">✓</div><h2>Practice complete</h2><p>You got ${MP.score} of ${MP.tried} steps right first time.</p><div class="st-endrow"><button class="btn" data-mp="close">Done</button><button class="btn primary" data-mp="restart">Practise again</button></div></div>`;$('#mpCount').textContent='';return}
+  const it=MP.queue[MP.i];if(!it){if(MP.onDone){const cb=MP.onDone;MP.onDone=null;cb(MP.score,MP.queue.length)}$('#mpBody').innerHTML=`<div class="st-end"><div class="st-big">✓</div><h2>Practice complete</h2><p>You got ${MP.score} of ${MP.tried} steps right first time.</p><div class="st-endrow"><button class="btn" data-mp="close">Done</button><button class="btn primary" data-mp="restart">Practise again</button></div></div>`;$('#mpCount').textContent='';return}
   const{r,k}=it,{d,answer}=mechRow(r,k,{noCurls:true});MP.answer=answer;MP.first=true;MP.shown=false;
   const st=r.steps[k];
   $('#mpCount').textContent=`${MP.i+1} / ${MP.queue.length}`;
@@ -3719,7 +3719,7 @@ function pickImages(after){const inp=document.createElement('input');inp.type='f
 /* command palette (Ctrl+K) */
 const CMD={items:[],res:[],sel:0};
 function fuzzy(q,s){q=q.toLowerCase();s=s.toLowerCase();if(!q)return 1;const i=s.indexOf(q);if(i>=0)return 100-i+(i===0||s[i-1]===' '?30:0);let j=0,score=0,run=0;for(let k=0;k<s.length&&j<q.length;k++){if(s[k]===q[j]){j++;run++;score+=run*2+(k===0||s[k-1]===' '?5:0)}else run=0}return j===q.length?score:0}
-function cmdItems(){const I=[],A=(label,kind,fn,kw)=>I.push({label,kind,fn,kw:kw||''});
+function cmdItems(){const I=[],A=(label,kind,fn,kw)=>I.push({label,kind,fn,kw:kw||''});if(App.cur&&!App.cur.virtual){const cn=App.cur;A('Present this note','This note',()=>openLecture(cn),'lecture slides projector slideshow');A('Export this note to PowerPoint','This note',()=>exportPPTX(cn),'pptx slides powerpoint')}A('Synthesis problems','Chemistry',()=>setMode('synth'),'synthesis route reagents practice');A('Classes','Action',()=>setMode('classes'),'class teacher lecturer assignment join code students');
   A('New note','Action',()=>newNote(),'create add');A('New whiteboard','Action',()=>newWhiteboard(),'sketch draw');A('New flashcard deck','Action',()=>newDeck(),'cards');
   A('Study flashcards','Action',()=>startStudy(allDecks().map(x=>x.b),false),'review cards');A('Mechanism practice','Chemistry',()=>openPractice(),'curly arrows quiz');A('Reaction library','Chemistry',()=>openLibrary(),'named reactions mechanisms');
   A('Formula calculator','Chemistry',()=>openRef('calc'),'molar mass moles empirical molecular percentage composition');A('Reaction builder','Chemistry',()=>openBuilder(App.active?'after':'end'),'equation balance draw full reaction');A('Resonance structures','Chemistry',()=>drawResonance(),'contributors delocalised hybrid');A('Print or save note as PDF','Action',()=>App.cur&&printNotes([App.cur],App.cur.title||'note'),'pdf export text');
@@ -4016,7 +4016,8 @@ async function printNotes(notes,title){notes=notes.filter(Boolean);if(!notes.len
   catch(e){console.error(e);area.remove();App.printing=false;toast('Couldn\'t prepare the note for printing.')}}
 function pdfMenu(btn,notes,base){const m=$('#pdfMenu');if(!m.hidden){m.hidden=true;return}
   m.innerHTML=`<button class="cm-it" data-pdf="text" role="menuitem"><span class="cm-ic" aria-hidden="true">T</span><span><b>Print or save as PDF</b><small>Selectable, searchable text and sharp drawings</small></span></button><button class="cm-it" data-pdf="img" role="menuitem"><span class="cm-ic" aria-hidden="true">▣</span><span><b>Download PDF (image)</b><small>Looks exactly like the screen; text can't be selected</small></span></button>`;
-  m._go=k=>{m.hidden=true;if(k==='text')printNotes(notes,base);else exportPDF(notes,base+'.pdf')};
+  if(notes.length===1)m.innerHTML+=`<button class="cm-it" data-pdf="pptx" role="menuitem"><span class="cm-ic" aria-hidden="true">P</span><span><b>PowerPoint slides (.pptx)</b><small>Each heading starts a slide; drawings become images</small></span></button><button class="cm-it" data-pdf="present" role="menuitem"><span class="cm-ic" aria-hidden="true">▶</span><span><b>Present (lecture mode)</b><small>Full screen; step through curly arrows</small></span></button>`;
+  m._go=k=>{m.hidden=true;if(k==='text')printNotes(notes,base);else if(k==='pptx')exportPPTX(notes[0]);else if(k==='present')openLecture(notes[0]);else exportPDF(notes,base+'.pdf')};
   const r=btn.getBoundingClientRect();m.hidden=false;const w=m.offsetWidth;m.style.left=Math.max(8,Math.min(innerWidth-w-8,r.right-w))+'px';m.style.top=(r.bottom+6)+'px';m.querySelector('button').focus()}
 /* ---------- appearance ---------- */
 const SCHEME_NAMES={copper:'Copper Sulfate',malachite:'Malachite',potassium:'Potassium Flame',sodium:'Sodium Lamp'};
@@ -4078,13 +4079,13 @@ function openNote(id){
   $('#side').classList.remove('open');
   if(!n){head.innerHTML=`<div class="empty"><h2>No note open</h2><p>Start a note to draw structures, reactions and mechanisms.</p><button class="btn primary" id="emptyNew">New note</button></div>`;blocks.innerHTML='';$('#palette').hidden=true;$('#addbar').hidden=true;$('#emptyNew').onclick=newNote;renderList();return}
   $('#palette').hidden=false;$('#addbar').hidden=false;
-  head.innerHTML=`<header class="note-head"><textarea class="note-title" id="noteTitle" rows="1" placeholder="Untitled note" aria-label="Note title">${esc(n.title)}</textarea><div class="note-meta"><label class="nm-folder" title="Folder"><span aria-hidden="true">▤</span><select id="noteFolder" aria-label="Folder"></select></label><div class="tagchips" id="noteTags"><span class="lbl">Tags</span><input list="tagList" aria-label="Add a tag, then press Enter" maxlength="40"></div><datalist id="tagList"></datalist><div class="nh-acts" role="toolbar" aria-label="Note actions"><button class="nh-b" id="notePin" aria-pressed="false" aria-label="Pin"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></svg></button><button class="nh-b" id="cmtBtn" aria-controls="cmtPanel" aria-expanded="false" title="Comments" aria-label="Comments"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></svg><span class="cm-n"></span></button><button class="nh-b" id="histBtn" title="History: earlier versions of this note" aria-label="History"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8.5" cy="8" r="5.5"/><path d="M8.5 5v3.2l2 1.3M1.5 7.5l1.4 1.6 1.5-1.6"/></svg></button><button class="nh-b" id="shareBtn" hidden title="Share a read-only link" aria-label="Share"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="12" cy="3.5" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12.5" r="1.8"/><path d="M5.6 7.1l4.8-2.7M5.6 8.9l4.8 2.7"/></svg></button><button class="nh-b" id="pdfNote" title="Export this note to PDF" aria-label="Export PDF"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.3 2v3.2h3M8.2 7.5v4.2M6.4 10l1.8 1.8L10 10"/></svg></button><button class="nh-b nh-del" id="delNote" title="Move to Trash" aria-label="Delete note"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.6 8.5h4.8l.6-8.5"/></svg></button></div></div><div class="note-date" id="noteDate">Edited ${fmtDate(n.updated)}</div></header>`;
+  head.innerHTML=`<header class="note-head"><textarea class="note-title" id="noteTitle" rows="1" placeholder="Untitled note" aria-label="Note title">${esc(n.title)}</textarea><div class="note-meta"><label class="nm-folder" title="Folder"><span aria-hidden="true">▤</span><select id="noteFolder" aria-label="Folder"></select></label><div class="tagchips" id="noteTags"><span class="lbl">Tags</span><input list="tagList" aria-label="Add a tag, then press Enter" maxlength="40"></div><datalist id="tagList"></datalist><div class="nh-acts" role="toolbar" aria-label="Note actions"><button class="nh-b" id="notePin" aria-pressed="false" aria-label="Pin"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></svg></button><button class="nh-b" id="cmtBtn" aria-controls="cmtPanel" aria-expanded="false" title="Comments" aria-label="Comments"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v7.5H7l-3 2.5V11H2.5z"/></svg><span class="cm-n"></span></button><button class="nh-b" id="histBtn" title="History: earlier versions of this note" aria-label="History"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8.5" cy="8" r="5.5"/><path d="M8.5 5v3.2l2 1.3M1.5 7.5l1.4 1.6 1.5-1.6"/></svg></button><button class="nh-b" id="shareBtn" hidden title="Share a read-only link" aria-label="Share"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="12" cy="3.5" r="1.8"/><circle cx="4" cy="8" r="1.8"/><circle cx="12" cy="12.5" r="1.8"/><path d="M5.6 7.1l4.8-2.7M5.6 8.9l4.8 2.7"/></svg></button><button class="nh-b" id="presentBtn" title="Present this note (lecture mode)" aria-label="Present"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.2"/><path d="M8 11v2.5M5.5 13.8h5M6.8 5v3.6l3-1.8z"/></svg></button><button class="nh-b" id="pdfNote" title="Export this note: PDF or PowerPoint" aria-label="Export"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.3 2v3.2h3M8.2 7.5v4.2M6.4 10l1.8 1.8L10 10"/></svg></button><button class="nh-b nh-del" id="delNote" title="Move to Trash" aria-label="Delete note"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.6 8.5h4.8l.6-8.5"/></svg></button></div></div><div class="note-date" id="noteDate">Edited ${fmtDate(n.updated)}</div></header>`;
   const ti=$('#noteTitle'),fit=()=>{ti.style.height='auto';ti.style.height=ti.scrollHeight+'px'};fit();requestAnimationFrame(fit);
   ti.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const tb=document.querySelector('.text-body');if(tb)tb.focus()}});
   ti.addEventListener('input',e=>{const v=e.target.value.replace(/\n+/g,' ');if(v!==e.target.value)e.target.value=v;n.title=v;fit();App.noteChanged(n)});
   wireNoteOrg(n);$('#cmtBtn').onclick=()=>CM.open?closeComments():openComments();
   $('#delNote').onclick=()=>deleteNote(n);$('#histBtn').onclick=openHistory;if(window.BL_SHARE)BL_SHARE.wire(n);if(!n.example)snapshot(n,false,'');
-  $('#pdfNote').onclick=e=>pdfMenu(e.currentTarget,[n],fileBase());
+  $('#pdfNote').onclick=e=>pdfMenu(e.currentTarget,[n],fileBase());$('#presentBtn').onclick=()=>openLecture(n);
   blocks.innerHTML='';for(const b of n.blocks)blocks.appendChild(blockEl(b,n));
   App.setActive(App.editors[0]||null);setCtx('struct');renderList();refreshOutline();if(CM.open)renderComments();syncCmtButton();markCommentSpans();if(App.mode==='notes')$('#main').scrollTop=0;
 }
@@ -4174,7 +4175,7 @@ async function paletteAct(a){
   }
 }
 const PDF_ICON='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.8h5.5L12.5 5v9.2H4z"/><path d="M9.3 2v3.2h3M6.2 8.6l2 2 2-2M8.2 6.4v4"/></svg>';
-const LIBS={THREE:'vendor/three.min.js',jspdf:'vendor/jspdf.umd.min.js',html2canvas:'vendor/html2canvas.min.js'};
+const LIBS={PptxGenJS:'vendor/pptxgen.bundle.js',THREE:'vendor/three.min.js',jspdf:'vendor/jspdf.umd.min.js',html2canvas:'vendor/html2canvas.min.js'};
 function loadLib(name){if(window[name])return Promise.resolve();return new Promise((res,rej)=>{const s=document.createElement('script');s.src=LIBS[name];s.onload=()=>res();s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)})}
 async function buildPrint(note,vec){
   const root=document.createElement('div');root.className='print-root';const LP=SCHEME_LIGHT[PRINT.scheme]||SCHEME_LIGHT.copper;
@@ -5801,7 +5802,7 @@ const secHead=(k,label,extra,n)=>`<div class="fd-sec sec-h" data-sechead="${k}">
     secApply();
   };
 }
-function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals'}[mode]||'Notes'}
+function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals',synth:'Synthesis',classes:'Classes'}[mode]||'Notes'}
 {
   const _sm=setMode;
   setMode=function(mode){_sm(mode);setPanelTitle(App.mode)};
@@ -6293,7 +6294,7 @@ function spAnswer(k){
 function spNext(){const Z=SP.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.length-1)return spFinish(false);Z.i++;spRenderQ()}
 function spFinish(early){
   const Z=SP.qz;if(!Z)return;if(early&&!Z.results.length){SP.qz=null;return spSetup(Z.cfg.topics)}
-  SP.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);
+  SP.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length)}
   const byT={};res.forEach(r=>{const b=byT[r.q.t]=byT[r.q.t]||{ok:0,n:0};b.n++;if(r.ok)b.ok++});
   const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. The lessons cover anything you missed.':'Keep going. Each lesson has tables and example spectra.';
   $('#specPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Practice results</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
@@ -6634,6 +6635,579 @@ function wireOrbitals(){
 }
 
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl,{SP_BANK,spPoolGet,spBuild,spDoU,spHEnv,obPiCalc,obDiaCalc,obEig,obMesh,obGrid,obThreshold,AO});
-wireV13();wireSpectra();wireOrbitals();
-boot();
+/* ---------- v16: synthesis problems ----------
+   Each step: the reagents that work (first option) plus three that don't, each with the reason.
+   s = start, t = target, p = product of the step. */
+const SYN=[
+ {id:'ethene-acid',lv:1,title:'Ethene to ethanoic acid',s:'C=C',t:'CC(=O)O',
+  intro:'Turn an alkene into a carboxylic acid in two steps.',
+  steps:[
+   {p:'CCO',hint:'First add the elements of water across the C=C.',why:'Steam adds across the double bond (hydration), catalysed by phosphoric acid.',
+    o:[['H₂O(g), H₃PO₄ catalyst, 300 °C',''],['HBr','Gives bromoethane, not an alcohol.'],['H₂, Ni catalyst, 150 °C','Hydrogenation gives ethane. The C=C goes, but no oxygen is added.'],['Cold dilute KMnO₄','Adds two OH groups, giving ethane-1,2-diol.']]},
+   {p:'CC(=O)O',hint:'A primary alcohol needs full oxidation, and the aldehyde must not escape.',why:'Heating under reflux keeps the aldehyde in the flask so it is oxidised on to the carboxylic acid.',
+    o:[['K₂Cr₂O₇, H₂SO₄, heat under reflux',''],['K₂Cr₂O₇, H₂SO₄, distil as it forms','Distilling removes ethanal before it can be oxidised further.'],['NaBH₄','A reducing agent; it can\'t oxidise an alcohol.'],['Concentrated H₂SO₄, 170 °C','Dehydrates ethanol back to ethene.']]}]},
+ {id:'propene-ketone',lv:1,title:'Propene to propanone',s:'C=CC',t:'CC(C)=O',
+  intro:'Make a ketone from an alkene. Think about which carbon the oxygen ends up on.',
+  steps:[
+   {p:'CC(C)O',hint:'Markovnikov: H goes to the carbon that already has more H atoms.',why:'Acid-catalysed hydration goes through the more stable secondary carbocation, so OH ends up on the middle carbon.',
+    o:[['H₂O(g), H₃PO₄ catalyst, 300 °C',''],['1. BH₃·THF  2. H₂O₂, NaOH','Hydroboration is anti-Markovnikov: it gives propan-1-ol.'],['HBr, peroxides','Radical addition puts Br on the end carbon: 1-bromopropane.'],['H₂, Pt','Gives propane.']]},
+   {p:'CC(C)=O',hint:'Secondary alcohols oxidise once, to a ketone.',why:'A secondary alcohol is oxidised to a ketone, which can\'t be oxidised further by dichromate.',
+    o:[['K₂Cr₂O₇, H₂SO₄, heat',''],['NaBH₄, then H₂O','Reduces C=O; it doesn\'t oxidise alcohols.'],['Tollens\' reagent','Tollens\' oxidises aldehydes only.'],['PBr₃','Replaces OH with Br: 2-bromopropane.']]}]},
+ {id:'nitrile-acid',lv:1,title:'Add a carbon: 1-bromopropane to butanoic acid',s:'CCCBr',t:'CCCC(=O)O',
+  intro:'The product has one more carbon than the start. Which reagent adds a carbon?',
+  steps:[
+   {p:'CCCC#N',hint:'Cyanide is a carbon nucleophile.',why:'CN⁻ substitutes for bromide (SN2), adding one carbon. Ethanol as solvent avoids hydrolysis to the alcohol.',
+    o:[['KCN in ethanol, heat under reflux',''],['KOH(aq), heat','Substitution by OH⁻ gives propan-1-ol: no new carbon.'],['KOH in ethanol, heat','Elimination: propene.'],['Excess NH₃ in ethanol, heat','Gives propylamine: no new carbon.']]},
+   {p:'CCCC(=O)O',hint:'C≡N can be hydrolysed all the way to COOH.',why:'Heating a nitrile with aqueous acid hydrolyses it, through the amide, to the carboxylic acid.',
+    o:[['Dilute HCl(aq), heat under reflux',''],['LiAlH₄, then H₂O','Reduces the nitrile to an amine, butylamine.'],['H₂, Ni','Also reduces to the amine.'],['K₂Cr₂O₇, H₂SO₄','Nitriles aren\'t oxidised by dichromate.']]}]},
+ {id:'benzene-aniline',lv:1,title:'Benzene to phenylamine',s:'c1ccccc1',t:'Nc1ccccc1',
+  intro:'Put an NH₂ group on a benzene ring. You can\'t add it directly.',
+  steps:[
+   {p:'[O-][N+](=O)c1ccccc1',hint:'Electrophilic substitution with the nitronium ion, NO₂⁺.',why:'Concentrated nitric and sulfuric acids make NO₂⁺, which substitutes on the ring. Keeping below 55 °C avoids a second nitration.',
+    o:[['Conc. HNO₃, conc. H₂SO₄, below 55 °C',''],['NH₃, heat','Ammonia is a nucleophile; benzene only reacts with electrophiles.'],['Dilute HNO₃, room temperature','Too weak to make NO₂⁺; benzene doesn\'t react.'],['Br₂, FeBr₃','Gives bromobenzene.']]},
+   {p:'Nc1ccccc1',hint:'Reduce the nitro group.',why:'Tin and concentrated HCl reduce NO₂ to NH₃⁺; adding NaOH releases the free amine.',
+    o:[['1. Sn, conc. HCl, heat  2. NaOH(aq)',''],['NaBH₄','Too mild to reduce a nitro group.'],['K₂Cr₂O₇, H₂SO₄','An oxidising agent; nitro needs reducing.'],['H₂O, heat','Nothing happens.']]}]},
+ {id:'benzene-alcohol',lv:2,title:'Benzene to 1-phenylethanol',s:'c1ccccc1',t:'CC(O)c1ccccc1',
+  intro:'Attach a two-carbon chain to the ring, then make the alcohol.',
+  steps:[
+   {p:'CC(=O)c1ccccc1',hint:'Friedel–Crafts acylation adds an acyl group.',why:'AlCl₃ turns ethanoyl chloride into the acylium ion CH₃CO⁺, which substitutes on the ring. Acylation stops at one group because the ketone deactivates the ring.',
+    o:[['CH₃COCl, AlCl₃',''],['CH₃CH₂Cl, AlCl₃','Friedel–Crafts alkylation gives ethylbenzene (and can over-alkylate); no oxygen.'],['CH₃COOH, heat','Carboxylic acids don\'t acylate benzene.'],['CH₃CHO, NaOH','An aldol-type reagent; benzene doesn\'t react.']]},
+   {p:'CC(O)c1ccccc1',hint:'Reduce a ketone to a secondary alcohol.',why:'NaBH₄ delivers hydride to the carbonyl carbon; protonation gives the secondary alcohol.',
+    o:[['NaBH₄ in methanol, then H₂O',''],['K₂Cr₂O₇, H₂SO₄','Oxidising agent; ketones aren\'t oxidised further.'],['Zn(Hg), conc. HCl','Clemmensen reduction removes the oxygen completely: ethylbenzene.'],['HCN, KCN','Adds CN: a cyanohydrin.']]}]},
+ {id:'ethanal-lactic',lv:2,title:'Ethanal to 2-hydroxypropanoic acid',s:'CC=O',t:'CC(O)C(=O)O',
+  intro:'Lactic acid has one more carbon than ethanal, plus an OH.',
+  steps:[
+   {p:'CC(O)C#N',hint:'Nucleophilic addition of cyanide to C=O.',why:'CN⁻ attacks the carbonyl carbon and the alkoxide is protonated by HCN, giving a hydroxynitrile (cyanohydrin). This adds a carbon.',
+    o:[['HCN, KCN catalyst',''],['KCN in ethanol, heat under reflux','Those are the conditions for substituting halogenoalkanes; ethanal has no leaving group.'],['NaBH₄, then H₂O','Reduces ethanal to ethanol.'],['Tollens\' reagent','Oxidises ethanal to ethanoic acid.']]},
+   {p:'CC(O)C(=O)O',hint:'Hydrolyse the nitrile.',why:'Acid hydrolysis turns C≡N into COOH and leaves the OH in place.',
+    o:[['Dilute H₂SO₄(aq), heat under reflux',''],['LiAlH₄, then H₂O','Reduces C≡N to CH₂NH₂: an amino alcohol.'],['Conc. H₂SO₄, 170 °C','Dehydration conditions; you\'d lose the OH.'],['PCl₅','Swaps OH for Cl.']]}]},
+ {id:'anti-mark',lv:2,title:'2-Methylpropene to 2-methylpropanal',s:'C=C(C)C',t:'CC(C)C=O',
+  intro:'The oxygen must end up on the end carbon, which is the less substituted one.',
+  steps:[
+   {p:'CC(C)CO',hint:'You need anti-Markovnikov addition of water.',why:'Boron adds to the less hindered carbon; oxidation swaps B for OH with retention, so OH ends up on the end carbon.',
+    o:[['1. BH₃·THF  2. H₂O₂, NaOH',''],['H₂O, H₂SO₄ catalyst','Markovnikov hydration gives the tertiary alcohol, 2-methylpropan-2-ol.'],['HBr','Markovnikov: 2-bromo-2-methylpropane.'],['O₃, then Zn/H₂O','Ozonolysis cuts the C=C: propanone and methanal.']]},
+   {p:'CC(C)C=O',hint:'Stop the oxidation at the aldehyde.',why:'PCC in dichloromethane has no water, so the aldehyde isn\'t oxidised further.',
+    o:[['PCC, CH₂Cl₂',''],['KMnO₄, heat','Oxidises right through to 2-methylpropanoic acid.'],['K₂Cr₂O₇, H₂SO₄, heat under reflux','Also goes on to the carboxylic acid.'],['NaBH₄','A reducing agent.']]}]},
+ {id:'ether',lv:2,title:'Propan-1-ol to 1-ethoxypropane',s:'CCCO',t:'CCCOCC',
+  intro:'Make an ether by joining two pieces with an SN2 reaction.',
+  steps:[
+   {p:'CCCBr',hint:'Make the OH into a good leaving group.',why:'PBr₃ converts a primary alcohol into the alkyl bromide by SN2, with no rearrangement.',
+    o:[['PBr₃',''],['NaBr(aq)','Bromide can\'t displace OH⁻, which is a poor leaving group.'],['Br₂, light','Radical substitution on C–H, not on OH.'],['HBr, peroxides','Peroxides affect HBr addition to alkenes; there is no alkene here.']]},
+   {p:'CCCOCC',hint:'Williamson ether synthesis: alkoxide + primary halide.',why:'Ethoxide is a strong nucleophile and the primary bromide reacts by SN2, giving the ether.',
+    o:[['NaOCH₂CH₃ in ethanol',''],['KOH in ethanol, heat','Hot ethanolic hydroxide favours E2: propene.'],['Ethanol, warm','Ethanol is a weak nucleophile; very slow at a primary carbon.'],['NaOH(aq)','Substitution by OH⁻ gives back propan-1-ol.']]}]},
+ {id:'amide',lv:2,title:'Ethanoic acid to N-methylethanamide',s:'CC(=O)O',t:'CNC(C)=O',
+  intro:'Carboxylic acids react slowly with amines. Make a more reactive derivative first.',
+  steps:[
+   {p:'CC(=O)Cl',hint:'Turn COOH into an acyl chloride.',why:'SOCl₂ converts the acid to the acyl chloride; SO₂ and HCl leave as gases.',
+    o:[['SOCl₂',''],['HCl(aq)','Doesn\'t convert carboxylic acids to acyl chlorides.'],['NaOH(aq)','Makes sodium ethanoate, which is even less reactive.'],['LiAlH₄','Reduces the acid to ethanol.']]},
+   {p:'CNC(C)=O',hint:'Nucleophilic addition–elimination with an amine.',why:'Methylamine adds to the C=O and chloride is eliminated. A second equivalent of amine mops up the HCl.',
+    o:[['CH₃NH₂ (2 equivalents)',''],['CH₃OH','Gives the ester, methyl ethanoate.'],['H₂O','Hydrolyses back to ethanoic acid.'],['NH₃','Gives ethanamide, without the N-methyl group.']]}]},
+ {id:'grignard-tert',lv:3,title:'Cyclohexanol to 1-methylcyclohexene',s:'OC1CCCCC1',t:'CC1=CCCCC1',
+  intro:'Add a methyl group to the ring carbon that has the OH, and finish with the more substituted alkene.',
+  steps:[
+   {p:'O=C1CCCCC1',hint:'You need an electrophilic carbon to add a nucleophile to.',why:'Oxidising the secondary alcohol gives cyclohexanone, whose C=O carbon can be attacked.',
+    o:[['K₂Cr₂O₇, H₂SO₄',''],['Conc. H₃PO₄, heat','Dehydrates now: cyclohexene, and there\'s nowhere to add the methyl.'],['CH₃MgBr','The OH proton just destroys the Grignard reagent.'],['NaBH₄','Nothing to reduce.']]},
+   {p:'CC1(O)CCCCC1',hint:'A carbon nucleophile that adds to ketones.',why:'The Grignard reagent adds CH₃⁻ to the carbonyl carbon; acid work-up protonates the alkoxide to a tertiary alcohol.',
+    o:[['1. CH₃MgBr, dry ether  2. H₃O⁺',''],['CH₃Br, AlCl₃','Friedel–Crafts works on aromatic rings, not ketones.'],['CH₃OH, H⁺','Forms an acetal, not a C–C bond.'],['CH₃I, NaOH','At best this methylates the carbon next to C=O (via the enolate), not the C=O carbon itself.']]},
+   {p:'CC1=CCCCC1',hint:'Eliminate water; Zaitsev decides which alkene.',why:'E1 through the tertiary carbocation. The more substituted (trisubstituted) alkene forms, by Zaitsev\'s rule.',
+    o:[['Conc. H₃PO₄, heat',''],['NaOH(aq)','No reaction; OH⁻ is a poor leaving group.'],['PCC','Tertiary alcohols can\'t be oxidised.'],['H₂, Pd','Nothing to reduce.']]}]},
+ {id:'ester-grignard',lv:3,title:'Benzoic acid to 2-phenylpropan-2-ol',s:'OC(=O)c1ccccc1',t:'CC(C)(O)c1ccccc1',
+  intro:'Two methyl groups need to end up on the carbon that was the COOH.',
+  steps:[
+   {p:'COC(=O)c1ccccc1',hint:'Grignards are destroyed by acidic O–H. Protect the acid as an ester.',why:'Fischer esterification: the acid and methanol give methyl benzoate, with acid catalysis.',
+    o:[['CH₃OH, conc. H₂SO₄ catalyst, heat',''],['CH₃MgBr straight away','The acidic COOH proton destroys the Grignard reagent: you get the carboxylate and methane.'],['LiAlH₄','Reduces to benzyl alcohol, losing the carbon you need.'],['CH₃NH₂','Gives an ammonium salt.']]},
+   {p:'CC(C)(O)c1ccccc1',hint:'Esters react with two equivalents of Grignard.',why:'The first CH₃MgBr adds and methoxide leaves, giving a ketone (acetophenone); the second adds to that ketone. Acid work-up gives the tertiary alcohol.',
+    o:[['1. CH₃MgBr (2 equivalents), dry ether  2. H₃O⁺',''],['1. CH₃MgBr (1 equivalent)  2. H₃O⁺','The ketone formed is more reactive than the ester, so you get a mixture, mostly the tertiary alcohol plus unreacted ester.'],['NaBH₄','Too weak to reduce esters at all.'],['NaOH(aq), heat','Hydrolyses back to benzoate.']]}]},
+ {id:'cis-alkene',lv:3,title:'Propyne to (Z)-pent-2-ene',s:'C#CC',t:'CC/C=C\\C',
+  intro:'Build the carbon chain, then set the double-bond geometry.',
+  steps:[
+   {p:'CCC#CC',hint:'Terminal alkynes are acidic enough to deprotonate.',why:'NaNH₂ removes the terminal C–H (pKa ≈ 25); the acetylide ion then substitutes ethyl bromide by SN2.',
+    o:[['1. NaNH₂  2. CH₃CH₂Br',''],['CH₃CH₂Br, AlCl₃','Friedel–Crafts doesn\'t work on alkynes.'],['1. NaOH  2. CH₃CH₂Br','Hydroxide isn\'t a strong enough base to deprotonate an alkyne.'],['1. NaNH₂  2. (CH₃)₃CBr','Acetylide is a strong base; a tertiary halide undergoes E2 instead.']]},
+   {p:'CC/C=C\\C',hint:'Stop at the alkene, with both H atoms added to the same face.',why:'Lindlar\'s catalyst is poisoned so it stops at the alkene; syn addition of H₂ gives the Z (cis) alkene.',
+    o:[['H₂, Lindlar catalyst',''],['Na, NH₃(l)','Dissolving-metal reduction gives the E (trans) alkene.'],['H₂, Pd/C','Reduces all the way to pentane.'],['H₂O, H₂SO₄, HgSO₄','Hydrates the alkyne to a ketone.']]}]},
+ {id:'toluene-ester',lv:3,title:'Benzene to methyl benzoate',s:'c1ccccc1',t:'COC(=O)c1ccccc1',
+  intro:'Get a carbon onto the ring, oxidise it, then make the ester.',
+  steps:[
+   {p:'Cc1ccccc1',hint:'Friedel–Crafts alkylation with a methyl halide.',why:'AlCl₃ makes CH₃Cl into an electrophile, which substitutes on the ring.',
+    o:[['CH₃Cl, AlCl₃',''],['CH₃OH, H₂SO₄','Doesn\'t methylate benzene.'],['CH₃MgBr','Benzene isn\'t an electrophile.'],['CH₄, light','Radical conditions; benzene won\'t substitute this way.']]},
+   {p:'OC(=O)c1ccccc1',hint:'Side-chain oxidation: any alkyl group with a benzylic H becomes COOH.',why:'Hot alkaline KMnO₄ oxidises the benzylic carbon all the way to the carboxylate; acidifying gives benzoic acid.',
+    o:[['1. KMnO₄, NaOH, heat  2. H₃O⁺',''],['K₂Cr₂O₇, H₂SO₄, room temperature','Too mild at room temperature to oxidise the methyl group.'],['Br₂, light','Gives benzyl bromide, not the acid.'],['O₃','Ozone attacks C=C bonds, not a methyl group.']]},
+   {p:'COC(=O)c1ccccc1',hint:'Acid + alcohol, with an acid catalyst.',why:'Fischer esterification, heated with methanol and a little concentrated sulfuric acid.',
+    o:[['CH₃OH, conc. H₂SO₄ catalyst, heat',''],['CH₃OH alone, room temperature','Without a catalyst or heat, esterification is far too slow.'],['NaOCH₃','Deprotonates the acid to the carboxylate, which doesn\'t react.'],['CH₃Cl','Doesn\'t esterify the acid under these conditions.']]}]}
+];
+const SYN_LV=['','Foundation','Intermediate','Advanced'];
+const SYN_BY=Object.fromEntries(SYN.map(p=>[p.id,p]));
+
+/* ---------- v16: study tips (shown on Home, after quizzes and in practice) ---------- */
+const STUDY_TIPS=[
+ ['mech','Curly arrows always start from electrons: a lone pair or a bond. Never from an atom\'s nucleus or a positive charge.'],
+ ['mech','Count charges before and after every step. If the total changes, an arrow is missing or pointing the wrong way.'],
+ ['mech','Primary halide + strong nucleophile → SN2. Tertiary halide + weak nucleophile in a protic solvent → SN1.'],
+ ['mech','Tertiary halide + strong base, especially when heated → E2. Bulky bases like t-BuO⁻ give the Hofmann (less substituted) alkene.'],
+ ['mech','SN2 inverts a stereocentre; SN1 at a stereocentre gives a racemic mixture.'],
+ ['mech','Heat favours elimination over substitution: elimination makes more molecules, so entropy increases.'],
+ ['mech','Carbocation stability: tertiary > secondary > primary. Look for a hydride or methyl shift if it makes a more stable cation.'],
+ ['mech','In acid, protonate first. A protonated OH leaves as water, which is a far better leaving group than OH⁻.'],
+ ['mech','Electrophilic addition to alkenes: H adds to the carbon with more H atoms (Markovnikov), because the more stable carbocation forms.'],
+ ['mech','Nucleophiles attack the δ+ carbon of a C=O. Strong ones (H⁻, R⁻) add directly; weak ones need acid to activate the carbonyl.'],
+ ['mech','Acyl chlorides > anhydrides > esters > amides in reactivity. You can go down the list easily, not up.'],
+ ['mech','Ortho/para directors donate electrons (–OH, –NH₂, –R); meta directors withdraw them (–NO₂, –COOH, –CN). Halogens are o/p but deactivating.'],
+ ['naming','Find the principal functional group first. It decides the suffix, and the parent chain must contain it.'],
+ ['naming','Substituent prefixes go in alphabetical order. Ignore di-, tri- and tert- when alphabetising, but not iso-.'],
+ ['naming','Number the chain so the principal group gets the lowest locant, then multiple bonds, then substituents.'],
+ ['naming','Ring carbons bearing the principal group are numbered C1, so you don\'t write the "1" in cyclohexanol.'],
+ ['naming','E/Z: rank the two groups on each end of the C=C by atomic number. Highest priorities on the same side = Z ("zame zide").'],
+ ['naming','R/S: point the lowest-priority group away from you, then trace 1 → 2 → 3. Clockwise is R.'],
+ ['naming','If the lowest-priority group points towards you (on a wedge), find the direction and then reverse it.'],
+ ['naming','Write numbers with commas between them and hyphens between numbers and words: 2,3-dimethylbutane.'],
+ ['spectra','IR first: a strong sharp peak near 1700 cm⁻¹ means C=O. A broad peak at 2500–3300 cm⁻¹ with it means a carboxylic acid.'],
+ ['spectra','A broad O–H around 3200–3550 cm⁻¹ without C=O suggests an alcohol.'],
+ ['spectra','Degrees of unsaturation = (2C + 2 + N − H − X) / 2. Four or more often means a benzene ring.'],
+ ['spectra','¹H NMR splitting: n neighbouring H on adjacent carbons give n + 1 peaks. OH and NH protons usually don\'t split.'],
+ ['spectra','A triplet (3H) and quartet (2H) together means an ethyl group.'],
+ ['spectra','Protons on benzene rings appear at 6.5–8 ppm; aldehyde H at 9–10 ppm; COOH H at 10–13 ppm.'],
+ ['spectra','In mass spectra, M and M+2 peaks in a 3:1 ratio mean one Cl; in a 1:1 ratio, one Br.'],
+ ['spectra','¹³C NMR: the number of peaks is the number of different carbon environments. C=O carbons appear at 160–220 ppm.'],
+ ['synth','Work backwards from the target. Ask: what bond could I have made last, and from what?'],
+ ['synth','Count carbons. If the target has more, you need a C–C bond-forming step: CN⁻, a Grignard, an enolate or Friedel–Crafts.'],
+ ['synth','Grignard reagents are destroyed by water and acidic O–H or N–H groups. Protect them, or do those steps later.'],
+ ['synth','Primary alcohol: distil for the aldehyde, reflux for the carboxylic acid. Secondary gives a ketone. Tertiary resists oxidation.'],
+ ['synth','NaBH₄ reduces aldehydes and ketones only. LiAlH₄ also reduces esters, acids, amides and nitriles.'],
+ ['synth','Learn reactions as conversions between functional groups. A one-page map of them is the best revision sheet.'],
+ ['study','Practise drawing mechanisms from memory, then check. Recall beats re-reading.'],
+ ['study','Mix question types in one session. Interleaving feels harder but helps you pick the right method in exams.'],
+ ['study','Revisit what you got wrong after a day, then after a week. Spacing makes it stick.'],
+ ['study','Explain a mechanism out loud as if teaching it. If you can\'t say why an arrow goes there, that\'s what to revise.'],
+ ['study','Write the conditions (reagent, solvent, temperature) with every reaction. Examiners mark them.'],
+ ['study','Before an exam, write a list of reagents and what each one does. Then test yourself on it.']
+];
+function studyTip(topic,seed){const pool=topic?STUDY_TIPS.filter(t=>t[0]===topic||t[0]==='study'):STUDY_TIPS;const i=seed==null?Math.floor(Math.random()*pool.length):((seed%pool.length)+pool.length)%pool.length;return pool[i][1]}
+function tipHTML(topic,seed){return`<aside class="v16-tip"><span class="v16-tip-k">Study tip</span><p>${esc(studyTip(topic,seed))}</p></aside>`}
+
+
+/* ---------- v16: slides from a note (shared by PowerPoint export and lecture mode) ---------- */
+const SLD={W:13.333,H:7.5,X:0.65,TOP:1.55,BOT:6.95,CW:12.03,LINE:0.4,CPL:78};
+function v16Plain(el){return(el.textContent||'').replace(/\s+/g,' ').trim()}
+/* split one text block into slide items: headings start new slides, paragraphs and list items become lines */
+function v16TextItems(html){
+  const tmp=document.createElement('div');tmp.innerHTML=sanitize(html||'');const out=[];
+  const push=(node,list,level,num)=>{const txt=v16Plain(node);const math=!!node.querySelector&&!!node.querySelector('[data-tex]');if(!txt&&!math)return;out.push({k:'text',html:node.innerHTML,txt,list,num,level:level||0,math})};
+  const walk=(nodes,level)=>{for(const node of nodes){
+    if(node.nodeType===3){const t=node.textContent.trim();if(t)out.push({k:'text',html:esc(t),txt:t,list:null,level:0});continue}
+    if(node.nodeType!==1)continue;const tg=node.tagName;
+    if(/^H[1-3]$/.test(tg)){const t=v16Plain(node);if(t)out.push({k:'head',txt:t,lvl:+tg[1]});continue}
+    if(tg==='UL'||tg==='OL'){let i=1;for(const li of[...node.children]){const sub=[...li.querySelectorAll(':scope>ul,:scope>ol')];sub.forEach(s=>s.remove());push(li,tg==='OL'?'ol':'ul',level,i++);if(sub.length)walk(sub,level+1)}continue}
+    if(tg==='DIV'&&node.hasAttribute('data-callout')){const kids=[...node.children];if(kids.length&&kids.every(c=>/^(P|UL|OL|H[1-3])$/.test(c.tagName))){const st=out.length;walk(kids,level);for(let j=st;j<out.length;j++)out[j].callout=node.getAttribute('data-callout')}else{push(node,null,level);out[out.length-1]&&(out[out.length-1].callout=node.getAttribute('data-callout'))}continue}
+    if(tg==='HR')continue;
+    push(node,null,level);
+  }};
+  walk([...tmp.childNodes],0);return out;
+}
+function v16SchemeSize(d,maxW,maxH){const bb=bbox(d);if(!bb)return null;const ar=(bb.h+28)/(bb.w+28);let w=Math.min(maxW,(bb.w+28)/96*2.1),h=w*ar;if(h>maxH){h=maxH;w=h/ar}return{w,h}}
+/* note → [{title, items}] using inch heights for a 13.33 × 7.5 in slide */
+function noteSlides(n){
+  const title=(n.title||'Untitled note').trim()||'Untitled note';
+  const slides=[];let cur=null;const room=SLD.BOT-SLD.TOP;
+  const open=(t,cont)=>{cur={title:t,cont:!!cont,items:[],used:0};slides.push(cur)};
+  const need=h=>{if(!cur)open(title);if(cur.items.length&&cur.used+h>room)open(cur.title,true);cur.used+=h};
+  const textH=it=>{const chars=it.txt.length+(it.list?4:0)+it.level*4;const lines=Math.max(1,Math.ceil(chars/(SLD.CPL-it.level*6)));return lines*SLD.LINE+(it.math?0.25:0)+(it.callout?0.3:0)+0.12};
+  for(const b of n.blocks){
+    if(b.type==='text'){for(const it of v16TextItems(b.html)){
+      if(it.k==='head'){if(cur&&!cur.items.length)cur.title=it.txt;else open(it.txt);continue}
+      const h=textH(it);need(h);it.h=h;cur.items.push(it)}}
+    else if(b.type==='scheme'){const d=b.data;const sz=v16SchemeSize(d,SLD.CW,room-0.1);if(!sz)continue;const h=sz.h+0.15;
+      /* keep a short caption line with the drawing that follows it */
+      if(cur&&cur.items.length>1&&cur.used+h>room){const last=cur.items[cur.items.length-1];if(last.k==='text'&&last.h<1.4){cur.items.pop();cur.used-=last.h;open(cur.title,true);cur.items.push(last);cur.used+=last.h}}
+      need(h);cur.items.push({k:'scheme',d,w:sz.w,h:sz.h})}
+    else if(b.type==='image'&&b.data&&b.data.src){need(3.6);cur.items.push({k:'image',src:b.data.src,cap:b.data.cap||'',h:3.6})}
+    else if(b.type==='sketch'&&b.data&&b.data.strokes&&b.data.strokes.length){need(4.2);cur.items.push({k:'sketch',data:b.data,h:4.2})}
+    else if(b.type==='cards'&&b.data&&b.data.cards){const cs=b.data.cards.filter(c=>(c.f||'').trim()||(c.b||'').trim());for(let i=0;i<cs.length;i+=6){open((b.data.title||'Flashcards')+(i?' (cont.)':''));cur.items.push({k:'cards',cards:cs.slice(i,i+6),h:room});cur.used=room}}
+  }
+  return{title,tag:n.tag||(n.tags&&n.tags[0])||'',date:new Date(n.updated||Date.now()),slides:slides.filter(s=>s.items.length||s.title!==title)};
+}
+/* inline HTML → PowerPoint text runs (bold, italic, sub/superscript) */
+function v16Runs(html){
+  const tmp=document.createElement('div');tmp.innerHTML=html;const runs=[];
+  const walk=(n,st)=>{for(const c of n.childNodes){
+    if(c.nodeType===3){const t=c.textContent.replace(/\s+/g,' ');if(t)runs.push({text:t,options:{...st}});continue}
+    if(c.nodeType!==1)continue;const s={...st},tg=c.tagName;
+    if(tg==='B'||tg==='STRONG')s.bold=true;if(tg==='I'||tg==='EM')s.italic=true;if(tg==='U')s.underline={style:'sng'};if(tg==='SUB')s.subscript=true;if(tg==='SUP')s.superscript=true;if(tg==='CODE')s.fontFace='Consolas';
+    if(c.hasAttribute&&c.hasAttribute('data-tex')){runs.push({text:c.getAttribute('data-tex'),options:{...s,fontFace:'Cambria Math'}});continue}
+    if(tg==='BR'){runs.push({text:'',options:{...s,breakLine:true}});continue}
+    walk(c,s)}};
+  walk(tmp,{});if(runs.length){runs[0].text=runs[0].text.replace(/^\s+/,'');const l=runs[runs.length-1];l.text=l.text.replace(/\s+$/,'')}
+  return runs.filter(r=>r.text||r.options.breakLine);
+}
+async function v16RasterHTML(html,widthPx){
+  const box=document.createElement('div');box.className='v16-raster';box.style.maxWidth=widthPx+'px';box.innerHTML=html;document.body.appendChild(box);
+  try{if(box.querySelector('[data-tex]')&&await mathReady())renderMathIn(box);if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    await loadLib('html2canvas');const cv=await window.html2canvas(box,{backgroundColor:null,scale:2,logging:false});return{src:cv.toDataURL('image/png'),w:cv.width/2,h:cv.height/2}}
+  finally{box.remove()}
+}
+async function v16DataURL(src){if(/^data:/.test(src))return src;const r=await fetch(src);const b=await r.blob();return await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(b)})}
+async function exportPPTX(n){
+  if(!n)return;if(App.exporting)return;App.exporting=true;toast('Building the PowerPoint file…');
+  try{
+    try{await loadLib('PptxGenJS')}catch(e){toast('Couldn\'t load the PowerPoint tools. Reload the app and try again.');return}
+    const S=noteSlides(n),acc=(PRINT.accent||'#1f5fd1').replace('#',''),curl=(PRINT.curl||'#d33f49').replace('#','');
+    const p=new window.PptxGenJS();p.layout='LAYOUT_WIDE';p.title=S.title;p.subject='Made with Bondline';p.company='Bondline';
+    const F='Arial',INK='151A22',MUT='5A6878';
+    // title slide
+    let s=p.addSlide();s.background={color:'FFFFFF'};
+    s.addShape(p.ShapeType.rect,{x:0,y:0,w:0.28,h:SLD.H,fill:{color:acc},line:{color:acc}});
+    if(S.tag)s.addText(S.tag.toUpperCase(),{x:0.9,y:2.1,w:11.5,h:0.4,fontFace:F,fontSize:14,bold:true,color:acc,charSpacing:2});
+    s.addText(S.title,{x:0.9,y:2.55,w:11.6,h:1.9,fontFace:F,fontSize:44,bold:true,color:INK,valign:'top',fit:'shrink'});
+    s.addText(S.date.toLocaleDateString([],{day:'numeric',month:'long',year:'numeric'}),{x:0.9,y:4.55,w:8,h:0.4,fontFace:F,fontSize:16,color:MUT});
+    s.addText('Made with Bondline',{x:0.9,y:6.7,w:6,h:0.35,fontFace:F,fontSize:11,color:MUT});
+    let k=1;
+    for(const sl of S.slides){
+      s=p.addSlide();s.background={color:'FFFFFF'};k++;
+      s.addText(sl.title+(sl.cont?' (continued)':''),{x:SLD.X,y:0.42,w:SLD.CW,h:0.8,fontFace:F,fontSize:28,bold:true,color:INK,valign:'bottom',fit:'shrink'});
+      s.addShape(p.ShapeType.rect,{x:SLD.X,y:1.28,w:0.9,h:0.06,fill:{color:acc},line:{color:acc}});
+      s.addText(`${S.title}  ·  ${k}`,{x:SLD.X,y:7.05,w:SLD.CW,h:0.3,fontFace:F,fontSize:10,color:'8B97A8',align:'right'});
+      let y=SLD.TOP;const notes=[];
+      for(const it of sl.items){
+        if(it.k==='text'){
+          notes.push(it.txt);
+          if(it.math){const r=await v16RasterHTML(`<p>${it.html}</p>`,1100);const w=Math.min(SLD.CW-it.level*0.4-(it.list?0.35:0),r.w/96),h=w*r.h/r.w;s.addImage({data:r.src,x:SLD.X+it.level*0.4+(it.list?0.35:0),y,w,h});if(it.list)s.addText(it.list==='ol'?it.num+'.':'•',{x:SLD.X+it.level*0.4,y,w:0.35,h:0.4,fontFace:F,fontSize:18,color:INK});y+=Math.max(h,0.4)+0.12;continue}
+          const runs=v16Runs(it.html);if(!runs.length)continue;
+          const opt={x:SLD.X+it.level*0.45,y,w:SLD.CW-it.level*0.45,h:it.h,fontFace:F,fontSize:18,color:INK,valign:'top',paraSpaceAfter:4,margin:0};
+          const para=it.list==='ul'?{bullet:{indent:20}}:it.list==='ol'?{bullet:{type:'number',numberStartAt:it.num,indent:24}}:{};runs[0].options={...runs[0].options,...para};
+          if(it.callout){opt.fill={color:'F1F5FB'};opt.margin=[6,10,6,10];opt.line={color:acc,width:0.75}}
+          s.addText(runs,opt);y+=it.h;
+        }else if(it.k==='scheme'){
+          const cv=await schemeCanvas(it.d,3);if(cv){s.addImage({data:cv.toDataURL('image/png'),x:SLD.X+(SLD.CW-it.w)/2,y,w:it.w,h:it.h})}y+=it.h+0.15;
+        }else if(it.k==='image'){
+          try{const src=await v16DataURL(it.src);const im=new Image();im.src=src;await im.decode();const mh=it.cap?it.h-0.35:it.h;let w=Math.min(SLD.CW,mh*im.width/im.height),h=w*im.height/im.width;s.addImage({data:src,x:SLD.X+(SLD.CW-w)/2,y,w,h});if(it.cap)s.addText(it.cap,{x:SLD.X,y:y+h+0.02,w:SLD.CW,h:0.32,fontFace:F,fontSize:12,italic:true,color:MUT,align:'center'});y+=it.h}catch(e){}
+        }else if(it.k==='sketch'){
+          const cv=await sketchCanvas(it.data,2);if(cv){const r=cv.width/cv.height;let h=Math.min(it.h,SLD.CW/r),w=h*r;s.addImage({data:cv.toDataURL('image/png'),x:SLD.X+(SLD.CW-w)/2,y,w,h})}y+=it.h;
+        }else if(it.k==='cards'){
+          const rows=[[{text:'Front',options:{bold:true,color:'FFFFFF',fill:{color:acc}}},{text:'Back',options:{bold:true,color:'FFFFFF',fill:{color:acc}}}]];
+          for(const c of it.cards)rows.push([{text:(c.f||'').slice(0,300)},{text:(c.b||'').slice(0,300)}]);
+          s.addTable(rows,{x:SLD.X,y,w:SLD.CW,colW:[SLD.CW/2,SLD.CW/2],fontFace:F,fontSize:15,color:INK,border:{type:'solid',pt:0.75,color:'D8DFE8'},valign:'middle',margin:6,autoPage:false});
+          notes.push(...it.cards.map(c=>`${c.f} — ${c.b}`));
+        }
+      }
+      if(notes.length)s.addNotes(notes.join('\n'));
+    }
+    let blob=await p.write({outputType:'blob'});
+    /* PptxGenJS writes a paragraph-properties tag for every run; PowerPoint keeps the last one, which drops bullets. Keep only the first. */
+    try{if(window.JSZip){const z=await window.JSZip.loadAsync(blob);for(const name of Object.keys(z.files).filter(x=>/^ppt\/slides\/slide\d+\.xml$/.test(x))){let x=await z.file(name).async('string');x=x.replace(/<a:p>([\s\S]*?)<\/a:p>/g,(m,inner)=>{let seen=false;return'<a:p>'+inner.replace(/<a:pPr\b[^>]*?(?:\/>|>[\s\S]*?<\/a:pPr>)/g,pp=>{if(seen)return'';seen=true;return pp})+'</a:p>'});z.file(name,x)}blob=await z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation'})}}catch(e){console.warn('pptx tidy',e)}
+    await saveFile(fileBase()+'.pptx',blob);toast('PowerPoint file saved.');
+  }catch(e){console.warn('pptx',e);if(!(e&&e.code==='declined'))toast('Couldn\'t build the PowerPoint file.')}
+  finally{App.exporting=false}
+}
+
+/* ---------- v16: lecture mode (present a note full screen) ---------- */
+const LM={on:false,S:null,i:0,f:0,frags:[],build:false,dark:true,pen:false,laser:false,blank:'',t0:0,timer:null,hideT:null};
+function lmFrags(sl){const fr=[];sl.items.forEach((it,i)=>{if(LM.build&&it.k!=='scheme')fr.push({i,t:'show'});if(it.k==='scheme'){if(LM.build)fr.push({i,t:'show'});(it.d.curls||[]).forEach(()=>fr.push({i,t:'curl'}))}});return fr}
+function openLecture(n){
+  if(!n)return;closePop();const S=noteSlides(n);LM.S={...S,slides:[{title:S.title,titleSlide:true,items:[]},...S.slides]};LM.on=true;LM.i=0;LM.f=0;LM.t0=Date.now();LM.blank='';LM.pen=false;LM.laser=false;
+  let el=$('#lecture');if(!el){el=document.createElement('div');el.id='lecture';el.className='lm';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','Lecture mode');document.body.appendChild(el);lmWire(el)}
+  el.hidden=false;el.classList.toggle('lm-dark',LM.dark);document.body.classList.add('sk-lock');
+  el.innerHTML=`<div class="lm-stage-wrap"><div class="lm-stage" id="lmStage" aria-live="polite"></div><canvas class="lm-ink" id="lmInk"></canvas><div class="lm-laser" id="lmLaser" hidden></div></div><div class="lm-blank" id="lmBlank" hidden></div>
+   <div class="lm-bar" id="lmBar"><button class="lm-b" data-lm="prev" title="Previous (←)" aria-label="Previous">‹</button><span class="lm-count" id="lmCount"></span><button class="lm-b" data-lm="next" title="Next (→ or Space)" aria-label="Next">›</button><span class="lm-sep"></span><button class="lm-b" data-lm="build" title="Reveal points one at a time" aria-pressed="${LM.build}">Build</button><button class="lm-b" data-lm="laser" title="Laser pointer (L)" aria-pressed="false">Laser</button><button class="lm-b" data-lm="pen" title="Draw on the slide (D)" aria-pressed="false">Pen</button><button class="lm-b" data-lm="clear" title="Clear drawing (C)">Clear</button><button class="lm-b" data-lm="theme" title="Light or dark (T)">${LM.dark?'Light':'Dark'}</button><button class="lm-b" data-lm="full" title="Full screen (F)">Full screen</button><span class="lm-time" id="lmTime">0:00</span><button class="lm-b lm-x" data-lm="exit" title="Exit (Esc)">Exit</button></div>
+   <div class="lm-progress" aria-hidden="true"><i id="lmProg"></i></div>`;
+  LM.frags=lmFrags(LM.S.slides[0]);lmRender();lmFit();clearInterval(LM.timer);LM.timer=setInterval(()=>{const s=Math.floor((Date.now()-LM.t0)/1000),t=$('#lmTime');if(t)t.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')},1000);
+  el.focus&&el.setAttribute('tabindex','-1');el.focus();lmShowBar();
+  if(el.requestFullscreen&&!document.fullscreenElement&&!matchMedia('(pointer:coarse)').matches)el.requestFullscreen().catch(()=>{});
+}
+function closeLecture(){LM.on=false;clearInterval(LM.timer);const el=$('#lecture');if(el){el.hidden=true;el.innerHTML=''}document.body.classList.remove('sk-lock');if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
+function lmFit(){const w=$('.lm-stage-wrap');if(!w)return;const sc=Math.min(innerWidth/1280,(innerHeight)/720);w.style.transform=`translate(-50%,-50%) scale(${sc})`;const cv=$('#lmInk');if(cv&&(cv.width!==1280*2)){cv.width=2560;cv.height=1440}}
+function lmRender(){
+  const sl=LM.S.slides[LM.i],st=$('#lmStage');if(!sl||!st)return;const fr=LM.frags.slice(0,LM.f);
+  const shown=i=>!LM.build||fr.some(x=>x.i===i&&x.t==='show'),curls=i=>fr.filter(x=>x.i===i&&x.t==='curl').length;
+  if(sl.titleSlide){st.innerHTML=`<div class="lm-title-slide">${LM.S.tag?`<div class="lm-kicker">${esc(LM.S.tag)}</div>`:''}<h1>${esc(LM.S.title)}</h1><p>${esc(LM.S.date.toLocaleDateString([],{day:'numeric',month:'long',year:'numeric'}))}</p><svg class="lm-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg></div>`}
+  else{
+    let body='',list=null;const close=()=>{if(list){body+=`</${list}>`;list=null}};
+    sl.items.forEach((it,i)=>{const vis=shown(i)?'':' lm-hid';
+      if(it.k==='text'){if(it.list){if(list!==it.list){close();body+=`<${it.list} class="lm-list"${it.list==='ol'?` start="${it.num}"`:''}>`;list=it.list}body+=`<li class="lm-li lv${it.level}${vis}">${it.html}</li>`}else{close();body+=`<p class="lm-p lv${it.level}${it.callout?' lm-callout':''}${vis}">${it.html}</p>`}return}
+      close();
+      if(it.k==='scheme'){const k=LM.build?curls(i):Math.min((it.d.curls||[]).length,curls(i));const d={...it.d,curls:(it.d.curls||[]).slice(0,k)};const bbFull=bbox(it.d),bb=bbox(d);let sv=structSVG(d,1,'struct lm-svg');
+        if(bbFull&&bb){/* keep the full drawing's frame so it doesn't jump as arrows appear */const p=10;sv=sv.replace(/viewBox="[^"]*" width="[^"]*" height="[^"]*"/,`viewBox="${f(bbFull.x-p)} ${f(bbFull.y-p)} ${f(bbFull.w+2*p)} ${f(bbFull.h+2*p)}"`)}
+        body+=`<figure class="lm-fig${vis}" style="height:${(it.h*96).toFixed(0)}px">${sv}</figure>`}
+      else if(it.k==='image')body+=`<figure class="lm-fig lm-img${vis}" style="height:${(it.h*96).toFixed(0)}px"><img src="${esc(it.src)}" alt="${esc(it.cap)}">${it.cap?`<figcaption>${esc(it.cap)}</figcaption>`:''}</figure>`;
+      else if(it.k==='sketch')body+=`<figure class="lm-fig lm-sk${vis}" style="height:${(it.h*96).toFixed(0)}px">${sketchSVGString({...it.data,h:sketchBounds(it.data)},skPrintCol,'#ffffff')}</figure>`;
+      else if(it.k==='cards')body+=`<div class="lm-cards${vis}">${it.cards.map(c=>`<div><b>${esc(c.f)}</b><span>${esc(c.b)}</span></div>`).join('')}</div>`;
+    });close();
+    st.innerHTML=`<h2 class="lm-h">${esc(sl.title)}${sl.cont?' <small>(continued)</small>':''}</h2><div class="lm-body">${body}</div>`;
+    if(st.querySelector('[data-tex]'))mathReady().then(ok=>{if(ok)renderMathIn(st)});
+  }
+  st.classList.remove('lm-in');void st.offsetWidth;st.classList.add('lm-in');
+  const tot=LM.S.slides.length;$('#lmCount').textContent=`${LM.i+1} / ${tot}`;$('#lmProg').style.width=(100*(LM.i+(LM.frags.length?LM.f/LM.frags.length:1))/tot).toFixed(1)+'%';
+}
+function lmGo(i,toEnd){const n=LM.S.slides.length;if(i<0||i>=n)return;LM.i=i;LM.frags=lmFrags(LM.S.slides[i]);LM.f=toEnd?LM.frags.length:0;lmClearInk();lmRender()}
+function lmNext(){if(LM.f<LM.frags.length){LM.f++;lmRender()}else lmGo(LM.i+1)}
+function lmPrev(){if(LM.f>0){LM.f--;lmRender()}else lmGo(LM.i-1,true)}
+function lmClearInk(){const cv=$('#lmInk');if(cv)cv.getContext('2d').clearRect(0,0,cv.width,cv.height)}
+function lmShowBar(){const b=$('#lmBar');if(!b)return;b.classList.add('on');clearTimeout(LM.hideT);LM.hideT=setTimeout(()=>b.classList.remove('on'),2600)}
+function lmToggle(k){const el=$('#lecture');
+  if(k==='pen'){LM.pen=!LM.pen;LM.laser=false}else if(k==='laser'){LM.laser=!LM.laser;LM.pen=false}
+  else if(k==='build'){LM.build=!LM.build;LM.frags=lmFrags(LM.S.slides[LM.i]);LM.f=LM.build?0:LM.frags.length;lmRender()}
+  else if(k==='theme'){LM.dark=!LM.dark;el.classList.toggle('lm-dark',LM.dark);el.querySelector('[data-lm="theme"]').textContent=LM.dark?'Light':'Dark'}
+  el.classList.toggle('lm-pen',LM.pen);el.classList.toggle('lm-laseron',LM.laser);$('#lmLaser').hidden=!LM.laser;
+  el.querySelectorAll('[data-lm="pen"],[data-lm="laser"],[data-lm="build"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lm==='pen'?LM.pen:b.dataset.lm==='laser'?LM.laser:LM.build))}
+function lmBlank(c){const b=$('#lmBlank');LM.blank=LM.blank===c?'':c;b.hidden=!LM.blank;b.className='lm-blank '+(LM.blank==='w'?'w':'')}
+function lmWire(el){
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-lm]');if(b){e.stopPropagation();const k=b.dataset.lm;
+    if(k==='next')lmNext();else if(k==='prev')lmPrev();else if(k==='exit')closeLecture();else if(k==='clear')lmClearInk();
+    else if(k==='full'){if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else if(el.requestFullscreen)el.requestFullscreen().catch(()=>{})}
+    else lmToggle(k);return}
+    if(LM.pen||e.target.closest('.lm-bar'))return;if(LM.blank){lmBlank(LM.blank);return}
+    if(e.clientX<innerWidth*0.3)lmPrev();else lmNext()});
+  el.addEventListener('pointermove',e=>{lmShowBar();if(LM.laser){const l=$('#lmLaser'),r=$('.lm-stage-wrap').getBoundingClientRect(),sc=r.width/1280;l.style.transform=`translate(${(e.clientX-r.left)/sc}px,${(e.clientY-r.top)/sc}px)`}});
+  let drawing=null;
+  el.addEventListener('pointerdown',e=>{if(!LM.pen||e.target.closest('.lm-bar'))return;const cv=$('#lmInk'),r=cv.getBoundingClientRect();drawing={c:cv.getContext('2d'),r,last:null};drawing.c.lineCap='round';drawing.c.lineJoin='round';drawing.c.strokeStyle=getComputedStyle(el).getPropertyValue('--lm-pen').trim()||'#e0303b';drawing.c.lineWidth=7;cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);const p=[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];drawing.last=p});
+  el.addEventListener('pointermove',e=>{if(!drawing)return;const cv=$('#lmInk'),r=drawing.r,p=[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height];const c=drawing.c;c.beginPath();c.moveTo(...drawing.last);c.lineTo(...p);c.stroke();drawing.last=p});
+  addEventListener('pointerup',()=>{drawing=null});
+  let sx=null;el.addEventListener('touchstart',e=>{if(!LM.pen)sx=e.touches[0].clientX},{passive:true});el.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>60){dx<0?lmNext():lmPrev()}},{passive:true});
+  addEventListener('resize',()=>{if(LM.on)lmFit()});
+  document.addEventListener('keydown',e=>{if(!LM.on)return;const k=e.key;e.stopPropagation();
+    if(['ArrowRight','ArrowDown',' ','PageDown','Enter','n','N'].includes(k)){e.preventDefault();lmNext()}
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace','p','P'].includes(k)){e.preventDefault();lmPrev()}
+    else if(k==='Home'){e.preventDefault();lmGo(0)}else if(k==='End'){e.preventDefault();lmGo(LM.S.slides.length-1,true)}
+    else if(k==='Escape'){e.preventDefault();if(LM.blank)lmBlank(LM.blank);else if(LM.pen||LM.laser)lmToggle(LM.pen?'pen':'laser');else closeLecture()}
+    else if(k==='f'||k==='F'){e.preventDefault();el.querySelector('[data-lm="full"]').click()}
+    else if(k==='b'||k==='B'||k==='.'){e.preventDefault();lmBlank('b')}else if(k==='w'||k==='W'||k===','){e.preventDefault();lmBlank('w')}
+    else if(k==='l'||k==='L'){e.preventDefault();lmToggle('laser')}else if(k==='d'||k==='D'){e.preventDefault();lmToggle('pen')}
+    else if(k==='c'||k==='C'){e.preventDefault();lmClearInk()}else if(k==='t'||k==='T'){e.preventDefault();lmToggle('theme')}
+    else if(/^[1-9]$/.test(k)){e.preventDefault();lmGo(Math.min(LM.S.slides.length,+k)-1)}},true);
+}
+
+/* ---------- v16: synthesis problems ---------- */
+const SYP={view:null,cur:null,step:0,first:true,right:0,picked:null,opts:null,set:null,onDone:null,done:{}};
+const SY_KEY='bondline.syn';
+try{SYP.done=JSON.parse(localStorage.getItem(SY_KEY)||'{}')||{}}catch(e){SYP.done={}}
+function sySave(){try{localStorage.setItem(SY_KEY,JSON.stringify(SYP.done))}catch(e){}}
+function renderSynSide(){const box=$('#synList');if(!box)return;
+  box.innerHTML=[1,2,3].map(lv=>`<div class="syn-lvh">${SYN_LV[lv]}</div>`+SYN.filter(p=>p.lv===lv).map(p=>{const d=SYP.done[p.id];return`<button class="item${SYP.cur===p.id&&SYP.view==='prob'?' on':''}" data-syn="${p.id}"><span class="t">${esc(p.title)}</span><span class="m"><span>${p.steps.length} steps</span>${d?`<span class="syn-ok">✓ ${d.r}/${d.n}</span>`:''}</span></button>`}).join('')).join('')}
+function synOpen(){if(SYP.view==='prob'&&SYP.cur)synRender();else synHome();renderSynSide()}
+function synHome(){SYP.view='home';SYP.set=null;SYP.onDone=null;const solved=SYN.filter(p=>SYP.done[p.id]).length;
+  $('#synthPage').innerHTML=`<section class="syn-home"><header class="nm-head"><div class="nm-kicker">Synthesis</div><h1>Plan a synthesis</h1><p class="nm-lede">Get from the starting material to the target in a few steps. At each step, pick the reagents that work. Wrong choices tell you what they'd make instead.</p></header>
+   <p class="hm-muted">${solved} of ${SYN.length} solved on this device.</p>
+   ${[1,2,3].map(lv=>`<h2 class="qz-h">${SYN_LV[lv]}</h2><div class="syn-grid">${SYN.filter(p=>p.lv===lv).map(p=>`<button class="syn-card" data-syn="${p.id}"><span class="syn-route"><span class="syn-mini">${smilesSVG(p.s,.6)}</span><span class="syn-arr">→</span><span class="syn-mini">${smilesSVG(p.t,.6)}</span></span><b>${esc(p.title)}</b><small>${p.steps.length} steps${SYP.done[p.id]?` · solved ${SYP.done[p.id].r}/${SYP.done[p.id].n} first time`:''}</small></button>`).join('')}</div>`).join('')}
+   ${tipHTML('synth',Math.floor(Date.now()/86400000))}</section>`;renderSynSide()}
+function synStart(id){const p=SYN_BY[id];if(!p)return;SYP.view='prob';SYP.cur=id;SYP.step=0;SYP.first=true;SYP.right=0;SYP.firstMiss=false;SYP.opts=null;synRender();renderSynSide();$('#main').scrollTop=0}
+function synStartSet(ids,onDone){const list=ids.filter(id=>SYN_BY[id]);if(!list.length)return;SYP.set={ids:list,i:0,right:0,total:list.reduce((s,id)=>s+SYN_BY[id].steps.length,0)};SYP.onDone=onDone;synStart(list[0])}
+function synSpecies(smi,big){return`<div class="syn-mol${big?' big':''}">${smilesSVG(smi,big?1.1:.9)}</div>`}
+function synRender(){
+  const p=SYN_BY[SYP.cur],n=p.steps.length,k=SYP.step,done=k>=n;
+  let route=synSpecies(p.s,true);
+  for(let i=0;i<Math.min(k,n);i++)route+=`<div class="syn-step-arr"><span>${esc(p.steps[i].o[0][0])}</span><i></i></div>${synSpecies(p.steps[i].p,true)}`;
+  if(!done)route+=`<div class="syn-step-arr q"><span>?</span><i></i></div><div class="syn-target"><div class="syn-tk">Target</div>${synSpecies(p.t,true)}</div>`;
+  let body='';
+  if(!done){const st=p.steps[k];if(!SYP.opts){SYP.opts=shuffle(st.o.map((o,j)=>({r:o[0],why:o[1],ok:j===0})));SYP.tried=new Set()}
+    body=`<div class="syn-q"><div class="hm-kicker">Step ${k+1} of ${n}</div><h2>Which reagents and conditions?</h2>
+     <div class="qz-opts syn-opts" role="group" aria-label="Reagent choices">${SYP.opts.map((o,j)=>`<button class="qz-opt${SYP.tried.has(j)?(o.ok?' right':' wrong'):''}" data-syo="${j}" ${SYP.tried.has(j)||SYP.solvedStep?'disabled':''}><span class="qz-key">${j+1}</span><span>${esc(o.r)}</span></button>`).join('')}</div>
+     <div class="syn-fb" id="synFb" role="status">${SYP.fb||''}</div>
+     <div class="syn-row"><button class="btn" data-sya="hint">Hint</button><span class="np-sp"></span>${SYP.solvedStep?`<button class="btn primary" data-sya="next">${k+1<n?'Next step':'Finish'}</button>`:''}</div></div>`}
+  else{const last=SYP.set&&SYP.set.i>=SYP.set.ids.length-1;
+    body=`<div class="syn-q syn-end"><div class="st-big">✓</div><h2>Route complete</h2><p>You got <b>${SYP.right} of ${n}</b> steps right first time.</p>
+     <ol class="syn-sum">${p.steps.map(s=>`<li><b>${esc(s.o[0][0])}</b><span>${esc(s.why)}</span></li>`).join('')}</ol>
+     <div class="syn-row">${SYP.set?`<button class="btn primary" data-sya="setnext">${last?'Finish assignment':'Next problem'}</button>`:`<button class="btn" data-sya="note">Add this route to a note</button><button class="btn" data-sya="home">All problems</button><button class="btn primary" data-sya="nextprob">Next problem</button>`}</div></div>`}
+  $('#synthPage').innerHTML=`<section class="syn-prob"><header class="nm-head"><div class="nm-kicker">${SYP.set?`Assignment · problem ${SYP.set.i+1} of ${SYP.set.ids.length}`:'Synthesis · '+SYN_LV[p.lv]}</div><h1>${esc(p.title)}</h1><p class="nm-lede">${esc(p.intro)}</p></header>
+   <div class="syn-routebox" aria-label="Route so far"><div class="syn-routeline">${route}</div></div>${body}${tipHTML('synth',(SYP.cur.length*7+k))}</section>`;
+}
+function synPick(j){const p=SYN_BY[SYP.cur],o=SYP.opts[j];if(!o||SYP.solvedStep)return;SYP.tried.add(j);
+  if(o.ok){if(SYP.first)SYP.right++;SYP.solvedStep=true;SYP.fb=`<p class="syn-ok-t"><b>Right.</b> ${esc(p.steps[SYP.step].why)}</p>`}
+  else{SYP.first=false;SYP.fb=`<p class="syn-bad-t"><b>Not this one.</b> ${esc(o.why)}</p>`}
+  synRender();const nb=document.querySelector('[data-sya="next"]');if(nb)nb.focus({preventScroll:true})}
+function synNext(){const p=SYN_BY[SYP.cur];SYP.step++;SYP.first=true;SYP.solvedStep=false;SYP.fb='';SYP.opts=null;
+  if(SYP.step>=p.steps.length){const prev=SYP.done[p.id];if(!prev||SYP.right>prev.r)SYP.done[p.id]={r:SYP.right,n:p.steps.length,at:Date.now()};sySave();renderSynSide();if(SYP.set)SYP.set.right+=SYP.right}
+  synRender()}
+function synSetNext(){const S=SYP.set;if(!S)return;if(S.i<S.ids.length-1){S.i++;synStart(S.ids[S.i]);return}
+  const cb=SYP.onDone;SYP.onDone=null;SYP.set=null;if(cb)cb(S.right,S.total);synHome()}
+function routeScheme(p){
+  const d=emptyScheme(200),species=[p.s,...p.steps.map(s=>s.p)];let x=16,y=0,rowH=0;const rows=[];
+  species.forEach((smi,i)=>{
+    const t=emptyScheme(200);const L1=layoutSpecies(t,smi,0);const bb=bbox(t)||{x:0,y:0,w:40,h:40};const aw=i?Math.max(110,textW(p.steps[i-1].o[0][0],12)+24):0;
+    if(i&&x+aw+16+bb.w>W-16){y+=rowH+70;x=16;rowH=0}
+    if(i){d.arrows.push({id:uid(),kind:'arr',x1:f(x),y1:f(y),x2:f(x+aw),y2:f(y),above:p.steps[i-1].o[0][0].slice(0,200),below:''});x+=aw+16}
+    const dx=x-bb.x;for(const a of t.atoms){a.x=f(a.x+dx);a.y=f(a.y+y);d.atoms.push(a)}d.bonds.push(...t.bonds);t.texts.forEach(q=>{q.x=f(q.x+dx);q.y=f(q.y+y);d.texts.push(q)});
+    x+=bb.w+16;rowH=Math.max(rowH,bb.h)});
+  const bb=bbox(d);const dy=40-bb.y;for(const a of d.atoms)a.y=f(a.y+dy);for(const t of d.texts)t.y=f(t.y+dy);for(const a of d.arrows){a.y1=f(a.y1+dy);a.y2=f(a.y2+dy)}
+  const bb2=bbox(d);d.h=Math.max(160,Math.min(1200,Math.ceil(bb2.y+bb2.h+30)));return d}
+function synToNote(){const p=SYN_BY[SYP.cur];if(!p)return;
+  const n={id:uid(),title:p.title,tag:'',tags:['Synthesis'],folder:'',updated:Date.now(),blocks:[{id:uid(),type:'text',html:`<h2>${esc(p.title)}</h2><p>${esc(p.intro)}</p>`},{id:uid(),type:'scheme',data:routeScheme(p)},{id:uid(),type:'text',html:`<ol>${p.steps.map(s=>`<li><b>${esc(s.o[0][0])}</b>: ${esc(s.why)}</li>`).join('')}</ol>`}]};
+  App.notes.push(n);App.noteChanged(n);setMode('notes');openNote(n.id);toast('Route added to a new note.')}
+function wireSynth(){
+  const go=e=>{const c=e.target.closest('[data-syn]');if(c){SYP.set=null;SYP.onDone=null;synStart(c.dataset.syn);$('#side').classList.remove('open');return}
+    const o=e.target.closest('[data-syo]');if(o){synPick(+o.dataset.syo);return}
+    const a=e.target.closest('[data-sya]');if(!a)return;const k=a.dataset.sya,p=SYN_BY[SYP.cur];
+    if(k==='hint'){SYP.fb=`<p><b>Hint:</b> ${esc(p.steps[SYP.step].hint)}</p>`;$('#synFb').innerHTML=SYP.fb}
+    else if(k==='next')synNext();else if(k==='home')synHome();else if(k==='note')synToNote();else if(k==='setnext')synSetNext();
+    else if(k==='nextprob'){const i=SYN.findIndex(x=>x.id===SYP.cur);synStart(SYN[(i+1)%SYN.length].id)}};
+  $('#synthPage').addEventListener('click',go);$('#synthSide').addEventListener('click',go);
+  $('#synthPage').addEventListener('keydown',e=>{if(App.mode!=='synth'||SYP.view!=='prob')return;if(/^[1-4]$/.test(e.key)&&!e.target.closest('input,textarea')){const b=document.querySelector(`[data-syo="${+e.key-1}"]`);if(b&&!b.disabled)b.click()}});
+}
+
+/* ---------- v16: classes (lecturers set work, students join with a code) ---------- */
+const CL={own:new Map(),joined:new Map(),subs:[],started:false,cur:null,asg:new Map(),res:new Map(),mem:new Map(),csubs:[],view:'list',form:null,uid:null,pendingCode:(()=>{try{return sessionStorage.getItem('bondline.classCode')||''}catch(e){return''}})()};
+const CL_ALPHA='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const clCode=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),x=>CL_ALPHA[x%CL_ALPHA.length]).join('');
+const clFmt=c=>c?c.slice(0,4)+'-'+c.slice(4):'';
+const clNorm=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/O/g,'0').replace(/[IL]/g,'1').replace(/0/g,'O');
+const clOn=()=>!!(FB.cfg&&Store.mode==='cloud'&&FB.user&&FB.db);
+const clRef=id=>FB.db.collection('classes').doc(id);
+const CL_KINDS={naming:'Naming quiz',spectra:'Spectra practice',mech:'Mechanism practice',synth:'Synthesis problems'};
+function clStart(){
+  if(!clOn())return;if(CL.started&&CL.uid===FB.user.uid)return;clStop();CL.started=true;CL.uid=FB.user.uid;const me=FB.user.uid;
+  CL.subs.push(FB.db.collection('classes').where('owner','==',me).onSnapshot(s=>{CL.own=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]));clRefresh()},e=>console.warn('classes',e)));
+  CL.subs.push(FB.db.collection('classes').where('memberIds','array-contains',me).onSnapshot(s=>{CL.joined=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]));if(CL.cur&&!CL.own.has(CL.cur)&&!CL.joined.has(CL.cur)){clLeaveView()}clRefresh()},e=>console.warn('classes',e)));
+}
+function clStop(){CL.subs.forEach(u=>{try{u()}catch(e){}});CL.subs=[];CL.started=false;clLeaveView(true)}
+function clLeaveView(quiet){CL.csubs.forEach(u=>{try{u()}catch(e){}});CL.csubs=[];CL.cur=null;CL.asg=new Map();CL.res=new Map();CL.mem=new Map();CL.view='list';CL.form=null;if(!quiet)clRefresh()}
+function clRefresh(){if(App.mode==='classes')clRender();renderClassSide()}
+function clGet(id){return CL.own.get(id)||CL.joined.get(id)||null}
+function clIsOwner(c){return c&&FB.user&&c.owner===FB.user.uid}
+function clOpenClass(id,asOwner){if(CL.cur===id&&CL.csubs.length){CL.view='class';clRender();return}clLeaveView(true);CL.cur=id;CL.view='class';const c=clGet(id),owner=asOwner||clIsOwner(c);
+  CL.csubs.push(clRef(id).collection('assignments').onSnapshot(s=>{CL.asg=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]));clRender()},e=>console.warn('asg',e)));
+  const rq=owner?clRef(id).collection('results'):clRef(id).collection('results').where('uid','==',FB.user.uid);
+  CL.csubs.push(rq.onSnapshot(s=>{CL.res=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]));clRender()},e=>console.warn('res',e)));
+  if(owner)CL.csubs.push(clRef(id).collection('members').onSnapshot(s=>{CL.mem=new Map(s.docs.map(d=>[d.id,d.data()]));clRender()},e=>console.warn('mem',e)));
+  clRender();renderClassSide();$('#side').classList.remove('open');$('#main').scrollTop=0}
+function renderClassSide(){const box=$('#classList');if(!box)return;
+  if(!clOn()){box.innerHTML='';return}
+  const row=c=>`<button class="item${CL.cur===c.id?' on':''}" data-clopen="${c.id}"><span class="t">${esc(c.name)}</span><span class="m"><span>${clIsOwner(c)?'Teaching':'Student'}</span><span>${(c.memberIds||[]).length} student${(c.memberIds||[]).length===1?'':'s'}</span></span></button>`;
+  const own=[...CL.own.values()].sort((a,b)=>a.name.localeCompare(b.name)),jn=[...CL.joined.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  box.innerHTML=(own.length?`<div class="syn-lvh">Teaching</div>${own.map(row).join('')}`:'')+(jn.length?`<div class="syn-lvh">Joined</div>${jn.map(row).join('')}`:'')||'<div class="empty-list">No classes yet.</div>'}
+function clOpen(){if(!clOn()){clRender();return}clStart();clRender();renderClassSide()}
+function clDue(a){return a.due?new Date(a.due).toLocaleDateString([],{day:'numeric',month:'short'}):''}
+function clCfgText(a){const c=a.cfg||{};if(a.kind==='naming')return`${c.len||10} questions · ${(c.topics||[]).map(t=>(NM_TOPICS.find(x=>x.id===t)||{}).title||t).join(', ')}`;
+  if(a.kind==='spectra')return`${c.len||10} questions · ${(c.topics||[]).map(t=>(SP_TOPICS.find(x=>x.id===t)||{}).title||t).join(', ')}`;
+  if(a.kind==='mech')return(c.ids||[]).map(id=>(RXN_BY[id]||{}).name||id).join(', ');
+  if(a.kind==='synth')return(c.ids||[]).map(id=>(SYN_BY[id]||{}).title||id).join(', ');return''}
+function clRender(){
+  const pg=$('#classPage');if(!pg)return;
+  if(!FB.cfg){pg.innerHTML=`<section class="cl"><header class="nm-head"><div class="nm-kicker">Classes</div><h1>Classes</h1><p class="nm-lede">Classes need the installed Bondline app with sign-in.</p></header></section>`;return}
+  if(!clOn()){pg.innerHTML=`<section class="cl"><header class="nm-head"><div class="nm-kicker">Classes</div><h1>Teach and learn together</h1><p class="nm-lede">Lecturers and teachers make a class and set work: naming quizzes, spectra practice, mechanisms and synthesis problems. Students join with a code, and their scores come back automatically.</p></header><div class="cl-card"><p>Classes are stored in your Bondline account, so you need to sign in first.</p><button class="btn primary" data-cla="signin">Sign in</button></div>${tipHTML('study',3)}</section>`;return}
+  if(CL.view==='class'&&CL.cur&&clGet(CL.cur))return clRenderClass(clGet(CL.cur));
+  const own=[...CL.own.values()],jn=[...CL.joined.values()];
+  pg.innerHTML=`<section class="cl"><header class="nm-head"><div class="nm-kicker">Classes</div><h1>Classes</h1><p class="nm-lede">Join a class with the code your teacher gives you, or make your own class to set work.</p></header>
+   <div class="cl-two">
+    <form class="cl-card" id="clJoinF" autocomplete="off"><h2>Join a class</h2><p class="hm-muted">Your teacher will see your name, email address and your scores on the work they set.</p><label class="cl-f">Class code<input id="clJoinCode" maxlength="9" placeholder="ABCD-2345" spellcheck="false" autocapitalize="characters" value="${esc(clFmt(CL.pendingCode||''))}"></label><button class="btn primary" type="submit">Join</button><p class="cl-err" id="clJoinErr" role="alert"></p></form>
+    <form class="cl-card" id="clNewF" autocomplete="off"><h2>Make a class</h2><p class="hm-muted">For lecturers, teachers and tutors. You'll get a code to share with students.</p><label class="cl-f">Class name<input id="clNewName" maxlength="100" placeholder="e.g. CHM1012 Organic Chemistry, Group B"></label><button class="btn primary" type="submit">Create class</button></form>
+   </div>
+   ${own.length?`<h2 class="qz-h">Classes you teach</h2><div class="cl-grid">${own.map(c=>`<button class="cl-tile" data-clopen="${c.id}"><b>${esc(c.name)}</b><span>${(c.memberIds||[]).length} students · code ${clFmt(c.code)}</span></button>`).join('')}</div>`:''}
+   ${jn.length?`<h2 class="qz-h">Classes you're in</h2><div class="cl-grid">${jn.map(c=>`<button class="cl-tile" data-clopen="${c.id}"><b>${esc(c.name)}</b><span>Teacher: ${esc(c.ownerName||'')}</span></button>`).join('')}</div>`:''}
+  </section>`;
+}
+function clRenderClass(c){
+  const pg=$('#classPage'),owner=clIsOwner(c),asg=[...CL.asg.values()].sort((a,b)=>(a.at||0)-(b.at||0));
+  const head=`<header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-cla="back">← Classes</button></div><h1>${esc(c.name)}</h1><p class="nm-lede">${owner?`${(c.memberIds||[]).length} student${(c.memberIds||[]).length===1?'':'s'}. Share the code or link so students can join.`:`Teacher: ${esc(c.ownerName||'')}`}</p></header>`;
+  if(owner){
+    const people=(c.memberIds||[]).map(u=>({u,...(CL.mem.get(u)||{n:'Student',e:''})})).sort((a,b)=>String(a.n).localeCompare(String(b.n)));
+    const cell=(a,u)=>{const r=CL.res.get(a.id+'_'+u);if(!r)return'<td class="cl-na">–</td>';const pct=Math.round(100*r.best/r.total);return`<td class="cl-sc" style="--p:${pct}"><b>${r.best}/${r.total}</b><small>${r.tries>1?r.tries+' tries':''}</small></td>`};
+    const avg=a=>{const rs=people.map(p=>CL.res.get(a.id+'_'+p.u)).filter(Boolean);if(!rs.length)return'–';return Math.round(100*rs.reduce((s,r)=>s+r.best/r.total,0)/rs.length)+'%'};
+    pg.innerHTML=`<section class="cl">${head}
+     <div class="cl-code"><div><span class="hm-kicker">Class code</span><b>${clFmt(c.code)}</b></div><button class="btn" data-cla="copycode">Copy code</button><button class="btn" data-cla="copylink">Copy invite link</button><span class="np-sp"></span><button class="btn" data-cla="rename">Rename</button></div>
+     <div class="cl-sec-h"><h2 class="qz-h">Assignments</h2><button class="btn primary" data-cla="newasg">New assignment</button></div>
+     ${CL.form?clFormHTML():''}
+     ${asg.length?`<div class="cl-asgs">${asg.map(a=>`<div class="cl-asg"><div><b>${esc(a.title)}</b><span class="hm-muted">${esc(CL_KINDS[a.kind]||'')} · ${esc(clCfgText(a))}${a.due?` · due ${clDue(a)}`:''}</span></div><span class="cl-avg" title="Class average">${avg(a)}</span><button class="btn small" data-cldel="${a.id}">Delete</button></div>`).join('')}</div>`:'<p class="hm-muted">No assignments yet.</p>'}
+     <div class="cl-sec-h"><h2 class="qz-h">Results</h2>${people.length&&asg.length?'<button class="btn" data-cla="csv">Download CSV</button>':''}</div>
+     ${people.length?`<div class="cl-tablewrap"><table class="cl-table"><thead><tr><th>Student</th>${asg.map(a=>`<th title="${esc(a.title)}">${esc(a.title)}</th>`).join('')}<th></th></tr></thead><tbody>${people.map(p=>`<tr><th><b>${esc(p.n)}</b><small>${esc(p.e)}</small></th>${asg.map(a=>cell(a,p.u)).join('')}<td><button class="linkbtn" data-clrm="${esc(p.u)}">Remove</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="hm-muted">No students yet. Share the class code to get started.</p>'}
+     <div class="cl-danger"><button class="btn" data-cla="delclass">Delete class</button></div></section>`;
+  }else{
+    const me=FB.user.uid;
+    pg.innerHTML=`<section class="cl">${head}
+     <h2 class="qz-h">Work set</h2>${asg.length?`<div class="cl-asgs">${asg.map(a=>{const r=CL.res.get(a.id+'_'+me);return`<div class="cl-asg"><div><b>${esc(a.title)}</b><span class="hm-muted">${esc(CL_KINDS[a.kind]||'')} · ${esc(clCfgText(a))}${a.due?` · due ${clDue(a)}`:''}</span></div>${r?`<span class="cl-avg">${r.best}/${r.total}</span>`:'<span class="cl-avg cl-todo">To do</span>'}<button class="btn small${r?'':' primary'}" data-clgo="${a.id}">${r?'Try again':'Start'}</button></div>`}).join('')}</div>`:'<p class="hm-muted">Nothing set yet.</p>'}
+     <p class="hm-muted cl-note">Your teacher sees your name, email address and your scores on each piece of work. Your notes are never shared. Leaving the class deletes your scores.</p>
+     <div class="cl-danger"><button class="btn" data-cla="leave">Leave class</button></div>${tipHTML('study',asg.length)}</section>`;
+  }
+}
+function clFormHTML(){const F=CL.form;const chips=(list,sel,attr)=>`<div class="qz-chips">${list.map(([id,t])=>`<button type="button" class="qz-chip${sel.has(id)?' on':''}" data-${attr}="${esc(id)}" aria-pressed="${sel.has(id)}"><span>${esc(t)}</span></button>`).join('')}</div>`;
+  let opts='';
+  if(F.kind==='naming')opts=`<h3>Topics</h3>${chips(NM_TOPICS.map(t=>[t.id,t.title]),F.sel,'clsel')}<div class="cl-inl"><label class="cl-f">Questions<select id="clLen">${[5,10,15,20].map(n=>`<option${F.len===n?' selected':''}>${n}</option>`).join('')}</select></label><label class="cl-f">Style<select id="clStyle">${[['mix','Mixed'],['name','Choose the name'],['type','Type the name'],['struct','Choose the structure']].map(([v,t])=>`<option value="${v}"${F.style===v?' selected':''}>${t}</option>`).join('')}</select></label></div>`;
+  else if(F.kind==='spectra')opts=`<h3>Topics</h3>${chips(SP_TOPICS.map(t=>[t.id,t.title]),F.sel,'clsel')}<label class="cl-f">Questions<select id="clLen">${[5,10,15,20].map(n=>`<option${F.len===n?' selected':''}>${n}</option>`).join('')}</select></label>`;
+  else if(F.kind==='mech')opts=`<h3>Reactions</h3>${chips(RXN.map(r=>[r.id,r.name]),F.sel,'clsel')}`;
+  else if(F.kind==='synth')opts=`<h3>Problems</h3>${chips(SYN.map(p=>[p.id,p.title+' ('+SYN_LV[p.lv]+')']),F.sel,'clsel')}`;
+  return`<form class="cl-card cl-form" id="clAsgF" autocomplete="off"><h2>New assignment</h2>
+   <div class="cl-inl"><label class="cl-f cl-grow">Title<input id="clTitle" maxlength="120" value="${esc(F.title)}" placeholder="e.g. Week 3: SN1 and SN2"></label><label class="cl-f">Type<select id="clKind">${Object.entries(CL_KINDS).map(([k,t])=>`<option value="${k}"${F.kind===k?' selected':''}>${t}</option>`).join('')}</select></label><label class="cl-f">Due (optional)<input id="clDueIn" type="date" value="${esc(F.due||'')}"></label></div>
+   ${opts}<div class="syn-row"><span class="np-sp"></span><button class="btn" type="button" data-cla="cancelasg">Cancel</button><button class="btn primary" type="submit">Set assignment</button></div></form>`}
+async function clCreate(name){name=String(name||'').trim().slice(0,100);if(!name)return;const me=FB.user.uid,id=shKey(20),code=clCode(),mine=shMe();
+  try{await clRef(id).set({name,owner:me,ownerName:mine.n,code,memberIds:[],at:Date.now()});await FB.db.collection('classCodes').doc(code).set({cid:id,by:me,at:Date.now()});toast('Class created. Share the code with your students.');clOpenClass(id,true)}
+  catch(e){console.warn(e);toast('Couldn\'t create the class. Check that the latest database rules are published.')}}
+async function clJoin(raw){const code=clNorm(raw),err=$('#clJoinErr');if(code.length!==8){if(err)err.textContent='Class codes have 8 letters and numbers.';return}
+  try{const cd=await FB.db.collection('classCodes').doc(code).get();if(!cd.exists){if(err)err.textContent='No class has that code. Check it with your teacher.';return}
+    const cid=cd.data().cid,me=FB.user.uid,FV=window.firebase.firestore.FieldValue;
+    if(CL.own.has(cid)){if(err)err.textContent='That\'s your own class.';return}
+    await clRef(cid).update({memberIds:FV.arrayUnion(me),lastJoin:code+':'+me});const mine=shMe();await clRef(cid).collection('members').doc(me).set({n:mine.n,e:mine.e,at:Date.now()});CL.pendingCode='';try{sessionStorage.removeItem('bondline.classCode')}catch(e){}toast('Joined the class.');setTimeout(()=>clOpenClass(cid),400)}
+  catch(e){console.warn(e);if(err)err.textContent='Couldn\'t join that class. Check the code and try again.'}}
+async function clRemove(c,u){const FV=window.firebase.firestore.FieldValue;try{await clRef(c.id).update({memberIds:FV.arrayRemove(u)});await clRef(c.id).collection('members').doc(u).delete().catch(()=>{})}catch(e){toast('Couldn\'t remove the student.')}}
+async function clLeave(c){const FV=window.firebase.firestore.FieldValue,me=FB.user.uid;try{for(const r of CL.res.values())if(r.uid===me)await clRef(c.id).collection('results').doc(r.id).delete().catch(()=>{});await clRef(c.id).collection('members').doc(me).delete().catch(()=>{});await clRef(c.id).update({memberIds:FV.arrayRemove(me)});clLeaveView();toast('You left the class.')}catch(e){toast('Couldn\'t leave the class.')}}
+async function clDelete(c){try{const del=async q=>{const s=await q.get();await Promise.all(s.docs.map(d=>d.ref.delete()))};await del(clRef(c.id).collection('results'));await del(clRef(c.id).collection('assignments'));await del(clRef(c.id).collection('members'));await FB.db.collection('classCodes').doc(c.code).delete().catch(()=>{});await clRef(c.id).delete();clLeaveView();toast('Class deleted.')}catch(e){console.warn(e);toast('Couldn\'t delete the class.')}}
+async function clSaveAsg(){const F=CL.form,c=clGet(CL.cur);if(!F||!c)return;F.title=($('#clTitle').value||'').trim().slice(0,120);if(!F.title){$('#clTitle').focus();return toast('Give the assignment a title.')}
+  const sel=[...F.sel];if(!sel.length)return toast(F.kind==='naming'||F.kind==='spectra'?'Choose at least one topic.':'Choose at least one item.');
+  const cfg=F.kind==='naming'?{topics:sel,len:F.len,style:F.style}:F.kind==='spectra'?{topics:sel,len:F.len}:{ids:sel.slice(0,40)};
+  const due=F.due?new Date(F.due+'T23:59:00').getTime():null;
+  try{await clRef(c.id).collection('assignments').doc(shKey(16)).set({title:F.title,kind:F.kind,cfg,due,at:Date.now(),by:FB.user.uid});CL.form=null;clRender();toast('Assignment set.')}catch(e){console.warn(e);toast('Couldn\'t save the assignment.')}}
+async function clSubmit(c,a,score,total){if(!clOn()||!c||!a)return;const me=FB.user.uid,id=a.id+'_'+me,prev=CL.res.get(id),mine=shMe();total=Math.max(1,Math.min(500,total|0));score=Math.max(0,Math.min(total,score|0));
+  const best=prev&&prev.total===total?Math.max(prev.best||0,score):score;
+  try{await clRef(c.id).collection('results').doc(id).set({aid:a.id,uid:me,n:mine.n,e:mine.e,score,total,best,tries:(prev&&prev.tries||0)+1,at:Date.now()});toast(`Score sent to your teacher: ${score}/${total}.`)}catch(e){console.warn(e);toast('Couldn\'t send your score. Check your connection.')}}
+function clGo(aid){const c=clGet(CL.cur),a=CL.asg.get(aid);if(!c||!a)return;const cfg=a.cfg||{},done=(s,t)=>{clSubmit(c,a,s,t)};
+  if(a.kind==='naming'){setMode('naming');startQuiz({topics:cfg.topics||[],style:cfg.style||'mix',len:cfg.len||10,onDone:done,assign:a.title})}
+  else if(a.kind==='spectra'){setMode('spectra');spStart({topics:cfg.topics||[],len:cfg.len||10,onDone:done,assign:a.title})}
+  else if(a.kind==='mech')openPracticeSet(cfg.ids||[],done);
+  else if(a.kind==='synth'){setMode('synth');synStartSet(cfg.ids||[],done)}}
+function openPracticeSet(ids,onDone){const q=ids.flatMap(id=>practiceItems(id));if(!q.length)return;openPractice(ids[0]);MP.queue=q;MP.i=0;MP.score=0;MP.tried=0;MP.onDone=onDone;$('#mpWhich').hidden=true;showProblem()}
+function clCSV(c){const asg=[...CL.asg.values()].sort((a,b)=>(a.at||0)-(b.at||0));const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const rows=[['Name','Email',...asg.map(a=>a.title)].map(q).join(',')];
+  for(const u of c.memberIds||[]){const p=CL.mem.get(u)||{};rows.push([p.n,p.e,...asg.map(a=>{const r=CL.res.get(a.id+'_'+u);return r?`${r.best}/${r.total}`:''})].map(q).join(','))}
+  saveFile((c.name||'class').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').toLowerCase()+'-results.csv','﻿'+rows.join('\r\n')).catch(()=>{})}
+function wireClasses(){
+  const pg=$('#classPage');
+  pg.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='clJoinF')clJoin($('#clJoinCode').value);else if(e.target.id==='clNewF')clCreate($('#clNewName').value);else if(e.target.id==='clAsgF')clSaveAsg()});
+  pg.addEventListener('change',e=>{const F=CL.form;if(!F)return;if(e.target.id==='clKind'){F.title=$('#clTitle').value;F.kind=e.target.value;F.sel=new Set();clRender()}else if(e.target.id==='clLen')F.len=+e.target.value;else if(e.target.id==='clStyle')F.style=e.target.value;else if(e.target.id==='clDueIn')F.due=e.target.value;else if(e.target.id==='clTitle')F.title=e.target.value});
+  const go=e=>{
+    const o=e.target.closest('[data-clopen]');if(o)return clOpenClass(o.dataset.clopen);
+    const s=e.target.closest('[data-clsel]');if(s&&CL.form){const F=CL.form;F.title=$('#clTitle').value;const id=s.dataset.clsel;F.sel.has(id)?F.sel.delete(id):F.sel.add(id);s.classList.toggle('on',F.sel.has(id));s.setAttribute('aria-pressed',F.sel.has(id));return}
+    const g=e.target.closest('[data-clgo]');if(g)return clGo(g.dataset.clgo);
+    const rm=e.target.closest('[data-clrm]');if(rm){const c=clGet(CL.cur);if(!rm.classList.contains('armed')){rm.classList.add('armed');rm.textContent='Click again';setTimeout(()=>{rm.classList.remove('armed');rm.textContent='Remove'},3000);return}return clRemove(c,rm.dataset.clrm)}
+    const dl=e.target.closest('[data-cldel]');if(dl){if(!dl.classList.contains('armed')){dl.classList.add('armed');dl.textContent='Click again';setTimeout(()=>{dl.classList.remove('armed');dl.textContent='Delete'},3000);return}clRef(CL.cur).collection('assignments').doc(dl.dataset.cldel).delete().catch(()=>toast('Couldn\'t delete.'));return}
+    const a=e.target.closest('[data-cla]');if(!a)return;const k=a.dataset.cla,c=clGet(CL.cur);
+    if(k==='signin')return openAuth('in');if(k==='back'){clLeaveView();return}
+    if(k==='newasg'){CL.form={title:'',kind:'naming',sel:new Set(),len:10,style:'mix',due:''};clRender();setTimeout(()=>{const t=$('#clTitle');if(t)t.focus()},30);return}
+    if(k==='cancelasg'){CL.form=null;clRender();return}
+    if(!c)return;
+    if(k==='copycode'){navigator.clipboard&&navigator.clipboard.writeText(clFmt(c.code)).then(()=>toast('Code copied.'),()=>toast(clFmt(c.code)))}
+    else if(k==='copylink'){const u=location.origin+'/?class='+c.code;navigator.clipboard&&navigator.clipboard.writeText(u).then(()=>toast('Invite link copied.'),()=>toast(u))}
+    else if(k==='rename'){const n=prompt('Class name',c.name);if(n&&n.trim())clRef(c.id).update({name:n.trim().slice(0,100)}).catch(()=>toast('Couldn\'t rename.'))}
+    else if(k==='csv')clCSV(c);
+    else if(k==='leave'){if(!a.classList.contains('armed')){a.classList.add('armed');a.textContent='Click again to leave';return}clLeave(c)}
+    else if(k==='delclass'){if(!a.classList.contains('armed')){a.classList.add('armed');a.textContent='Click again to delete the class and all results';return}clDelete(c)}};
+  pg.addEventListener('click',go);$('#classSide').addEventListener('click',go);
+}
+
+/* ---------- v16: wiring into the existing app ---------- */
+function v16HomeTip(){const hp=$('#homePage');if(!hp||hp.querySelector('.v16-home'))return;
+  const seed=Math.floor(Date.now()/86400000);const box=document.createElement('section');box.className='v16-home';
+  box.innerHTML=`<div class="v16-home-tip">${tipHTML(null,seed)}<button class="linkbtn" data-v16tip="${seed+1}">Another tip</button></div><div class="v16-home-links"><button class="v16-hl" data-v16go="synth"><b>Synthesis problems</b><span>Plan routes step by step</span></button><button class="v16-hl" data-v16go="classes"><b>Classes</b><span>Join a class or set work</span></button></div>`;
+  const anchor=hp.querySelector('.hm-foot');if(anchor)anchor.before(box);else hp.appendChild(box);
+  box.addEventListener('click',e=>{const t=e.target.closest('[data-v16tip]');if(t){const s=+t.dataset.v16tip;box.querySelector('.v16-tip').outerHTML=tipHTML(null,s);t.dataset.v16tip=s+1;return}const g=e.target.closest('[data-v16go]');if(g)setMode(g.dataset.v16go)})}
+function v16AppendTip(sel,topic){const el=$(sel);if(el&&!el.querySelector('.v16-tip')){const w=document.createElement('div');w.innerHTML=tipHTML(topic);el.querySelector('section,article')?el.querySelector('section,article').appendChild(w.firstChild):el.appendChild(w.firstChild)}}
+function v16DeepLinks(){
+  const q=new URLSearchParams(location.search);let used=false;
+  try{
+    if(q.get('rx')&&RXN_BY[q.get('rx')]){openLibrary(q.get('rx'));used=true}
+    else if(q.get('practise')&&RXN_BY[q.get('practise')]){openPractice(q.get('practise'));used=true}
+    else if(q.has('synth')){setMode('synth');if(SYN_BY[q.get('synth')])synStart(q.get('synth'));used=true}
+    else if(q.has('class')){CL.pendingCode=clNorm(q.get('class'));try{sessionStorage.setItem('bondline.classCode',CL.pendingCode)}catch(e){}setMode('classes');used=true}
+    else if(q.get('mode')&&['naming','spectra','orbitals','cards','synth','classes','home'].includes(q.get('mode'))){setMode(q.get('mode'));used=true}
+  }catch(e){console.warn(e)}
+  if(used||q.has('app')){try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
+  // keep classes in step with sign-in
+  setInterval(()=>{if(clOn()&&!CL.started)clStart();else if(!clOn()&&CL.started){clStop();clRefresh()}},2000);
+}
+function wireV16(){
+  wireSynth();wireClasses();
+  const _rh=renderHome;renderHome=function(){_rh();v16HomeTip()};
+  const _fq=finishQuiz;finishQuiz=function(early){_fq(early);if(NM.view==='summary')v16AppendTip('#namingPage','naming')};
+  const _sf=spFinish;spFinish=function(early){_sf(early);if(SP.view==='summary')v16AppendTip('#specPage','spectra')};
+  const _sp=showProblem;showProblem=function(){_sp();if(!MP.queue[MP.i]){const b=$('#mpBody');if(b&&!b.querySelector('.v16-tip'))b.insertAdjacentHTML('beforeend',tipHTML('mech'))}};
+    renderSynSide();
+}
+if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
+
+wireV13();wireSpectra();wireOrbitals();wireV16();
+boot().then(v16DeepLinks);
 })();

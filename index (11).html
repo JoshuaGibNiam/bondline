@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Policy · Bondline</title>
+<meta name="description" content="What Bondline, the free organic chemistry notebook, stores about you, where it is kept, who can see it, and how to delete it.">
+<link rel="canonical" href="https://bondline.site/privacy/">
+<meta name="robots" content="index,follow">
+<meta name="theme-color" content="#0a0f17">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:'Bricolage Grotesque';font-weight:400;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/source-serif-4-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
+:root{--k:#0a0f17;--pp:#f3f4f7;--ink:#121a24;--mut:#5a6878;--line:#d8dfe8;--bl:#1f5fd1;--rd:#ff5a5f;color-scheme:light}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--pp);color:var(--ink);font:17px/1.65 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--bl)}
+header{background:var(--k);color:#fff;padding:22px max(16px,5vw) clamp(60px,10vh,110px);position:relative;overflow:hidden}
+header nav{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em}
+.brand svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.brand svg .c{stroke:var(--rd)}
+.open{color:#0a0f17;background:#fff;text-decoration:none;font-weight:700;font-size:14.5px;padding:10px 18px;border-radius:999px;transition:background .3s,color .3s}
+.open:hover{background:var(--rd);color:#fff}
+.label{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:clamp(60px,10vh,110px) 0 14px}
+h1{font-size:clamp(46px,8vw,120px);line-height:.92;letter-spacing:-.055em;margin:0}
+h1 em{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--rd)}
+.updated{color:#c7d0dd;margin:22px 0 0}
+main{display:grid;grid-template-columns:240px minmax(0,760px);gap:clamp(30px,6vw,90px);padding:clamp(50px,8vh,90px) max(16px,5vw) 90px}
+.toc{position:sticky;top:24px;align-self:start;font-size:14.5px}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
+.toc li{counter-increment:t}
+.toc a{color:var(--mut);text-decoration:none;display:block;padding:2px 0;transition:color .2s,transform .2s}
+.toc a::before{content:counter(t,decimal-leading-zero) "  ";font-family:"JetBrains Mono",monospace;font-size:12px}
+.toc a:hover{color:var(--ink);transform:translateX(3px)}
+article h2{font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.1;margin:56px 0 14px;scroll-margin-top:24px}
+article h2:first-child{margin-top:0}
+article h3{font-size:19px;margin:26px 0 6px}
+article p,article li{color:#2b3644}
+article ul{padding-left:22px}
+article li{margin:6px 0}
+.summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px}
+.summary ul{margin:10px 0 0}
+table{width:100%;border-collapse:collapse;font-size:15.5px;margin:14px 0}
+th,td{text-align:left;vertical-align:top;padding:12px 12px 12px 0;border-top:1px solid var(--line)}
+th{font-weight:700;width:34%}
+mark{background:#fff3a3;padding:0 4px;border-radius:4px}
+footer{background:var(--k);color:#8b97a8;padding:28px max(16px,5vw);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14.5px}
+footer a{color:#8b97a8;text-decoration:none}footer a:hover{color:#fff}
+@media (max-width:860px){main{grid-template-columns:1fr}.toc{position:static}}
+@media (prefers-reduced-motion:no-preference){
+  h1,.updated,.label{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.label{animation-delay:.05s}h1{animation-delay:.1s}.updated{animation-delay:.25s}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+<header>
+  <nav><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="open" href="/?app">Open the notebook</a></nav>
+  <p class="label">Privacy policy</p>
+  <h1>Your notes are <em>yours.</em></h1>
+  <p class="updated">Last updated 3 November 2026 (version 2: classes)</p>
+</header>
+
+<main>
+  <aside class="toc" aria-label="Contents"><ol>
+    <li><a href="#summary">In short</a></li>
+    <li><a href="#who">Who runs Bondline</a></li>
+    <li><a href="#without">Without an account</a></li>
+    <li><a href="#account">With an account</a></li>
+    <li><a href="#sharing">Sharing</a></li>
+    <li><a href="#classes">Classes</a></li>
+    <li><a href="#services">Other services</a></li>
+    <li><a href="#cookies">Cookies and storage</a></li>
+    <li><a href="#use">How data is used</a></li>
+    <li><a href="#keep">How long it's kept</a></li>
+    <li><a href="#rights">Your choices and rights</a></li>
+    <li><a href="#children">Children</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#changes">Changes and contact</a></li>
+  </ol></aside>
+
+  <article>
+    <h2 id="summary">In short</h2>
+    <div class="summary"><ul>
+      <li>You can use Bondline without an account. Your notes then stay in your browser, on your device.</li>
+      <li>If you sign in, your notes and progress are stored in Google Firebase so they can sync between your devices.</li>
+      <li>Bondline has no ads, no analytics and no tracking cookies, and does not sell or share your data for marketing.</li>
+      <li>If you join a class, the teacher who runs it sees your name, email address and your scores on the work they set. Never your notes.</li>
+      <li>You can ask for your account and everything in it to be deleted at any time.</li>
+    </ul></div>
+
+    <h2 id="who">Who runs Bondline</h2>
+    <p>Bondline (bondline.site) is a free organic chemistry notebook run by an independent developer based in Malaysia ("we", "us"). We are responsible for the personal data described here. You can reach us at <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
+
+    <h2 id="without">If you use Bondline without an account</h2>
+    <p>Everything you create (notes, drawings, images, flashcards, comments, folders and tags, quiz and spectra progress, note history, trash and your settings) is saved in your browser's local storage on that device. It is not sent to us, and we cannot see it.</p>
+    <p>Because it lives only in that browser, clearing your browser data or uninstalling the app deletes it, and it does not appear on your other devices.</p>
+
+    <h2 id="account">If you sign in</h2>
+    <p>You can sign in with Google or with an email address and password. Sign-in is handled by Firebase Authentication, a Google service.</p>
+    <table>
+      <tr><th>Account details</th><td>Your email address, a user ID, whether your email is verified, and, if you use Google sign-in, the name on your Google account. Passwords are handled by Firebase and are never visible to us.</td></tr>
+      <tr><th>Your content</th><td>Notes, drawings, images you add, flashcards, comments, folders, tags, trash, glossary terms you add, quiz and spectra progress, and app settings, so they sync across your devices.</td></tr>
+      <tr><th>Where it's stored</th><td>Google Cloud Firestore, in the project that runs Bondline. Google's servers may be outside your country, including outside Malaysia.</td></tr>
+    </table>
+    <p>Database rules mean only you can read or change your personal notes. We can access stored data only as the administrator of the Firebase project, and only do so to run the service, fix problems, or when you ask us to.</p>
+    <p>When you first sign in on a device, the notes already saved on that device are copied into your account. Logging out removes that account's notes from the device.</p>
+
+    <h2 id="sharing">Sharing</h2>
+    <h3>Read-only links</h3>
+    <p>If you share a note, a copy of it is stored so that anyone with the link can read it. Turn sharing off to remove that copy.</p>
+    <h3>Shared notebooks</h3>
+    <p>When you create or join a shared notebook, its members can see the notebook's notes and comments, the names and email addresses of the other members and invited people, and who is currently looking at a note. The owner decides who is invited. Email addresses you invite are stored so that the invitation can be shown to that person when they sign in. Bondline does not send emails on your behalf.</p>
+
+    <h2 id="classes">Classes</h2>
+    <p>Classes let a teacher or lecturer set work and see how students do. They need an account.</p>
+    <h3>If you join a class</h3>
+    <ul>
+      <li>The class owner (your teacher) can see your <b>name</b> and <b>email address</b>, and, for each assignment they set, your <b>latest score, best score, number of attempts</b> and <b>when you last tried</b>. They can download these as a spreadsheet.</li>
+      <li>Your notes, flashcards, drawings and practice outside the class are <b>not</b> shared with the class.</li>
+      <li>Other students in the class can't see your name or scores.</li>
+      <li>Leaving the class removes you from it and deletes your scores. If your teacher removes you, your earlier scores stay visible to them until they delete them or the class.</li>
+    </ul>
+    <h3>If you run a class</h3>
+    <ul>
+      <li>Students in the class see the class name, your name and the work you set.</li>
+      <li>You decide what to set and who stays in the class. You are responsible for using students' details only for teaching, in line with your school's or university's rules.</li>
+      <li>If you teach children, follow your institution's rules on getting consent before asking them to create accounts.</li>
+      <li>Deleting the class deletes its assignments, all results and the join code.</li>
+    </ul>
+    <p>Class data is stored in Google Cloud Firestore with the rest of Bondline's account data, and database rules enforce who can see what.</p>
+
+    <h2 id="services">Other services Bondline uses</h2>
+    <ul>
+      <li><b>Google Firebase</b> (Authentication and Cloud Firestore) for sign-in and sync. Google processes this data under the <a href="https://firebase.google.com/support/privacy" rel="noopener">Firebase privacy and security terms</a>.</li>
+      <li><b>Google sign-in</b>, if you choose it. Signing in opens a Google window, where Google's own <a href="https://policies.google.com/privacy" rel="noopener">privacy policy</a> applies.</li>
+      <li><b>PubChem</b>, run by the US National Library of Medicine. When you look up a compound by name or structure, the name or SMILES you typed is sent to PubChem to fetch the answer. Nothing else from your notes is sent.</li>
+      <li><b>Netlify</b>, which hosts the website. Like any web host, it processes your IP address and basic request details to deliver pages and protect the site.</li>
+    </ul>
+    <p>Fonts, the drawing and maths libraries, the PowerPoint exporter and the 3D engine are all served from Bondline's own site, so loading them does not contact other companies. Exporting to PowerPoint, presenting a note and solving synthesis problems all happen on your device; nothing is uploaded. Your synthesis progress is kept in your browser on that device.</p>
+
+    <h2 id="cookies">Cookies and browser storage</h2>
+    <p>Bondline does not use advertising or analytics cookies. It uses your browser's local storage and IndexedDB to save your notes and settings, to keep you signed in, and to make the app work offline. These are needed for the app to work. Google may set its own cookies in the sign-in window if you use Google sign-in.</p>
+
+    <h2 id="use">How your data is used</h2>
+    <p>Only to provide Bondline: to save and sync your work, sign you in, run shared notebooks and share links, keep the service secure, and answer you if you contact us. We do not sell your data, use it for advertising, or use your notes to train AI models.</p>
+    <p>We process account data because it is needed to provide the service you asked for when you created an account, and based on your consent, which you can withdraw by deleting your account. This policy is written to meet Malaysia's Personal Data Protection Act 2010 and, for users in the EU and UK, the GDPR.</p>
+
+    <h2 id="keep">How long it's kept</h2>
+    <ul>
+      <li>Content in your account stays until you delete it or ask us to delete your account.</li>
+      <li>Deleted notes stay in Trash for 30 days, then are removed.</li>
+      <li>Shared copies stay until you turn sharing off or delete the note.</li>
+      <li>Class results stay until the student leaves, the teacher deletes them, or the class is deleted.</li>
+      <li>After an account deletion request, we delete your account and content within 30 days.</li>
+    </ul>
+
+    <h2 id="rights">Your choices and rights</h2>
+    <p>You can see and edit everything you have stored in the app itself, and export notes as PDFs. You can also ask us to:</p>
+    <ul>
+      <li>give you a copy of the personal data we hold about you;</li>
+      <li>correct it;</li>
+      <li>delete your account and all of its content;</li>
+      <li>stop processing it.</li>
+    </ul>
+    <p>Email <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a> from the address on your account and we will reply within 21 days. You can also complain to the data protection authority where you live; in Malaysia that is the Personal Data Protection Commissioner.</p>
+
+    <h2 id="children">Children</h2>
+    <p>Bondline is made for students, including school students. If you are under 13, or under the age at which you can agree to this yourself where you live, please ask a parent or guardian before creating an account. You can still use Bondline without an account, which keeps everything on your device. If you are a parent and believe your child has given us personal data without your permission, contact us and we will delete it.</p>
+
+    <h2 id="security">Security</h2>
+    <p>All connections to Bondline use HTTPS. Database rules check every read and write so that people can reach only their own data and the notebooks they belong to, and the site refuses to run code from other sources. No system is perfectly secure, so please use a strong password and sign out on shared computers.</p>
+
+    <h2 id="changes">Changes and contact</h2>
+    <p>If this policy changes, we will update the date at the top of this page. For important changes, we will also let you know in the app. Questions or requests: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
+  </article>
+</main>
+
+<footer><span>© 2026 Bondline</span><span><a href="/?about">Home</a> · <a href="/?app">Open the notebook</a></span></footer>
+</body>
+</html>
