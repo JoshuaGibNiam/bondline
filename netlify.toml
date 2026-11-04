@@ -1,0 +1,6 @@
+# Netlify settings. There is no build step: the folder is published as it is.
+# The webhook in netlify/functions only runs when the site is deployed from GitHub
+# or with the Netlify CLI. Drag-and-drop uploads skip functions.
+[build]
+  publish = "."
+  functions = "netlify/functions"

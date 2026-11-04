@@ -2767,13 +2767,13 @@ let qzSaveT;function saveQuiz(){clearTimeout(qzSaveT);qzSaveT=setTimeout(()=>{tr
 function mergeQuiz(remote){if(!remote||!remote.q)return;for(const[id,r]of Object.entries(remote.q)){const l=App.quiz.q[id];if(!l||(r.at||0)>(l.at||0))App.quiz.q[id]=r}}
 function topicStats(t){const qs=NM_BANK.filter(q=>q.t===t);const m=qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:qs.length}}
 function setMode(mode){
-  if(!['home','notes','cards','naming','guide','spectra','orbitals','synth','classes'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
+  if(!['home','notes','cards','naming','guide','spectra','orbitals','synth','classes','progress'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
   App.mode=mode;closePop();
   document.querySelectorAll('.mode').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
-  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';$('#synthSide').hidden=mode!=='synth';$('#classSide').hidden=mode!=='classes';$('#synthPage').hidden=mode!=='synth';$('#classPage').hidden=mode!=='classes';
-  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals','synth','classes'].includes(mode);
+  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';$('#synthSide').hidden=mode!=='synth';$('#classSide').hidden=mode!=='classes';$('#synthPage').hidden=mode!=='synth';$('#classPage').hidden=mode!=='classes';$('#progSide').hidden=mode!=='progress';$('#progPage').hidden=mode!=='progress';
+  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals','synth','classes','progress'].includes(mode);
   if(mode==='naming'){renderNamingSide();if(!NM.view)openLesson('intro')}
-  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();if(mode==='synth')synOpen();if(mode==='classes')clOpen();
+  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();if(mode==='synth')synOpen();if(mode==='classes')clOpen();if(mode==='progress')pgOpen();
   if(mode==='home')renderHome();
   if(mode==='cards')renderCardsPage();
   if(mode==='guide'&&!$('#guidePage').firstChild)renderGuide();
@@ -3115,7 +3115,7 @@ function homeClick(e){
 const K=(...ks)=>ks.map(k=>`<kbd>${k}</kbd>`).join(' ');
 const KT=rows=>`<dl class="gd-keys">${rows.map(([k,d])=>`<dt>${k}</dt><dd>${d}</dd>`).join('')}</dl>`;
 const GUIDE=[
- {id:'start',t:'Getting started',h:`<p>Bondline has six parts, switched with the icons down the left edge:</p><ul><li><b>Home</b>: recent notes, quick actions and your progress.</li><li><b>Notes</b>: your notebook. Each note is a stack of <b>blocks</b>: text, structure drawings and sketches. Add blocks with the buttons at the bottom of a note.</li><li><b>Cards</b>: your flashcard decks and study sessions.</li><li><b>Naming</b>: IUPAC lessons and a quiz.</li><li><b>Spectra</b>: lessons and practice for IR, NMR and mass spectrometry.</li><li><b>Orbitals</b>: MO diagrams, π molecular orbitals and 3D atomic and hybrid orbitals.</li></ul><p>Everything saves automatically. The dot at the bottom of the sidebar shows where your notes are saved.</p><p>The toolbar at the top of a note changes with what you're doing: click in text for <b>text tools</b>, click a drawing for <b>structure tools</b>. You can also switch with the <b>Text</b> and <b>Structure</b> tabs at its left.</p>`},
+ {id:'start',t:'Getting started',h:`<p>The bar down the left edge has four sections, a Tools menu and an account menu:</p><ul><li><b>Home</b>: search everything, see what to study next and open recent notes.</li><li><b>Notes</b>: your notebook. Each note is a stack of <b>blocks</b>: text, structure drawings and sketches. Add blocks with the buttons at the bottom of a note.</li><li><b>Practice</b>: tabs for <b>Flashcards</b>, <b>Naming</b> (IUPAC lessons and quizzes), <b>Spectra</b> (IR, NMR and mass spectrometry), <b>Synthesis</b> problems and <b>Orbitals</b> (MO diagrams and 3D orbitals).</li><li><b>Classes</b>: join a class or set work for one.</li><li><b>Tools</b>: the reaction predictor, reaction library, mechanism practice, glossary and quick reference.</li><li>The <b>account button</b> at the bottom: sign in, Settings, Trash, this guide, What's new and the guided tour.</li></ul><p>New to Bondline? The <b>guided tour</b> (account menu → Take the tour) points at each of these in about a minute.</p><p>Everything saves automatically. The dot at the bottom of the sidebar shows where your notes are saved.</p><p>The toolbar at the top of a note changes with what you're doing: click in text for <b>text tools</b>, click a drawing for <b>structure tools</b>. You can also switch with the <b>Text</b> and <b>Structure</b> tabs at its left.</p>`},
  {id:'text',t:'Writing and formatting text',h:`<p>Click in a text block and the toolbar shows text tools.</p><ul><li><b>Style</b>: Normal text, Heading 1–3, Quote and Code. Headings appear in the “On this page” list beside long notes, on wide screens.</li><li><b>Font</b>: Serif, Sans, Rounded, Handwriting, Classic and Typewriter. Select text to change just that text, or click in a paragraph to change the whole paragraph.</li><li><b>A</b>: text colour and highlighter. Colours follow your colour scheme.</li><li><b>▣ Box</b>: callout boxes for a Key idea, Definition, Example, Watch out or Tip.</li><li><b>H₂O</b>: select text like CH3CO2H and press it to subscript the numbers.</li></ul><h3>Type to format</h3>${KT([['<code>#</code> + space','Heading 1 (<code>##</code> and <code>###</code> for smaller headings)'],['<code>-</code> + space','Bulleted list'],['<code>1.</code> + space','Numbered list'],['<code>&gt;</code> + space','Quote'],['<code>---</code> + space','Divider line'],['<code>$…$</code>','Inline equation'],['<code>$$…$$</code>','Equation on its own line']])}`},
  {id:'maths',t:'Equations and LaTeX',h:`<p>Type LaTeX between dollar signs and it turns into a typeset equation as soon as you type the closing <code>$</code>. Use <code>$$…$$</code> for an equation on its own line. Or press <b>∑x²</b> (${K('Ctrl','M')}) to write one with a live preview and a palette of symbols.</p><p>Click any equation to edit or delete it.</p><h3>Chemistry with \\ce</h3>${KT([['<code>\\ce{H2SO4}</code>','Formula with subscripts'],['<code>\\ce{SO4^2-}</code>','Ion charges'],['<code>\\ce{A + B -&gt; C}</code>','Reaction arrow'],['<code>\\ce{A &lt;=&gt; B}</code>','Equilibrium'],['<code>\\ce{A -&gt;[H+][heat] B}</code>','Conditions above and below the arrow']])}<h3>Common maths</h3>${KT([['<code>x^{2}</code>, <code>x_{i}</code>','Powers and subscripts'],['<code>\\frac{a}{b}</code>','Fraction'],['<code>\\sqrt{x}</code>','Square root'],['<code>\\Delta</code>, <code>\\alpha</code>, <code>\\pi</code>','Greek letters'],['<code>\\times</code>, <code>\\pm</code>, <code>\\approx</code>','×, ±, ≈'],['<code>\\ln</code>, <code>\\log_{10}</code>','Logarithms'],['<code>\\text{rate}</code>','Ordinary words inside an equation']])}`},
  {id:'draw',t:'Drawing structures',h:`<p>Click a drawing to use the structure tools.</p><ul><li><b>Bonds</b>: click empty space to start a chain, or click an atom to grow from it. Drag to aim. Click a bond to cycle single, double and triple.</li><li><b>Rings</b>: click empty space to place one, or an atom or bond to fuse it.</li><li><b>Atoms</b>: pick an element, then click atoms. Type any label (like OMe or CO2Et) in the box.</li><li><b>Charges and lone pairs</b>: pick ⊕, ⊖ or •• and click atoms.</li><li><b>Select</b>: drag to select, then move, or press Delete.</li></ul><h3>Chemistry tools</h3><ul><li><b>Templates</b>: groups, rings, protecting groups, amino acids and reagents. Pick one, then click an atom to attach it.</li><li><b>Aa→</b>: type a name (IUPAC or common) to draw the structure.</li><li><b>C<sub>x</sub>H<sub>y</sub></b>: name, formula, molar mass and checks for every molecule.</li><li><b>R/S</b>: label stereocentres and E/Z double bonds.</li></ul>`},
@@ -3127,14 +3127,14 @@ const GUIDE=[
  {id:'comments',t:'Comments',h:`<ul><li>Select text and press <b>💬 Comment</b> in the text tools (${K('Ctrl','Alt','C')}). The text gets a coloured underline.</li><li>Press <b>💬</b> on any block (a drawing, sketch or deck) to comment on the whole block.</li><li><b>Comments</b> at the top of a note opens the list. You can reply, edit, resolve or delete each one. Resolved comments are kept under “Resolved”.</li><li>Click underlined text to jump to its comment. Comments don't appear in PDFs.</li></ul>`},
  {id:'chemtools',t:'Spectra, reactions and practice',h:`<ul><li><b>Predict spectra</b>: turn on C<sub>x</sub>H<sub>y</sub> for a drawing, then press <b>Predict spectra</b> under a molecule. You get the number of ¹H and ¹³C NMR signals with typical shifts, how many H each signal represents and its splitting (n + 1 rule), the main IR peaks, and the molecular ion pattern for mass spectrometry, including Cl and Br isotope peaks.</li><li><b>Reaction library</b> (📖 in the structure tools): 34 core reactions with the conditions and every mechanism step drawn with curly arrows. Add one to a note and press <b>3D</b> to watch it.</li><li><b>Mechanism practice</b> (↷): each problem shows a step and its product; draw the curly arrows yourself and press <b>Check</b>. Bondline tells you which arrows are right, which are missing and which don't belong.</li><li><b>Quick reference</b> (▦): periodic table, pKa table, functional groups with naming endings, and IR and NMR tables.</li></ul>${KT([[K('M')+' '+K('V')+' '+K('E'),'Curly arrow, move, eraser (in practice)'],[K('Enter'),'Check, then next problem'],[K('Ctrl','Z'),'Undo an arrow']])}`},
  {id:'chem2',t:'Checking structures, resonance and reactions',h:`<ul><li><b>Structure checks</b>: Bondline circles atoms that can't exist as drawn, such as a carbon with five bonds, a chlorine with two or a triple bond in a small ring. A badge on the drawing says how many problems there are; click it for details. Turn this off in ⚙ Settings.</li><li><b>Resonance structures</b>: click a molecule or ion, then <b>More → Resonance structures</b>. Bondline draws every contributor with the curly arrows between them and marks the major ones.</li><li><b>Reaction builder</b>: press <b>Add reaction</b> at the bottom of a note. Type reactants and products as names, formulas or SMILES, add reagents and conditions, and Bondline checks the atoms balance (or balances it for you).</li><li><b>Formula calculator</b>: <b>More → Formula calculator</b> works out molar mass, % composition, exact mass and degrees of unsaturation for formulas like CuSO<sub>4</sub>·5H<sub>2</sub>O. It also converts mass to moles and finds empirical and molecular formulas from percentages.</li></ul>`},
- {id:'safety',t:'Trash, history, images and sharing',h:`<ul><li><b>Trash</b>: deleted notes stay in Trash (in the sidebar) for 30 days. Restore them or delete them for good. You can also press <b>Undo</b> straight after deleting.</li><li><b>History</b> at the top of a note shows earlier versions saved on this device (at most one every 10 minutes while you edit). Preview one and press <b>Restore</b>; the version you replace is kept too.</li><li><b>Images</b>: press <b>Add image</b>, paste a picture into a text block, or drag image files onto a note. Pictures are shrunk to save space and sync with the note. Choose Small, Medium, Large or Full width and add a caption. Click a picture to see it full size.</li><li><b>Share</b> (installed app, when signed in): make a read-only link to a note. Anyone with the link can view it and save a copy; press <b>Stop sharing</b> to turn the link off.</li><li><b>Command palette</b>: press ${K('Ctrl','K')} anywhere and type to jump to a note, folder, reaction, guide section or action.</li></ul>`},
- {id:'gloss',t:'Glossary',h:`<p>Bondline knows over 300 organic chemistry terms: solvents (DMSO, THF), reagents (LiAlH₄, PCC, mCPBA), abbreviations (Et, Ts, Boc), concepts (nucleophile, enolate, Zaitsev's rule) and named reactions (SN2, aldol, Diels–Alder).</p><ul><li>Terms in your notes are <b>highlighted</b>. Hover over one, or tap it on a phone or tablet, to see what it means. Solvents and reagents show their structure.</li><li>Open the full <b>Glossary</b> from Home, the command palette (${K('Ctrl','K')}) or ⚙ Settings. Search it, or filter by type.</li><li><b>Add your own terms</b> with “Add a term”. They are highlighted in your notes too, and sync with your account.</li><li>In ⚙ Settings → Glossary, highlight every mention, only the first in each note, or turn highlighting off.</li></ul>`},
+ {id:'safety',t:'Trash, history, images and sharing',h:`<ul><li><b>Trash</b>: deleted notes stay in Trash (in the account menu at the bottom left) for 30 days. Restore them or delete them for good. You can also press <b>Undo</b> straight after deleting.</li><li><b>History</b> at the top of a note shows earlier versions saved on this device (at most one every 10 minutes while you edit). Preview one and press <b>Restore</b>; the version you replace is kept too.</li><li><b>Images</b>: press <b>Add image</b>, paste a picture into a text block, or drag image files onto a note. Pictures are shrunk to save space and sync with the note. Choose Small, Medium, Large or Full width and add a caption. Click a picture to see it full size.</li><li><b>Share</b> (installed app, when signed in): make a read-only link to a note. Anyone with the link can view it and save a copy; press <b>Stop sharing</b> to turn the link off.</li><li><b>Command palette</b>: press ${K('Ctrl','K')} anywhere and type to jump to a note, folder, reaction, guide section or action.</li></ul>`},
+ {id:'gloss',t:'Glossary',h:`<p>Bondline knows over 300 organic chemistry terms: solvents (DMSO, THF), reagents (LiAlH₄, PCC, mCPBA), abbreviations (Et, Ts, Boc), concepts (nucleophile, enolate, Zaitsev's rule) and named reactions (SN2, aldol, Diels–Alder).</p><ul><li>Terms in your notes are <b>highlighted</b>. Hover over one, or tap it on a phone or tablet, to see what it means. Solvents and reagents show their structure.</li><li>Open the full <b>Glossary</b> from <b>Tools</b>, the command palette (${K('Ctrl','K')}) or ⚙ Settings. Search it, or filter by type.</li><li><b>Add your own terms</b> with “Add a term”. They are highlighted in your notes too, and sync with your account.</li><li>In ⚙ Settings → Glossary, highlight every mention, only the first in each note, or turn highlighting off.</li></ul>`},
  {id:'predict',t:'Reaction predictor',h:`<p>Open it from Home, the command palette, or <b>Predict reaction</b> at the bottom of a note. Type a starting material (a name such as <i>2-bromobutane</i> or a SMILES string) and the reagents and conditions, for example <code>NaOEt, EtOH, heat</code> or <code>1. BH3·THF 2. H2O2, NaOH</code>. If a drawing is selected you can pick a molecule from it.</p><ul><li>For alkyl halides and sulfonates, Bondline weighs <b>SN1, SN2, E1 and E2</b> using the substrate, the nucleophile or base, the solvent and heat, and explains why one wins.</li><li>It also predicts additions to alkenes and alkynes, oxidations and reductions, Grignard, Wittig, acetal, imine, aldol and Claisen reactions, acid derivative reactions, alcohol reactions and aromatic substitution (with directing effects).</li><li>Where a carbocation forms, Bondline shows <b>rearrangements</b> (1,2-hydride and methyl shifts).</li><li><b>Add to note</b> inserts the reaction as an editable drawing.</li></ul><p class="hm-muted">Predictions follow textbook rules. Real reactions can give mixtures, so check against your course.</p>`},
  {id:'shared',t:'Shared notebooks',h:`<p>Share a notebook with classmates or colleagues (installed app, signed in). Everyone sees the same notes, and changes appear live.</p><ul><li>Press <b>+</b> next to <b>Shared</b> in the sidebar to make one, then invite people <b>by email</b> (they see the invitation in their sidebar after signing in with that email) or with an <b>invite link</b> you can paste into a group chat.</li><li>Choose whether each person <b>can edit</b> or <b>can only view</b>. Viewers can still read and comment. Only the owner can invite or remove people, or delete the notebook.</li><li>Move a note in by dragging it onto the notebook, or by choosing the notebook in the folder menu at the top of the note. Moving a note out removes it from the notebook for everyone; viewers can use <b>Copy to my notes</b> instead.</li><li>Two people can edit different paragraphs or drawings of the same note at once. If you both edit the same block, the last one saved wins.</li><li>The letters next to the notebook name at the top of a note show who else is looking at it.</li><li>Deleting a shared note removes it for everyone, but keeps a copy in your Trash.</li></ul>`},
- {id:'spectra',t:'Spectroscopy',h:`<p>Open <b>Spectra</b> in the bar on the left for six short lessons: how to solve a structure, IR, ¹H NMR, ¹³C NMR, mass spectrometry and a worked example using all four. Each has tables and example spectra.</p><ul><li><b>Practise spectra</b> asks you to identify compounds from their spectra, count NMR signals, predict splitting, read isotope patterns and work out degrees of unsaturation. Questions you haven't seen or got wrong come first, and your progress syncs with your account.</li><li>Answer with the mouse or keys ${K('1')} – ${K('4')}, then ${K('Enter')} for the next question.</li><li>To predict the spectra of a molecule you have drawn, turn on C<sub>x</sub>H<sub>y</sub> and press <b>Predict spectra</b> under it.</li></ul>`},
- {id:'orbitals',t:'Orbitals and MO diagrams',h:`<p>Open <b>Orbitals</b> in the bar on the left.</p><ul><li><b>Atomic orbitals in 3D</b>: s, p and d orbitals, coloured by phase. Drag to rotate, scroll or pinch to zoom, and turn on <b>Cutaway</b> to see nodes inside.</li><li><b>Hybrid orbitals</b>: sp, sp² and sp³, with the leftover p orbitals.</li><li><b>Diatomic MO diagrams</b>: H₂ to Ne₂, ions such as O₂⁻, and CO, CN⁻ and NO. Bondline fills the electrons and works out the bond order and whether the molecule is magnetic. Click any orbital to see it in 3D.</li><li><b>π molecular orbitals</b>: Hückel calculations for conjugated chains and rings, with HOMO and LUMO, delocalisation energy and whether a ring is aromatic.</li></ul>`},
+ {id:'spectra',t:'Spectroscopy',h:`<p>Open <b>Practice → Spectra</b> for six short lessons: how to solve a structure, IR, ¹H NMR, ¹³C NMR, mass spectrometry and a worked example using all four. Each has tables and example spectra.</p><ul><li><b>Practise spectra</b> asks you to identify compounds from their spectra, count NMR signals, predict splitting, read isotope patterns and work out degrees of unsaturation. Questions you haven't seen or got wrong come first, and your progress syncs with your account.</li><li>Answer with the mouse or keys ${K('1')} – ${K('4')}, then ${K('Enter')} for the next question.</li><li>To predict the spectra of a molecule you have drawn, turn on C<sub>x</sub>H<sub>y</sub> and press <b>Predict spectra</b> under it.</li></ul>`},
+ {id:'orbitals',t:'Orbitals and MO diagrams',h:`<p>Open <b>Practice → Orbitals</b>.</p><ul><li><b>Atomic orbitals in 3D</b>: s, p and d orbitals, coloured by phase. Drag to rotate, scroll or pinch to zoom, and turn on <b>Cutaway</b> to see nodes inside.</li><li><b>Hybrid orbitals</b>: sp, sp² and sp³, with the leftover p orbitals.</li><li><b>Diatomic MO diagrams</b>: H₂ to Ne₂, ions such as O₂⁻, and CO, CN⁻ and NO. Bondline fills the electrons and works out the bond order and whether the molecule is magnetic. Click any orbital to see it in 3D.</li><li><b>π molecular orbitals</b>: Hückel calculations for conjugated chains and rings, with HOMO and LUMO, delocalisation energy and whether a ring is aromatic.</li></ul>`},
  {id:'save',t:'Saving, syncing and printing',h:`<ul><li><b>Export PDF</b> (at the top of a note) offers two kinds of PDF. <b>Print or save as PDF</b> uses your browser's printer: choose “Save as PDF” to get a file with real, selectable text and sharp drawings. <b>Download PDF (image)</b> saves a file that looks exactly like the screen. Both are in ⚙ Settings for all notes at once.</li><li><b>Back up</b> saves all your notes to a file. <b>Restore</b> brings them back on any device.</li><li>In the installed app, <b>Sign in</b> to sync notes across your devices. Without an account, notes stay on the device.</li><li>Drawings and sketches can be saved as PNG or SVG images.</li></ul>`},
- {id:'look',t:'Appearance and devices',h:`<p>Open <b>⚙ Settings</b> at the bottom of the sidebar to choose Light, Dark or Auto, and one of four colour schemes: Copper Sulfate, Malachite, Potassium Flame or Sodium Lamp.</p><p>On phones and tablets, use the − and + zoom buttons on a drawing for precise work, and ✋ to move around when zoomed in. Bondline can be installed as an app from your browser's menu, and it then works offline.</p>`},
+ {id:'look',t:'Appearance and devices',h:`<p>Open <b>⚙ Settings</b> from the account menu at the bottom left to choose Light, Dark or Auto, and one of four colour schemes: Copper Sulfate, Malachite, Potassium Flame or Sodium Lamp.</p><p>On phones and tablets, use the − and + zoom buttons on a drawing for precise work, and ✋ to move around when zoomed in. Bondline can be installed as an app from your browser's menu, and it then works offline.</p>`},
  {id:'keys',t:'Keyboard shortcuts',h:`<h3>Text</h3>${KT([[K('Ctrl','B')+' '+K('Ctrl','I')+' '+K('Ctrl','U'),'Bold, italic, underline'],[K('Ctrl',',')+' '+K('Ctrl','.'),'Subscript, superscript'],[K('Ctrl','Alt','1')+' – '+K('3'),'Heading 1–3'],[K('Ctrl','Alt','0'),'Normal text'],[K('Ctrl','Shift','8')+' '+K('Ctrl','Shift','7'),'Bulleted, numbered list'],[K('Tab')+' '+K('Shift','Tab'),'Indent, outdent a list item'],[K('Ctrl','M'),'Insert an equation'],[K('Ctrl','K'),'Command palette (anywhere)'],[K('Ctrl','\\'),'Hide or show the sidebar'],[K('Ctrl','Alt','C'),'Comment on the selection'],[K('Ctrl','Z'),'Undo']])}
   <h3>Structure tools (click a drawing first)</h3>${KT([[K('V'),'Select and move'],[K('E'),'Eraser'],[K('1')+' '+K('2')+' '+K('3'),'Single, double, triple bond'],[K('W')+' '+K('Q'),'Wedge, hashed bond'],[K('B'),'Benzene ring'],[K('A'),'Reaction arrow'],[K('M'),'Curly arrow'],[K('T'),'Text'],[K('+')+' '+K('-')+' '+K('L'),'Charges, lone pairs'],[K('D'),'View in 3D'],[K('Ctrl','Z')+' / '+K('Ctrl','Shift','Z'),'Undo, redo'],[K('Delete'),'Delete the selection or hovered item'],[K('?'),'Shortcut card']])}
   <h3>Hover an atom or bond, then type</h3>${KT([[K('C')+' '+K('N')+' '+K('O')+' '+K('S')+' '+K('P')+' '+K('F')+' '+K('I')+' '+K('H'),'Change the element'],[K('l')+' '+K('b'),'Chlorine, bromine'],[K('+')+' '+K('-'),'Add a charge'],[K('.'),'Add a lone pair'],[K('1')+' '+K('2')+' '+K('3'),'Bond order (on a bond)'],[K('W')+' '+K('Q'),'Wedge or hash (on a bond)']])}
@@ -5802,7 +5802,7 @@ const secHead=(k,label,extra,n)=>`<div class="fd-sec sec-h" data-sechead="${k}">
     secApply();
   };
 }
-function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals',synth:'Synthesis',classes:'Classes'}[mode]||'Notes'}
+function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals',synth:'Synthesis',classes:'Classes',progress:'Progress'}[mode]||'Notes'}
 {
   const _sm=setMode;
   setMode=function(mode){_sm(mode);setPanelTitle(App.mode)};
@@ -7208,6 +7208,568 @@ function wireV16(){
 }
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
-wireV13();wireSpectra();wireOrbitals();wireV16();
-boot().then(v16DeepLinks);
+/* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
+const APP_VER='18';
+const PX_MODES=['cards','naming','spectra','synth','orbitals'];
+const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
+function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
+const isMob=()=>innerWidth<=820;
+const ico=p=>`<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+
+/* ---------- What's new ---------- */
+const CHANGELOG=[
+ {v:'17',d:'4 November 2026',t:'A tidier layout and a guided tour',items:[
+  ['Guided tour','A walk-through that points at the real buttons and waits for you to click them. Replay it any time from the account menu at the bottom left.'],
+  ['Simpler sidebar','Four sections: Home, Notes, Practice and Classes. Flashcards, Naming, Spectra, Synthesis and Orbitals are tabs inside Practice. The reaction predictor, reaction library, mechanism practice, glossary and reference tables are in one Tools menu.'],
+  ['One account menu','Settings, Trash, the guide, this page and the tour now sit together under the account button.'],
+  ['New Home page','A single search box for notes, reactions, lessons and tools, one suggestion for what to study next, and your recent notes.'],
+  ['What’s new','This page. A dot on the account button tells you when Bondline has been updated.']]},
+ {v:'16',d:'3 November 2026',t:'Lecture mode, PowerPoint, synthesis and classes',items:[
+  ['Lecture mode','Show a note full screen as slides. Curly arrows appear one click at a time, with a laser pointer, pen and black or white screen.'],
+  ['PowerPoint export','Export a whole note as a .pptx deck, with the note text in the speaker notes.'],
+  ['Synthesis problems','13 multi-step problems at three levels. Wrong reagents explain what they would make instead.'],
+  ['Classes','Lecturers set naming, spectra, mechanism or synthesis work and see each student’s scores. Students join with a code.'],
+  ['Study tips','Short tips on Home, after quizzes and in practice.'],
+  ['Guides and reaction pages','Public pages for each library reaction and nine study guides.']]},
+ {v:'15',t:'Landing page and animations',items:[
+  ['Landing page','An animated page about Bondline for first-time visitors.'],
+  ['Small animations','Pages fade in, menus pop in and buttons respond when pressed. They switch off if your device is set to reduce motion.'],
+  ['Privacy policy','A plain-English privacy policy, linked from Settings.']]},
+ {v:'14',t:'Spectra and orbitals',items:[
+  ['Spectra','Lessons on IR, ¹H NMR, ¹³C NMR and mass spectrometry, with hundreds of practice questions.'],
+  ['Orbitals','MO diagrams with bond order and magnetism, Hückel π orbitals, and 3D atomic and hybrid orbitals.']]},
+ {v:'13',t:'Icon bar and folding sections',items:[
+  ['Icon bar','A slim bar of icons down the left edge to switch sections.'],
+  ['Folding sections','Folders, Shared and Tags can be folded away.']]},
+ {v:'12',t:'Glossary, reaction predictor and shared notebooks',items:[
+  ['Glossary','Over 300 terms, highlighted in your notes, plus your own terms.'],
+  ['Reaction predictor','Weighs SN1, SN2, E1 and E2 and predicts many other reactions, with the reasons.'],
+  ['Shared notebooks','Edit notes together live, with edit or view-only access.']]},
+ {v:'11',t:'A calmer look',items:[['Collapsible sidebar','Hide the sidebar with Ctrl \\ to give notes the whole screen.'],['Welcome screen','A calm first screen for new visitors.']]},
+ {v:'10',t:'Live sync and chemistry checks',items:[['Live sync','Changes reach your other devices within a second or two.'],['Structure checks','Atoms that can’t exist as drawn are circled.'],['Resonance, reaction builder and formula calculator','New chemistry tools in the drawing toolbar.']]},
+ {v:'8–9',t:'Chemistry tools',items:[['Predict spectra','NMR, IR and mass spec predictions for any drawing.'],['Reaction library and mechanism practice','Every step drawn with curly arrows, and practice that checks your arrows.'],['Trash, history, images, sharing and the command palette','']]},
+ {v:'5–7',t:'The foundations',items:[['Folders, tags, flashcards and comments',''],['Home page, guide, formatting, equations and sketches',''],['Colour schemes, dark mode and phone support','']]}
+];
+function wnUnseen(){const s=v17ls('bondline.seenVer');return !!s&&s!==APP_VER}
+function openWhatsNew(){closeMenus();let sc=$('#wnScrim');
+  if(!sc){sc=document.createElement('div');sc.id='wnScrim';sc.className='scrim v17-scrim';sc.innerHTML=`<div class="wn" role="dialog" aria-modal="true" aria-labelledby="wnTitle"><header class="wn-h"><div><div class="hm-kicker">Update log</div><h2 id="wnTitle">What’s new in Bondline</h2></div><button class="sf-b" id="wnClose" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header><div class="wn-body" id="wnBody"></div></div>`;document.body.appendChild(sc);
+    sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('#wnClose'))closeWhatsNew()});
+    sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeWhatsNew()}})}
+  $('#wnBody').innerHTML=CHANGELOG.map((r,i)=>{const body=`<ul class="wn-list">${r.items.map(([a,b])=>`<li><b>${esc(a)}</b>${b?`<span>${esc(b)}</span>`:''}</li>`).join('')}</ul>`,head=`<span class="wn-v">v${esc(r.v)}</span><span class="wn-t">${esc(r.t)}</span>${r.d?`<span class="wn-d">${esc(r.d)}</span>`:''}`;
+    return i<2?`<section class="wn-rel${i===0?' latest':''}"><div class="wn-rh">${head}${i===0?'<span class="wn-new">Latest</span>':''}</div>${body}</section>`:`<details class="wn-rel"><summary class="wn-rh">${head}</summary>${body}</details>`}).join('')+`<p class="hm-muted wn-foot">Bondline updates itself. If something looks out of date, close every Bondline tab and open it again.</p>`;
+  sc.hidden=false;document.body.classList.add('sk-lock');$('#wnClose').focus();
+  v17ls('bondline.seenVer',APP_VER);syncAcctBtn()}
+function closeWhatsNew(){const sc=$('#wnScrim');if(sc)sc.hidden=true;document.body.classList.remove('sk-lock')}
+
+/* ---------- menus (Tools, account) ---------- */
+const MENU={open:null,anchor:null};
+function closeMenus(){if(MENU.open){MENU.open.hidden=true;if(MENU.anchor)MENU.anchor.setAttribute('aria-expanded','false')}MENU.open=null;MENU.anchor=null}
+function placeMenu(m,a){const r=a.getBoundingClientRect();m.style.visibility='hidden';m.hidden=false;const h=m.offsetHeight,w=m.offsetWidth;
+  let x=r.right+10,y=r.top-6;if(x+w>innerWidth-8)x=Math.max(8,innerWidth-w-8);if(y+h>innerHeight-8)y=Math.max(8,innerHeight-h-8);
+  m.style.left=x+'px';m.style.top=y+'px';m.style.visibility=''}
+function toggleMenu(m,a){if(MENU.open===m){closeMenus();return}closeMenus();closePop();placeMenu(m,a);MENU.open=m;MENU.anchor=a;a.setAttribute('aria-expanded','true');const f=m.querySelector('[role="menuitem"]');if(f&&!TR.on)f.focus({preventScroll:true})}
+function menuItem(id,icon,t,s,extra){return`<button class="v7-mi" role="menuitem" data-mi="${id}"><span class="v7-mic" aria-hidden="true">${icon}</span><span class="v7-mt"><b>${t}${extra||''}</b>${s?`<small>${s}</small>`:''}</span></button>`}
+function renderToolsMenu(){$('#toolsMenu').innerHTML=`<div class="v7-mh">Tools</div>`+
+  menuItem('predict',ico('<path d="M3.5 12.5h11M11 9l3.5 3.5L11 16"/><path d="M18.5 4.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z"/>'),'Predict a reaction','Products and the reasons, from reagents')+
+  menuItem('rxn',ico('<path d="M5 4.5h10.5a2 2 0 012 2V20H7a2 2 0 01-2-2z"/><path d="M5 18a2 2 0 012-2h10.5M9 8.5h5"/>'),'Reaction library',`${RXN.length} reactions, every step drawn`)+
+  menuItem('prac',ico('<path d="M5 17c0-6 5-10 11-9"/><path d="M13.5 5l3 3-3.3 2.6"/><circle cx="5" cy="18.5" r="1.4"/>'),'Mechanism practice','Draw the curly arrows yourself')+
+  menuItem('gloss',ico('<path d="M5.5 5a1.5 1.5 0 011.5-1.5h11v13H7A1.5 1.5 0 005.5 18z"/><path d="M5.5 18A1.5 1.5 0 007 19.5h11V16.5M9 7.5h5.5"/>'),'Glossary','Terms, reagents and solvents')+
+  menuItem('ref',ico('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M9.5 4v16"/>'),'Quick reference','Periodic table, pKa, IR and NMR tables')+
+  `<div class="v7-msep"></div>`+menuItem('cmd',ico('<path d="M8 4.5a2.5 2.5 0 100 5h8a2.5 2.5 0 100-5 2.5 2.5 0 00-2.5 2.5v10a2.5 2.5 0 102.5-2.5H8a2.5 2.5 0 102.5 2.5V7A2.5 2.5 0 008 4.5z"/>'),'Search everything',`<kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd>`)}
+function renderAcctMenu(){const u=FB&&FB.user,name=u?(u.displayName||u.email||'Your account'):'',tn=App.trash.length;
+  const head=FB&&FB.cfg?(u?`<div class="v7-acct"><span class="acct-av">${esc((name.trim()[0]||'?').toUpperCase())}</span><span><b>${esc(name)}</b><small>${esc(u.email&&u.email!==name?u.email:'Notes sync across your devices')}</small></span></div>`
+    :`<div class="v7-acct out"><span><b>Not signed in</b><small>Notes are saved on this device only</small></span><button class="btn primary small" data-mi="signin">Sign in</button></div>`):'';
+  $('#acctMenu').innerHTML=head+
+  menuItem('new',ico('<path d="M12 3.5l2.2 5.1 5.3.5-4 3.6 1.2 5.3L12 15.3 7.3 18l1.2-5.3-4-3.6 5.3-.5z"/>'),'What’s new','Update log',wnUnseen()?'<i class="v7-dot" aria-label="new"></i>':'')+
+  menuItem('tour',ico('<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>'),'Take the tour','A one-minute walk-through')+
+  menuItem('guide',ico('<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.3M12 16.6v.1"/>'),'Guide and shortcuts','')+
+  menuItem('trash',ico('<path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M7 6.5l.9 13h8.2l.9-13"/>'),'Trash',tn?`${tn} note${tn>1?'s':''}, kept for 30 days`:'Deleted notes stay here for 30 days')+
+  menuItem('settings',ico('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/>'),'Settings','Appearance, account, backups')}
+function menuGo(k){closeMenus();if(isMob())$('#side').classList.remove('open');
+  ({predict:openPredictor,rxn:()=>openLibrary(),prac:()=>openPractice(),gloss:()=>openGlossary(),ref:()=>openRef(),cmd:openCmd,
+    new:openWhatsNew,tour:startTour,guide:()=>openGuide(),trash:openTrash,settings:()=>openSettings(),signin:()=>openSettings('#setAcctSec')}[k]||(()=>{}))()}
+function syncAcctBtn(){const b=$('#acctBtn');if(!b)return;const u=FB&&FB.user,name=u?(u.displayName||u.email||''):'';
+  b.querySelector('.ab-av').innerHTML=u?`<span class="acct-av sm">${esc((name.trim()[0]||'?').toUpperCase())}</span>`:ico('<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.8-3.9 3.6-6 7.2-6s6.4 2.1 7.2 6"/>');
+  b.querySelector('.ab-l').textContent=u?'Account':(FB&&FB.cfg?'Sign in':'Account');b.title=u?'Account: '+name:'Account, settings and help';
+  b.classList.toggle('has-new',wnUnseen());if(MENU.open===$('#acctMenu'))renderAcctMenu()}
+
+/* ---------- Practice tabs ---------- */
+function syncPractice(){const m=App.mode,inPx=PX_MODES.includes(m);
+  const rb=$('#railPractice');if(rb){rb.classList.toggle('on',inPx);rb.setAttribute('aria-selected',inPx)}
+  const tb=$('#pxTabs');if(tb){tb.hidden=!inPx;tb.querySelectorAll('[data-px]').forEach(b=>{const on=b.dataset.px===m;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1});
+    const on=tb.querySelector('.on');if(on&&inPx){const r=on.getBoundingClientRect(),tr=tb.getBoundingClientRect();if(r.left<tr.left||r.right>tr.right)tb.scrollLeft+=r.left-tr.left-16}
+    const ind=tb.querySelector('.px-ind');if(on&&ind){ind.style.width=on.offsetWidth+'px';ind.style.transform=`translateX(${on.offsetLeft}px)`}}
+  if(inPx)v17ls('bondline.px',m)}
+
+/* ---------- Home ---------- */
+const H7={anim:true,sel:0,res:[]};
+function h7Areas(){const tp=NM_LESSONS.filter(l=>l.id!=='intro').map(l=>({l,s:topicStats(l.id)}));
+  const nm=tp.reduce((a,t)=>a+t.s.m,0),nn=tp.reduce((a,t)=>a+t.s.n,0)||1,sp=spAllStats(),sv=SYN.filter(p=>SYP.done[p.id]).length;
+  const nextL=tp.find(t=>t.s.m>0&&t.s.m<t.s.n)||tp.find(t=>t.s.m<t.s.n),nextS=SYN.find(p=>!SYP.done[p.id]);
+  return[
+   {k:'naming',name:'Naming',f:nm/nn,lbl:`${Math.round(100*nm/nn)}%`,
+    t:nextL?(nextL.s.m?`Keep going with ${nextL.l.title.toLowerCase()}`:`Learn to name ${nextL.l.title.toLowerCase()}`):'Naming: a mixed quiz',
+    s:nextL?`${nextL.s.m} of ${nextL.s.n} questions mastered in this topic.`:'You have mastered every topic. A mixed quiz keeps it fresh.',
+    btn:nextL&&nextL.s.m?'Practise':'Start',go:()=>{setMode('naming');nextL?quizSetup([nextL.l.id]):quizSetup()}},
+   {k:'spectra',name:'Spectra',f:sp.m/(sp.n||1),lbl:`${Math.round(100*sp.m/(sp.n||1))}%`,
+    t:sp.m?'Practise reading spectra':'Try identifying a compound from its spectra',s:`${sp.m} of ${sp.n} spectroscopy questions mastered.`,btn:sp.m?'Practise':'Start',go:()=>{setMode('spectra');spSetup()}},
+   {k:'synth',name:'Synthesis',f:sv/SYN.length,lbl:`${sv}/${SYN.length}`,
+    t:nextS?`Plan a synthesis: ${nextS.title}`:'Plan a synthesis',s:nextS?`${SYN_LV[nextS.lv]} · ${nextS.steps.length} steps. ${sv} of ${SYN.length} problems solved.`:'You have solved every problem. Try one again for a perfect run.',
+    btn:'Start',go:()=>{setMode('synth');nextS?synStart(nextS.id):synHome()}}]}
+function h7Next(){const ds=allDecks();let due=0;ds.forEach(x=>due+=deckStats(x.d).due);const areas=h7Areas();
+  if(due)return{kick:'Due today',t:`Review ${due} flashcard${due>1?'s':''}`,s:'Cards you find hard come back sooner, so a few minutes now saves time later.',btn:'Review',go:()=>{setMode('cards');startStudy(ds.map(x=>x.b),false)},f:null,areas};
+  if(!App.notes.some(n=>!n.example)&&!v17ls('bondline.tourDone'))return{kick:'New here?',t:'Take the one-minute tour',s:'It points at the real buttons as you go, so you’ll know where everything is.',btn:'Start the tour',go:startTour,alt:['Start a blank note',()=>{setMode('notes');newNote()}],areas};
+  const day=Math.floor(Date.now()/864e5),pick=[...areas].sort((a,b)=>a.f-b.f||((areas.indexOf(a)-day)%3+3)%3-((areas.indexOf(b)-day)%3+3)%3)[0];
+  return{kick:'Next up',...pick,areas}}
+function relDay(t){const d=Math.floor((new Date().setHours(0,0,0,0)-new Date(t).setHours(0,0,0,0))/864e5);if(d<=0){return new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}if(d===1)return'Yesterday';if(d<7)return new Date(t).toLocaleDateString([],{weekday:'long'});return new Date(t).toLocaleDateString([],{day:'numeric',month:'short'})}
+function v17Home(){
+  const hp=$('#homePage');if(!hp)return;
+  if(document.activeElement&&document.activeElement.id==='h7q'&&$('#h7q').value)return;
+  const own=App.notes.filter(n=>!n.example).sort((a,b)=>b.updated-a.updated),list=(own.length?own:App.notes.filter(n=>n.example)).slice(0,5);
+  const nx=h7Next(),u=FB&&FB.user,first=u&&u.displayName?u.displayName.trim().split(/\s+/)[0]:'';
+  const K=/Mac|iP/.test(navigator.platform)?'⌘ K':'Ctrl K',seed=Math.floor(Date.now()/864e5);
+  const row=n=>{const dr=n.blocks.some(b=>b.type==='scheme'),sk=n.blocks.some(b=>b.type==='sketch'),hue=[...(n.tag||n.title||'x')].reduce((h,c)=>(h*31+c.charCodeAt(0))%360,7);return`<button class="h7-row" data-open="${esc(n.id)}"><span class="h7-th" style="--h:${hue}" aria-hidden="true">${dr?ico('<path d="M12 3.5l7.4 4.3v8.4L12 20.5l-7.4-4.3V7.8z"/><path d="M9 10.5l3-1.8 3 1.8"/>'):sk?ico('<path d="M4 18c3-1 4-9 7-9s2 6 5 6 3-4 4-5"/>'):ico('<path d="M6.5 3.5h8l4 4v13h-12z"/><path d="M9.5 12h6M9.5 15.5h6"/>')}</span><span class="h7-rt"><b>${esc(n.title||'Untitled note')}</b><small>${n.tag?esc(n.tag)+' · ':''}${esc(relDay(n.updated))}</small></span><svg class="h7-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"/></svg></button>`};
+  hp.classList.add('h7-page');hp.classList.toggle('h7-anim',H7.anim&&!matchMedia('(prefers-reduced-motion: reduce)').matches);H7.anim=false;
+  hp.innerHTML=`<div class="h7">
+  <header class="h7-hero" style="--i:0">
+    <svg class="h7-art" viewBox="0 0 260 150" aria-hidden="true"><path class="h7-draw" d="M40 95l26-15 26 15v30l-26 15-26-15zM66 80V50l26-15 26 15 26-15 26 15v30M47 99v22M85 99l-19 11M118 50v30" /><path class="h7-curl" d="M150 40c20-26 58-26 74 2" /><path class="h7-curl h7-tip" d="M216 30l9 13-15 2" /></svg>
+    <div class="h7-date">${esc(new Date().toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'}))}</div>
+    <h1>${greet()}${first?`, ${esc(first)}`:''}</h1>
+    <div class="h7-search" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg><input id="h7q" type="search" autocomplete="off" spellcheck="false" placeholder="Search notes, reactions and tools" aria-label="Search notes, reactions, lessons and tools" aria-controls="h7res" aria-expanded="false" role="combobox" aria-autocomplete="list"><div class="h7-res" id="h7res" role="listbox" hidden></div></div>
+    <div class="h7-quick"><button class="h7-chip" data-go="new">${ico('<path d="M12 5v14M5 12h14"/>')}New note</button><button class="h7-chip" data-go="board">${ico('<path d="M4 18c3-1 4-9 7-9s2 6 5 6 3-4 4-5"/>')}Whiteboard</button><button class="h7-chip" data-go="predict">${ico('<path d="M3 12h12M11 8l4 4-4 4"/><path d="M19 5.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z"/>')}Predict a reaction</button></div>
+  </header>
+  <section class="h7-next" style="--i:1" aria-labelledby="h7nt">
+    <div class="h7-nk">${esc(nx.kick)}</div>
+    <div class="h7-nb"><div class="h7-ntx"><h2 id="h7nt">${esc(nx.t)}</h2><p>${esc(nx.s)}</p></div>
+    <div class="h7-nbtns">${nx.alt?`<button class="btn" data-h7="alt">${esc(nx.alt[0])}</button>`:''}<button class="btn primary" data-h7="next">${esc(nx.btn)}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></button></div></div>
+    <div class="h7-areas" role="list">${nx.areas.map(a=>`<button class="h7-area${a.k===nx.k?' cur':''}" role="listitem" data-h7area="${a.k}"><span>${a.name}</span><span class="h7-bar"><i style="--w:${Math.max(a.f*100,a.f?4:0).toFixed(1)}%"></i></span><b>${a.lbl}</b></button>`).join('')}</div>
+  </section>
+  <section class="h7-recent" style="--i:2" aria-labelledby="h7rt"><div class="h7-sh"><h2 id="h7rt">${own.length?'Recent':'Examples to explore'}</h2><button class="linkbtn" data-go="notes">All notes${App.notes.length?` (${App.notes.length})`:''}</button></div>
+    <div class="h7-list">${list.map(row).join('')||'<p class="hm-muted">No notes yet.</p>'}</div></section>
+  <section class="h7-tipw" style="--i:3">${tipHTML(null,seed)}<button class="linkbtn" data-h7tip="${seed+1}">Another tip</button></section>
+  </div>`;
+  H7.next=nx;wireH7()}
+function h7Items(q){const items=H7.items||(H7.items=cmdItems().filter(it=>it.kind!=='Appearance'&&it.kind!=='Go to'));const ql=q.toLowerCase();
+  const seen=new Set(),out=[];
+  for(const x of items.map(it=>({it,s:Math.max(fuzzy(q,it.label)*1.2,fuzzy(q,it.kw)*.6)})).filter(x=>x.s>8).sort((a,b)=>b.s-a.s)){if(seen.has(x.it.label+x.it.kind))continue;seen.add(x.it.label+x.it.kind);out.push(x.it)}
+  if(ql.length>2)for(const n of App.notes){if(out.some(o=>o.kind==='Note'&&o.label===(n.title||'Untitled note')))continue;const tx=noteText(n).toLowerCase(),i=tx.indexOf(ql);if(i>=0)out.push({label:n.title||'Untitled note',kind:'In a note',snip:tx.slice(Math.max(0,i-30),i+50),fn:()=>{setMode('notes');openNote(n.id)}})}
+  return out.slice(0,9)}
+function h7Render(){const q=$('#h7q').value.trim(),box=$('#h7res');if(!q){box.hidden=true;$('#h7q').setAttribute('aria-expanded','false');return}
+  H7.res=h7Items(q);H7.sel=Math.min(H7.sel,Math.max(0,H7.res.length-1));
+  box.innerHTML=H7.res.length?H7.res.map((it,i)=>`<button class="h7-ri${i===H7.sel?' on':''}" id="h7ri${i}" role="option" aria-selected="${i===H7.sel}" data-h7r="${i}"><span><b>${esc(it.label)}</b>${it.snip?`<small>…${esc(it.snip)}…</small>`:''}</span><em>${esc(it.kind)}</em></button>`).join(''):`<p class="h7-none">Nothing matches “${esc(q)}”.</p>`;
+  box.hidden=false;$('#h7q').setAttribute('aria-expanded','true');$('#h7q').setAttribute('aria-activedescendant',H7.res.length?'h7ri'+H7.sel:'')}
+function h7Run(i){const it=H7.res[i];if(!it)return;$('#h7q').value='';$('#h7res').hidden=true;it.fn()}
+function wireH7(){const q=$('#h7q');
+  q.addEventListener('focus',()=>{H7.items=null});
+  q.addEventListener('input',()=>{H7.sel=0;h7Render()});
+  q.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!H7.res.length)return;e.preventDefault();H7.sel=(H7.sel+(e.key==='ArrowDown'?1:-1)+H7.res.length)%H7.res.length;h7Render()}else if(e.key==='Enter'){e.preventDefault();h7Run(H7.sel)}else if(e.key==='Escape'){if(q.value){e.stopPropagation();q.value='';h7Render()}else q.blur()}});
+  q.addEventListener('blur',()=>setTimeout(()=>{const b=$('#h7res');if(b&&!b.contains(document.activeElement))b.hidden=true},150))}
+function h7Click(e){
+  const r=e.target.closest('[data-h7r]');if(r){h7Run(+r.dataset.h7r);return}
+  const n=e.target.closest('[data-h7]');if(n){const nx=H7.next;if(!nx)return;if(n.dataset.h7==='alt')nx.alt[1]();else nx.go();return}
+  const a=e.target.closest('[data-h7area]');if(a){const ar=h7Areas().find(x=>x.k===a.dataset.h7area);if(ar)setMode(ar.k);return}
+  const t=e.target.closest('[data-h7tip]');if(t){const s=+t.dataset.h7tip;const tip=$('#homePage .v16-tip');if(tip)tip.outerHTML=tipHTML(null,s);t.dataset.h7tip=s+1}}
+
+/* ---------- guided tour ---------- */
+const TR={on:false,i:0,steps:[],ring:null,card:null,blk:[],raf:0,last:'',tgt:null,wait:0};
+function tourSteps(){const drawer=()=>{if(isMob())$('#side').classList.add('open')},noDrawer=()=>{if(isMob())$('#side').classList.remove('open')};
+  const home=()=>{noDrawer();if(App.mode!=='home')setMode('home');$('#main').scrollTop=0};
+  const inNote=()=>{noDrawer();if(App.mode!=='notes'||!App.cur){const n=App.notes.find(x=>x.id==='lib-hybrid')||App.notes.find(x=>x.example)||App.notes[0];setMode('notes');if(n)openNote(n.id)}};
+  return[
+  {center:true,t:'Welcome to Bondline',b:'This tour points at the real buttons. When it asks you to click something, click it, or press Next and it will be done for you. It takes about a minute.',next:'Start the tour',prep:home},
+  {sel:'.h7-search',t:'Search everything',b:'Find your notes, the reaction library, naming lessons and every tool from this box. Press Ctrl K anywhere in Bondline for the same search.',prep:home},
+  {sel:'.h7-next',t:'What to study next',b:'Bondline suggests one thing to do: flashcards that are due, or the topic with the most left to learn. The bars show your progress in each area.',prep:home},
+  {sel:'.h7-list .h7-row',t:'Open a note',b:'Click this note to open it.',click:true,prep:home},
+  {sel:'#blocks',t:'Write and draw on one page',b:'A note is a stack of blocks: text with formulas and maths, structure drawings with curly arrows, sketches and flashcards. Click a drawing to get the structure tools.',prep:inNote,fit:'top'},
+  {sel:'#addbar',t:'Add a block',b:'Add text, a drawing, a sketch, flashcards, a reaction or a picture with these buttons at the end of every note.',prep:inNote},
+  {sel:'#presentBtn',t:'Present your note',b:'Lecture mode shows the note as slides and reveals curly arrows one click at a time. Export, next to it, makes a PDF or a PowerPoint.',prep:inNote},
+  {sel:'#railPractice',t:'Practice',b:'Click Practice.',click:true,prep:drawer},
+  {sel:'#pxTabs',t:'Six ways to practise',b:'Flashcards, IUPAC naming, spectra, synthesis problems, orbitals and Progress, where you can see your weak spots and take a mock exam. Bondline remembers which tab you used last.',prep:()=>{noDrawer();if(!PX_MODES.includes(App.mode))setMode(v17ls('bondline.px')||'naming')}},
+  {sel:'#railTools',t:'Tools',b:'Click Tools.',click:true,prep:()=>{closeMenus();drawer()}},
+  {sel:'#toolsMenu',t:'Chemistry tools',b:'Predict the product of a reaction, browse the reaction library, practise mechanisms, look up a term or open the reference tables.',prep:()=>{if(MENU.open!==$('#toolsMenu')){drawer();renderToolsMenu();toggleMenu($('#toolsMenu'),$('#railTools'))}},done:closeMenus},
+  {sel:'.modes [data-mode="classes"]',t:'Classes',b:'Lecturers set work and see each student’s scores. Students join with a code from their lecturer.',prep:()=>{closeMenus();drawer()}},
+  {sel:'#acctBtn',t:'Account, settings and help',b:'Sign in to sync your notes, change the look in Settings, find deleted notes in Trash, read what’s new, or take this tour again.',prep:()=>{closeMenus();drawer()}},
+  {center:true,t:'You’re all set',b:'That’s everything you need to start. Your notes save as you type.',end:true,prep:()=>{noDrawer();closeMenus()}}]}
+function startTour(){closeMenus();if(typeof closeHello==='function'&&!$('#hello').hidden)closeHello();if(!$('#welcome').hidden)closeWelcome();
+  if(TR.on)endTour(false);TR.on=true;TR.i=0;TR.steps=tourSteps();
+  const L=document.createElement('div');L.className='tr-layer';L.innerHTML=`<div class="tr-ring" aria-hidden="true"><i class="tr-pulse"></i></div>${'<div class="tr-blk"></div>'.repeat(4)}<div class="tr-card" role="dialog" aria-modal="true" aria-labelledby="trT" aria-describedby="trB" tabindex="-1"></div>`;
+  document.body.appendChild(L);TR.layer=L;TR.ring=L.querySelector('.tr-ring');TR.card=L.querySelector('.tr-card');TR.blk=[...L.querySelectorAll('.tr-blk')];
+  L.addEventListener('click',trCardClick);document.addEventListener('click',trTargetClick,true);document.addEventListener('keydown',trKey,true);addEventListener('resize',trPlaceSoon);
+  document.documentElement.classList.add('tr-active');trShow(0)}
+function endTour(done){if(!TR.on)return;TR.on=false;cancelAnimationFrame(TR.raf);clearTimeout(TR.wait);
+  const s=TR.steps[TR.i];if(s&&s.done)s.done();closeMenus();if(isMob())$('#side').classList.remove('open');
+  document.removeEventListener('click',trTargetClick,true);document.removeEventListener('keydown',trKey,true);removeEventListener('resize',trPlaceSoon);
+  document.documentElement.classList.remove('tr-active');const L=TR.layer;TR.layer=null;if(L){L.classList.add('out');setTimeout(()=>L.remove(),260)}
+  v17ls('bondline.tourDone',done?'1':'skip');try{localStorage.setItem('bondline.welcomed','1')}catch(e){}
+  if(done!==null&&App.mode==='home')renderHome()}
+function trTarget(s){if(!s.sel)return null;for(const el of document.querySelectorAll(s.sel)){const r=el.getBoundingClientRect();if(r.width>2&&r.height>2&&getComputedStyle(el).visibility!=='hidden')return el}return null}
+function trShow(i,dir){const prev=TR.steps[TR.i];if(prev&&prev.done&&i!==TR.i)prev.done();
+  TR.i=i;const s=TR.steps[i];cancelAnimationFrame(TR.raf);clearTimeout(TR.wait);TR.tgt=null;TR.card.classList.add('swap');
+  try{s.prep&&s.prep()}catch(e){console.warn(e)}
+  const t0=performance.now();const find=()=>{if(!TR.on)return;const el=s.center?null:trTarget(s);
+    if(!s.center&&!el){if(performance.now()-t0<1500){TR.wait=setTimeout(find,80);return}trShow(Math.min(TR.steps.length-1,i+(dir<0?-1:1)),dir);return}
+    TR.tgt=el;if(el){const r=el.getBoundingClientRect();const scroller=el.closest('#main,.pn-scroll,.rail');if(scroller&&(r.top<60||r.bottom>innerHeight-40)&&r.height<innerHeight-120)el.scrollIntoView({block:'center',behavior:'smooth'})}
+    trRenderCard();TR.last='';trLoop()};
+  setTimeout(find,s.prep?120:0)}
+function trRenderCard(){const s=TR.steps[TR.i],n=TR.steps.length,first=TR.i===0;
+  TR.card.className='tr-card'+(s.center?' center':'')+(s.click?' clickstep':'');
+  TR.card.innerHTML=`${first||s.end?'':`<div class="tr-k"><span>${TR.i} of ${n-2}</span><span class="tr-prog"><i style="width:${Math.round(100*TR.i/(n-2))}%"></i></span></div>`}
+   ${first?`<div class="tr-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/><path d="M9.5 19.5c1-6 6-9.5 12-8" fill="none" stroke="var(--curl)" stroke-width="2" stroke-linecap="round"/><path d="M19 8.3l3.1 3.1-3.6 2.3" fill="none" stroke="var(--curl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`:''}
+   ${s.end?'<div class="tr-done" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>':''}
+   <h2 id="trT">${esc(s.t)}</h2><p id="trB">${esc(s.b)}</p>
+   ${s.click?`<p class="tr-hint"><span class="tr-hand" aria-hidden="true"></span>${isMob()?'Tap':'Click'} the highlighted ${s.sel==='.h7-list .h7-row'?'note':'button'}</p>`:''}
+   <div class="tr-btns">${s.end?`<button class="btn" data-tr="new">Start a blank note</button><button class="btn primary" data-tr="finish">Finish</button>`
+     :`${first?'<button class="linkbtn" data-tr="skip">Not now</button>':`<button class="linkbtn" data-tr="skip">End tour</button><span class="tr-sp"></span>${TR.i>1?'<button class="btn" data-tr="back">Back</button>':''}`}<button class="btn primary" data-tr="next">${s.click?'Do it for me':esc(s.next||'Next')}</button>`}</div>`;
+  requestAnimationFrame(()=>{TR.card.classList.remove('swap');const f=TR.card.querySelector('[data-tr="next"],[data-tr="finish"]');if(f)f.focus({preventScroll:true})});
+  const live=$('#trLive')||(()=>{const d=document.createElement('div');d.id='trLive';d.className='sr-only';d.setAttribute('aria-live','polite');document.body.appendChild(d);return d})();live.textContent=s.t+'. '+s.b}
+function trPlaceSoon(){TR.last=''}
+function trLoop(){if(!TR.on)return;const s=TR.steps[TR.i];let r;
+  if(TR.tgt&&TR.tgt.isConnected){const b=TR.tgt.getBoundingClientRect(),p=s.fit==='top'?Math.min(b.height,innerHeight*.42):b.height;r={x:b.left-6,y:b.top-6,w:b.width+12,h:p+12}}
+  else if(TR.tgt){TR.tgt=trTarget(s)}
+  if(!r)r={x:innerWidth/2,y:innerHeight/2,w:0,h:0};
+  const key=[r.x,r.y,r.w,r.h,innerWidth,innerHeight].map(Math.round).join();
+  if(key!==TR.last){TR.last=key;trPlace(r,s)}
+  TR.raf=requestAnimationFrame(trLoop)}
+function trPlace(r,s){const R=TR.ring,c=TR.card,W=innerWidth,H=innerHeight;
+  R.style.cssText=`left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`;R.classList.toggle('none',!r.w);R.classList.toggle('pulse',!!s.click);
+  const open=!!s.click;const [b0,b1,b2,b3]=TR.blk;
+  if(open&&r.w){b0.style.cssText=`left:0;top:0;width:${W}px;height:${Math.max(0,r.y)}px`;b1.style.cssText=`left:0;top:${r.y+r.h}px;width:${W}px;height:${Math.max(0,H-r.y-r.h)}px`;b2.style.cssText=`left:0;top:${r.y}px;width:${Math.max(0,r.x)}px;height:${r.h}px`;b3.style.cssText=`left:${r.x+r.w}px;top:${r.y}px;width:${Math.max(0,W-r.x-r.w)}px;height:${r.h}px`}
+  else{b0.style.cssText=`left:0;top:0;width:${W}px;height:${H}px`;b1.style.cssText=b2.style.cssText=b3.style.cssText='width:0;height:0'}
+  const cw=c.offsetWidth,ch=c.offsetHeight,g=16;let x,y;
+  if(!r.w||s.center){x=(W-cw)/2;y=(H-ch)/2}
+  else if(W<=560){x=(W-cw)/2;y=r.y+r.h/2>H/2?Math.max(8,r.y-ch-g):Math.min(H-ch-8,r.y+r.h+g);if(r.y+r.h+g+ch>H&&r.y-ch-g<0)y=H-ch-8}
+  else if(r.x+r.w+g+cw<=W-8&&r.w<W*.5){x=r.x+r.w+g;y=Math.min(Math.max(8,r.y+r.h/2-ch/2),H-ch-8)}
+  else if(r.y+r.h+g+ch<=H-8){y=r.y+r.h+g;x=Math.min(Math.max(8,r.x+r.w/2-cw/2),W-cw-8)}
+  else if(r.y-g-ch>=8){y=r.y-g-ch;x=Math.min(Math.max(8,r.x+r.w/2-cw/2),W-cw-8)}
+  else if(r.x-g-cw>=8){x=r.x-g-cw;y=Math.min(Math.max(8,r.y+r.h/2-ch/2),H-ch-8)}
+  else{x=W-cw-16;y=H-ch-16}
+  c.style.left=Math.round(x)+'px';c.style.top=Math.round(y)+'px'}
+function trNext(){const s=TR.steps[TR.i];if(s.click&&TR.tgt){TR.tgt.click();return}
+  if(TR.i>=TR.steps.length-1){endTour(true);return}trShow(TR.i+1,1)}
+function trCardClick(e){const b=e.target.closest('[data-tr]');if(!b)return;e.stopPropagation();const k=b.dataset.tr;
+  if(k==='next')trNext();else if(k==='back')trShow(Math.max(1,TR.i-1),-1);else if(k==='skip')endTour(false);
+  else if(k==='finish'){endTour(true);setMode('home')}else if(k==='new'){endTour(true);setMode('notes');newNote()}}
+function trTargetClick(e){if(!TR.on)return;const s=TR.steps[TR.i];if(e.target.closest('.tr-layer'))return;
+  if(s&&s.click&&TR.tgt&&TR.tgt.contains(e.target)){const i=TR.i;setTimeout(()=>{if(TR.on&&TR.i===i)trShow(i+1,1)},280);return}
+  if(!e.target.closest('#toolsMenu')){e.stopPropagation();e.preventDefault()}}
+function trKey(e){if(!TR.on)return;const inCard=e.target.closest&&e.target.closest('.tr-card');
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();endTour(false);return}
+  if(e.key==='ArrowRight'&&!TR.steps[TR.i].click){e.preventDefault();e.stopPropagation();trNext();return}
+  if(e.key==='ArrowLeft'&&TR.i>1){e.preventDefault();e.stopPropagation();trShow(TR.i-1,-1);return}
+  if(e.key==='Tab'){const f=[...TR.card.querySelectorAll('button')];if(!f.length)return;e.preventDefault();e.stopPropagation();const i=f.indexOf(document.activeElement);f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus();return}
+  if(!inCard){e.stopPropagation();if(e.key!=='Enter'&&e.key!==' ')e.preventDefault()}}
+
+/* ---------- wiring ---------- */
+function wireV17(){
+  /* rail */
+  $('#railPractice').addEventListener('click',()=>{const m=v17ls('bondline.px');setMode(PX_MODES.includes(m)?m:'naming')});
+  $('#railTools').addEventListener('click',e=>{renderToolsMenu();toggleMenu($('#toolsMenu'),e.currentTarget)});
+  $('#acctBtn').addEventListener('click',e=>{renderAcctMenu();toggleMenu($('#acctMenu'),e.currentTarget)});
+  for(const id of['#toolsMenu','#acctMenu']){const m=$(id);m.addEventListener('click',e=>{const b=e.target.closest('[data-mi]');if(b)menuGo(b.dataset.mi)});
+    m.addEventListener('keydown',e=>{const it=[...m.querySelectorAll('[role="menuitem"]')],i=it.indexOf(document.activeElement);
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();it[(i+(e.key==='ArrowDown'?1:-1)+it.length)%it.length].focus()}
+      else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();const a=MENU.anchor;closeMenus();if(a)a.focus()}})}
+  document.addEventListener('pointerdown',e=>{if(MENU.open&&!e.target.closest('.v7-menu,#railTools,#acctBtn,.tr-layer'))closeMenus()},true);
+  addEventListener('resize',()=>{if(MENU.open&&MENU.anchor)placeMenu(MENU.open,MENU.anchor)});
+  $('#pxTabs').addEventListener('click',e=>{const b=e.target.closest('[data-px]');if(b)setMode(b.dataset.px)});
+  $('#pxTabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const i=PX_MODES.indexOf(App.mode);if(i<0)return;e.preventDefault();setMode(PX_MODES[(i+(e.key==='ArrowRight'?1:-1)+PX_MODES.length)%PX_MODES.length]);const b=$('#pxTabs .on');if(b)b.focus()});
+  { const _sm=setMode;setMode=function(m){if(m==='practice')m=v17ls('bondline.px')||'naming';if(m==='home'&&App.mode!=='home')H7.anim=true;_sm(m);syncPractice()} }
+  /* home */
+  renderHome=v17Home;$('#homePage').addEventListener('click',h7Click);
+  /* tour replaces the old step-through dialog */
+  openWelcome=startTour;
+  /* command palette */
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();I.push({label:'What’s new',kind:'Help',fn:openWhatsNew,kw:'update log changelog version release notes'},{label:'Take the guided tour',kind:'Help',fn:startTour,kw:'tour walkthrough help onboarding'},{label:'Go to Practice',kind:'Go to',fn:()=>setMode('practice'),kw:'flashcards naming spectra synthesis orbitals'},{label:'Go to Synthesis',kind:'Go to',fn:()=>setMode('synth'),kw:'synthesis problems'},{label:'Go to Classes',kind:'Go to',fn:()=>setMode('classes'),kw:'class lecturer students'});return I} }
+  /* account chip follows sign-in */
+  { const _sa=syncAcctChip;syncAcctChip=function(){_sa();syncAcctBtn()} }
+  if(!v17ls('bondline.seenVer')){const existing=v17ls('bondline.welcomed')||App.notes.some(n=>!n.example);if(!existing)v17ls('bondline.seenVer',APP_VER);else v17ls('bondline.seenVer','16')}
+  syncAcctBtn();syncPractice();
+  if(App.mode==='home')renderHome();
+}
+function v17AfterBoot(){syncAcctBtn();syncPractice();
+  if(wnUnseen()&&!new URLSearchParams(location.search).has('bltest'))setTimeout(()=>{if(!TR.on&&$('#hello').hidden)toastAction('Bondline has been updated','See what’s new',openWhatsNew);setTimeout(()=>{const t=$('#toast');if(t&&t.querySelector('.toast-btn'))t.hidden=true},9000)},1600)}
+
+/* ---------- v18: Progress (weak spots), mock exams, Bondline Pro ---------- */
+const V18_Q=new URLSearchParams(location.search);
+const PRO_CFG=(()=>{const c=window.BONDLINE_PRO||{};return{enforce:!!c.enforce,checkout:Object.assign({monthly:'',semester:''},c.checkout||{}),price:Object.assign({monthly:'US$4',semester:'US$19'},c.price||{}),passDays:c.passDays||150}})();
+const PRO={ent:null,uid:null,poll:null};
+function v18get(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
+function v18set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+PRO.ent=v18get('bondline.ent',null);
+const PRO_BADGE='<span class="pro-b" aria-label="Pro">Pro</span>';
+function proUntil(e){e=e||PRO.ent;if(!e)return 0;return Math.max(+e.subUntil||0,+e.passUntil||0,+e.grantUntil||0)}
+function proActive(){return proUntil()>Date.now()}
+function proOpen(){return !PRO_CFG.enforce||proActive()}
+function proSells(){return !!(PRO_CFG.checkout.monthly||PRO_CFG.checkout.semester)}
+function v18Date(t){return new Date(t).toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}
+async function proRefresh(){
+  const u=FB&&FB.user;if(!u||!FB.db){if(PRO.uid){PRO.uid=null;PRO.ent=null;v18set('bondline.ent',null);syncProUI()}return}
+  try{const d=await FB.db.collection('entitlements').doc(u.uid).get();PRO.uid=u.uid;PRO.ent=d.exists?d.data():null;v18set('bondline.ent',PRO.ent)}catch(e){}
+  syncProUI();
+}
+function syncProUI(){
+  document.body.classList.toggle('is-pro',proActive());
+  const b=$('#acctBtn');if(b)b.classList.toggle('pro',proActive());
+  if(App.mode==='progress'&&PG.view==='home')pgHome();
+  const m=$('#proScrim');if(m&&!m.hidden)proRender();
+}
+
+/* ---------- daily activity log ---------- */
+function dayKey(t){const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function logAns(ok){const L=v18get('bondline.daylog',{}),k=dayKey(Date.now()),r=L[k]||{n:0,ok:0};r.n++;if(ok)r.ok++;L[k]=r;
+  const ks=Object.keys(L).sort();while(ks.length>120)delete L[ks.shift()];v18set('bondline.daylog',L)}
+function streak(){const L=v18get('bondline.daylog',{});let s=0,t=Date.now();if(!L[dayKey(t)])t-=DAY;while(L[dayKey(t)]){s++;t-=DAY}return s}
+
+/* ---------- topic statistics ---------- */
+function insTopics(){
+  const out=[];
+  const add=(area,t,title,qs)=>{let c=0,w=0,seen=0,m=0;const wrong=[];for(const q of qs){const r=App.quiz.q[q.id];if(!r)continue;seen++;c+=r.c||0;w+=r.w||0;if(r.last===1)m++;else if(r.last===0)wrong.push(q.id)}
+    out.push({area,t,title,n:qs.length,seen,c,w,m,wrong,tries:c+w,acc:c+w?c/(c+w):null})};
+  NM_TOPICS.forEach(t=>add('naming',t.id,t.title,NM_BANK.filter(q=>q.t===t.id)));
+  SP_TOPICS.forEach(t=>add('spectra',t.id,t.title,spPoolGet().filter(q=>q.t===t.id)));
+  return out;
+}
+const AREA_LABEL={naming:'Naming',spectra:'Spectra'};
+function insLevel(x){if(x.acc==null||x.tries<3)return['new','Not enough answers yet'];if(x.acc<.6)return['weak','Needs work'];if(x.acc<.8)return['mid','Getting there'];return['ok','Strong']}
+
+/* ---------- Progress page ---------- */
+const PG={view:'home'};
+function pgOpen(){if(MX.run&&!MX.run.done)return exRender();if(PG.view==='result'&&MX.last)return exResult(MX.last);pgHome()}
+function pgSide(){const box=$('#progList');if(!box)return;const H=v18get('bondline.exams',[]);
+  const cur=MX.run&&!MX.run.done?'run':PG.view;
+  box.innerHTML=`<button class="item${cur==='home'?' on':''}" data-pg="home"><span class="t">Overview</span><span class="m">Accuracy and weak spots</span></button>
+   <button class="item${cur==='setup'||cur==='run'?' on':''}" data-pg="setup"><span class="t">Mock exam ${PRO_BADGE}</span><span class="m">${MX.run&&!MX.run.done?'In progress':'Timed, marked at the end'}</span></button>
+   <button class="item" data-pg="fix"><span class="t">Fix my weak spots ${PRO_BADGE}</span><span class="m">Questions you got wrong</span></button>
+   ${H.length?`<div class="pg-sh">Past exams</div>`+H.slice(0,8).map((e,i)=>`<button class="item" data-pgex="${i}"><span class="t">${Math.round(100*e.score/e.len)}% · ${e.score}/${e.len}</span><span class="m">${esc(relDay(e.t))} · ${esc(e.areas.map(a=>AREA_LABEL[a]).join(' + '))}</span></button>`).join(''):''}`;
+}
+function pgHome(){
+  PG.view='home';const T=insTopics(),tries=T.reduce((s,x)=>s+x.tries,0),c=T.reduce((s,x)=>s+x.c,0),mast=T.reduce((s,x)=>s+x.m,0),tot=T.reduce((s,x)=>s+x.n,0);
+  const H=v18get('bondline.exams',[]),best=H.length?Math.max(...H.map(e=>Math.round(100*e.score/e.len))):null,st=streak();
+  const rated=T.filter(x=>x.tries>=3).sort((a,b)=>a.acc-b.acc||b.tries-a.tries),fresh=T.filter(x=>!x.seen);
+  const wrongN=T.reduce((s,x)=>s+x.wrong.length,0),open=proOpen();
+  const L=v18get('bondline.daylog',{}),days=[];for(let i=13;i>=0;i--){const k=dayKey(Date.now()-i*DAY),r=L[k]||{n:0,ok:0};days.push({k,i,...r})}
+  const mx=Math.max(4,...days.map(d=>d.n));
+  const bars=`<div class="pg-days" role="img" aria-label="Questions answered each day for the last 14 days">${days.map(d=>`<span class="pg-day${d.i===0?' today':''}" title="${d.n} answered${d.n?`, ${d.ok} right`:''}"><i style="height:${Math.max(d.n?6:2,Math.round(100*d.n/mx))}%"></i><b>${d.i===0?'Today':new Date(Date.now()-d.i*DAY).toLocaleDateString(undefined,{weekday:'narrow'})}</b></span>`).join('')}</div>`;
+  const row=x=>{const[lv,lt]=insLevel(x),pct=x.acc==null?0:Math.round(100*x.acc);
+    return`<div class="pg-row lv-${lv}"><div class="pg-rt"><b>${esc(x.title)}</b><small>${AREA_LABEL[x.area]} · ${x.tries} answer${x.tries===1?'':'s'} · ${x.m}/${x.n} mastered</small></div>
+     <div class="pg-rbar" aria-hidden="true"><i style="width:${pct}%"></i></div><span class="pg-rp"><b>${x.acc==null?'–':pct+'%'}</b><small>${lt}</small></span>
+     <button class="btn small" data-pgtopic="${x.area}:${x.t}">${x.wrong.length?`Retry ${x.wrong.length}`:'Practise'}</button></div>`};
+  const weak=rated.slice(0,open?rated.length:1);
+  $('#progPage').innerHTML=`<section class="pg">
+   <header class="nm-head"><div class="nm-kicker">Practice · Progress ${PRO_BADGE}${!PRO_CFG.enforce&&!proActive()?'<span class="pg-prev">Free while Pro is in preview</span>':''}</div><h1>Your progress</h1><p class="nm-lede">How you’re doing in naming and spectra, which topics to work on next, and timed mock exams.</p></header>
+   <div class="pg-tiles">
+    <div class="pg-tile"><small>Answered</small><b>${tries}</b><span>questions so far</span></div>
+    <div class="pg-tile"><small>Accuracy</small><b>${tries?Math.round(100*c/tries)+'%':'–'}</b><span>of all answers</span></div>
+    <div class="pg-tile"><small>Mastered</small><b>${mast}<em>/${tot}</em></b><span>right last time</span></div>
+    <div class="pg-tile"><small>${best!=null?'Best mock':'Streak'}</small><b>${best!=null?best+'%':st}</b><span>${best!=null?`${H.length} exam${H.length>1?'s':''} taken`:st===1?'day in a row':'days in a row'}</span></div>
+   </div>
+   <div class="pg-cta">
+    <button class="pg-big" data-pg="setup"><span class="pg-bi">${ico('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 3.5h5"/>')}</span><span><b>Take a mock exam</b><small>Mixed naming and spectra questions against the clock, marked at the end</small></span></button>
+    <button class="pg-big" data-pg="fix"${wrongN?'':' disabled'}><span class="pg-bi">${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}</span><span><b>Fix my weak spots</b><small>${wrongN?`${Math.min(wrongN,15)} questions you got wrong last time, with explanations`:'Nothing to fix yet. Questions you get wrong will appear here.'}</small></span></button>
+   </div>
+   <h2 class="qz-h">Last 14 days</h2>${bars}
+   <h2 class="qz-h">Weak spots</h2>
+   ${rated.length?`<p class="pg-note">Topics with at least three answers, weakest first.</p><div class="pg-rows">${weak.map(row).join('')}</div>${!open&&rated.length>1?`<div class="pg-lock"><b>See every topic ranked</b><span>Pro shows all ${rated.length} topics, weakest first, with one-click retries.</span><button class="btn primary" data-pro="weak">See Pro plans</button></div>`:''}`
+    :`<p class="pg-empty">Answer a few naming or spectra questions and your weakest topics will show up here.</p><div class="nm-actions"><button class="btn primary" data-go="naming">Practise naming</button><button class="btn" data-go="spectra">Practise spectra</button></div>`}
+   ${fresh.length?`<h2 class="qz-h">Not started</h2><div class="qz-chips">${fresh.map(x=>`<button class="qz-chip" data-pgtopic="${x.area}:${x.t}"><span>${esc(x.title)}</span><small>${AREA_LABEL[x.area]}</small></button>`).join('')}</div>`:''}
+  </section>`;
+  pgSide();
+}
+function pgTopic(v){const[area,t]=v.split(':'),x=insTopics().find(y=>y.area===area&&y.t===t);if(!x)return;
+  if(area==='naming'){setMode('naming');x.wrong.length?startQuiz({ids:x.wrong,topics:[t],style:'mix'}):quizSetup([t])}
+  else{setMode('spectra');x.wrong.length?spStart({ids:x.wrong,topics:[t]}):spSetup([t])}}
+function pgClick(e){
+  const g=e.target.closest('[data-pg]');if(g){const v=g.dataset.pg;if(v==='home')return pgHome();if(v==='setup')return MX.run&&!MX.run.done?exRender():exSetup();if(v==='fix')return exFix();return}
+  const tp=e.target.closest('[data-pgtopic]');if(tp)return pgTopic(tp.dataset.pgtopic);
+  const pe=e.target.closest('[data-pgex]');if(pe){const H=v18get('bondline.exams',[]),r=H[+pe.dataset.pgex];if(r)exPast(r);return}
+  const go=e.target.closest('[data-go]');if(go&&$('#progPage').contains(go)){setMode(go.dataset.go);return}
+  const p=e.target.closest('[data-pro]');if(p)return openPro(p.dataset.pro);
+  const tab=e.target.closest('[data-sptab]');if(tab){const box=tab.closest('.sp-qfig');if(!box)return;box.querySelectorAll('[data-sptab]').forEach(b=>{const on=b===tab;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});box.querySelectorAll('.sp-tabp').forEach((p,i)=>p.hidden=i!==+tab.dataset.sptab);return}
+  const o=e.target.closest('[data-exo]');if(o)return exPick(+o.dataset.exo);
+  const n=e.target.closest('[data-exn]');if(n)return exGo(n.dataset.exn);
+}
+
+/* ---------- mock exams and weak-spot sessions ---------- */
+const MX={run:null,last:null,tick:null,setup:{len:20,areas:['naming','spectra']}};
+function exItemNm(q){const type=Math.random()<.65?'name':'struct';
+  if(type==='struct'){const o=structOptions(q);return{area:'naming',id:q.id,t:q.t,kind:'struct',prompt:`Which structure is <b class="nm-name">${esc(q.n)}</b>?`,fig:'',opts:o.map(s=>smilesSVG(s,.9)),ans:o.indexOf(q.s),answer:esc(q.n),why:esc(q.why||'')}}
+  const o=shuffle([q.n,...(q.d||[])]);return{area:'naming',id:q.id,t:q.t,kind:'text',prompt:'What is the IUPAC name of this compound?',fig:`<div class="qz-struct">${smilesSVG(q.s,1.2)}</div>`,opts:o.map(x=>`<span class="nm-name">${esc(x)}</span>`),ans:o.indexOf(q.n),answer:esc(q.n),why:esc(q.why||'')}}
+function exItemSp(q){const b=spBuild(q);if(!b)return null;const st=b.kind==='struct';
+  return{area:'spectra',id:q.id,t:q.t,kind:st?'struct':'text',prompt:b.prompt,fig:(b.struct?`<div class="qz-struct">${smilesSVG(b.struct.s,1.1)}</div>`:'')+(b.figs?`<div class="sp-qfig">${b.figs}</div>`:''),opts:b.opts.map(o=>st?smilesSVG(o.s,.9):esc(o)),ans:b.opts.indexOf(b.ans),answer:st?esc(b.ans.n):esc(b.ans),why:b.why}}
+function exTopicTitle(it){const T=it.area==='naming'?NM_TOPICS:SP_TOPICS;return(T.find(x=>x.id===it.t)||{}).title||it.t}
+function exPool(areas){const P=[];if(areas.includes('naming'))NM_BANK.forEach(q=>P.push({area:'naming',q}));if(areas.includes('spectra'))spPoolGet().forEach(q=>P.push({area:'spectra',q}));return P}
+function exSample(areas,len){
+  const groups={};for(const p of exPool(areas)){const k=p.area+':'+p.q.t;(groups[k]=groups[k]||[]).push(p)}
+  const G=shuffle(Object.values(groups).map(g=>shuffle(g)));const out=[];let i=0;
+  while(out.length<len&&G.some(g=>g.length)){const g=G[i%G.length];if(g.length)out.push(g.pop());i++}
+  return shuffle(out);
+}
+function exBuild(list){return list.map(p=>p.area==='naming'?exItemNm(p.q):exItemSp(p.q)).filter(x=>x&&x.ans>=0)}
+function exSetup(){
+  PG.view='setup';const S=MX.setup,open=proOpen();
+  $('#progPage').innerHTML=`<section class="qz-setup"><header class="nm-head"><div class="nm-kicker">Mock exam ${PRO_BADGE}</div><h1>Mock exam</h1><p class="nm-lede">A timed paper of mixed questions. There’s no feedback until you hand it in, then you see your mark, a breakdown by topic and every answer explained.</p></header>
+   <h2 class="qz-h">Sections</h2><div class="qz-chips" id="exAreas">${['naming','spectra'].map(a=>`<button class="qz-chip${S.areas.includes(a)?' on':''}" data-exa="${a}" aria-pressed="${S.areas.includes(a)}"><span>${a==='naming'?'IUPAC naming':'Spectroscopy'}</span><small>${a==='naming'?NM_BANK.length:spPoolGet().length} questions</small></button>`).join('')}</div>
+   <h2 class="qz-h">Length</h2><div class="qz-len">${[[10,15],[20,30],[40,60]].map(([n,m])=>`<label class="qz-lenopt"><input type="radio" name="exlen" value="${n}"${S.len===n?' checked':''}><span>${n} questions · ${m} min</span></label>`).join('')}</div>
+   <ul class="ex-rules"><li>You can skip questions, flag them and come back.</li><li>When time runs out, the paper is handed in automatically.</li><li>Keys: <kbd>1</kbd>–<kbd>4</kbd> to answer, <kbd>←</kbd> <kbd>→</kbd> to move, <kbd>F</kbd> to flag.</li></ul>
+   <div class="nm-actions">${open?`<button class="btn primary" id="exStart">Start the exam</button>`:`<button class="btn primary" data-pro="exam">Unlock mock exams with Pro</button>`}<button class="btn" data-pg="home">Back to progress</button></div></section>`;
+  const sync=()=>{document.querySelectorAll('#exAreas [data-exa]').forEach(b=>{const on=S.areas.includes(b.dataset.exa);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});const s=$('#exStart');if(s)s.disabled=!S.areas.length};
+  $('#exAreas').onclick=e=>{const b=e.target.closest('[data-exa]');if(!b)return;const a=b.dataset.exa;S.areas=S.areas.includes(a)?S.areas.filter(x=>x!==a):[...S.areas,a];sync()};
+  const s=$('#exStart');if(s)s.onclick=()=>{S.len=+document.querySelector('input[name="exlen"]:checked').value;exStart('exam',exBuild(exSample(S.areas,S.len)),S.len*90)};
+  sync();pgSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+function exFix(){if(!proOpen())return openPro('fix');
+  const ids=[];for(const x of insTopics())for(const id of x.wrong)ids.push({area:x.area,id});
+  if(!ids.length)return toast('Nothing to fix yet. Questions you get wrong will appear here.');
+  const list=shuffle(ids).slice(0,15).map(o=>({area:o.area,q:o.area==='naming'?NM_BY[o.id]:spPoolGet().find(q=>q.id===o.id)})).filter(p=>p.q);
+  exStart('fix',exBuild(list),0);
+}
+function exStart(mode,items,secs){
+  if(!items.length)return toast('Choose at least one section.');
+  clearInterval(MX.tick);
+  MX.run={mode,items,i:0,pick:items.map(()=>null),flag:items.map(()=>false),shown:items.map(()=>false),t0:Date.now(),secs,areas:[...new Set(items.map(x=>x.area))],done:false};
+  PG.view='run';if(secs)MX.tick=setInterval(exTickFn,1000);exRender();
+}
+function exLeft(){const R=MX.run;return R&&R.secs?Math.max(0,R.secs-Math.floor((Date.now()-R.t0)/1000)):0}
+function fmtClock(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function exTickFn(){const R=MX.run;if(!R||R.done){clearInterval(MX.tick);return}const left=exLeft(),c=$('#exClock');
+  if(c){c.textContent=fmtClock(left);c.classList.toggle('low',left<=60)}
+  if(left<=0){clearInterval(MX.tick);exSubmit(true)}}
+function exRender(){
+  const R=MX.run;if(!R)return pgHome();PG.view='run';const it=R.items[R.i],n=R.items.length,ex=R.mode==='exam',shown=R.shown[R.i],p=R.pick[R.i];
+  const answered=R.pick.filter(x=>x!=null).length;
+  const opts=it.kind==='struct'?`<div class="qz-sopts" role="group" aria-label="Structures">${it.opts.map((o,k)=>`<button class="qz-sopt${exCls(R,k)}" data-exo="${k}" aria-pressed="${p===k}" aria-label="Option ${k+1}"${shown?' disabled':''}><span class="qz-key">${k+1}</span>${o}</button>`).join('')}</div>`
+    :`<div class="qz-opts" role="group" aria-label="Answers">${it.opts.map((o,k)=>`<button class="qz-opt${exCls(R,k)}" data-exo="${k}" aria-pressed="${p===k}"${shown?' disabled':''}><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div>`;
+  const fb=!ex&&shown?`<div class="qz-fb ${p===it.ans?'ok':'bad'}"><p class="qz-verdict">${p===it.ans?'Correct.':`Not quite. The answer is <b>${it.answer}</b>.`}</p><p class="qz-why">${it.why}</p></div>`:'';
+  const grid=ex?`<div class="ex-grid" aria-label="Questions">${R.items.map((_,k)=>`<button class="ex-cell${k===R.i?' cur':''}${R.pick[k]!=null?' done':''}${R.flag[k]?' flag':''}" data-exn="${k}" aria-label="Question ${k+1}${R.pick[k]!=null?', answered':''}${R.flag[k]?', flagged':''}">${k+1}</button>`).join('')}</div>`:'';
+  $('#progPage').innerHTML=`<section class="qz ex">
+   <div class="qz-top"><span><b>Question ${R.i+1}</b> of ${n}</span><span class="qz-topic">${esc(exTopicTitle(it))}</span>${ex?`<span class="ex-clock" id="exClock" aria-live="off">${fmtClock(exLeft())}</span><span class="qz-score">${answered} answered</span>`:`<span class="qz-score">Weak-spot practice</span>`}<button class="linkbtn" id="exQuit">${ex?'Hand in':'Finish'}</button></div>
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*(ex?answered:R.i)/n)}%"></i></div>
+   <div class="qz-card"><p class="qz-prompt">${it.prompt}</p>${it.fig}${opts}${fb}
+    <div class="ex-nav">${ex?`<button class="btn small" data-exn="prev"${R.i?'':' disabled'}>← Previous</button><button class="btn small ex-flag${R.flag[R.i]?' on':''}" data-exn="flag" aria-pressed="${R.flag[R.i]}">${R.flag[R.i]?'Flagged':'Flag for review'}</button>${R.i<n-1?`<button class="btn primary small" data-exn="next">Next →</button>`:`<button class="btn primary small" data-exn="submit">Hand in</button>`}`
+     :shown?`<button class="btn primary" data-exn="${R.i<n-1?'next':'submit'}" id="exNext">${R.i<n-1?'Next question':'See results'}</button><span class="qz-hint">or press Enter</span>`:''}</div>
+   </div>${grid}</section>`;
+  $('#exQuit').onclick=()=>exSubmit(false);pgSide();$('#main').scrollTop=0;
+  if(!ex&&shown)setTimeout(()=>{const x=$('#exNext');if(x)x.focus({preventScroll:true})},40);
+}
+function exCls(R,k){const it=R.items[R.i];if(R.mode==='exam')return R.pick[R.i]===k?' sel':'';if(!R.shown[R.i])return'';return k===it.ans?' right':R.pick[R.i]===k?' wrong':''}
+function exPick(k){const R=MX.run;if(!R||R.done||R.shown[R.i])return;const it=R.items[R.i];if(k<0||k>=it.opts.length)return;R.pick[R.i]=k;
+  if(R.mode!=='exam'){R.shown[R.i]=true;exRecord(it,k===it.ans)}
+  exRender()}
+function exGo(v){const R=MX.run;if(!R)return;const n=R.items.length;
+  if(v==='prev'&&R.i>0)R.i--;else if(v==='next'&&R.i<n-1)R.i++;else if(v==='flag')R.flag[R.i]=!R.flag[R.i];else if(v==='submit')return exSubmit(false);else if(/^\d+$/.test(v))R.i=Math.min(n-1,+v);exRender()}
+function exRecord(it,ok){const r=App.quiz.q[it.id]||{c:0,w:0};ok?r.c++:r.w++;r.last=ok?1:0;r.at=Date.now();App.quiz.q[it.id]=r;logAns(ok);saveQuiz()}
+function exSubmit(auto){const R=MX.run;if(!R||R.done)return;
+  const left=R.pick.filter(x=>x==null).length;
+  if(!auto&&R.mode==='exam'&&left&&!confirmInline(left))return;
+  clearInterval(MX.tick);R.done=true;
+  if(R.mode==='exam')R.items.forEach((it,k)=>{if(R.pick[k]!=null)exRecord(it,R.pick[k]===it.ans)});
+  const graded=R.mode==='exam'?R.items.map((it,k)=>({it,p:R.pick[k]})):R.items.map((it,k)=>({it,p:R.pick[k]})).filter(x=>x.p!=null);
+  const res={t:Date.now(),mode:R.mode,len:graded.length,score:graded.filter(x=>x.p===x.it.ans).length,secs:Math.round((Date.now()-R.t0)/1000),limit:R.secs,auto,areas:R.areas,
+    items:graded.map(x=>({area:x.it.area,id:x.it.id,t:x.it.t,ok:x.p===x.it.ans,p:x.p}))};
+  MX.last={res,graded};
+  if(R.mode==='exam'&&res.len){const H=v18get('bondline.exams',[]);H.unshift({t:res.t,len:res.len,score:res.score,secs:res.secs,areas:res.areas,items:res.items.map(x=>[x.area,x.id,x.ok?1:0])});v18set('bondline.exams',H.slice(0,30))}
+  MX.run=null;if(!res.len)return pgHome();
+  exResult(MX.last);if(auto)toast('Time’s up. Your paper has been handed in.');
+}
+let exConfirmAt=0;
+function confirmInline(left){if(Date.now()-exConfirmAt<4000){exConfirmAt=0;return true}exConfirmAt=Date.now();toast(`${left} question${left>1?'s are':' is'} unanswered. Press Hand in again to finish.`);return false}
+function exResult({res,graded}){
+  PG.view='result';const pct=res.len?Math.round(100*res.score/res.len):0,ex=res.mode==='exam';
+  const byT={};graded.forEach(({it,p})=>{const k=it.area+':'+it.t,b=byT[k]=byT[k]||{it,ok:0,n:0};b.n++;if(p===it.ans)b.ok++});
+  const msg=pct>=90?'Excellent. You’re exam-ready on these topics.':pct>=70?'A solid paper. Review the ones you missed below.':pct>=50?'A pass, with clear topics to work on.':'Tough paper. Work through the explanations, then try again.';
+  const wrong=graded.filter(x=>x.p!==x.it.ans);
+  $('#progPage').innerHTML=`<section class="qz-sum ex-sum"><header class="nm-head"><div class="nm-kicker">${ex?'Mock exam results':'Weak-spot practice'}</div><h1>${res.score} out of ${res.len} <span class="ex-pct">${pct}%</span></h1><p class="nm-lede">${msg}${ex?` Time taken ${fmtClock(res.secs)}${res.limit?` of ${fmtClock(res.limit)}`:''}.`:''}</p></header>
+   <div class="qz-break">${Object.values(byT).sort((a,b)=>a.ok/a.n-b.ok/b.n).map(b=>`<div class="qz-brow"><span>${esc(exTopicTitle(b.it))} <small class="ex-area">${AREA_LABEL[b.it.area]}</small></span><span class="nm-meter"><i style="width:${Math.round(100*b.ok/b.n)}%"></i></span><b>${b.ok}/${b.n}</b></div>`).join('')}</div>
+   <div class="nm-actions">${wrong.length?`<button class="btn primary" id="exRetry">Practise the ${wrong.length} I missed</button>`:''}<button class="btn${wrong.length?'':' primary'}" data-pg="setup">New mock exam</button><button class="btn" data-pg="home">Back to progress</button></div>
+   <h2 class="qz-h">Review</h2><div class="ex-review">${graded.map(({it,p},k)=>{const ok=p===it.ans;return`<details class="ex-rv ${ok?'ok':'bad'}"${!ok&&k<3?' open':''}><summary><span class="ex-rk">${ok?'✓':'✗'}</span><span><b>Q${k+1}</b> ${esc(exTopicTitle(it))}</span><small>${p==null?'Not answered':ok?'Correct':'Wrong'}</small></summary>
+     <div class="ex-rb"><p class="qz-prompt">${it.prompt}</p>${it.fig}<p><b>Answer:</b> ${it.answer}</p>${p!=null&&!ok&&it.kind==='text'?`<p><b>You chose:</b> ${it.opts[p]}</p>`:''}<p class="qz-why">${it.why}</p></div></details>`}).join('')}</div></section>`;
+  const r=$('#exRetry');if(r)r.onclick=()=>exStart('fix',exBuild(wrong.map(x=>({area:x.it.area,q:x.it.area==='naming'?NM_BY[x.it.id]:spPoolGet().find(q=>q.id===x.it.id)})).filter(p=>p.q)),0);
+  pgSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+function exPast(e){const ok=e.items.filter(x=>x[2]).length;
+  const byT={};e.items.forEach(([a,id,k])=>{const q=a==='naming'?NM_BY[id]:spPoolGet().find(x=>x.id===id);if(!q)return;const key=a+':'+q.t,b=byT[key]=byT[key]||{it:{area:a,t:q.t},ok:0,n:0};b.n++;if(k)b.ok++});
+  const missed=e.items.filter(x=>!x[2]).map(([a,id])=>({area:a,q:a==='naming'?NM_BY[id]:spPoolGet().find(x=>x.id===id)})).filter(p=>p.q);
+  PG.view='past';$('#progPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Past mock exam · ${esc(v18Date(e.t))}</div><h1>${ok} out of ${e.len} <span class="ex-pct">${Math.round(100*ok/e.len)}%</span></h1><p class="nm-lede">Time taken ${fmtClock(e.secs)}.</p></header>
+   <div class="qz-break">${Object.values(byT).map(b=>`<div class="qz-brow"><span>${esc(exTopicTitle(b.it))} <small class="ex-area">${AREA_LABEL[b.it.area]}</small></span><span class="nm-meter"><i style="width:${Math.round(100*b.ok/b.n)}%"></i></span><b>${b.ok}/${b.n}</b></div>`).join('')}</div>
+   <div class="nm-actions">${missed.length?`<button class="btn primary" id="exRetry">Practise the ${missed.length} I missed</button>`:''}<button class="btn" data-pg="setup">New mock exam</button><button class="btn" data-pg="home">Back to progress</button></div></section>`;
+  const r=$('#exRetry');if(r)r.onclick=()=>proOpen()?exStart('fix',exBuild(missed),0):openPro('fix');pgSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+function exKey(e){if(App.mode!=='progress'||!MX.run||MX.run.done)return;if(e.target.closest('input,textarea,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(document.querySelector('.scrim:not([hidden])'))return;
+  const R=MX.run;if(/^[1-4]$/.test(e.key)){e.preventDefault();exPick(+e.key-1)}
+  else if(R.mode==='exam'&&e.key==='ArrowRight'){e.preventDefault();exGo('next')}else if(R.mode==='exam'&&e.key==='ArrowLeft'){e.preventDefault();exGo('prev')}
+  else if(R.mode==='exam'&&(e.key==='f'||e.key==='F')){e.preventDefault();exGo('flag')}
+  else if(R.mode!=='exam'&&e.key==='Enter'&&R.shown[R.i]&&!e.target.closest('button')){e.preventDefault();exGo(R.i<R.items.length-1?'next':'submit')}}
+
+/* ---------- Bondline Pro: plans and checkout ---------- */
+const PRO_FEATS=[['Mock exams','Timed papers of mixed questions, marked at the end with every answer explained.'],['Weak-spot analytics','Every topic ranked by accuracy, weakest first, with one-click retries.'],['Fix my weak spots','Practice sessions built from the questions you got wrong.'],['Exam history','Your past papers and how your scores change.']];
+let proWhy='';
+function openPro(why){closeMenus();proWhy=why||'';let sc=$('#proScrim');
+  if(!sc){sc=document.createElement('div');sc.id='proScrim';sc.className='scrim v17-scrim';sc.hidden=true;sc.innerHTML=`<div class="wn pro-m" role="dialog" aria-modal="true" aria-labelledby="proTitle"><header class="wn-h"><div><div class="hm-kicker">Bondline Pro</div><h2 id="proTitle">Study smarter before the exam</h2></div><button class="sf-b" id="proClose" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header><div class="wn-body" id="proBody"></div></div>`;document.body.appendChild(sc);
+    sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('#proClose'))return closePro();const b=e.target.closest('[data-proact]');if(b)proAct(b.dataset.proact,b)});
+    sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closePro()}})}
+  proRender();sc.hidden=false;document.body.classList.add('sk-lock');$('#proClose').focus();proRefresh();
+}
+function closePro(){const sc=$('#proScrim');if(sc)sc.hidden=true;document.body.classList.remove('sk-lock')}
+function proRender(){const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=proActive(),e=PRO.ent||{},sells=proSells(),wl=v18get('bondline.waitlist',null);
+  const why={exam:'Mock exams are part of Bondline Pro.',fix:'Weak-spot practice is part of Bondline Pro.',weak:'The full weak-spot ranking is part of Bondline Pro.'}[proWhy];
+  let status='';
+  if(act){const sub=+e.subUntil>Date.now(),cancelled=e.subStatus==='cancelled';
+    status=`<div class="pro-status"><span class="pro-ok">${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}</span><div><b>You have Bondline Pro</b><small>${sub?(cancelled?`Cancelled. Pro stays on until ${v18Date(+e.subUntil)}.`:`Monthly plan, renews around ${v18Date(+e.subUntil-3*DAY)}.`):+e.passUntil>Date.now()?`Semester pass, runs until ${v18Date(+e.passUntil)}.`:`Until ${v18Date(proUntil())}.`}</small></div>${e.portal?`<a class="btn small" href="${esc(e.portal)}" target="_blank" rel="noopener">Manage subscription</a>`:''}</div>`}
+  else if(!PRO_CFG.enforce)status=`<div class="pro-status prev"><span class="pro-ok">${ico('<path d="M12 3.5l2.2 5.1 5.3.5-4 3.6 1.2 5.3L12 15.3 7.3 18l1.2-5.3-4-3.6 5.3-.5z"/>')}</span><div><b>Free while Pro is in preview</b><small>Every Pro feature is unlocked for everyone right now. ${sells?'You can still subscribe early to support Bondline.':'Join the list and we’ll email you before anything changes.'}</small></div></div>`;
+  else if(why)status=`<p class="pro-why">${why}</p>`;
+  const plan=(k,name,price,per,sub,tag)=>`<div class="pro-plan${k==='semester'?' best':''}">${tag?`<span class="pro-tag">${tag}</span>`:''}<b class="pro-pn">${name}</b><div class="pro-pr"><b>${esc(price)}</b><span>${per}</span></div><small>${sub}</small>
+    ${act?'':sells&&PRO_CFG.checkout[k]?`<button class="btn${k==='semester'?' primary':''}" data-proact="buy:${k}">${u?'Continue to checkout':'Sign in to buy'}</button>`:`<button class="btn${k==='semester'?' primary':''}" data-proact="wait:${k}"${wl?' disabled':''}>${wl?'You’re on the list':'Notify me'}</button>`}</div>`;
+  B.innerHTML=`${status}
+   <ul class="pro-feats">${PRO_FEATS.map(([a,b])=>`<li>${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}<span><b>${a}</b>${b}</span></li>`).join('')}</ul>
+   <div class="pro-plans">${plan('monthly','Monthly',PRO_CFG.price.monthly,'per month','Cancel any time. Pro stays on until the end of the month you paid for.','')}${plan('semester','Semester pass',PRO_CFG.price.semester,'once',`${Math.round(PRO_CFG.passDays/30)} months of Pro. No subscription, nothing renews.`,'Best for exam season')}</div>
+   <p class="pro-free"><b>Everything else stays free.</b> Notes, drawing, the reaction library, flashcards, naming, spectra and synthesis practice, sync and classes are free and always will be.</p>
+   ${!u&&FB&&FB.cfg&&(sells||!act)?`<p class="hm-muted">Pro is linked to your Bondline account, so sign in first. <button class="linkbtn" data-proact="signin">Sign in</button></p>`:''}
+   <p class="hm-muted pro-legal">Payments are handled by Lemon Squeezy, our reseller, who adds any sales tax and sends your receipt. See the <a href="/terms/#pro" target="_blank" rel="noopener">terms and refund policy</a>. Questions: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>`;
+}
+async function proAct(a,btn){const[k,plan]=a.split(':'),u=FB&&FB.user;
+  if(k==='signin'){closePro();return openSettings('#setAcctSec')}
+  if(k==='buy'){if(!u){closePro();toast('Sign in first, so Pro is linked to your account.');return openSettings('#setAcctSec')}
+    const base=PRO_CFG.checkout[plan];if(!base)return;const q=new URLSearchParams();q.set('checkout[custom][uid]',u.uid);q.set('checkout[custom][plan]',plan);if(u.email)q.set('checkout[email]',u.email);if(u.displayName)q.set('checkout[name]',u.displayName);
+    btn.disabled=true;btn.textContent='Opening checkout…';v18set('bondline.proPending',{t:Date.now(),plan});location.href=base+(base.includes('?')?'&':'?')+q.toString();return}
+  if(k==='wait'){const rec={plan,t:Date.now()};
+    if(u&&FB.db){try{await FB.db.collection('waitlist').doc(u.uid).set({plan,email:String(u.email||'').slice(0,190),t:Date.now()});v18set('bondline.waitlist',rec);proRender();toast('You’re on the list. We’ll email you before Pro launches.')}catch(e){toast('Couldn’t join the list just now. Please try again.')}}
+    else{v18set('bondline.waitlist',rec);proRender();location.href='mailto:bondlinenotes@gmail.com?subject='+encodeURIComponent('Bondline Pro: tell me when it launches')+'&body='+encodeURIComponent('Please email me when Bondline Pro launches. Plan I’m interested in: '+(plan==='semester'?'semester pass':'monthly'))}}
+}
+function proAfterCheckout(){const pend=v18get('bondline.proPending',null);if(V18_Q.get('pro')!=='thanks'&&!pend)return;
+  if(V18_Q.get('pro')==='thanks')toast('Thank you! Pro will switch on in a few seconds.');
+  let n=0;clearInterval(PRO.poll);PRO.poll=setInterval(async()=>{n++;await proRefresh();if(proActive()){clearInterval(PRO.poll);v18set('bondline.proPending',null);if(V18_Q.get('pro')==='thanks'||n>1){toast('Bondline Pro is on. Enjoy!');}}else if(n>=20||(pend&&Date.now()-pend.t>2*3600e3)){clearInterval(PRO.poll);if(n>=20&&V18_Q.get('pro')==='thanks')toast('Pro is taking longer than usual. It will appear once your payment is confirmed.')}},4000);
+  try{const sp=new URLSearchParams(location.search);if(sp.has('pro')){sp.delete('pro');history.replaceState(null,'',location.pathname+(sp.toString()?'?'+sp:'')+location.hash)}}catch(e){}
+}
+
+/* ---------- wiring ---------- */
+function wireV18(){
+  PX_MODES.push('progress');PX_LABEL.progress='Progress';
+  $('#progPage').addEventListener('click',pgClick);$('#progList').addEventListener('click',pgClick);
+  document.addEventListener('keydown',exKey);
+  { const _ra=recordAns;recordAns=function(ok){_ra(ok);logAns(ok)} }
+  { const _sa=spAnswer;spAnswer=function(k){const Z=SP.qz,n=Z?Z.results.length:0;_sa(k);if(Z&&Z.results.length>n)logAns(Z.results[Z.results.length-1].ok)} }
+  { const _sm=setMode;setMode=function(m){if(m!=='progress'&&App.mode==='progress'&&MX.run&&!MX.run.done&&MX.run.mode==='exam')toast('Your mock exam is still running. Open Practice → Progress to carry on.');_sm(m)} }
+  { const _rm=renderAcctMenu;renderAcctMenu=function(){_rm();const m=$('#acctMenu'),first=m.querySelector('.v7-mi');const html=menuItem('pro',ico('<path d="M4 8l4 3.5L12 5l4 6.5L20 8l-1.6 10H5.6z"/>'),'Bondline Pro',proActive()?'You have Pro':!PRO_CFG.enforce?'Free while in preview':'Mock exams and weak spots',PRO_BADGE);
+    if(first)first.insertAdjacentHTML('beforebegin',html);else m.insertAdjacentHTML('beforeend',html)} }
+  { const _mg=menuGo;menuGo=function(k){if(k==='pro'){closeMenus();if(isMob())$('#side').classList.remove('open');return openPro()}_mg(k)} }
+  { const _sc=syncAcctChip;syncAcctChip=function(){const r=_sc.apply(this,arguments);const uid=FB&&FB.user?FB.user.uid:null;if(uid!==PRO.uid)proRefresh();return r} }
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();I.push({label:'Progress and weak spots',kind:'Go to',fn:()=>{setMode('progress')},kw:'progress analytics stats weak spots accuracy insights'},{label:'Start a mock exam',kind:'Practice',fn:()=>{setMode('progress');exSetup()},kw:'mock exam test paper timed'},{label:'Bondline Pro',kind:'Account',fn:()=>openPro(),kw:'pro upgrade plan subscription pricing billing'});return I} }
+}
+function v18AfterBoot(){
+  if(V18_Q.has('progress')){setMode('progress')}
+  if(V18_Q.has('mock')){setMode('progress');exSetup()}
+  if(V18_Q.get('pro')==='plans')openPro();
+  if(V18_Q.has('whatsnew'))openWhatsNew();
+  proAfterCheckout();proRefresh();syncProUI();
+}
+CHANGELOG.unshift({v:'18',d:'4 November 2026',t:'Progress, mock exams and Bondline Pro',items:[
+  ['Progress','A new Practice tab with your accuracy, how much you practised in the last 14 days, and every naming and spectra topic ranked from weakest to strongest, with one-click retries.'],
+  ['Mock exams','Timed papers of mixed naming and spectra questions. Skip and flag questions, hand in when you’re done, then see your mark, a topic breakdown and every answer explained.'],
+  ['Fix my weak spots','A practice session made from the questions you got wrong last time.'],
+  ['Bondline Pro','Mock exams and the full weak-spot ranking are part of Bondline Pro. They’re free for everyone while Pro is in preview, and everything else stays free.'],
+  ['New pages','Pricing, About, Contact and Terms of service pages, linked from the footer of the website.']]});
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();
+boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot()});
 })();

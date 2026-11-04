@@ -67,10 +67,23 @@ aside.side a:hover{color:var(--bl)}
 .card b{font-size:18px;letter-spacing:-.01em}.card span{font-size:14.5px;color:var(--mut)}
 .card .k{font-family:"JetBrains Mono",monospace;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--curl)}
 .idx h2{font-size:clamp(24px,2.6vw,32px);letter-spacing:-.03em;margin:38px 0 4px}
-footer{background:var(--k);color:#8b97a8;padding:28px max(16px,5vw);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:14.5px}
-footer a{color:#8b97a8;text-decoration:none;margin-left:18px}footer a:hover{color:#fff}
 @media (max-width:900px){main.wrap{grid-template-columns:1fr}aside.side{position:static}.nav a.l{display:none}}
 @media (prefers-reduced-motion:no-preference){
   .top h1,.lede,.crumb{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.top h1{animation-delay:.06s}.lede{animation-delay:.18s}
   @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 }
+
+.bf{background:#0a0f17;color:#8b97a8;padding:56px max(20px,5vw) calc(26px + env(safe-area-inset-bottom,0px));font:15px/1.55 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;border-top:1px solid #1c2633}
+.bf a{color:#c7d0dd;text-decoration:none;transition:color .2s}.bf a:hover,.bf a:focus-visible{color:#fff}
+.bf a:focus-visible{outline:2px solid #ff5a5f;outline-offset:3px;border-radius:4px}
+.bf-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr);gap:40px;max-width:1200px;margin:0 auto}
+.bf-logo{display:inline-flex;align-items:center;gap:10px;color:#fff!important;font-weight:700;font-size:20px;letter-spacing:-.02em}
+.bf-logo svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bf-logo svg .c{stroke:#ff5a5f}
+.bf-brand p{margin:12px 0 10px;max-width:340px}
+.bf-mail{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13.5px}
+.bf-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.bf-col h2{font:600 12.5px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:6px 0 14px}
+.bf-col ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.bf-base{max-width:1200px;margin:44px auto 0;padding-top:20px;border-top:1px solid #1c2633;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;font-size:13.5px}
+@media (max-width:760px){.bf-in{grid-template-columns:1fr;gap:32px}.bf-cols{grid-template-columns:1fr 1fr}.bf{padding-top:44px}}

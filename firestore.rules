@@ -391,6 +391,24 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/classes/$(cid)/assignments/$(d.aid));
     }
 
+    // ---------- Bondline Pro ----------
+    // entitlements/{uid} is written only by Bondline's server (the Lemon Squeezy webhook),
+    // which uses a service account and so bypasses these rules. People can read only their own.
+    match /entitlements/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+    // "Tell me when Pro launches" list: one small record per person, only their own.
+    match /waitlist/{uid} {
+      allow get: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['plan', 'email', 't'])
+        && request.resource.data.plan in ['monthly', 'semester']
+        && request.resource.data.email is string && request.resource.data.email.size() <= 200
+        && request.resource.data.t is int;
+      allow delete: if isOwner(uid);
+    }
+
     // Everything else is closed.
     match /{path=**} {
       allow read, write: if false;

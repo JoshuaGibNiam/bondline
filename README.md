@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 16)
+# Bondline: organic chemistry notebook (version 18)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,66 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 18
+
+- **Progress tab** (Practice → Progress): accuracy, a 14-day activity chart, and every naming and spectra topic ranked weakest first, with one-click retries.
+- **Mock exams:** timed papers of mixed naming and spectra questions (10, 20 or 40 questions). You can skip and flag questions; it marks the paper at the end, with a topic breakdown and every answer explained. **Fix my weak spots** builds a session from questions you got wrong.
+- **Bondline Pro:** mock exams, the full weak-spot ranking and weak-spot practice are Pro features. **The paywall is off**, so everything is free while Pro is in preview, and existing features are never locked.
+- **New public pages:** `/pricing/`, `/about/`, `/contact/` and `/terms/` (terms of service and refund policy), plus a shared footer on every public page. The privacy policy has a new section on payments.
+
+### Uploading version 18
+
+1. Upload the folder to Netlify as usual. The app, the new pages and the waitlist all work straight away.
+2. In Firebase → Firestore Database → **Rules**, paste the new `firestore.rules` and press **Publish**. It adds two collections: `entitlements` (Pro status, which only the server can write) and `waitlist`.
+
+Until you set up payments (below), the Pro window shows **Notify me** buttons. Signed-in people who press one are saved in Firestore under `waitlist`, so you can see how many people want Pro before you charge anything.
+
+### Turning on payments (when you're ready)
+
+Payments use **Lemon Squeezy** as merchant of record: it charges the card, adds and pays sales tax/VAT, and sends receipts. A small server function, `netlify/functions/lemon-webhook.mjs`, tells Bondline who has paid.
+
+**Step 1: deploy from GitHub instead of drag and drop.** Netlify only runs server functions for sites deployed from Git or the Netlify CLI. Put this folder in a GitHub repository, then in Netlify open **Site configuration → Build & deploy → Link repository** and pick it. There's no build command; `netlify.toml` already says to publish the folder as it is. After that, every push to GitHub updates the site.
+
+**Step 2: create the products in Lemon Squeezy.** Sign up at lemonsqueezy.com, finish the store activation (it asks for your website, which needs the `/terms/` and `/pricing/` pages, already included), then create one product, **Bondline Pro**, with two variants:
+- *Monthly*: subscription, US$4, billed every month.
+- *Semester pass*: single payment, US$19.
+
+For each variant, set the **Confirmation modal → Button link** (the "redirect after purchase" setting) to `https://bondline.site/?app&pro=thanks`.
+
+**Step 3: get a Firebase service-account key.** In Firebase → Project settings → **Service accounts** → **Generate new private key**. A JSON file downloads. Keep it secret; never put it in the folder or on GitHub.
+
+**Step 4: add environment variables in Netlify** (Site configuration → Environment variables):
+
+| Name | Value |
+|---|---|
+| `LEMON_WEBHOOK_SECRET` | A long random password you make up (you'll paste the same one into Lemon Squeezy) |
+| `FIREBASE_PROJECT_ID` | `project_id` from the JSON file |
+| `FIREBASE_CLIENT_EMAIL` | `client_email` from the JSON file |
+| `FIREBASE_PRIVATE_KEY` | `private_key` from the JSON file, the whole thing, including the BEGIN and END lines |
+
+Redeploy afterwards (Deploys → Trigger deploy) so the function sees them.
+
+**Step 5: create the webhook in Lemon Squeezy.** Settings → **Webhooks** → add:
+- URL: `https://bondline.site/api/lemon-webhook`
+- Signing secret: the same value as `LEMON_WEBHOOK_SECRET`
+- Events: `order_created`, `order_refunded`, `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`, `subscription_paused`, `subscription_unpaused`
+
+**Step 6: paste the checkout links** into `pro-config.js` (Products → each variant → Share → copy the checkout link) and push to GitHub. The Pro window now shows **Continue to checkout**. Bondline adds the person's account ID to the link, so their payment is matched to their account automatically.
+
+**Step 7: test it.** Turn on Lemon Squeezy's **Test mode**, buy with the test card `4242 4242 4242 4242`, and check that Pro switches on within a few seconds and that Firestore has a document in `entitlements`. Lemon Squeezy's webhook page shows each delivery and its response. Turn test mode off when it works.
+
+**Step 8: start charging.** In `pro-config.js`, change `enforce: false` to `enforce: true`. Mock exams and the full weak-spot list then need Pro; everything else stays free. Change the prices in `pro-config.js` too if you change them in Lemon Squeezy.
+
+To give someone Pro for free (a tester, a lecturer), add a document in Firestore at `entitlements/<their user ID>` with a number field `grantUntil` set to a date in milliseconds (for example `1830297600000` is 1 January 2028).
+
+## New in version 17
+
+- **Guided tour.** A walk-through that highlights the real buttons one at a time and waits for you to click them (or press *Do it for me*). It covers Home, a note, adding blocks, Present, Practice, Tools, Classes and the account menu, and works on phones. New visitors start it from the welcome screen or the *Next up* card on Home; anyone can replay it from the account menu or the command palette.
+- **Simpler sidebar.** The icon bar now has four sections: **Home, Notes, Practice, Classes**. **Practice** holds Flashcards, Naming, Spectra, Synthesis and Orbitals as tabs along the top of the page (Bondline remembers the last tab). **Tools** opens a menu with the reaction predictor, reaction library, mechanism practice, glossary and quick reference. Trash, the guide, Settings and signing in are in one **account menu** at the bottom.
+- **New Home page.** A greeting, one search box for notes (including the text inside them), reactions, lessons and tools, a **Next up** card that suggests one thing to study with progress bars for naming, spectra and synthesis, and your recent notes.
+- **What's new.** An update log in the account menu. After an update, a red dot on the account button and a short message point to it.
+- No Firebase or Search Console changes are needed for this version. Just upload the folder.
 
 ## New in version 16
 
