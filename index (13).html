@@ -3,214 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy Policy · Bondline</title>
-<meta name="description" content="What Bondline, the free organic chemistry notebook, stores about you, where it is kept, who can see it, and how to delete it.">
-<link rel="canonical" href="https://bondline.site/privacy/">
-<meta name="robots" content="index,follow">
+<title>How to Name Organic Compounds: IUPAC Nomenclature Step by Step</title>
+<meta name="description" content="How to name organic compounds with IUPAC rules, step by step: main group, parent chain, numbering and prefixes, with a priority table and worked examples.">
+<link rel="canonical" href="https://bondline.site/guides/how-to-name-organic-compounds/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Bondline">
+<meta property="og:title" content="How to Name Organic Compounds: IUPAC Nomenclature Step by Step">
+<meta property="og:description" content="How to name organic compounds with IUPAC rules, step by step: main group, parent chain, numbering and prefixes, with a priority table and worked examples.">
+<meta property="og:url" content="https://bondline.site/guides/how-to-name-organic-compounds/">
+<meta property="og:image" content="https://bondline.site/og-image.png">
+<meta property="og:image:alt" content="Bondline, the free organic chemistry notebook">
+<meta property="og:locale" content="en_GB">
+<meta property="article:modified_time" content="2026-11-05">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Name Organic Compounds: IUPAC Nomenclature Step by Step">
+<meta name="twitter:description" content="How to name organic compounds with IUPAC rules, step by step: main group, parent chain, numbering and prefixes, with a priority table and worked examples.">
 <meta name="theme-color" content="#0a0f17">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<style>
-@font-face{font-family:'Bricolage Grotesque';font-weight:400;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/source-serif-4-latin-400-italic.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
-:root{--k:#0a0f17;--pp:#f3f4f7;--ink:#121a24;--mut:#5a6878;--line:#d8dfe8;--bl:#1f5fd1;--rd:#ff5a5f;color-scheme:light}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--pp);color:var(--ink);font:17px/1.65 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--bl)}
-header{background:var(--k);color:#fff;padding:22px max(16px,5vw) clamp(60px,10vh,110px);position:relative;overflow:hidden}
-header nav{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.brand svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.brand svg .c{stroke:var(--rd)}
-.open{color:#0a0f17;background:#fff;text-decoration:none;font-weight:700;font-size:14.5px;padding:10px 18px;border-radius:999px;transition:background .3s,color .3s}
-.open:hover{background:var(--rd);color:#fff}
-.label{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:clamp(60px,10vh,110px) 0 14px}
-h1{font-size:clamp(46px,8vw,120px);line-height:.92;letter-spacing:-.055em;margin:0}
-h1 em{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--rd)}
-.updated{color:#c7d0dd;margin:22px 0 0}
-main{display:grid;grid-template-columns:240px minmax(0,760px);gap:clamp(30px,6vw,90px);padding:clamp(50px,8vh,90px) max(16px,5vw) 90px}
-.toc{position:sticky;top:24px;align-self:start;font-size:14.5px}
-.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
-.toc li{counter-increment:t}
-.toc a{color:var(--mut);text-decoration:none;display:block;padding:2px 0;transition:color .2s,transform .2s}
-.toc a::before{content:counter(t,decimal-leading-zero) "  ";font-family:"JetBrains Mono",monospace;font-size:12px}
-.toc a:hover{color:var(--ink);transform:translateX(3px)}
-article h2{font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.1;margin:56px 0 14px;scroll-margin-top:24px}
-article h2:first-child{margin-top:0}
-article h3{font-size:19px;margin:26px 0 6px}
-article p,article li{color:#2b3644}
-article ul{padding-left:22px}
-article li{margin:6px 0}
-.summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px}
-.summary ul{margin:10px 0 0}
-table{width:100%;border-collapse:collapse;font-size:15.5px;margin:14px 0}
-th,td{text-align:left;vertical-align:top;padding:12px 12px 12px 0;border-top:1px solid var(--line)}
-th{font-weight:700;width:34%}
-mark{background:#fff3a3;padding:0 4px;border-radius:4px}
-@media (max-width:860px){main{grid-template-columns:1fr}.toc{position:static}}
-@media (prefers-reduced-motion:no-preference){
-  h1,.updated,.label{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.label{animation-delay:.05s}h1{animation-delay:.1s}.updated{animation-delay:.25s}
-  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-}
-
-.bf{background:#0a0f17;color:#8b97a8;padding:56px max(20px,5vw) calc(26px + env(safe-area-inset-bottom,0px));font:15px/1.55 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;border-top:1px solid #1c2633}
-.bf a{color:#c7d0dd;text-decoration:none;transition:color .2s}.bf a:hover,.bf a:focus-visible{color:#fff}
-.bf a:focus-visible{outline:2px solid #ff5a5f;outline-offset:3px;border-radius:4px}
-.bf-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr);gap:40px;max-width:1200px;margin:0 auto}
-.bf-logo{display:inline-flex;align-items:center;gap:10px;color:#fff!important;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.bf-logo svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.bf-logo svg .c{stroke:#ff5a5f}
-.bf-brand p{margin:12px 0 10px;max-width:340px}
-.bf-mail{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13.5px}
-.bf-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-.bf-col h2{font:600 12.5px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:6px 0 14px}
-.bf-col ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
-.bf-base{max-width:1200px;margin:44px auto 0;padding-top:20px;border-top:1px solid #1c2633;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;font-size:13.5px}
-@media (max-width:760px){.bf-in{grid-template-columns:1fr;gap:32px}.bf-cols{grid-template-columns:1fr 1fr}.bf{padding-top:44px}}
-</style>
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Article", "headline": "How to name organic compounds (IUPAC naming step by step)", "description": "How to name organic compounds with IUPAC rules, step by step: main group, parent chain, numbering and prefixes, with a priority table and worked examples.", "url": "https://bondline.site/guides/how-to-name-organic-compounds/", "mainEntityOfPage": "https://bondline.site/guides/how-to-name-organic-compounds/", "datePublished": "2026-11-05", "dateModified": "2026-11-05", "author": {"@type": "Organization", "name": "Bondline", "url": "https://bondline.site/"}, "publisher": {"@type": "Organization", "name": "Bondline", "logo": {"@type": "ImageObject", "url": "https://bondline.site/icons/icon-512.png"}}, "image": "https://bondline.site/og-image.png", "inLanguage": "en", "about": "Naming", "educationalLevel": "Upper secondary and undergraduate", "isPartOf": {"@type": "CollectionPage", "name": "Organic chemistry guides", "url": "https://bondline.site/guides/"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Bondline", "item": "https://bondline.site/?about"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://bondline.site/guides/"}, {"@type": "ListItem", "position": 3, "name": "How to name organic compounds (IUPAC naming step by step)"}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is the order of priority of functional groups in IUPAC naming?", "acceptedAnswer": {"@type": "Answer", "text": "From highest: carboxylic acid, ester, acyl chloride, amide, nitrile, aldehyde, ketone, alcohol, amine. Halogens and alkyl groups are always prefixes."}}, {"@type": "Question", "name": "How do you number the carbon chain in IUPAC naming?", "acceptedAnswer": {"@type": "Answer", "text": "Number from the end that gives the main functional group the lowest number. If that ties, give double and triple bonds the lowest numbers, then the substituents."}}, {"@type": "Question", "name": "Are prefixes in alphabetical order?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Substituent prefixes go in alphabetical order, ignoring multiplying prefixes like di- and tri-. So 3-ethyl-2-methyl, and 2,2-dimethyl is sorted under m."}}]}]}</script>
 </head>
 <body>
-<header>
-  <nav><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="open" href="/?app">Open the notebook</a></nav>
-  <p class="label">Privacy policy</p>
-  <h1>Your notes are <em>yours.</em></h1>
-  <p class="updated">Last updated 4 November 2026 (version 3: Bondline Pro)</p>
+<header class="top">
+  <nav class="nav" aria-label="Site"><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="l" href="/guides/">Guides</a><a class="l" href="/reactions/">Reactions</a><a class="open" href="/?app">Open the notebook</a></nav>
+  <p class="crumb"><a href="/?about">Bondline</a> / <a href="/guides/">Guides</a></p>
+  <h1>How to name organic compounds (IUPAC naming step by step)</h1>
+  <p class="lede">Every IUPAC name is built the same way: prefixes for the side groups, a stem for the longest chain, and a suffix for the main functional group. Do the steps in order and most names fall out.</p>
+  <p class="meta">Naming · Updated 5 November 2026</p>
 </header>
-
-<main>
-  <aside class="toc" aria-label="Contents"><ol>
-    <li><a href="#summary">In short</a></li>
-    <li><a href="#who">Who runs Bondline</a></li>
-    <li><a href="#without">Without an account</a></li>
-    <li><a href="#account">With an account</a></li>
-    <li><a href="#sharing">Sharing</a></li>
-    <li><a href="#classes">Classes</a></li>
-    <li><a href="#pro">Bondline Pro and payments</a></li>
-    <li><a href="#services">Other services</a></li>
-    <li><a href="#cookies">Cookies and storage</a></li>
-    <li><a href="#use">How data is used</a></li>
-    <li><a href="#keep">How long it's kept</a></li>
-    <li><a href="#rights">Your choices and rights</a></li>
-    <li><a href="#children">Children</a></li>
-    <li><a href="#security">Security</a></li>
-    <li><a href="#changes">Changes and contact</a></li>
-  </ol></aside>
-
+<main class="wrap">
   <article>
-    <h2 id="summary">In short</h2>
-    <div class="summary"><ul>
-      <li>You can use Bondline without an account. Your notes then stay in your browser, on your device.</li>
-      <li>If you sign in, your notes and progress are stored in Google Firebase so they can sync between your devices.</li>
-      <li>Bondline has no ads, no analytics and no tracking cookies, and does not sell or share your data for marketing.</li>
-      <li>If you join a class, the teacher who runs it sees your name, email address and your scores on the work they set. Never your notes.</li>
-      <li>If you buy Bondline Pro, Lemon Squeezy handles the payment. We never see your card details.</li>
-      <li>You can ask for your account and everything in it to be deleted at any time.</li>
-    </ul></div>
 
-    <h2 id="who">Who runs Bondline</h2>
-    <p>Bondline (bondline.site) is a free organic chemistry notebook run by an independent developer based in Malaysia ("we", "us"). We are responsible for the personal data described here. You can reach us at <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
+<h2>The steps</h2>
+<ol class="steps">
+<li><b>Find the main functional group.</b> If there's more than one, the highest priority one (table below) becomes the suffix. The others become prefixes.</li>
+<li><b>Find the parent chain:</b> the longest carbon chain that contains the main functional group. Its length gives the stem: meth (1), eth (2), prop (3), but (4), pent (5), hex (6), hept (7), oct (8).</li>
+<li><b>Number the chain</b> so the main functional group gets the lowest number. Then double and triple bonds. Then the substituents.</li>
+<li><b>Name and number the substituents</b> (methyl, ethyl, chloro, hydroxy…). Use di-, tri-, tetra- for repeats: 2,2-dimethyl.</li>
+<li><b>Put the prefixes in alphabetical order,</b> ignoring di-, tri- and so on: 2-bromo-3-methyl, not 3-methyl-2-bromo.</li>
+<li><b>Write it out:</b> prefixes + stem + bond ending (an/en/yn) + suffix. Commas between numbers, hyphens between numbers and letters.</li>
+</ol>
 
-    <h2 id="without">If you use Bondline without an account</h2>
-    <p>Everything you create (notes, drawings, images, flashcards, comments, folders and tags, quiz and spectra progress, note history, trash and your settings) is saved in your browser's local storage on that device. It is not sent to us, and we cannot see it.</p>
-    <p>Because it lives only in that browser, clearing your browser data or uninstalling the app deletes it, and it does not appear on your other devices.</p>
+<h2>Functional group priority</h2>
+<p>When a molecule has more than one group, the higher one in this list is the suffix:</p>
+<div class="tbl"><table>
+<thead><tr><th>Priority</th><th>Group</th><th>As suffix</th><th>As prefix</th></tr></thead>
+<tbody>
+<tr><td>1 (highest)</td><td>Carboxylic acid</td><td>-oic acid</td><td>carboxy-</td></tr>
+<tr><td>2</td><td>Ester</td><td>-oate</td><td>alkoxycarbonyl-</td></tr>
+<tr><td>3</td><td>Acyl chloride</td><td>-oyl chloride</td><td>chlorocarbonyl-</td></tr>
+<tr><td>4</td><td>Amide</td><td>-amide</td><td>carbamoyl-</td></tr>
+<tr><td>5</td><td>Nitrile</td><td>-nitrile</td><td>cyano-</td></tr>
+<tr><td>6</td><td>Aldehyde</td><td>-al</td><td>oxo-</td></tr>
+<tr><td>7</td><td>Ketone</td><td>-one</td><td>oxo-</td></tr>
+<tr><td>8</td><td>Alcohol</td><td>-ol</td><td>hydroxy-</td></tr>
+<tr><td>9</td><td>Amine</td><td>-amine</td><td>amino-</td></tr>
+<tr><td>Prefix only</td><td>Halogens, alkyl groups, ethers, nitro</td><td></td><td>chloro-, methyl-, methoxy-, nitro-</td></tr>
+</tbody></table></div>
 
-    <h2 id="account">If you sign in</h2>
-    <p>You can sign in with Google or with an email address and password. Sign-in is handled by Firebase Authentication, a Google service.</p>
-    <table>
-      <tr><th>Account details</th><td>Your email address, a user ID, whether your email is verified, and, if you use Google sign-in, the name on your Google account. Passwords are handled by Firebase and are never visible to us.</td></tr>
-      <tr><th>Your content</th><td>Notes, drawings, images you add, flashcards, comments, folders, tags, trash, glossary terms you add, quiz and spectra progress, and app settings, so they sync across your devices.</td></tr>
-      <tr><th>Where it's stored</th><td>Google Cloud Firestore, in the project that runs Bondline. Google's servers may be outside your country, including outside Malaysia.</td></tr>
-    </table>
-    <p>Database rules mean only you can read or change your personal notes. We can access stored data only as the administrator of the Firebase project, and only do so to run the service, fix problems, or when you ask us to.</p>
-    <p>When you first sign in on a device, the notes already saved on that device are copied into your account. Logging out removes that account's notes from the device.</p>
+<h2>Worked examples</h2>
+<div class="figs">
+<figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 152 95" width="152" height="95" role="img" aria-label="pentan-3-one"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="41" x2="51.98" y2="26"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="26" x2="77.96" y2="41"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="41" x2="103.94" y2="26"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="103.94" y1="26" x2="129.92" y2="41"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="75.36" y1="41" x2="75.36" y2="63.6"/><line x1="80.56" y1="41" x2="80.56" y2="63.6"/></g><text x="73.6" y="75.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>O</tspan></text></svg></div><figcaption><b>pentan-3-one</b>: five carbons, ketone at C3 from either end</figcaption></figure>
+<figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 165 95" width="165" height="95" role="img" aria-label="3-methylbutan-1-ol"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="71" x2="51.98" y2="56"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="56" x2="77.96" y2="71"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="71" x2="103.94" y2="56"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="103.94" y1="56" x2="123.94" y2="67.55"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="56" x2="51.98" y2="26"/></g><text x="125.56" y="75.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>OH</tspan></text></svg></div><figcaption><b>3-methylbutan-1-ol</b>: number from the OH end, so the methyl is on C3</figcaption></figure>
+<figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 157 97" width="157" height="97" role="img" aria-label="3-hydroxybutanal"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="73" x2="51.98" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="77.96" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="73" x2="103.94" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="102.64" y1="60.25" x2="122.64" y2="71.8"/><line x1="105.24" y1="55.75" x2="125.24" y2="67.3"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="51.98" y2="35.4"/></g><text x="125.56" y="77.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>O</tspan></text><text x="47.63" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>OH</tspan></text></svg></div><figcaption><b>3-hydroxybutanal</b>: the aldehyde outranks the alcohol, so the OH becomes "hydroxy"</figcaption></figure>
+<figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 169 97" width="169" height="97" role="img" aria-label="3-aminopropanoic acid"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="44.29" y1="69.55" x2="64.29" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="64.29" y1="58" x2="90.27" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="90.27" y1="73" x2="116.25" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="114.95" y1="60.25" x2="134.95" y2="71.8"/><line x1="117.55" y1="55.75" x2="137.55" y2="67.3"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="116.25" y1="58" x2="116.25" y2="35.4"/></g><text x="20" y="77.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>H</tspan><tspan dy="3.9" style="font-size:9.36px">2</tspan><tspan dy="-3.9">N</tspan></text><text x="137.88" y="77.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>O</tspan></text><text x="111.9" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>OH</tspan></text></svg></div><figcaption><b>3-aminopropanoic acid</b>: the acid is C1 and the amine is a prefix</figcaption></figure>
+<figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 126 125" width="126" height="125" role="img" aria-label="2-bromo-3-methylbutane"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="73" x2="51.98" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="77.96" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="73" x2="103.94" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="51.98" y2="35.4"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="73" x2="77.96" y2="103"/></g><text x="44.25" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan></text></svg></div><figcaption><b>2-bromo-3-methylbutane</b>: tie in numbering, so the alphabetically first prefix gets the lower number</figcaption></figure>
+<figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 132 125" width="132" height="125" role="img" aria-label="2,3-dichlorobutane"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="73" x2="51.98" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="77.96" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="73" x2="96.96" y2="62.03"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="51.98" y2="35.4"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="73" x2="77.96" y2="103"/></g><text x="98.03" y="62.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Cl</tspan></text><text x="46.07" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Cl</tspan></text></svg></div><figcaption><b>2,3-dichlorobutane</b>: "di" for two chlorines, a number for each</figcaption></figure>
+</div>
 
-    <h2 id="sharing">Sharing</h2>
-    <h3>Read-only links</h3>
-    <p>If you share a note, a copy of it is stored so that anyone with the link can read it. Turn sharing off to remove that copy.</p>
-    <h3>Shared notebooks</h3>
-    <p>When you create or join a shared notebook, its members can see the notebook's notes and comments, the names and email addresses of the other members and invited people, and who is currently looking at a note. The owner decides who is invited. Email addresses you invite are stored so that the invitation can be shown to that person when they sign in. Bondline does not send emails on your behalf.</p>
-
-    <h2 id="classes">Classes</h2>
-    <p>Classes let a teacher or lecturer set work and see how students do. They need an account.</p>
-    <h3>If you join a class</h3>
-    <ul>
-      <li>The class owner (your teacher) can see your <b>name</b> and <b>email address</b>, and, for each assignment they set, your <b>latest score, best score, number of attempts</b> and <b>when you last tried</b>. They can download these as a spreadsheet.</li>
-      <li>Your notes, flashcards, drawings and practice outside the class are <b>not</b> shared with the class.</li>
-      <li>Other students in the class can't see your name or scores.</li>
-      <li>Leaving the class removes you from it and deletes your scores. If your teacher removes you, your earlier scores stay visible to them until they delete them or the class.</li>
-    </ul>
-    <h3>If you run a class</h3>
-    <ul>
-      <li>Students in the class see the class name, your name and the work you set.</li>
-      <li>You decide what to set and who stays in the class. You are responsible for using students' details only for teaching, in line with your school's or university's rules.</li>
-      <li>If you teach children, follow your institution's rules on getting consent before asking them to create accounts.</li>
-      <li>Deleting the class deletes its assignments, all results and the join code.</li>
-    </ul>
-    <p>Class data is stored in Google Cloud Firestore with the rest of Bondline's account data, and database rules enforce who can see what.</p>
-
-    <h2 id="pro">Bondline Pro and payments</h2>
-    <p>Bondline Pro is optional. If you buy it, checkout happens on <b>Lemon Squeezy</b>, which sells Pro on our behalf as merchant of record. Lemon Squeezy collects your name, email address, billing country and payment details to take the payment, work out sales tax and send your receipt, under its own <a href="https://www.lemonsqueezy.com/privacy" rel="noopener">privacy policy</a>. We never see or store your card details.</p>
-    <p>Lemon Squeezy then tells Bondline that your account has Pro. We store, in your account: which plan you have, its status (for example active or cancelled), when it renews or ends, the email address you paid with, an order or subscription number, and the link to manage your subscription. Only you can read this record, and only Bondline's server can change it.</p>
-    <p>If you ask to be told when Pro launches, we store the plan you're interested in and your account email so we can email you once. To be removed from that list, email us.</p>
-    <p>Mock exam results, your weak-spot statistics and your daily activity chart are worked out on your device from your practice answers. Your practice answers sync with your account as before; exam history and the activity chart stay in your browser on that device.</p>
-
-    <h2 id="services">Other services Bondline uses</h2>
-    <ul>
-      <li><b>Google Firebase</b> (Authentication and Cloud Firestore) for sign-in and sync. Google processes this data under the <a href="https://firebase.google.com/support/privacy" rel="noopener">Firebase privacy and security terms</a>.</li>
-      <li><b>Google sign-in</b>, if you choose it. Signing in opens a Google window, where Google's own <a href="https://policies.google.com/privacy" rel="noopener">privacy policy</a> applies.</li>
-      <li><b>PubChem</b>, run by the US National Library of Medicine. When you look up a compound by name or structure, the name or SMILES you typed is sent to PubChem to fetch the answer. Nothing else from your notes is sent.</li>
-      <li><b>Lemon Squeezy</b>, if you buy Bondline Pro (see above).</li>
-      <li><b>Netlify</b>, which hosts the website and runs the small server function that records Pro purchases. Like any web host, it processes your IP address and basic request details to deliver pages and protect the site.</li>
-    </ul>
-    <p>Fonts, the drawing and maths libraries, the PowerPoint exporter and the 3D engine are all served from Bondline's own site, so loading them does not contact other companies. Exporting to PowerPoint, presenting a note and solving synthesis problems all happen on your device; nothing is uploaded. Your synthesis progress is kept in your browser on that device.</p>
-
-    <h2 id="cookies">Cookies and browser storage</h2>
-    <p>Bondline does not use advertising or analytics cookies. It uses your browser's local storage and IndexedDB to save your notes and settings, to keep you signed in, and to make the app work offline. These are needed for the app to work. Google may set its own cookies in the sign-in window if you use Google sign-in.</p>
-
-    <h2 id="use">How your data is used</h2>
-    <p>Only to provide Bondline: to save and sync your work, sign you in, run shared notebooks and share links, keep the service secure, and answer you if you contact us. We do not sell your data, use it for advertising, or use your notes to train AI models.</p>
-    <p>We process account data because it is needed to provide the service you asked for when you created an account, and based on your consent, which you can withdraw by deleting your account. This policy is written to meet Malaysia's Personal Data Protection Act 2010 and, for users in the EU and UK, the GDPR.</p>
-
-    <h2 id="keep">How long it's kept</h2>
-    <ul>
-      <li>Content in your account stays until you delete it or ask us to delete your account.</li>
-      <li>Deleted notes stay in Trash for 30 days, then are removed.</li>
-      <li>Shared copies stay until you turn sharing off or delete the note.</li>
-      <li>Pro purchase records are kept while you have an account. Lemon Squeezy keeps its own payment records as tax law requires.</li>
-      <li>Class results stay until the student leaves, the teacher deletes them, or the class is deleted.</li>
-      <li>After an account deletion request, we delete your account and content within 30 days.</li>
-    </ul>
-
-    <h2 id="rights">Your choices and rights</h2>
-    <p>You can see and edit everything you have stored in the app itself, and export notes as PDFs. You can also ask us to:</p>
-    <ul>
-      <li>give you a copy of the personal data we hold about you;</li>
-      <li>correct it;</li>
-      <li>delete your account and all of its content;</li>
-      <li>stop processing it.</li>
-    </ul>
-    <p>Email <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a> from the address on your account and we will reply within 21 days. You can also complain to the data protection authority where you live; in Malaysia that is the Personal Data Protection Commissioner.</p>
-
-    <h2 id="children">Children</h2>
-    <p>Bondline is made for students, including school students. If you are under 13, or under the age at which you can agree to this yourself where you live, please ask a parent or guardian before creating an account. You can still use Bondline without an account, which keeps everything on your device. If you are a parent and believe your child has given us personal data without your permission, contact us and we will delete it.</p>
-
-    <h2 id="security">Security</h2>
-    <p>All connections to Bondline use HTTPS. Database rules check every read and write so that people can reach only their own data and the notebooks they belong to, and the site refuses to run code from other sources. No system is perfectly secure, so please use a strong password and sign out on shared computers.</p>
-
-    <h2 id="changes">Changes and contact</h2>
-    <p>If this policy changes, we will update the date at the top of this page. For important changes, we will also let you know in the app. Questions or requests: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
+<h2>Common mistakes</h2>
+<ul>
+<li>Numbering from the end nearer a substituent instead of the main functional group.</li>
+<li>Choosing a shorter chain because it's drawn straight. Trace every path through the molecule.</li>
+<li>Alphabetising by "di" or "tri". 2,2-Dimethyl is alphabetised under m.</li>
+<li>Forgetting the locant for the suffix when it's needed: propan-2-ol, not propanol.</li>
+</ul>
+<p>More detail for specific groups: <a href="/guides/how-to-name-alkenes/">naming alkenes and alkynes</a> and <a href="/guides/naming-esters-and-amides/">naming esters, amides and acid derivatives</a>.</p>
+<h2>Quick answers</h2><div class="faq"><details><summary>What is the order of priority of functional groups in IUPAC naming?</summary><p>From highest: carboxylic acid, ester, acyl chloride, amide, nitrile, aldehyde, ketone, alcohol, amine. Halogens and alkyl groups are always prefixes.</p></details><details><summary>How do you number the carbon chain in IUPAC naming?</summary><p>Number from the end that gives the main functional group the lowest number. If that ties, give double and triple bonds the lowest numbers, then the substituents.</p></details><details><summary>Are prefixes in alphabetical order?</summary><p>Yes. Substituent prefixes go in alphabetical order, ignoring multiplying prefixes like di- and tri-. So 3-ethyl-2-methyl, and 2,2-dimethyl is sorted under m.</p></details></div><div class="cta"><p><b>Practise IUPAC naming in Bondline</b>Free, works offline, no account needed.</p><a href="/?mode=naming">Open in Bondline</a></div><div class="rel"><h2>Related guides</h2><ul><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li><li><a href="/guides/naming-esters-and-amides/">Naming esters, amides and other carboxylic acid derivatives</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2 vs E1 vs E2: how to decide</a></li><li><a href="/guides/e-z-vs-cis-trans/">E/Z vs cis/trans isomers explained</a></li></ul></div>
   </article>
+  <aside class="side"><h2>More guides</h2><ul><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li><li><a href="/guides/naming-esters-and-amides/">Naming esters, amides and other carboxylic acid derivatives</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2 vs E1 vs E2: how to decide</a></li><li><a href="/guides/e-z-vs-cis-trans/">E/Z vs cis/trans isomers explained</a></li><li><a href="/guides/r-and-s-configuration/">How to assign R and S configuration</a></li><li><a href="/guides/nmr-splitting-n-plus-1-rule/">¹H NMR splitting and the n+1 rule</a></li><li><a href="/guides/ir-spectroscopy-table/">IR spectroscopy table and how to read a spectrum</a></li></ul></aside>
 </main>
-
 <footer class="bf">
   <div class="bf-in">
     <div class="bf-brand"><a class="bf-logo" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><p>A free notebook for organic chemistry: notes, curly-arrow mechanisms, spectra and naming practice.</p><a class="bf-mail" href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a></div>
-    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
+    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Learn</h2><ul><li><a href="/guides/organic-functional-groups/">Functional groups</a></li><li><a href="/guides/how-to-name-organic-compounds/">How to name compounds</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2</a></li><li><a href="/guides/r-and-s-configuration/">R and S</a></li><li><a href="/guides/how-to-study-organic-chemistry/">How to study organic chemistry</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
   </div>
-  <div class="bf-base"><span>© 2026 Bondline · Made in Malaysia</span><a href="/terms/">Terms of service</a></div>
+  <div class="bf-base"><span>© 2026 Bondline · Made in Malaysia</span><a href="/contact/">Questions? Get in touch</a></div>
 </footer>
+<script src="/assets/track.js" defer></script>
 </body>
 </html>

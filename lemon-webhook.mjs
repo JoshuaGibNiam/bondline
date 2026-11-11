@@ -38,12 +38,17 @@ export default async (req) => {
   let fields = null;
 
   if (ev.startsWith('subscription_') && body?.data?.type === 'subscriptions') {
+    // Lemon Squeezy can deliver events out of order (or retry an old one). Skip any event
+    // older than the one already recorded, so a late "past_due" can't overwrite a newer "active".
+    const at = ts(a.updated_at) || now;
+    const cur = await fsGet(`entitlements/${uid}`);
+    if (cur && cur.subId === id && +(cur.subAt || 0) > at) return new Response('Older event ignored', { status: 200 });
     const st = a.status;
     let until = 0;
     if (st === 'on_trial') until = ts(a.trial_ends_at) + DAY;
     else if (st === 'active' || st === 'past_due') until = ts(a.renews_at) + 3 * DAY; // 3 days' grace for late renewals
     else if (st === 'cancelled') until = ts(a.ends_at);
-    fields = { subUntil: until, subStatus: String(st || ''), subId: id, updated: now };
+    fields = { subUntil: until, subStatus: String(st || ''), subId: id, subAt: at, updated: now };
     if (a.urls?.customer_portal) fields.portal = String(a.urls.customer_portal);
     if (a.user_email) fields.email = String(a.user_email);
   } else if (ev === 'order_created' && cd.plan === 'semester' && a.status === 'paid') {

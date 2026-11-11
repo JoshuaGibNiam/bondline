@@ -3,147 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pricing: Bondline Free and Pro</title>
-<meta name="description" content="Bondline is free: notes, drawing, practice, sync and classes. Bondline Pro adds timed mock exams and weak-spot analytics for US$4 a month or US$19 a semester.">
-<link rel="canonical" href="https://bondline.site/pricing/">
-<meta name="robots" content="index,follow">
-<meta property="og:title" content="Pricing: Bondline Free and Pro">
-<meta property="og:description" content="Bondline is free: notes, drawing, practice, sync and classes. Bondline Pro adds timed mock exams and weak-spot analytics for US$4 a month or US$19 a semester.">
+<title>Markovnikov&#x27;s Rule Explained: Addition to Alkenes with Examples</title>
+<meta name="description" content="What Markovnikov's rule says, why it works (carbocation stability), worked examples with HBr and water, and when you get anti-Markovnikov products.">
+<link rel="canonical" href="https://bondline.site/guides/markovnikovs-rule/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Bondline">
+<meta property="og:title" content="Markovnikov&#x27;s Rule Explained: Addition to Alkenes with Examples">
+<meta property="og:description" content="What Markovnikov&#x27;s rule says, why it works (carbocation stability), worked examples with HBr and water, and when you get anti-Markovnikov products.">
+<meta property="og:url" content="https://bondline.site/guides/markovnikovs-rule/">
 <meta property="og:image" content="https://bondline.site/og-image.png">
+<meta property="og:image:alt" content="Bondline, the free organic chemistry notebook">
+<meta property="og:locale" content="en_GB">
+<meta property="article:modified_time" content="2026-11-03">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Markovnikov&#x27;s Rule Explained: Addition to Alkenes with Examples">
+<meta name="twitter:description" content="What Markovnikov&#x27;s rule says, why it works (carbocation stability), worked examples with HBr and water, and when you get anti-Markovnikov products.">
 <meta name="theme-color" content="#0a0f17">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<style>
-@font-face{font-family:'Bricolage Grotesque';font-weight:400;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/source-serif-4-latin-400-italic.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
-:root{--k:#0a0f17;--pp:#f3f4f7;--ink:#121a24;--mut:#5a6878;--line:#d8dfe8;--bl:#1f5fd1;--rd:#ff5a5f;color-scheme:light}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--pp);color:var(--ink);font:17px/1.65 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--bl)}
-header{background:var(--k);color:#fff;padding:22px max(16px,5vw) clamp(60px,10vh,110px);position:relative;overflow:hidden}
-header nav{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.brand svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.brand svg .c{stroke:var(--rd)}
-.open{color:#0a0f17;background:#fff;text-decoration:none;font-weight:700;font-size:14.5px;padding:10px 18px;border-radius:999px;transition:background .3s,color .3s}
-.open:hover{background:var(--rd);color:#fff}
-.label{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:clamp(60px,10vh,110px) 0 14px}
-h1{font-size:clamp(46px,8vw,120px);line-height:.92;letter-spacing:-.055em;margin:0}
-h1 em{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--rd)}
-.updated{color:#c7d0dd;margin:22px 0 0}
-main{display:grid;grid-template-columns:240px minmax(0,760px);gap:clamp(30px,6vw,90px);padding:clamp(50px,8vh,90px) max(16px,5vw) 90px}
-.toc{position:sticky;top:24px;align-self:start;font-size:14.5px}
-.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
-.toc li{counter-increment:t}
-.toc a{color:var(--mut);text-decoration:none;display:block;padding:2px 0;transition:color .2s,transform .2s}
-.toc a::before{content:counter(t,decimal-leading-zero) "  ";font-family:"JetBrains Mono",monospace;font-size:12px}
-.toc a:hover{color:var(--ink);transform:translateX(3px)}
-article h2{font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.1;margin:56px 0 14px;scroll-margin-top:24px}
-article h2:first-child{margin-top:0}
-article h3{font-size:19px;margin:26px 0 6px}
-article p,article li{color:#2b3644}
-article ul{padding-left:22px}
-article li{margin:6px 0}
-.summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px}
-.summary ul{margin:10px 0 0}
-table{width:100%;border-collapse:collapse;font-size:15.5px;margin:14px 0}
-th,td{text-align:left;vertical-align:top;padding:12px 12px 12px 0;border-top:1px solid var(--line)}
-th{font-weight:700;width:34%}
-mark{background:#fff3a3;padding:0 4px;border-radius:4px}
-@media (max-width:860px){main{grid-template-columns:1fr}.toc{position:static}}
-@media (prefers-reduced-motion:no-preference){
-  h1,.updated,.label{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.label{animation-delay:.05s}h1{animation-delay:.1s}.updated{animation-delay:.25s}
-  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-}
-
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin:18px 0}
-.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink);transition:border-color .2s,transform .2s}
-a.card:hover{border-color:var(--bl);transform:translateY(-2px)}
-.card b{font-size:17px}.card span{color:var(--mut);font-size:15px;line-height:1.5}
-.card .k{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--bl)}
-.btn{display:inline-flex;align-items:center;gap:8px;background:var(--k);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 20px;border-radius:999px;border:0;transition:background .3s}
-.btn:hover{background:var(--rd)}
-.btn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.alt:hover{border-color:var(--ink);background:#fff}
-.row{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
-.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
-.plan{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;position:relative;display:flex;flex-direction:column;gap:8px}
-.plan.best{border:2px solid var(--bl)}
-.plan .tag{position:absolute;top:-12px;left:20px;background:var(--bl);color:#fff;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:999px}
-.plan .pr{font-size:44px;font-weight:700;letter-spacing:-.04em;line-height:1}.plan .pr small{font-size:16px;color:var(--mut);font-weight:400;letter-spacing:0}
-.plan ul{margin:6px 0 0;padding-left:20px}
-.note{background:#e8f1ff;border:1px solid #c6dafc;border-radius:16px;padding:16px 20px;margin:18px 0}
-table.cmp td:nth-child(n+2),table.cmp th:nth-child(n+2){text-align:center;width:22%}
-table.cmp th{width:auto}
-.yes{color:#16824a;font-weight:700}.no{color:#a0aab6}
-dl.faq dt{font-weight:700;margin-top:18px}dl.faq dd{margin:4px 0 0;color:#2b3644}
-@media (max-width:700px){.plans{grid-template-columns:1fr}}
-
-.bf{background:#0a0f17;color:#8b97a8;padding:56px max(20px,5vw) calc(26px + env(safe-area-inset-bottom,0px));font:15px/1.55 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;border-top:1px solid #1c2633}
-.bf a{color:#c7d0dd;text-decoration:none;transition:color .2s}.bf a:hover,.bf a:focus-visible{color:#fff}
-.bf a:focus-visible{outline:2px solid #ff5a5f;outline-offset:3px;border-radius:4px}
-.bf-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr);gap:40px;max-width:1200px;margin:0 auto}
-.bf-logo{display:inline-flex;align-items:center;gap:10px;color:#fff!important;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.bf-logo svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.bf-logo svg .c{stroke:#ff5a5f}
-.bf-brand p{margin:12px 0 10px;max-width:340px}
-.bf-mail{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13.5px}
-.bf-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
-.bf-col h2{font:600 12.5px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:6px 0 14px}
-.bf-col ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
-.bf-base{max-width:1200px;margin:44px auto 0;padding-top:20px;border-top:1px solid #1c2633;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;font-size:13.5px}
-@media (max-width:760px){.bf-in{grid-template-columns:1fr;gap:32px}.bf-cols{grid-template-columns:1fr 1fr}.bf{padding-top:44px}}
-</style>
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Article", "headline": "Markovnikov's rule explained", "description": "What Markovnikov's rule says, why it works (carbocation stability), worked examples with HBr and water, and when you get anti-Markovnikov products.", "url": "https://bondline.site/guides/markovnikovs-rule/", "mainEntityOfPage": "https://bondline.site/guides/markovnikovs-rule/", "datePublished": "2026-11-03", "dateModified": "2026-11-03", "author": {"@type": "Organization", "name": "Bondline", "url": "https://bondline.site/"}, "publisher": {"@type": "Organization", "name": "Bondline", "logo": {"@type": "ImageObject", "url": "https://bondline.site/icons/icon-512.png"}}, "image": "https://bondline.site/og-image.png", "inLanguage": "en", "about": "Mechanisms", "educationalLevel": "Upper secondary and undergraduate", "isPartOf": {"@type": "CollectionPage", "name": "Organic chemistry guides", "url": "https://bondline.site/guides/"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Bondline", "item": "https://bondline.site/?about"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://bondline.site/guides/"}, {"@type": "ListItem", "position": 3, "name": "Markovnikov's rule explained"}]}]}</script>
 </head>
 <body>
-<header>
-  <nav><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="open" href="/?app">Open the notebook</a></nav>
-  <p class="label">Pricing</p>
-  <h1>Free, with <em>Pro</em> for exams.</h1>
-  <p class="updated">Everything you need is free. Pro adds extras for exam season.</p>
+<header class="top">
+  <nav class="nav" aria-label="Site"><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="l" href="/guides/">Guides</a><a class="l" href="/reactions/">Reactions</a><a class="open" href="/?app">Open the notebook</a></nav>
+  <p class="crumb"><a href="/?about">Bondline</a> / <a href="/guides/">Guides</a></p>
+  <h1>Markovnikov&#x27;s rule explained</h1>
+  <p class="lede">When HX adds to an unsymmetrical alkene, two products are possible. Markovnikov&#x27;s rule predicts the major one, and carbocation stability explains why.</p>
+  <p class="meta">Mechanisms · Updated 3 November 2026</p>
 </header>
-
-<main>
-  <aside class="toc" aria-label="Contents"><ol><li><a href="#plans">Plans</a></li><li><a href="#compare">Free and Pro</a></li><li><a href="#faq">Questions</a></li></ol></aside>
+<main class="wrap">
   <article>
 
-    <div class="note" id="pv" hidden><b>Pro is in preview.</b> Every Pro feature is free for everyone right now, so you can try it all before deciding.</div>
-    <h2 id="plans">Plans</h2>
-    <div class="plans">
-      <div class="plan"><b>Monthly</b><div class="pr"><span data-price="monthly">US$4</span> <small>per month</small></div><span>Cancel any time. Pro stays on until the end of the month you paid for.</span></div>
-      <div class="plan best"><span class="tag">Best for exam season</span><b>Semester pass</b><div class="pr"><span data-price="semester">US$19</span> <small>once</small></div><span><span data-days>5 months</span> of Pro. No subscription, nothing renews.</span></div>
-    </div>
-    <p>Prices are in US dollars. Any sales tax or VAT where you live is added at checkout. Payments are handled by Lemon Squeezy, our reseller.</p>
-    <div class="row"><a class="btn" href="/?app&amp;pro=plans">Get Pro in the app</a><a class="btn alt" href="/?app">Start free</a></div>
+<h2>The rule</h2>
+<p>When H–X adds across a C=C, the <b>hydrogen goes to the carbon that already has more hydrogens</b>, and X goes to the more substituted carbon.</p>
+<div class="figs"><figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 100 63" width="100" height="63" role="img" aria-label="propene"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="27.3" y1="43.25" x2="53.28" y2="28.25"/><line x1="24.7" y1="38.75" x2="50.68" y2="23.75"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="26" x2="77.96" y2="41"/></g></svg></div><figcaption><b>propene</b></figcaption></figure><figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 100 95" width="100" height="95" role="img" aria-label="2-bromopropane"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="73" x2="51.98" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="77.96" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="51.98" y2="35.4"/></g><text x="44.25" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan></text></svg></div><figcaption><b>2-bromopropane</b>: major (Markovnikov)</figcaption></figure><figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 134 65" width="134" height="65" role="img" aria-label="1-bromopropane"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="43" x2="51.98" y2="28"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="28" x2="77.96" y2="43"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="77.96" y1="43" x2="95.99" y2="32.59"/></g><text x="96.21" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan></text></svg></div><figcaption><b>1-bromopropane</b>: minor</figcaption></figure></div>
 
-    <h2 id="compare">Free and Pro</h2>
-    <table class="cmp"><thead><tr><th>Feature</th><th>Free</th><th>Pro</th></tr></thead><tbody>
-    <tr><td>Notes, drawing and curly-arrow mechanisms</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Reaction library, predictor and 3D</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Naming, spectra and synthesis practice</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Flashcards with spaced repetition</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Sync across devices</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Classes for lecturers and students</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Lecture mode and PDF / PowerPoint export</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Progress overview and last 14 days</td><td><span class="yes" aria-label="Included">✓</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Every topic ranked by accuracy</td><td>Top weak spot</td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Fix-my-weak-spots practice</td><td><span class="no" aria-label="Not included">–</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Timed mock exams with full review</td><td><span class="no" aria-label="Not included">–</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr><tr><td>Exam history</td><td><span class="no" aria-label="Not included">–</span></td><td><span class="yes" aria-label="Included">✓</span></td></tr>
-    </tbody></table>
+<h2>Why it works</h2>
+<p>The first step makes a carbocation. Adding H⁺ to the end carbon of propene gives a <b>secondary</b> carbocation; adding it to the middle carbon would give a <b>primary</b> one. Alkyl groups stabilise a positive charge (by induction and hyperconjugation), so the order of stability is tertiary &gt; secondary &gt; primary. The more stable carbocation forms faster, so its product is the major one.</p>
+<figure class="step"><div class="sv"><svg style="width:100%;max-width:642px;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 21.29 428 71" width="428" height="71" role="img" aria-label="Addition of HBr to an alkene, step 1"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="27.3" y1="67.75" x2="53.28" y2="52.75"/><line x1="24.7" y1="63.25" x2="50.68" y2="48.25"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="50.5" x2="77.96" y2="65.5"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="137.44" y1="62.05" x2="149.5" y2="55.09"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="289.18" y1="65.5" x2="315.16" y2="50.5"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="315.16" y1="50.5" x2="341.14" y2="65.5"/></g><text x="127.11" y="70.18" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>H</tspan></text><text x="149.71" y="55.18" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan></text><g style="stroke:#111111;stroke-width:1;fill:none"><circle cx="315.16" cy="40.5" r="4.6"/><line x1="312.76" y1="40.5" x2="317.56" y2="40.5"/><line x1="315.16" y1="38.1" x2="315.16" y2="42.9"/></g><text x="390.29" y="62.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan><tspan dy="-5.46" style="font-size:9.36px">−</tspan></text><path style="stroke:#111111;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round" d="M193.18 58L257.18 58"/><polygon style="fill:#111111" points="263.18,58 253.68,61.99 256.53,58 253.68,54.01"/><path d="M41.48 56.32Q88.23 24.76 121.09 55.73" style="stroke:#d33f49;stroke-width:1.4;fill:none;stroke-linecap:round"/><polygon points="124.91,59.33 117.29,56.48 121.09,55.73 121.61,51.89" style="fill:#d33f49"/><path d="M144.33 55Q143.75 41.78 145.43 42.85" style="stroke:#d33f49;stroke-width:1.4;fill:none;stroke-linecap:round"/><polygon points="149.86,45.67 141.84,44.29 145.43,42.85 145.22,38.98" style="fill:#d33f49"/><text x="101.96" y="63" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>+</tspan></text><text x="365.14" y="63" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>+</tspan></text></svg></div><figcaption><b>Addition of HBr to an alkene · step 1</b>The π electrons attack H, so H adds to the end carbon and the more stable secondary carbocation forms. <a href="/reactions/hbr/">Full mechanism →</a></figcaption></figure>
+<figure class="step"><div class="sv"><svg style="width:100%;max-width:511px;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 20 341 95" width="341" height="95" role="img" aria-label="Addition of HBr to an alkene, step 2"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="75" x2="51.98" y2="60"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="60" x2="77.96" y2="75"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="266.58" y1="91" x2="292.56" y2="76"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="292.56" y1="76" x2="318.54" y2="91"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="292.56" y1="76" x2="292.56" y2="53.4"/></g><g style="stroke:#111111;stroke-width:1;fill:none"><circle cx="51.98" cy="50" r="4.6"/><line x1="49.58" y1="50" x2="54.38" y2="50"/><line x1="51.98" y1="47.6" x2="51.98" y2="52.4"/></g><text x="127.12" y="72.18" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan><tspan dy="-5.46" style="font-size:9.36px">−</tspan></text><circle cx="123.12" cy="65.2" r="1.25" style="fill:#111111"/><circle cx="123.12" cy="69.8" r="1.25" style="fill:#111111"/><circle cx="132.55" cy="77" r="1.25" style="fill:#111111"/><circle cx="137.15" cy="77" r="1.25" style="fill:#111111"/><circle cx="137.15" cy="58" r="1.25" style="fill:#111111"/><circle cx="132.55" cy="58" r="1.25" style="fill:#111111"/><text x="284.83" y="50.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>Br</tspan></text><path style="stroke:#111111;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round" d="M170.58 67.5L234.58 67.5"/><polygon style="fill:#111111" points="240.58,67.5 231.08,71.49 233.93,67.5 231.08,63.51"/><path d="M129.08 61.96Q96.42 30.6 63.86 52.14" style="stroke:#d33f49;stroke-width:1.4;fill:none;stroke-linecap:round"/><polygon points="59.49,55.03 64,48.27 63.86,52.14 67.48,53.52" style="fill:#d33f49"/><text x="101.96" y="72.5" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>+</tspan></text></svg></div><figcaption><b>Addition of HBr to an alkene · step 2</b>Bromide attacks the carbocation. <a href="/reactions/hbr/">Full mechanism →</a></figcaption></figure>
 
-    <h2 id="faq">Questions</h2>
-    <dl class="faq">
-      <dt>Is Bondline really free?</dt><dd>Yes. Notes, drawing, all the practice, sync and classes are free, with no ads. Pro is an optional extra for exam season.</dd>
-      <dt>Will free features ever move to Pro?</dt><dd>No. Anything that's free today stays free.</dd>
-      <dt>Can I cancel?</dt><dd>Any time, in two clicks: account menu → Bondline Pro → Manage subscription. You keep Pro until the end of the month you paid for.</dd>
-      <dt>What if it's not for me?</dt><dd>Email us within 14 days of paying for a full refund, no questions asked. See the <a href="/terms/#refunds">refund policy</a>.</dd>
-      <dt>Do I need an account?</dt><dd>For Pro, yes, so it works on all your devices. You can sign in with Google or an email address.</dd>
-      <dt>Is there a deal for a whole class or department?</dt><dd>Classes are free for lecturers already. For Pro for a whole course, <a href="/contact/">get in touch</a>.</dd>
-    </dl>
+<h2>The same idea with water</h2>
+<p>Acid-catalysed hydration follows the same rule: propene with steam and an acid catalyst gives propan-2-ol, not propan-1-ol.</p>
+<div class="figs"><figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 100 95" width="100" height="95" role="img" aria-label="propan-2-ol"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="73" x2="51.98" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="77.96" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="51.98" y2="35.4"/></g><text x="47.63" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>OH</tspan></text></svg></div><figcaption><b>propan-2-ol</b>: major</figcaption></figure></div>
 
+<h2>Anti-Markovnikov additions</h2>
+<ul>
+<li><b>HBr with peroxides</b> adds by a radical mechanism. The Br radical adds first, to the end carbon, giving 1-bromopropane. (This only works with HBr.)</li>
+<li><b>Hydroboration–oxidation</b> (1. BH₃·THF, 2. H₂O₂, NaOH) puts the OH on the less substituted carbon: propene → propan-1-ol.</li>
+</ul>
+
+<h2>Watch for rearrangements</h2>
+<p>Because there's a carbocation, a hydride or methyl group can shift to make a more stable cation before X adds. For example, 3-methylbut-1-ene with HBr gives mainly 2-bromo-2-methylbutane, not 2-bromo-3-methylbutane.</p>
+<p>Practise choosing the right addition in <a href="/?synth=anti-mark">this synthesis problem</a>.</p>
+<div class="cta"><p><b>See the HBr mechanism step by step in Bondline</b>Free, works offline, no account needed.</p><a href="/?rx=hbr">Open in Bondline</a></div><div class="rel"><h2>Related guides</h2><ul><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2 vs E1 vs E2: how to decide</a></li><li><a href="/guides/how-to-draw-curly-arrows/">How to draw curly arrows in organic mechanisms</a></li><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li><li><a href="/guides/e-z-vs-cis-trans/">E/Z vs cis/trans isomers explained</a></li></ul></div>
   </article>
+  <aside class="side"><h2>More guides</h2><ul><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2 vs E1 vs E2: how to decide</a></li><li><a href="/guides/how-to-draw-curly-arrows/">How to draw curly arrows in organic mechanisms</a></li><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li><li><a href="/guides/e-z-vs-cis-trans/">E/Z vs cis/trans isomers explained</a></li><li><a href="/guides/r-and-s-configuration/">How to assign R and S configuration</a></li><li><a href="/guides/nmr-splitting-n-plus-1-rule/">¹H NMR splitting and the n+1 rule</a></li><li><a href="/guides/ir-spectroscopy-table/">IR spectroscopy table and how to read a spectrum</a></li></ul><h2>Mechanisms</h2><ul><li><a href="/reactions/hbr/">Addition of HBr to an alkene</a></li><li><a href="/reactions/hydration/">Acid-catalysed hydration of an alkene</a></li><li><a href="/reactions/br2/">Bromination of an alkene</a></li></ul></aside>
 </main>
-
 <footer class="bf">
   <div class="bf-in">
     <div class="bf-brand"><a class="bf-logo" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><p>A free notebook for organic chemistry: notes, curly-arrow mechanisms, spectra and naming practice.</p><a class="bf-mail" href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a></div>
-    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
+    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Learn</h2><ul><li><a href="/guides/organic-functional-groups/">Functional groups</a></li><li><a href="/guides/how-to-name-organic-compounds/">How to name compounds</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2</a></li><li><a href="/guides/r-and-s-configuration/">R and S</a></li><li><a href="/guides/how-to-study-organic-chemistry/">How to study organic chemistry</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
   </div>
   <div class="bf-base"><span>© 2026 Bondline · Made in Malaysia</span><a href="/contact/">Questions? Get in touch</a></div>
 </footer>
-<script src="/pro-config.js"></script>
-<script src="/assets/pricing.js"></script>
+<script src="/assets/track.js" defer></script>
 </body>
 </html>
