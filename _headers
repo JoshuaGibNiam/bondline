@@ -25,3 +25,32 @@
   Cache-Control: no-cache
 /firebase-config.js
   Cache-Control: no-cache
+/bondle-core.js
+  Cache-Control: no-cache
+/bondle-data.js
+  Cache-Control: no-cache
+/bondle-science.js
+  Cache-Control: no-cache
+/bondle/*
+  Cache-Control: no-cache
+/extras.css
+  Cache-Control: no-cache
+/assets/track.js
+  Cache-Control: no-cache
+/admin/*
+  Cache-Control: no-cache
+  X-Robots-Tag: noindex, nofollow
+
+# Fonts never change once published. Icons and libraries change rarely.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+/vendor/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/icons/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+/og-image.png
+  Cache-Control: public, max-age=86400
+/assets/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/netlify/*
+  X-Robots-Tag: noindex

@@ -4,7 +4,7 @@
 // share/invite links and ?app go straight to the notebook. Add ?about to the address to see it again.
 (function(){var off=true;try{var q=location.search,h=location.hash,ls=localStorage;
 if(/[?&]about\b/.test(q))off=false;
-else if(/[?&](app|welcome|rx|practise|synth|class|mode)\b/.test(q)||/[#&](share|join)=/.test(h))off=true;
+else if(/[?&](app|welcome|rx|practise|synth|class|mode|bondle|feedback|course|live|teach)\b/.test(q)||/[#&](share|join)=/.test(h))off=true;
 else if((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone)off=true;
 else off=!!(ls.getItem('bondline.landing')||ls.getItem('bondline.welcomed')||ls.getItem('bondline.uid')||ls.getItem('bondline.pendingAuth')||ls.getItem('bondline.pendingJoin'));
 }catch(e){off=true}if(off)document.documentElement.classList.add('lp-off')})();

@@ -1,17 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://bondline.site/</loc><lastmod>2026-11-03</lastmod></url>
-  <url><loc>https://bondline.site/guides/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/</loc><lastmod>2026-11-05</lastmod></url>
   <url><loc>https://bondline.site/guides/how-to-name-alkenes/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/guides/sn1-sn2-e1-e2/</loc><lastmod>2026-11-03</lastmod></url>
-  <url><loc>https://bondline.site/guides/e-z-vs-cis-trans/</loc><lastmod>2026-11-03</lastmod></url>
-  <url><loc>https://bondline.site/guides/r-and-s-configuration/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/guides/e-z-vs-cis-trans/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/r-and-s-configuration/</loc><lastmod>2026-11-05</lastmod></url>
   <url><loc>https://bondline.site/guides/nmr-splitting-n-plus-1-rule/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/guides/ir-spectroscopy-table/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/guides/how-to-draw-curly-arrows/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/guides/markovnikovs-rule/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/guides/organic-reagents-cheat-sheet/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/guides/how-to-study-organic-chemistry/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/organic-vs-inorganic-chemistry/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/organic-functional-groups/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/types-of-organic-reactions/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/how-to-draw-organic-structures/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/how-to-name-organic-compounds/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/naming-esters-and-amides/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/how-to-draw-resonance-structures/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/chiral-centres/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/enantiomers-vs-diastereomers/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/meso-compounds/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/fischer-projections/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/newman-projections/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/chair-conformation-cyclohexane/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/13c-nmr-chemical-shifts/</loc><lastmod>2026-11-05</lastmod></url>
+  <url><loc>https://bondline.site/guides/mass-spectrometry-fragmentation/</loc><lastmod>2026-11-05</lastmod></url>
   <url><loc>https://bondline.site/reactions/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/reactions/alcoholhx/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://bondline.site/reactions/cnsub/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://bondline.site/reactions/nh3sub/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://bondline.site/reactions/alcdehyd/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://bondline.site/reactions/phenolbr/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://bondline.site/reactions/diazocoupling/</loc><lastmod>2026-11-09</lastmod></url>
+  <url><loc>https://bondline.site/reactions/cannizzaro/</loc><lastmod>2026-11-09</lastmod></url>
   <url><loc>https://bondline.site/reactions/sn2/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/reactions/sn1/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/reactions/e2/</loc><lastmod>2026-11-03</lastmod></url>
@@ -47,8 +70,9 @@
   <url><loc>https://bondline.site/reactions/aldolcond/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/reactions/acylhydrolysis/</loc><lastmod>2026-11-03</lastmod></url>
   <url><loc>https://bondline.site/pricing/</loc><lastmod>2026-11-03</lastmod></url>
-  <url><loc>https://bondline.site/about/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/about/</loc><lastmod>2026-11-05</lastmod></url>
   <url><loc>https://bondline.site/contact/</loc><lastmod>2026-11-03</lastmod></url>
-  <url><loc>https://bondline.site/privacy/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/privacy/</loc><lastmod>2026-11-05</lastmod></url>
   <url><loc>https://bondline.site/terms/</loc><lastmod>2026-11-03</lastmod></url>
+  <url><loc>https://bondline.site/bondle/</loc><lastmod>2026-11-08</lastmod></url>
 </urlset>

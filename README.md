@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 18)
+# Bondline: organic chemistry notebook (version 27)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,143 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 27: teaching tools
+
+Everything is in **Classes**.
+
+- **My quizzes.** Teachers write their own questions (multiple choice, true or false, short answer, or a number with an allowed error and a unit), each with an optional structure drawn from a name or SMILES, $maths$, an explanation and a topic tag. They can mix in any of Bondline's 1,144 questions (naming, spectra, stereochemistry and every course unit, filtered by course), or **paste in** questions they already have (“A)” options, “*” or “Answer: B” for the right one, “Explanation:” and “Topic:” lines). Quizzes are saved in the new `quizzes` collection.
+- **Set anything as class work.** New assignment types: one of my quizzes; a paper of Bondline's questions from chosen topics or course units (picked once, so every student gets the same questions); a drill (rounds of SN1/SN2/E1/E2, R/S or IR); a flashcard deck from the teacher's notes. Quizzes run in **Practice** (feedback after each question) or **Test** mode (marked when handed in), with an optional time limit, attempt limit, and a choice of when answers are shown.
+- **Insights.** For each quiz: the share of students who got each question right on their first try, which options they chose, common wrong typed answers, time taken and how often students left the page. Across the class: the weakest topics, with one click to set a practice quiz on them. Results show attempts, time, late work and a ✓ for server-marked scores; click a student for every answer. Two CSV downloads: scores, and answers question by question.
+- **Worksheets.** Print any quiz, or any assignment, with name/class/date boxes, optional working space and an answer key with explanations on a separate page. **Join slips** print the class code eight to a page.
+- **Live quizzes.** The teacher's screen shows a 6-digit PIN; students join on their phones (`bondline.site/?live=PIN`), answer against the clock (500 to 1,000 points for a right answer, more for faster), and see a leaderboard after each question. The host can download the results. Games live in the new `live` collection and are deleted when the host closes them.
+- **Co-teachers.** The class owner makes a teacher code (People tab). Another teacher types it in the Join box, or opens `bondline.site/?teach=CODE`. Co-teachers can set work, see every result and manage students; only the owner can delete the class.
+- **Class notebooks.** Link a shared notebook to a class (Notebooks tab) and every student is added as a reader (or editor), including students who join later; co-teachers are added as editors. Shared notebooks now hold up to 320 people.
+- **Class-only accounts.** Students without an email address, or under 13, can join a class or a live quiz with a first name and an initial. This uses Firebase **anonymous sign-in** (see step 2). The account lives on that device. The under-13 screen now offers this too.
+- **Free Pro for teachers.** Teachers ask from Classes → Free Pro for teachers (`teachers` collection). The admin page has a new **Teachers** tab to approve a request (Pro for a year), decline it, give Pro to any user ID, and set **class passes**: a number of Pro seats per class for a teacher's students, for centres that pay. Students in those classes get Pro while they're enrolled.
+- **Quizzes marked on the server.** For quizzes made only of a teacher's own questions, the teacher can tick **Mark on the server**. The answers are stored in `classes/{class}/keys/{assignment}`, which students can't read, and the new function `netlify/functions/grade-quiz.mjs` marks the answers and writes the result. Other results are still worked out in the student's browser, so treat those as practice records.
+- Service worker version is `bondline-v27-1`.
+
+### Uploading version 27 (four steps)
+
+1. **Firestore rules (required).** Firebase console → Firestore Database → **Rules**, paste the new `firestore.rules`, press **Publish**. Without this, quizzes, live games, co-teachers and the teacher plan won't save. If Publish shows an error, nothing changes; send the message to Claude.
+2. **Turn on anonymous sign-in** for class-only accounts: Firebase console → **Authentication → Sign-in method → Add new provider → Anonymous → Enable**. Until you do, students who try it see “Class-only accounts aren’t switched on for this site yet.” Everything else works.
+3. **Upload the folder** to Netlify as usual.
+4. **Optional: server marking.** The `grade-quiz` function runs only when the site is deployed from GitHub or the Netlify CLI (like the payments webhook), and uses the same three variables: `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`. Until it's running, the “Mark on the server” box is greyed out with a note explaining why.
+
+### Checking the rules in the Rules Playground
+- `get` on `/classes/<a class id>` as a co-teacher (their uid in `teacherIds`) → **allowed**; as someone else → **denied**.
+- `create` on `/classes/<id>/results/<assignment>_<uid>` for an assignment whose `opt.secure` is `true` → **denied** (only the server writes those).
+- `get` on `/classes/<id>/keys/<assignment>` as a student → **denied**; as the teacher → **allowed**.
+- `update` on `/teachers/<your uid>` setting `st` to `ok` as yourself → **denied**; as an admin → **allowed**.
+
+### Things to know
+- Class-only accounts store a first name and initial, never an email. A student who logs out or clears their browser can't get back in; the teacher can remove the old account and the student joins again. Under-13 use is the school's or teacher's responsibility (the join screen says so). This is a reasonable baseline, not legal advice; check COPPA or GDPR rules if you expect many young users.
+- Insights use each student's **first** attempt. The results table shows the best.
+- Live quizzes and server marking need the app version on each phone to match the host's; old versions are asked to reload.
+- No Firestore indexes are needed: every new query uses a single field.
+
+## New in version 26
+
+- **Reaction guide:** the reaction library now opens on **All reactions (230)**, grouped by functional group (alkanes to sugars and amino acids). Each entry has the reagents, a drawn scheme, key points and, where one exists, a link to the full curly-arrow mechanism. The 41 mechanisms are under the **Mechanisms** tab. The data is in the new file `guide-data.js`; every structure and atom balance was checked with RDKit. `/?rx=<id>` opens an entry (ids start with `g-`).
+- **Back button:** in the left menu, and at the top on phones. It returns to the previous section or note and closes an open dialog first. The browser or phone back gesture does the same. The Bondle page has a Back button too.
+- **Fused and spiro rings** (naphthalene, steroids, indoles, epoxides on rings) now draw as regular rings everywhere structures are drawn from a name or SMILES.
+- Service worker version is `bondline-v26-1`. No Firebase changes are needed.
+
+## New in version 25
+
+- **Study** (new item in the left menu, `?study=today|timer|tasks|schedule|exams|goals`): the planning and focus tools students use most, built into Bondline.
+  - **Today:** focus minutes against your daily goal, your streak, this week's total, the next exam countdown, tasks due today, today's timetable, and a one-tap focus button.
+  - **Focus timer:** Pomodoro (focus/short break/long break, all adjustable, optional auto-start), stopwatch and countdown. It keeps running across the app (a small timer pill appears in the corner) and through reloads, because it stores timestamps. It shows the time in the tab title, chimes, can send a notification when the tab is in the background, and can play rain, brown or white noise (generated in the browser, no audio files). Space starts and pauses it.
+  - **Tasks:** due dates, priorities, subjects, subtasks, overdue/today/upcoming groups, and ▶ to start a focus session linked to a task. Focus time is added to each task. Course unit pages have an **Add to my study plan** link that creates a task with a subtask for each lesson, the exam-style question and the quiz.
+  - **Timetable:** repeating weekly study blocks (a week grid on desktop, a day list on phones).
+  - **Exam countdown**, plus **Goals and stats:** daily and weekly focus goals, current and best streak, a 16-week heatmap, time by subject, and custom counter goals.
+  - The Home page gets a "Study today" card.
+- Data is saved on the device (`bondline.study` in localStorage). When signed in, it syncs to the `_study` document in the user's existing notes collection (the same place as `_quiz`), so you need to **publish the updated `firestore.rules`** (it adds a rule for `_study`). Until you do, everything still works on the device; it just won't sync.
+- Service worker version is `bondline-v25-1`.
+
+## New in version 24
+
+**Before you upload: Pro is now switched on.** `pro-config.js` has `enforce: true`, so units 4 onwards of every course, mock exams and the full weak-spot list need Pro. There are no checkout links in `pro-config.js` yet, so people see a **Notify me** waitlist button instead of a Buy button. Paste your two Lemon Squeezy links into `checkout` when you're ready to sell. To go back to "free while in preview", set `enforce: false`.
+
+- **Four more courses:** AP Chemistry (6 units: CED Units 1–2 and the start of 3), IB Diploma Chemistry (18 units, SL and HL), JEE Main (20 units) and NEET UG (20 units). All seven courses now share one set of lessons (`PU_UNITS` plus the per-course maps in `PU_EXT` in `app.js`). A section or question tagged `only:'sjn'` appears only in the courses whose letters it lists: `a` Cambridge, `s` STPM, `p` AP, `i` IB, `j` JEE, `n` NEET (NEET reuses the JEE syllabus points).
+- **New lessons and units:** photons and the photoelectric effect, Bohr model and quantum numbers, PES and Coulomb's law, electron affinity, formal charge and resonance, lattice energy and alloys, molecular orbital theory, sp³d/sp³d² and dipole moments, types of solid, reaction intermediates and hyperconjugation, conformations, the peroxide effect, alkynes, aromaticity, NCERT halogen, alcohol, ether, phenol, carbonyl, acid and amine chemistry, IHD. New units: *Purifying and analysing organic compounds*, *Biomolecules* and *Named reactions* (JEE and NEET). 110 new questions (302 in the shared lessons).
+- **Drills** (new Practice tab, `?drill=mech`, `?drill=rs`, `?drill=ir`): SN1/SN2/E1/E2 decisions checked by the predictor; R/S on a random 3D model; tap-the-peak and match-the-spectrum IR. Best streaks are kept on the device.
+- **7 new mechanisms** in the library (alcohol + HCl SN1, nitrile and amine formation, alcohol dehydration, phenol bromination, azo coupling, Cannizzaro), each with its own page under `/reactions/` (added to `sitemap.xml` and the reactions index).
+- **Predictor:** Wurtz, Fittig, Wurtz–Fittig, Swarts, Finkelstein, AgCN/AgNO₂, Rosenmund, Stephen, Etard, Gattermann–Koch, Reimer–Tiemann, Kolbe, phenol + Zn, Cannizzaro, 2,4-DNP, semicarbazide, Fehling's, Lucas, Al₂O₃ and Cu dehydration/dehydrogenation, distil vs reflux oxidation, iodoform on alcohols, HVZ, decarboxylation, Kolbe electrolysis, Hofmann bromamide, carbylamine, Hinsberg, HNO₂ on aliphatic amines, bromine water on phenol/aniline.
+- **Age check:** before signing in or creating an account, Bondline asks for month and year of birth (not stored). Under 13: no account, usage statistics off on that device, and the feedback form hides the email field. The privacy policy and terms say so. This is a reasonable baseline, not legal advice: if you expect many users in the US (COPPA) or EU (GDPR sets 13–16 by country), check with a lawyer.
+- Nothing to change in Firebase. Service worker version is `bondline-v24-1`.
+
+## New in version 23
+
+- **Two new courses** in the Courses tab, next to IChO: **Cambridge International A Level Chemistry (9701)**, 22 units, and **STPM Chemistry (962)**, 21 units. The tab opens on an "All courses" page; switch courses with the IChO / A Level / STPM buttons at the top of the course list.
+- **Shared lessons.** Both courses use the same 22 units (`PU_UNITS` in `app.js`): six on atomic structure, orbitals, ionisation energy, bonding, shapes and intermolecular forces, then all of the organic chemistry. A lesson or question tagged `only:'a'` shows in 9701 only, `only:'s'` in STPM only. Spectroscopy and chromatography are A Level only (STPM has none). Each unit shows its own syllabus points and references for each course. Physical and inorganic chemistry are left for a later version.
+- **192 new questions**, each with an explanation, plus an exam-style question with worked answers in every unit. They appear in Progress as "A Level / STPM" and in mock exams. Units 1–3 of each course are free; the rest are Pro (free for everyone while Pro is in preview).
+- **Links.** `bondline.site/?course=cie` and `?course=stpm` open a course; add `&unit=pu-oh` (for example) to open one unit. `?course=icho` and the old IChO links still work.
+- Nothing to change in Firebase for this version. Upload the files as usual (the service worker version is now `bondline-v23-1`).
+
+## New in version 22
+
+- **Bondle**, the daily chemistry and science puzzle, on its own page at **bondline.site/bondle** (the Bondle button and Home card in the app open it). Each day has six rounds: four chemistry, two from physics, biology, earth science or space. Rarer answers score more: 💧 Tap Water 10, 🧪 Lab Grade 25, ⚗️ Analytical 50, 💎 Rare Earth 75, ⚛️ One in a Mole 100. 30 seconds (60 with Extra time) and two tries per round. Total = "bond strength" in kJ/mol, with streaks, sharing, "you beat X% of today's players" and every answer revealed afterwards. The page also has past puzzles (the last 7 days, not counted for streaks), practice rounds (Chemistry, Science or Mixed), stats, a how-to-play box, a "suggest an answer" form and an FAQ for search engines. No sign-up needed.
+- **No daily uploads.** `bondle-data.js` (90 chemistry prompts) and `bondle-science.js` (35 science prompts), about 4,800 accepted answers, are picked from automatically by `bondle-core.js`: no prompt repeats within two weeks. Typos are forgiven only when what was typed isn't itself another real answer (so "ethene" never counts as "ethane"). To set a day by hand, use the admin page → Bondle.
+- **Admin dashboard** at `bondline.site/admin`: visitors, page views, where people came from (including Instagram/TikTok links), countries, devices, the most used features, each signed-in user's activity, a live activity feed, feedback inbox, Bondle results (including answers people tried that weren't accepted), the announcement bar and the Pro waitlist.
+- **Send feedback** from the account menu, Settings → Help, the bottom of Home, or after a Bondle.
+- **"How did you find Bondline?"** An optional one-tap card shown once, from someone's second visit. Answers appear on the admin page.
+- **Announcement bar** at the top of the app, set from the admin page without uploading.
+- **Usage statistics** in Bondline's own Firestore (no cookies, no third parties). People can turn it off in Settings → Privacy. The privacy policy explains it.
+
+### Uploading version 22 (three steps, about 10 minutes)
+
+1. **Firestore rules.** Firebase console → Firestore Database → **Rules**, paste the new `firestore.rules`, press **Publish**. Without this, nothing is recorded and the admin page shows "Missing or insufficient permissions".
+2. **Create the admin login.**
+   - Firebase console → **Authentication → Users → Add user**. Email: `bondlinenotes@gmail.com` (or another address you own). Choose the password. If your password policy requires a number, the password must contain one.
+   - Copy the new user's **User UID** from the list.
+   - **Firestore Database → Start collection** → ID `admins` → Document ID: paste the UID → add a field `role` (string) = `owner` → Save.
+   - Open `bondline.site/admin`, type `admin` as the username and your password. ("admin" maps to the email set at the top of `admin/admin.js`; change it there if you used a different email. You can also type the full email, or use Google sign-in if the admin account is a Google account.) If you sign in with an account that isn't listed, the page shows its UID so you can add it.
+3. **Upload the folder** to Netlify as usual.
+
+Opening the admin page marks that browser as yours, so your own visits aren't counted.
+
+### Tracking your reels
+Add a source to links in your bio or stories: `bondline.site/?utm_source=instagram&utm_campaign=nmr-reel` (or `bondline.site/bondle?utm_source=tiktok`). Overview → Campaigns and "Where visits come from" show them, and each user's row shows the link they first came from.
+
+### Free-tier limits
+Firestore's free plan allows 50,000 reads and 20,000 writes a day. Each page view is one write; each app session a few more. The admin Overview reads every page view in the chosen range, so with heavy traffic, prefer "Today" or "Last 7 days".
+
+## New in version 21
+
+- **Courses tab** (Practice → Courses), starting with **IChO: organic and biological chemistry**: 15 units following the International Chemistry Olympiad syllabus (2020 revision). Units 1–9 are the core topics (structure and bonding, isomerism, reactivity, substitution and elimination, alkenes and alkynes, aromatic chemistry, carbonyl chemistry, polymers and surfactants, biomolecules); units 10–15 are the advanced topics (heterocycles and SNAr, stereoselectivity and conformational analysis, spectroscopy, proteins and enzymes, carbohydrates and nucleic acids, advanced polymers and supramolecular chemistry).
+- **Every unit has:** the IChO syllabus points as a checklist, lessons with structures and tables, links into the mechanisms, Stereo lessons, spectra lessons and 3D models, an olympiad-style problem with answers to reveal part by part, and a quiz. 144 questions in all; they count towards Progress and can be chosen as a section in mock exams.
+- **Free and Pro:** units 1–3 are free for everyone. Units 4–15 are part of Pro: while `enforce` is `false` in `pro-config.js` everyone gets them; when you set it to `true`, people without Pro see the unit's syllabus points and a button to Pro.
+- **Deep links:** `bondline.site/?course=icho` opens the course, and `?course=icho&unit=u7` opens a unit (u1–u15).
+
+### Uploading version 21
+Upload the folder as usual. No Firebase changes.
+
+## New in version 20
+
+- **16 new guides** at /guides/ (25 in all): how to study organic chemistry, functional groups, drawing structures, resonance, naming compounds, esters and amides, types of reactions, organic vs inorganic, chiral centres, enantiomers vs diastereomers, meso compounds, Fischer projections, Newman projections, chair conformations, ¹³C NMR and mass spectrometry. Each has a "Quick answers" section and structured data for Google, and links to related guides and practice.
+- **Search metadata:** guides are grouped by topic on /guides/, the sitemap has real "last changed" dates, titles and descriptions fit what Google shows, and the footer links to popular guides from every page.
+- **Smaller updates for users:** fonts, icons and the sign-in and 3D libraries are kept between versions. The maths, PDF and PowerPoint libraries download the first time they're used, instead of on every update.
+- **Browser caching** for fonts, icons, libraries and the guides' stylesheet (in `_headers`).
+- **Payments webhook:** ignores subscription events that arrive out of order, so a late, older event can't overwrite a newer status.
+- Fixed: tables on guide pages no longer make the page scroll sideways on phones.
+
+### Uploading version 20
+Upload the folder as usual. No Firebase changes. If payments are set up, deploy through GitHub or the Netlify CLI so the updated webhook goes live.
+
+### After uploading
+In Google Search Console, open **Sitemaps** and resubmit `sitemap.xml`, then use **URL inspection → Request indexing** on /guides/ and two or three of the new guides.
+
+## New in version 19
+
+- **Stereochemistry** (Practice → Stereo): nine lessons covering chirality, R and S, E and Z, meso compounds and isomer relationships, Fischer projections, conformations, optical activity and stereochemistry in reactions.
+- **Interactive models:** a 3D R/S step-through (rank the groups, turn the lowest priority to the back, trace 1 → 2 → 3), a mirror-image demo that tries to superimpose a molecule on its mirror image, a 3D meso compound with its mirror plane, a cyclohexane chair with an animated ring flip, a Newman projection of butane with its energy curve, an E/Z builder and an interactive Fischer projection. The 3D models use the same viewer as the orbitals pages.
+- **211 stereochemistry questions,** which count towards Progress and appear in mock exams. Every R/S, E/Z, chirality and relationship answer was checked with two independent engines: Bondline's own CIP code and RDKit.
+- **More content:** 44 naming questions (137 in all), 14 synthesis problems (27 in all) and 31 glossary terms.
+- **Fix:** clicking an answer in Spectra or Progress no longer also answers an unfinished naming quiz in the background.
+
+Upload as usual. No Firebase or Netlify changes are needed.
 
 ## New in version 18
 

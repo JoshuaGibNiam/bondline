@@ -1199,12 +1199,35 @@ function smilesToScheme(smi){
     while(q.length){const x=q.shift();if(x===rb.b)break;for(const bi of adj[x]){if(m.bonds[bi].ring)continue;const y=oth(bi,x);if(pr[y]<0){pr[y]=x;q.push(y)}}}
     const path=[];let x=rb.b;while(x!==rb.a){path.push(x);x=pr[x]}path.push(rb.a);rings.push(path.reverse());
   }
+  if(rings.length>1){/* fused systems: swap any ring for a smaller one made by combining it with a neighbour, so naphthalene is two hexagons, not a hexagon and its perimeter */
+    const bIx=(p,r)=>adj[p].find(bi=>oth(bi,p)===r),toE=r=>new Set(r.map((p,t)=>bIx(p,r[(t+1)%r.length]))),E=rings.map(toE);
+    const walk=es=>{const at=new Map();for(const bi of es){for(const v of[m.bonds[bi].a,m.bonds[bi].b]){if(!at.has(v))at.set(v,[]);at.get(v).push(bi)}}
+      for(const l of at.values())if(l.length!==2)return null;
+      const first=m.bonds[[...es][0]].a,out=[first];let prevB=-1,cur=first;
+      for(let g=0;g<es.size;g++){const nb=at.get(cur).find(bi=>bi!==prevB);prevB=nb;cur=oth(nb,cur);if(cur===first)break;out.push(cur)}
+      return out.length===es.size?out:null};
+    let better=true,guard=0;while(better&&guard++<40){better=false;for(let i=0;i<E.length;i++)for(let j=0;j<E.length;j++){if(i===j)continue;
+      const x=new Set(E[i]);for(const e of E[j]){if(x.has(e))x.delete(e);else x.add(e)}
+      if(x.size<3||x.size>=E[i].size)continue;const w=walk(x);if(w){E[i]=x;rings[i]=w;better=true}}}
+  }
   const ringOf=new Array(n).fill(-1);rings.forEach((r,k)=>r.forEach(i=>{if(ringOf[i]<0)ringOf[i]=k}));
   const d=emptyScheme(200),sa=new Array(n).fill(null),placedRing=new Set(),placedBond=new Set(),q=[];
   const mkAtom=(i,x,y)=>{const a=m.atoms[i],s=addAtom(d,x,y,a.el);if(a.charge)s.charge=a.charge;sa[i]=s;return s};
   const addSB=bi=>{if(placedBond.has(bi))return;const b=m.bonds[bi];if(!sa[b.a]||!sa[b.b])return;placedBond.add(bi);addBond(d,sa[b.a],sa[b.b],b.order)};
   const placeRing=(k,start,cx,cy,ang0)=>{const r=rings[k],N=r.length,R=L/(2*Math.sin(Math.PI/N)),st=2*Math.PI/N,j=r.indexOf(start),ord=r.slice(j).concat(r.slice(0,j));
-    ord.forEach((ai,t)=>{if(!sa[ai])mkAtom(ai,cx+R*Math.cos(ang0+t*st),cy+R*Math.sin(ang0+t*st))});placedRing.add(k);ord.forEach(i=>q.push(i))};
+    ord.forEach((ai,t)=>{if(!sa[ai])mkAtom(ai,cx+R*Math.cos(ang0+t*st),cy+R*Math.sin(ang0+t*st))});placedRing.add(k);ord.forEach(i=>q.push(i));fuse()};
+  const fuse=()=>{let again=true;while(again){again=false;rings.forEach((r,k)=>{if(placedRing.has(k))return;const N=r.length,pl=r.map(i=>!!sa[i]),cnt=pl.filter(Boolean).length;
+    if(cnt===N){placedRing.add(k);return}if(cnt<2)return;
+    let t=-1;for(let x=0;x<N;x++)if(pl[x]&&pl[(x+1)%N]){t=x;break}if(t<0)return;
+    /* the placed atoms must be one unbroken run round the ring (a simple fusion, not a bridge) */
+    let run=0,x0=t;while(pl[(x0-1+N)%N]&&run<N){x0=(x0-1+N)%N;run++}run=0;for(let x=x0;pl[x%N]&&run<N;x++)run++;if(run!==cnt)return;
+    const A=sa[r[x0]],B=sa[r[(x0+1)%N]],mx=(A.x+B.x)/2,my=(A.y+B.y)/2,dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l,ap=L/(2*Math.tan(Math.PI/N)),R=L/(2*Math.sin(Math.PI/N)),stp=2*Math.PI/N;
+    let ox=0,oy=0,on=0;rings.forEach((r2,k2)=>{if(k2===k||!placedRing.has(k2)||!r2.includes(r[x0])||!r2.includes(r[(x0+1)%N]))return;r2.forEach(i=>{ox+=sa[i].x;oy+=sa[i].y;on++})});
+    if(!on)return;ox/=on;oy/=on;const sg=((ox-mx)*nx+(oy-my)*ny)>0?-1:1,cx=mx+sg*nx*ap,cy=my+sg*ny*ap,a0=Math.atan2(A.y-cy,A.x-cx),aB=Math.atan2(B.y-cy,B.x-cx);
+    let dir=Math.sin(aB-a0)>0?1:-1;
+    for(let m2=0;m2<N;m2++){const ai=r[(x0+m2)%N];if(sa[ai]&&Math.hypot(sa[ai].x-cx-R*Math.cos(a0+dir*m2*stp),sa[ai].y-cy-R*Math.sin(a0+dir*m2*stp))>4)return}
+    for(let m2=0;m2<N;m2++){const ai=r[(x0+m2)%N];if(!sa[ai])mkAtom(ai,cx+R*Math.cos(a0+dir*m2*stp),cy+R*Math.sin(a0+dir*m2*stp))}
+    placedRing.add(k);r.forEach(i=>q.push(i));again=true})}};
   if(rings.length)placeRing(0,rings[0][0],0,0,-Math.PI/2);
   else{
     const far=s0=>{const dist=new Array(n).fill(-1),pr=new Array(n).fill(-1);dist[s0]=0;const qq=[s0];while(qq.length){const x=qq.shift();for(const bi of adj[x]){const y=oth(bi,x);if(dist[y]<0){dist[y]=dist[x]+1;pr[y]=x;qq.push(y)}}}let best=s0;for(let i=0;i<n;i++)if(dist[i]>dist[best])best=i;return{best,pr}};
@@ -1227,7 +1250,8 @@ function smilesToScheme(smi){
       const ang=preset?preset[pk++]:isSp(i)&&pn.length===1?Math.atan2(s.y-pn[0].y,s.x-pn[0].x):bestAngle(d,s);
       if(ringOf[j]>=0&&!placedRing.has(ringOf[j])){
         const k=ringOf[j],N=rings[k].length,R=L/(2*Math.sin(Math.PI/N)),jx=s.x+L*Math.cos(ang),jy=s.y+L*Math.sin(ang);
-        placeRing(k,j,jx+R*Math.cos(ang),jy+R*Math.sin(ang),ang+Math.PI);
+        if(rings[k].includes(i)){let ux=0,uy=0;for(const o of pn){const l=Math.hypot(o.x-s.x,o.y-s.y)||1;ux-=(o.x-s.x)/l;uy-=(o.y-s.y)/l}const a2=pn.length?Math.atan2(uy,ux):ang;placeRing(k,i,s.x+R*Math.cos(a2),s.y+R*Math.sin(a2),a2+Math.PI)}
+        else placeRing(k,j,jx+R*Math.cos(ang),jy+R*Math.sin(ang),ang+Math.PI);
         for(let b2=0;b2<m.bonds.length;b2++)addSB(b2);
       }else{mkAtom(j,s.x+L*Math.cos(ang),s.y+L*Math.sin(ang));addSB(bi);q.push(j)}
     }
@@ -2767,13 +2791,13 @@ let qzSaveT;function saveQuiz(){clearTimeout(qzSaveT);qzSaveT=setTimeout(()=>{tr
 function mergeQuiz(remote){if(!remote||!remote.q)return;for(const[id,r]of Object.entries(remote.q)){const l=App.quiz.q[id];if(!l||(r.at||0)>(l.at||0))App.quiz.q[id]=r}}
 function topicStats(t){const qs=NM_BANK.filter(q=>q.t===t);const m=qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:qs.length}}
 function setMode(mode){
-  if(!['home','notes','cards','naming','guide','spectra','orbitals','synth','classes','progress'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
+  if(!['home','notes','cards','naming','guide','spectra','orbitals','synth','classes','progress','stereo','course','drills','study'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
   App.mode=mode;closePop();
   document.querySelectorAll('.mode').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
-  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';$('#synthSide').hidden=mode!=='synth';$('#classSide').hidden=mode!=='classes';$('#synthPage').hidden=mode!=='synth';$('#classPage').hidden=mode!=='classes';$('#progSide').hidden=mode!=='progress';$('#progPage').hidden=mode!=='progress';
-  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals','synth','classes','progress'].includes(mode);
+  $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';$('#synthSide').hidden=mode!=='synth';$('#classSide').hidden=mode!=='classes';$('#synthPage').hidden=mode!=='synth';$('#classPage').hidden=mode!=='classes';$('#progSide').hidden=mode!=='progress';$('#progPage').hidden=mode!=='progress';$('#stSide').hidden=mode!=='stereo';$('#stPage').hidden=mode!=='stereo';$('#coSide').hidden=mode!=='course';$('#coPage').hidden=mode!=='course';$('#drSide').hidden=mode!=='drills';$('#drPage').hidden=mode!=='drills';$('#sdSide').hidden=mode!=='study';$('#sdPage').hidden=mode!=='study';
+  $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals','synth','classes','progress','stereo','course','drills','study'].includes(mode);
   if(mode==='naming'){renderNamingSide();if(!NM.view)openLesson('intro')}
-  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();if(mode==='synth')synOpen();if(mode==='classes')clOpen();if(mode==='progress')pgOpen();
+  if(mode==='spectra')spOpen();if(mode==='orbitals')obOpen();if(mode==='synth')synOpen();if(mode==='classes')clOpen();if(mode==='progress')pgOpen();if(mode==='stereo')stOpen();if(mode==='course')coOpen();if(mode==='drills')drOpen();if(mode==='study')sdOpen();
   if(mode==='home')renderHome();
   if(mode==='cards')renderCardsPage();
   if(mode==='guide'&&!$('#guidePage').firstChild)renderGuide();
@@ -2873,7 +2897,7 @@ function nextQuestion(){const Z=NM.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.
 function finishQuiz(early){
   const Z=NM.qz;if(!Z)return;
   if(early&&!Z.results.length){NM.qz=null;return quizSetup(Z.cfg.topics)}
-  NM.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length)}
+  NM.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length,res)}
   const byT={};res.forEach(r=>{const b=byT[r.q.t]=byT[r.q.t]||{ok:0,n:0};b.n++;if(r.ok)b.ok++});
   const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. Review the ones you missed below.':'Keep going. The lessons cover each rule with examples.';
   $('#namingPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Quiz results</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
@@ -2897,7 +2921,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.quizTopic)return quizSetup([t.dataset.quizTopic]);
   if(t.dataset.quizSetup)return quizSetup();
   if(t.dataset['3d']!=null)return open3D(smilesToScheme(t.dataset['3d']),t.dataset.name||'3D view');
-  if(t.classList.contains('qz-opt')||t.classList.contains('qz-sopt'))return answerOption(+t.dataset.k);
+  if((t.classList.contains('qz-opt')||t.classList.contains('qz-sopt'))&&t.closest('#namingPage'))return answerOption(+t.dataset.k);
 });
 
 /* ---------- templates: groups, rings, protecting groups, amino acids, reagents ---------- */
@@ -3125,7 +3149,7 @@ const GUIDE=[
  {id:'org',t:'Folders, tags and pinning',h:`<ul><li><b>Folders</b>: press <b>+</b> next to Folders in the sidebar. Use <b>⋯</b> on a folder to rename it, add a subfolder, start a note in it or delete it (its notes move up a level). Double-click a folder to rename it.</li><li><b>Move a note</b>: drag it from the list onto a folder, or choose a folder from <b>▤</b> at the top of the note.</li><li><b>Tags</b>: type in the Tags box at the top of a note and press Enter. A note can have several tags. Open <b>Tags</b> in the sidebar and click a tag to show only notes with that tag.</li><li><b>★ Pin</b> keeps a note at the top of the list. <b>Recent</b> and <b>A–Z</b> change the order.</li><li><b>Search</b> looks through every note, including tags, flashcards and comments.</li></ul>`},
  {id:'cards',t:'Flashcards',h:`<ul><li>Make a deck with <b>Cards → + New deck</b>, add a <b>Flashcards</b> block to any note, or select text in a note and press <b>+ Card</b>.</li><li>Each side can be text (with $…$ maths, and formulas like H2SO4 get their subscripts) or <b>⬡</b> a structure: type a name such as <i>2-methylpropan-2-ol</i> or a SMILES string and Bondline draws it.</li><li><b>Study</b> shows cards that are due plus new ones. Rate each card: <b>Again</b> brings it back in this session; <b>Hard</b>, <b>Good</b> and <b>Easy</b> space it out further each time.</li><li>Decks print as a question-and-answer table in PDFs.</li></ul>${KT([[K('Space'),'Show the answer'],[K('1')+' '+K('2')+' '+K('3')+' '+K('4'),'Again, Hard, Good, Easy'],[K('Ctrl','Enter'),'Add a card while editing a deck'],[K('Esc'),'End the session']])}`},
  {id:'comments',t:'Comments',h:`<ul><li>Select text and press <b>💬 Comment</b> in the text tools (${K('Ctrl','Alt','C')}). The text gets a coloured underline.</li><li>Press <b>💬</b> on any block (a drawing, sketch or deck) to comment on the whole block.</li><li><b>Comments</b> at the top of a note opens the list. You can reply, edit, resolve or delete each one. Resolved comments are kept under “Resolved”.</li><li>Click underlined text to jump to its comment. Comments don't appear in PDFs.</li></ul>`},
- {id:'chemtools',t:'Spectra, reactions and practice',h:`<ul><li><b>Predict spectra</b>: turn on C<sub>x</sub>H<sub>y</sub> for a drawing, then press <b>Predict spectra</b> under a molecule. You get the number of ¹H and ¹³C NMR signals with typical shifts, how many H each signal represents and its splitting (n + 1 rule), the main IR peaks, and the molecular ion pattern for mass spectrometry, including Cl and Br isotope peaks.</li><li><b>Reaction library</b> (📖 in the structure tools): 34 core reactions with the conditions and every mechanism step drawn with curly arrows. Add one to a note and press <b>3D</b> to watch it.</li><li><b>Mechanism practice</b> (↷): each problem shows a step and its product; draw the curly arrows yourself and press <b>Check</b>. Bondline tells you which arrows are right, which are missing and which don't belong.</li><li><b>Quick reference</b> (▦): periodic table, pKa table, functional groups with naming endings, and IR and NMR tables.</li></ul>${KT([[K('M')+' '+K('V')+' '+K('E'),'Curly arrow, move, eraser (in practice)'],[K('Enter'),'Check, then next problem'],[K('Ctrl','Z'),'Undo an arrow']])}`},
+ {id:'chemtools',t:'Spectra, reactions and practice',h:`<ul><li><b>Predict spectra</b>: turn on C<sub>x</sub>H<sub>y</sub> for a drawing, then press <b>Predict spectra</b> under a molecule. You get the number of ¹H and ¹³C NMR signals with typical shifts, how many H each signal represents and its splitting (n + 1 rule), the main IR peaks, and the molecular ion pattern for mass spectrometry, including Cl and Br isotope peaks.</li><li><b>Reaction library</b> (📖 in the structure tools): 41 core reactions with the conditions and every mechanism step drawn with curly arrows. Add one to a note and press <b>3D</b> to watch it.</li><li><b>Mechanism practice</b> (↷): each problem shows a step and its product; draw the curly arrows yourself and press <b>Check</b>. Bondline tells you which arrows are right, which are missing and which don't belong.</li><li><b>Quick reference</b> (▦): periodic table, pKa table, functional groups with naming endings, and IR and NMR tables.</li></ul>${KT([[K('M')+' '+K('V')+' '+K('E'),'Curly arrow, move, eraser (in practice)'],[K('Enter'),'Check, then next problem'],[K('Ctrl','Z'),'Undo an arrow']])}`},
  {id:'chem2',t:'Checking structures, resonance and reactions',h:`<ul><li><b>Structure checks</b>: Bondline circles atoms that can't exist as drawn, such as a carbon with five bonds, a chlorine with two or a triple bond in a small ring. A badge on the drawing says how many problems there are; click it for details. Turn this off in ⚙ Settings.</li><li><b>Resonance structures</b>: click a molecule or ion, then <b>More → Resonance structures</b>. Bondline draws every contributor with the curly arrows between them and marks the major ones.</li><li><b>Reaction builder</b>: press <b>Add reaction</b> at the bottom of a note. Type reactants and products as names, formulas or SMILES, add reagents and conditions, and Bondline checks the atoms balance (or balances it for you).</li><li><b>Formula calculator</b>: <b>More → Formula calculator</b> works out molar mass, % composition, exact mass and degrees of unsaturation for formulas like CuSO<sub>4</sub>·5H<sub>2</sub>O. It also converts mass to moles and finds empirical and molecular formulas from percentages.</li></ul>`},
  {id:'safety',t:'Trash, history, images and sharing',h:`<ul><li><b>Trash</b>: deleted notes stay in Trash (in the account menu at the bottom left) for 30 days. Restore them or delete them for good. You can also press <b>Undo</b> straight after deleting.</li><li><b>History</b> at the top of a note shows earlier versions saved on this device (at most one every 10 minutes while you edit). Preview one and press <b>Restore</b>; the version you replace is kept too.</li><li><b>Images</b>: press <b>Add image</b>, paste a picture into a text block, or drag image files onto a note. Pictures are shrunk to save space and sync with the note. Choose Small, Medium, Large or Full width and add a caption. Click a picture to see it full size.</li><li><b>Share</b> (installed app, when signed in): make a read-only link to a note. Anyone with the link can view it and save a copy; press <b>Stop sharing</b> to turn the link off.</li><li><b>Command palette</b>: press ${K('Ctrl','K')} anywhere and type to jump to a note, folder, reaction, guide section or action.</li></ul>`},
  {id:'gloss',t:'Glossary',h:`<p>Bondline knows over 300 organic chemistry terms: solvents (DMSO, THF), reagents (LiAlH₄, PCC, mCPBA), abbreviations (Et, Ts, Boc), concepts (nucleophile, enolate, Zaitsev's rule) and named reactions (SN2, aldol, Diels–Alder).</p><ul><li>Terms in your notes are <b>highlighted</b>. Hover over one, or tap it on a phone or tablet, to see what it means. Solvents and reagents show their structure.</li><li>Open the full <b>Glossary</b> from <b>Tools</b>, the command palette (${K('Ctrl','K')}) or ⚙ Settings. Search it, or filter by type.</li><li><b>Add your own terms</b> with “Add a term”. They are highlighted in your notes too, and sync with your account.</li><li>In ⚙ Settings → Glossary, highlight every mention, only the first in each note, or turn highlighting off.</li></ul>`},
@@ -3801,7 +3825,7 @@ function wireWelcome(){wireHello();
     if(e.target.closest('#wtSkip'))closeWelcome()});
   document.addEventListener('keydown',e=>{if($('#welcome').hidden)return;e.stopPropagation();if(e.key==='Escape')closeWelcome();else if(e.key==='ArrowRight'&&WT.i<welcomeSteps().length-1){WT.i++;renderWelcome()}else if(e.key==='ArrowLeft'&&WT.i>0){WT.i--;renderWelcome()}},true);
   let seen=false;try{seen=!!localStorage.getItem('bondline.welcomed')}catch(e){seen=true}
-  if((!seen&&!App.notes.some(n=>!n.example)&&!/[#&]share=/.test(location.hash))||/[?&]welcome\b/.test(location.search))openHello();
+  if((!seen&&!App.notes.some(n=>!n.example)&&!/[#&]share=/.test(location.hash)&&!/[?&](class|live|teach)=/.test(location.search))||/[?&]welcome\b/.test(location.search))openHello();
   else if(!seen){try{localStorage.setItem('bondline.welcomed','1')}catch(e){}}
 }
 
@@ -5802,7 +5826,7 @@ const secHead=(k,label,extra,n)=>`<div class="fd-sec sec-h" data-sechead="${k}">
     secApply();
   };
 }
-function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals',synth:'Synthesis',classes:'Classes',progress:'Progress'}[mode]||'Notes'}
+function setPanelTitle(mode){const t=$('#pnTitle');if(t)t.textContent={cards:'Flashcards',naming:'Naming',guide:'Guide',spectra:'Spectroscopy',orbitals:'Orbitals',synth:'Synthesis',classes:'Classes',progress:'Progress',stereo:'Stereochemistry',drills:'Drills',study:'Study',course:'Courses'}[mode]||'Notes'}
 {
   const _sm=setMode;
   setMode=function(mode){_sm(mode);setPanelTitle(App.mode)};
@@ -6294,7 +6318,7 @@ function spAnswer(k){
 function spNext(){const Z=SP.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.length-1)return spFinish(false);Z.i++;spRenderQ()}
 function spFinish(early){
   const Z=SP.qz;if(!Z)return;if(early&&!Z.results.length){SP.qz=null;return spSetup(Z.cfg.topics)}
-  SP.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length)}
+  SP.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length,res)}
   const byT={};res.forEach(r=>{const b=byT[r.q.t]=byT[r.q.t]||{ok:0,n:0};b.n++;if(r.ok)b.ok++});
   const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. The lessons cover anything you missed.':'Keep going. Each lesson has tables and example spectra.';
   $('#specPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Practice results</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
@@ -7192,7 +7216,7 @@ function v16DeepLinks(){
     else if(q.get('practise')&&RXN_BY[q.get('practise')]){openPractice(q.get('practise'));used=true}
     else if(q.has('synth')){setMode('synth');if(SYN_BY[q.get('synth')])synStart(q.get('synth'));used=true}
     else if(q.has('class')){CL.pendingCode=clNorm(q.get('class'));try{sessionStorage.setItem('bondline.classCode',CL.pendingCode)}catch(e){}setMode('classes');used=true}
-    else if(q.get('mode')&&['naming','spectra','orbitals','cards','synth','classes','home'].includes(q.get('mode'))){setMode(q.get('mode'));used=true}
+    else if(q.get('mode')&&['naming','spectra','orbitals','cards','synth','classes','home','course','stereo','drills','study'].includes(q.get('mode'))){setMode(q.get('mode'));used=true}
   }catch(e){console.warn(e)}
   if(used||q.has('app')){try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
   // keep classes in step with sign-in
@@ -7209,7 +7233,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='18';
+const APP_VER='27';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -7384,7 +7408,7 @@ function tourSteps(){const drawer=()=>{if(isMob())$('#side').classList.add('open
   {sel:'#addbar',t:'Add a block',b:'Add text, a drawing, a sketch, flashcards, a reaction or a picture with these buttons at the end of every note.',prep:inNote},
   {sel:'#presentBtn',t:'Present your note',b:'Lecture mode shows the note as slides and reveals curly arrows one click at a time. Export, next to it, makes a PDF or a PowerPoint.',prep:inNote},
   {sel:'#railPractice',t:'Practice',b:'Click Practice.',click:true,prep:drawer},
-  {sel:'#pxTabs',t:'Six ways to practise',b:'Flashcards, IUPAC naming, spectra, synthesis problems, orbitals and Progress, where you can see your weak spots and take a mock exam. Bondline remembers which tab you used last.',prep:()=>{noDrawer();if(!PX_MODES.includes(App.mode))setMode(v17ls('bondline.px')||'naming')}},
+  {sel:'#pxTabs',t:'Eight ways to practise',b:'Courses (IChO, Cambridge A Level and STPM), flashcards, IUPAC naming, stereochemistry, spectra, synthesis problems, orbitals and Progress, where you can see your weak spots and take a mock exam. Bondline remembers which tab you used last.',prep:()=>{noDrawer();if(!PX_MODES.includes(App.mode))setMode(v17ls('bondline.px')||'naming')}},
   {sel:'#railTools',t:'Tools',b:'Click Tools.',click:true,prep:()=>{closeMenus();drawer()}},
   {sel:'#toolsMenu',t:'Chemistry tools',b:'Predict the product of a reaction, browse the reaction library, practise mechanisms, look up a term or open the reference tables.',prep:()=>{if(MENU.open!==$('#toolsMenu')){drawer();renderToolsMenu();toggleMenu($('#toolsMenu'),$('#railTools'))}},done:closeMenus},
   {sel:'.modes [data-mode="classes"]',t:'Classes',b:'Lecturers set work and see each student’s scores. Students join with a code from their lecturer.',prep:()=>{closeMenus();drawer()}},
@@ -7525,11 +7549,17 @@ function insTopics(){
   const out=[];
   const add=(area,t,title,qs)=>{let c=0,w=0,seen=0,m=0;const wrong=[];for(const q of qs){const r=App.quiz.q[q.id];if(!r)continue;seen++;c+=r.c||0;w+=r.w||0;if(r.last===1)m++;else if(r.last===0)wrong.push(q.id)}
     out.push({area,t,title,n:qs.length,seen,c,w,m,wrong,tries:c+w,acc:c+w?c/(c+w):null})};
-  NM_TOPICS.forEach(t=>add('naming',t.id,t.title,NM_BANK.filter(q=>q.t===t.id)));
-  SP_TOPICS.forEach(t=>add('spectra',t.id,t.title,spPoolGet().filter(q=>q.t===t.id)));
+  for(const[a,A]of Object.entries(AREAS)){const B=A.bank();A.topics().forEach(t=>add(a,t.id,t.title,B.filter(q=>q.t===t.id)))}
   return out;
 }
 const AREA_LABEL={naming:'Naming',spectra:'Spectra'};
+/* subject areas used by Progress and mock exams; later versions add more */
+const AREAS={
+  naming:{label:'Naming',full:'IUPAC naming',topics:()=>NM_TOPICS,bank:()=>NM_BANK,byId:id=>NM_BY[id],item:q=>exItemNm(q),
+    go:(t,wrong)=>{setMode('naming');wrong.length?startQuiz({ids:wrong,topics:[t],style:'mix'}):quizSetup([t])}},
+  spectra:{label:'Spectra',full:'Spectroscopy',topics:()=>SP_TOPICS,bank:()=>spPoolGet(),byId:id=>spPoolGet().find(q=>q.id===id),item:q=>exItemSp(q),
+    go:(t,wrong)=>{setMode('spectra');wrong.length?spStart({ids:wrong,topics:[t]}):spSetup([t])}}};
+const areaQ=(a,id)=>AREAS[a]?AREAS[a].byId(id):null;
 function insLevel(x){if(x.acc==null||x.tries<3)return['new','Not enough answers yet'];if(x.acc<.6)return['weak','Needs work'];if(x.acc<.8)return['mid','Getting there'];return['ok','Strong']}
 
 /* ---------- Progress page ---------- */
@@ -7556,7 +7586,7 @@ function pgHome(){
      <button class="btn small" data-pgtopic="${x.area}:${x.t}">${x.wrong.length?`Retry ${x.wrong.length}`:'Practise'}</button></div>`};
   const weak=rated.slice(0,open?rated.length:1);
   $('#progPage').innerHTML=`<section class="pg">
-   <header class="nm-head"><div class="nm-kicker">Practice · Progress ${PRO_BADGE}${!PRO_CFG.enforce&&!proActive()?'<span class="pg-prev">Free while Pro is in preview</span>':''}</div><h1>Your progress</h1><p class="nm-lede">How you’re doing in naming and spectra, which topics to work on next, and timed mock exams.</p></header>
+   <header class="nm-head"><div class="nm-kicker">Practice · Progress ${PRO_BADGE}${!PRO_CFG.enforce&&!proActive()?'<span class="pg-prev">Free while Pro is in preview</span>':''}</div><h1>Your progress</h1><p class="nm-lede">How you’re doing in naming, stereochemistry and spectra, which topics to work on next, and timed mock exams.</p></header>
    <div class="pg-tiles">
     <div class="pg-tile"><small>Answered</small><b>${tries}</b><span>questions so far</span></div>
     <div class="pg-tile"><small>Accuracy</small><b>${tries?Math.round(100*c/tries)+'%':'–'}</b><span>of all answers</span></div>
@@ -7564,20 +7594,19 @@ function pgHome(){
     <div class="pg-tile"><small>${best!=null?'Best mock':'Streak'}</small><b>${best!=null?best+'%':st}</b><span>${best!=null?`${H.length} exam${H.length>1?'s':''} taken`:st===1?'day in a row':'days in a row'}</span></div>
    </div>
    <div class="pg-cta">
-    <button class="pg-big" data-pg="setup"><span class="pg-bi">${ico('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 3.5h5"/>')}</span><span><b>Take a mock exam</b><small>Mixed naming and spectra questions against the clock, marked at the end</small></span></button>
+    <button class="pg-big" data-pg="setup"><span class="pg-bi">${ico('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 3.5h5"/>')}</span><span><b>Take a mock exam</b><small>Mixed questions against the clock, marked at the end</small></span></button>
     <button class="pg-big" data-pg="fix"${wrongN?'':' disabled'}><span class="pg-bi">${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}</span><span><b>Fix my weak spots</b><small>${wrongN?`${Math.min(wrongN,15)} questions you got wrong last time, with explanations`:'Nothing to fix yet. Questions you get wrong will appear here.'}</small></span></button>
    </div>
    <h2 class="qz-h">Last 14 days</h2>${bars}
    <h2 class="qz-h">Weak spots</h2>
    ${rated.length?`<p class="pg-note">Topics with at least three answers, weakest first.</p><div class="pg-rows">${weak.map(row).join('')}</div>${!open&&rated.length>1?`<div class="pg-lock"><b>See every topic ranked</b><span>Pro shows all ${rated.length} topics, weakest first, with one-click retries.</span><button class="btn primary" data-pro="weak">See Pro plans</button></div>`:''}`
-    :`<p class="pg-empty">Answer a few naming or spectra questions and your weakest topics will show up here.</p><div class="nm-actions"><button class="btn primary" data-go="naming">Practise naming</button><button class="btn" data-go="spectra">Practise spectra</button></div>`}
+    :`<p class="pg-empty">Answer a few naming, stereochemistry or spectra questions and your weakest topics will show up here.</p><div class="nm-actions"><button class="btn primary" data-go="naming">Practise naming</button><button class="btn" data-go="spectra">Practise spectra</button></div>`}
    ${fresh.length?`<h2 class="qz-h">Not started</h2><div class="qz-chips">${fresh.map(x=>`<button class="qz-chip" data-pgtopic="${x.area}:${x.t}"><span>${esc(x.title)}</span><small>${AREA_LABEL[x.area]}</small></button>`).join('')}</div>`:''}
   </section>`;
   pgSide();
 }
 function pgTopic(v){const[area,t]=v.split(':'),x=insTopics().find(y=>y.area===area&&y.t===t);if(!x)return;
-  if(area==='naming'){setMode('naming');x.wrong.length?startQuiz({ids:x.wrong,topics:[t],style:'mix'}):quizSetup([t])}
-  else{setMode('spectra');x.wrong.length?spStart({ids:x.wrong,topics:[t]}):spSetup([t])}}
+  AREAS[area].go(t,x.wrong)}
 function pgClick(e){
   const g=e.target.closest('[data-pg]');if(g){const v=g.dataset.pg;if(v==='home')return pgHome();if(v==='setup')return MX.run&&!MX.run.done?exRender():exSetup();if(v==='fix')return exFix();return}
   const tp=e.target.closest('[data-pgtopic]');if(tp)return pgTopic(tp.dataset.pgtopic);
@@ -7596,19 +7625,19 @@ function exItemNm(q){const type=Math.random()<.65?'name':'struct';
   const o=shuffle([q.n,...(q.d||[])]);return{area:'naming',id:q.id,t:q.t,kind:'text',prompt:'What is the IUPAC name of this compound?',fig:`<div class="qz-struct">${smilesSVG(q.s,1.2)}</div>`,opts:o.map(x=>`<span class="nm-name">${esc(x)}</span>`),ans:o.indexOf(q.n),answer:esc(q.n),why:esc(q.why||'')}}
 function exItemSp(q){const b=spBuild(q);if(!b)return null;const st=b.kind==='struct';
   return{area:'spectra',id:q.id,t:q.t,kind:st?'struct':'text',prompt:b.prompt,fig:(b.struct?`<div class="qz-struct">${smilesSVG(b.struct.s,1.1)}</div>`:'')+(b.figs?`<div class="sp-qfig">${b.figs}</div>`:''),opts:b.opts.map(o=>st?smilesSVG(o.s,.9):esc(o)),ans:b.opts.indexOf(b.ans),answer:st?esc(b.ans.n):esc(b.ans),why:b.why}}
-function exTopicTitle(it){const T=it.area==='naming'?NM_TOPICS:SP_TOPICS;return(T.find(x=>x.id===it.t)||{}).title||it.t}
-function exPool(areas){const P=[];if(areas.includes('naming'))NM_BANK.forEach(q=>P.push({area:'naming',q}));if(areas.includes('spectra'))spPoolGet().forEach(q=>P.push({area:'spectra',q}));return P}
+function exTopicTitle(it){const A=AREAS[it.area],T=A?A.topics():[];return(T.find(x=>x.id===it.t)||{}).title||it.t}
+function exPool(areas){const P=[];for(const a of areas)if(AREAS[a])AREAS[a].bank().forEach(q=>P.push({area:a,q}));return P}
 function exSample(areas,len){
   const groups={};for(const p of exPool(areas)){const k=p.area+':'+p.q.t;(groups[k]=groups[k]||[]).push(p)}
   const G=shuffle(Object.values(groups).map(g=>shuffle(g)));const out=[];let i=0;
   while(out.length<len&&G.some(g=>g.length)){const g=G[i%G.length];if(g.length)out.push(g.pop());i++}
   return shuffle(out);
 }
-function exBuild(list){return list.map(p=>p.area==='naming'?exItemNm(p.q):exItemSp(p.q)).filter(x=>x&&x.ans>=0)}
+function exBuild(list){return list.map(p=>AREAS[p.area]?AREAS[p.area].item(p.q):null).filter(x=>x&&x.ans>=0)}
 function exSetup(){
   PG.view='setup';const S=MX.setup,open=proOpen();
   $('#progPage').innerHTML=`<section class="qz-setup"><header class="nm-head"><div class="nm-kicker">Mock exam ${PRO_BADGE}</div><h1>Mock exam</h1><p class="nm-lede">A timed paper of mixed questions. There’s no feedback until you hand it in, then you see your mark, a breakdown by topic and every answer explained.</p></header>
-   <h2 class="qz-h">Sections</h2><div class="qz-chips" id="exAreas">${['naming','spectra'].map(a=>`<button class="qz-chip${S.areas.includes(a)?' on':''}" data-exa="${a}" aria-pressed="${S.areas.includes(a)}"><span>${a==='naming'?'IUPAC naming':'Spectroscopy'}</span><small>${a==='naming'?NM_BANK.length:spPoolGet().length} questions</small></button>`).join('')}</div>
+   <h2 class="qz-h">Sections</h2><div class="qz-chips" id="exAreas">${Object.keys(AREAS).map(a=>`<button class="qz-chip${S.areas.includes(a)?' on':''}" data-exa="${a}" aria-pressed="${S.areas.includes(a)}"><span>${AREAS[a].full}</span><small>${AREAS[a].bank().length} questions</small></button>`).join('')}</div>
    <h2 class="qz-h">Length</h2><div class="qz-len">${[[10,15],[20,30],[40,60]].map(([n,m])=>`<label class="qz-lenopt"><input type="radio" name="exlen" value="${n}"${S.len===n?' checked':''}><span>${n} questions · ${m} min</span></label>`).join('')}</div>
    <ul class="ex-rules"><li>You can skip questions, flag them and come back.</li><li>When time runs out, the paper is handed in automatically.</li><li>Keys: <kbd>1</kbd>–<kbd>4</kbd> to answer, <kbd>←</kbd> <kbd>→</kbd> to move, <kbd>F</kbd> to flag.</li></ul>
    <div class="nm-actions">${open?`<button class="btn primary" id="exStart">Start the exam</button>`:`<button class="btn primary" data-pro="exam">Unlock mock exams with Pro</button>`}<button class="btn" data-pg="home">Back to progress</button></div></section>`;
@@ -7620,7 +7649,7 @@ function exSetup(){
 function exFix(){if(!proOpen())return openPro('fix');
   const ids=[];for(const x of insTopics())for(const id of x.wrong)ids.push({area:x.area,id});
   if(!ids.length)return toast('Nothing to fix yet. Questions you get wrong will appear here.');
-  const list=shuffle(ids).slice(0,15).map(o=>({area:o.area,q:o.area==='naming'?NM_BY[o.id]:spPoolGet().find(q=>q.id===o.id)})).filter(p=>p.q);
+  const list=shuffle(ids).slice(0,15).map(o=>({area:o.area,q:areaQ(o.area,o.id)})).filter(p=>p.q);
   exStart('fix',exBuild(list),0);
 }
 function exStart(mode,items,secs){
@@ -7683,12 +7712,12 @@ function exResult({res,graded}){
    <div class="nm-actions">${wrong.length?`<button class="btn primary" id="exRetry">Practise the ${wrong.length} I missed</button>`:''}<button class="btn${wrong.length?'':' primary'}" data-pg="setup">New mock exam</button><button class="btn" data-pg="home">Back to progress</button></div>
    <h2 class="qz-h">Review</h2><div class="ex-review">${graded.map(({it,p},k)=>{const ok=p===it.ans;return`<details class="ex-rv ${ok?'ok':'bad'}"${!ok&&k<3?' open':''}><summary><span class="ex-rk">${ok?'✓':'✗'}</span><span><b>Q${k+1}</b> ${esc(exTopicTitle(it))}</span><small>${p==null?'Not answered':ok?'Correct':'Wrong'}</small></summary>
      <div class="ex-rb"><p class="qz-prompt">${it.prompt}</p>${it.fig}<p><b>Answer:</b> ${it.answer}</p>${p!=null&&!ok&&it.kind==='text'?`<p><b>You chose:</b> ${it.opts[p]}</p>`:''}<p class="qz-why">${it.why}</p></div></details>`}).join('')}</div></section>`;
-  const r=$('#exRetry');if(r)r.onclick=()=>exStart('fix',exBuild(wrong.map(x=>({area:x.it.area,q:x.it.area==='naming'?NM_BY[x.it.id]:spPoolGet().find(q=>q.id===x.it.id)})).filter(p=>p.q)),0);
+  const r=$('#exRetry');if(r)r.onclick=()=>exStart('fix',exBuild(wrong.map(x=>({area:x.it.area,q:areaQ(x.it.area,x.it.id)})).filter(p=>p.q)),0);
   pgSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
 }
 function exPast(e){const ok=e.items.filter(x=>x[2]).length;
-  const byT={};e.items.forEach(([a,id,k])=>{const q=a==='naming'?NM_BY[id]:spPoolGet().find(x=>x.id===id);if(!q)return;const key=a+':'+q.t,b=byT[key]=byT[key]||{it:{area:a,t:q.t},ok:0,n:0};b.n++;if(k)b.ok++});
-  const missed=e.items.filter(x=>!x[2]).map(([a,id])=>({area:a,q:a==='naming'?NM_BY[id]:spPoolGet().find(x=>x.id===id)})).filter(p=>p.q);
+  const byT={};e.items.forEach(([a,id,k])=>{const q=areaQ(a,id);if(!q)return;const key=a+':'+q.t,b=byT[key]=byT[key]||{it:{area:a,t:q.t},ok:0,n:0};b.n++;if(k)b.ok++});
+  const missed=e.items.filter(x=>!x[2]).map(([a,id])=>({area:a,q:areaQ(a,id)})).filter(p=>p.q);
   PG.view='past';$('#progPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Past mock exam · ${esc(v18Date(e.t))}</div><h1>${ok} out of ${e.len} <span class="ex-pct">${Math.round(100*ok/e.len)}%</span></h1><p class="nm-lede">Time taken ${fmtClock(e.secs)}.</p></header>
    <div class="qz-break">${Object.values(byT).map(b=>`<div class="qz-brow"><span>${esc(exTopicTitle(b.it))} <small class="ex-area">${AREA_LABEL[b.it.area]}</small></span><span class="nm-meter"><i style="width:${Math.round(100*b.ok/b.n)}%"></i></span><b>${b.ok}/${b.n}</b></div>`).join('')}</div>
    <div class="nm-actions">${missed.length?`<button class="btn primary" id="exRetry">Practise the ${missed.length} I missed</button>`:''}<button class="btn" data-pg="setup">New mock exam</button><button class="btn" data-pg="home">Back to progress</button></div></section>`;
@@ -7702,7 +7731,7 @@ function exKey(e){if(App.mode!=='progress'||!MX.run||MX.run.done)return;if(e.tar
   else if(R.mode!=='exam'&&e.key==='Enter'&&R.shown[R.i]&&!e.target.closest('button')){e.preventDefault();exGo(R.i<R.items.length-1?'next':'submit')}}
 
 /* ---------- Bondline Pro: plans and checkout ---------- */
-const PRO_FEATS=[['Mock exams','Timed papers of mixed questions, marked at the end with every answer explained.'],['Weak-spot analytics','Every topic ranked by accuracy, weakest first, with one-click retries.'],['Fix my weak spots','Practice sessions built from the questions you got wrong.'],['Exam history','Your past papers and how your scores change.']];
+const PRO_FEATS=[['Every course in full','All 58 units of the IChO, Cambridge A Level and STPM courses, with worked problems and over 330 questions. The first three units of each course are free for everyone.'],['Mock exams','Timed papers of mixed questions, marked at the end with every answer explained.'],['Weak-spot analytics','Every topic ranked by accuracy, weakest first, with one-click retries.'],['Fix my weak spots','Practice sessions built from the questions you got wrong.'],['Exam history','Your past papers and how your scores change.']];
 let proWhy='';
 function openPro(why){closeMenus();proWhy=why||'';let sc=$('#proScrim');
   if(!sc){sc=document.createElement('div');sc.id='proScrim';sc.className='scrim v17-scrim';sc.hidden=true;sc.innerHTML=`<div class="wn pro-m" role="dialog" aria-modal="true" aria-labelledby="proTitle"><header class="wn-h"><div><div class="hm-kicker">Bondline Pro</div><h2 id="proTitle">Study smarter before the exam</h2></div><button class="sf-b" id="proClose" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header><div class="wn-body" id="proBody"></div></div>`;document.body.appendChild(sc);
@@ -7712,7 +7741,7 @@ function openPro(why){closeMenus();proWhy=why||'';let sc=$('#proScrim');
 }
 function closePro(){const sc=$('#proScrim');if(sc)sc.hidden=true;document.body.classList.remove('sk-lock')}
 function proRender(){const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=proActive(),e=PRO.ent||{},sells=proSells(),wl=v18get('bondline.waitlist',null);
-  const why={exam:'Mock exams are part of Bondline Pro.',fix:'Weak-spot practice is part of Bondline Pro.',weak:'The full weak-spot ranking is part of Bondline Pro.'}[proWhy];
+  const why={icho:'The full IChO course is part of Bondline Pro.',cie:'The full Cambridge A Level course is part of Bondline Pro.',stpm:'The full STPM course is part of Bondline Pro.',ap:'The full AP Chemistry course is part of Bondline Pro.',ib:'The full IB Chemistry course is part of Bondline Pro.',jee:'The full JEE Main course is part of Bondline Pro.',neet:'The full NEET UG course is part of Bondline Pro.',exam:'Mock exams are part of Bondline Pro.',fix:'Weak-spot practice is part of Bondline Pro.',weak:'The full weak-spot ranking is part of Bondline Pro.'}[proWhy];
   let status='';
   if(act){const sub=+e.subUntil>Date.now(),cancelled=e.subStatus==='cancelled';
     status=`<div class="pro-status"><span class="pro-ok">${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}</span><div><b>You have Bondline Pro</b><small>${sub?(cancelled?`Cancelled. Pro stays on until ${v18Date(+e.subUntil)}.`:`Monthly plan, renews around ${v18Date(+e.subUntil-3*DAY)}.`):+e.passUntil>Date.now()?`Semester pass, runs until ${v18Date(+e.passUntil)}.`:`Until ${v18Date(proUntil())}.`}</small></div>${e.portal?`<a class="btn small" href="${esc(e.portal)}" target="_blank" rel="noopener">Manage subscription</a>`:''}</div>`}
@@ -7725,7 +7754,7 @@ function proRender(){const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=
    <div class="pro-plans">${plan('monthly','Monthly',PRO_CFG.price.monthly,'per month','Cancel any time. Pro stays on until the end of the month you paid for.','')}${plan('semester','Semester pass',PRO_CFG.price.semester,'once',`${Math.round(PRO_CFG.passDays/30)} months of Pro. No subscription, nothing renews.`,'Best for exam season')}</div>
    <p class="pro-free"><b>Everything else stays free.</b> Notes, drawing, the reaction library, flashcards, naming, spectra and synthesis practice, sync and classes are free and always will be.</p>
    ${!u&&FB&&FB.cfg&&(sells||!act)?`<p class="hm-muted">Pro is linked to your Bondline account, so sign in first. <button class="linkbtn" data-proact="signin">Sign in</button></p>`:''}
-   <p class="hm-muted pro-legal">Payments are handled by Lemon Squeezy, our reseller, who adds any sales tax and sends your receipt. See the <a href="/terms/#pro" target="_blank" rel="noopener">terms and refund policy</a>. Questions: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>`;
+   <p class="hm-muted pro-legal">Payments are handled by Lemon Squeezy, our reseller, who adds any sales tax and sends your receipt. See the <a href="/terms/#pro" target="_blank" rel="noopener">terms and refund policy</a>. If you’re under 18, ask a parent or guardian before you buy. Questions: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>`;
 }
 async function proAct(a,btn){const[k,plan]=a.split(':'),u=FB&&FB.user;
   if(k==='signin'){closePro();return openSettings('#setAcctSec')}
@@ -7770,6 +7799,4465 @@ CHANGELOG.unshift({v:'18',d:'4 November 2026',t:'Progress, mock exams and Bondli
   ['Bondline Pro','Mock exams and the full weak-spot ranking are part of Bondline Pro. They’re free for everyone while Pro is in preview, and everything else stays free.'],
   ['New pages','Pricing, About, Contact and Terms of service pages, linked from the footer of the website.']]});
 
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();
-boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot()});
+/* ---------- v19: more naming questions, synthesis problems and glossary terms ---------- */
+const V19_NM=[
+ {id:'a15',t:'alkanes',s:'CC(C)CC(C)(C)C',n:'2,2,4-trimethylpentane',alt:[],d:['2,4,4-trimethylpentane','2,2-dimethyl-4-methylpentane','1,1,1,3-tetramethylbutane'],why:'Pentane is the longest chain. Numbering from the end nearer the first branch gives 2,2,4 rather than 2,4,4. Three methyl groups: trimethyl.'},
+ {id:'a16',t:'alkanes',s:'CCC(CC)C(C)C',n:'3-ethyl-2-methylpentane',alt:[],d:['2-methyl-3-ethylpentane','3-isopropylpentane','3-ethyl-4-methylpentane'],why:'The longest chain has five carbons. Number from the end that gives 2,3, and list substituents alphabetically: ethyl before methyl.'},
+ {id:'a17',t:'alkanes',s:'CCCC(C)C(C)(C)CC',n:'3,3,4-trimethylheptane',alt:[],d:['4,5,5-trimethylheptane','3,4,4-trimethylheptane','3,3,4-methylheptane'],why:'Seven carbons in the longest chain. From the right the methyls are at 3, 3 and 4; from the left at 4, 5 and 5. The lower set wins.'},
+ {id:'a18',t:'alkanes',s:'CC(C)C(C)C',n:'2,3-dimethylbutane',alt:[],d:['2-isopropylpropane','1,1,2-trimethylpropane','2,3-methylbutane'],why:'The longest chain is four carbons, with a methyl on C2 and C3.'},
+ {id:'a19',t:'alkanes',s:'ClCC(C)C',n:'1-chloro-2-methylpropane',alt:[],d:['1-chloro-2-methylbutane','2-methyl-1-chloropropane','3-chloro-2-methylpropane'],why:'Three-carbon chain with Cl on C1 and CH₃ on C2. Prefixes go in alphabetical order: chloro before methyl.'},
+ {id:'a20',t:'alkanes',s:'CC(Br)CC(C)C',n:'2-bromo-4-methylpentane',alt:[],d:['4-bromo-2-methylpentane','2-methyl-4-bromopentane','2-bromo-4-methylhexane'],why:'Either end gives the locants {2, 4}. When they tie, the group first in the alphabet (bromo) gets the lower number.'},
+ {id:'r8',t:'rings',s:'CC1CCCC(C)C1',n:'1,3-dimethylcyclohexane',alt:[],d:['1,5-dimethylcyclohexane','1,4-dimethylcyclohexane','2,4-dimethylcyclohexane'],why:'Start at one methyl carbon (C1) and go round the shorter way to the other: C3.'},
+ {id:'r9',t:'rings',s:'CCC1CCC(C)CC1',n:'1-ethyl-4-methylcyclohexane',alt:[],d:['4-ethyl-1-methylcyclohexane','1-methyl-4-ethylcyclohexane','1-ethyl-3-methylcyclohexane'],why:'The groups are 1,4 either way. On a tie, the first group alphabetically (ethyl) gets C1.'},
+ {id:'r10',t:'rings',s:'CC1(C)CCCC1',n:'1,1-dimethylcyclopentane',alt:[],d:['1,2-dimethylcyclopentane','dimethylcyclopentane','2,2-dimethylcyclopentane'],why:'Both methyls are on the same ring carbon, so both get locant 1.'},
+ {id:'r11',t:'rings',s:'ClC1CCC(Cl)C1',n:'1,3-dichlorocyclopentane',alt:[],d:['1,4-dichlorocyclopentane','1,3-chlorocyclopentane','2,4-dichlorocyclopentane'],why:'Go round the ring the shorter way: 1 and 3.'},
+ {id:'r12',t:'rings',s:'CC(C)C1CCCCC1',n:'(propan-2-yl)cyclohexane',alt:['isopropylcyclohexane','propan-2-ylcyclohexane'],d:['propylcyclohexane','2-cyclohexylpropane','1-methylethylhexane'],why:'The ring (six carbons) is bigger than the chain (three), so it is the parent. The branched three-carbon group is propan-2-yl (isopropyl).'},
+ {id:'e13',t:'alkenes',s:'C=CC(C)C',n:'3-methylbut-1-ene',alt:['3-methyl-1-butene'],d:['2-methylbut-3-ene','3-methylbut-2-ene','2-methylbutene'],why:'Number so the C=C gets the lowest locant (1). The methyl is then on C3.'},
+ {id:'e14',t:'alkenes',s:'CC=C(C)C',n:'2-methylbut-2-ene',alt:['2-methyl-2-butene'],d:['3-methylbut-2-ene','2-methylbut-3-ene','2,3-dimethylpropene'],why:'The C=C is between C2 and C3 from either end. Number from the end nearer the methyl, so it gets C2.'},
+ {id:'e15',t:'alkenes',s:'C=CC=C',n:'buta-1,3-diene',alt:['1,3-butadiene','butadiene'],d:['but-1,3-ene','butadi-1,3-ene','buta-1,2-diene'],why:'Two C=C bonds: diene, with locants 1 and 3. An “a” is added to the stem (buta-) before a consonant.'},
+ {id:'e16',t:'alkenes',s:'CC#CCC',n:'pent-2-yne',alt:['2-pentyne'],d:['pent-3-yne','pent-2-ene','but-2-yne'],why:'Five carbons, C≡C starting at C2 from the nearer end.'},
+ {id:'e17',t:'alkenes',s:'C=CCC#C',n:'pent-1-en-4-yne',alt:[],d:['pent-4-en-1-yne','pent-1-yn-4-ene','penta-1,4-diene'],why:'Either end gives the multiple bonds locants {1, 4}. On a tie, the double bond gets the lower number.'},
+ {id:'e18',t:'alkenes',s:'CC1=CCCCC1',n:'1-methylcyclohex-1-ene',alt:['1-methylcyclohexene'],d:['2-methylcyclohexene','6-methylcyclohexene','methylenecyclohexane'],why:'In a ring the C=C carbons are C1 and C2. Choose the direction that puts the methyl on C1.'},
+ {id:'o16',t:'alcohols',s:'CC(C)(O)CC',n:'2-methylbutan-2-ol',alt:['2-methyl-2-butanol'],d:['3-methylbutan-3-ol','2-methylbutan-3-ol','pentan-2-ol'],why:'The OH gets the lowest locant: C2. The methyl is also on C2.'},
+ {id:'o17',t:'alcohols',s:'OCCCCO',n:'butane-1,4-diol',alt:['1,4-butanediol'],d:['butan-1,4-ol','butane-1,4-dial','1,4-dihydroxybutane'],why:'Two OH groups: -diol. The “e” of butane is kept before a consonant (butane-1,4-diol).'},
+ {id:'o18',t:'alcohols',s:'CCOC(C)C',n:'2-ethoxypropane',alt:['ethyl isopropyl ether'],d:['1-ethoxypropane','2-propoxyethane','propoxyethane'],why:'The longer carbon chain (propane) is the parent and the smaller part, with the O, is the alkoxy prefix: ethoxy on C2.'},
+ {id:'o19',t:'alcohols',s:'CCC(N)CC',n:'pentan-3-amine',alt:['3-pentanamine','3-aminopentane'],d:['pentan-2-amine','3-pentylamine','pent-3-amine'],why:'NH₂ on the middle carbon of a five-carbon chain.'},
+ {id:'o20',t:'alcohols',s:'CN(C)CC',n:'N,N-dimethylethanamine',alt:['N,N-dimethylethylamine','dimethylethylamine'],d:['N,N-diethylmethanamine','1,1-dimethylethanamine','N,N-dimethylethylamide'],why:'The longest chain on N (ethyl) is the parent; the two methyls on nitrogen get the locant N.'},
+ {id:'o21',t:'alcohols',s:'C=CCO',n:'prop-2-en-1-ol',alt:['allyl alcohol'],d:['prop-1-en-3-ol','prop-2-ol-1-ene','propen-1-ol'],why:'The OH (the suffix) gets the lowest locant, C1, ahead of the C=C, which then starts at C2.'},
+ {id:'k11',t:'carbonyls',s:'CC(C)CC=O',n:'3-methylbutanal',alt:[],d:['2-methylbutanal','3-methylbutan-1-al','3-methylbutanone'],why:'The aldehyde carbon is always C1, so the methyl is on C3. Aldehydes don’t need the locant 1.'},
+ {id:'k12',t:'carbonyls',s:'CCC(=O)CC',n:'pentan-3-one',alt:['3-pentanone','diethyl ketone'],d:['pentan-2-one','pentan-3-al','3-pentanal'],why:'The C=O is on the middle carbon of five: pentan-3-one.'},
+ {id:'k13',t:'carbonyls',s:'CC(=O)CC(C)C',n:'4-methylpentan-2-one',alt:['methyl isobutyl ketone'],d:['2-methylpentan-4-one','4-methylpentan-3-one','2-methylpentan-2-one'],why:'Number to give the C=O the lowest locant (2). The methyl is then on C4.'},
+ {id:'k14',t:'carbonyls',s:'O=C1CCCC1',n:'cyclopentanone',alt:['cyclopentan-1-one'],d:['cyclopentanal','cyclopentan-2-one','pentanone'],why:'A ketone in a five-membered ring. The C=O carbon is C1, so no locant is needed.'},
+ {id:'k15',t:'carbonyls',s:'CC(O)CC=O',n:'3-hydroxybutanal',alt:[],d:['2-hydroxybutanal','butan-3-ol-1-al','3-hydroxybutan-1-one'],why:'The aldehyde ranks above the alcohol, so it is the suffix (-al, C1). The OH becomes the prefix hydroxy on C3.'},
+ {id:'c14',t:'acids',s:'CCCC(=O)OC',n:'methyl butanoate',alt:['methyl butyrate'],d:['butyl methanoate','methyl propanoate','1-methoxybutan-1-one'],why:'Esters are named from the alcohol part (methyl) then the acid part (butanoic acid → butanoate). The C=O carbon belongs to the acid part.'},
+ {id:'c15',t:'acids',s:'CC(C)C(=O)O',n:'2-methylpropanoic acid',alt:['isobutyric acid'],d:['2-methylpropan-1-oic acid','3-methylpropanoic acid','butanoic acid'],why:'The COOH carbon is C1; the longest chain including it has three carbons, with a methyl on C2.'},
+ {id:'c16',t:'acids',s:'CCC(Cl)=O',n:'propanoyl chloride',alt:['propionyl chloride'],d:['1-chloropropanone','propyl chloride','chloropropanal'],why:'Acyl chlorides replace -oic acid with -oyl chloride. Three carbons, including the C=O carbon: propanoyl chloride.'},
+ {id:'c17',t:'acids',s:'CC(=O)N(C)C',n:'N,N-dimethylethanamide',alt:['N,N-dimethylacetamide','DMA'],d:['N,N-dimethylethanamine','1,1-dimethylethanamide','N-methylpropanamide'],why:'An amide of ethanoic acid (ethanamide) with two methyls on the nitrogen: N,N-dimethyl.'},
+ {id:'c18',t:'acids',s:'CCC(=O)OC(=O)CC',n:'propanoic anhydride',alt:['propionic anhydride','dipropanoic anhydride'],d:['propyl propanoate','propanoic acid','dipropyl ether'],why:'Two propanoic acid molecules joined with loss of water: propanoic anhydride.'},
+ {id:'c19',t:'acids',s:'OC(=O)CC(=O)O',n:'propanedioic acid',alt:['malonic acid'],d:['propanoic diacid','propane-1,3-dioic acid','ethanedioic acid'],why:'Three carbons with a COOH at each end: propanedioic acid (no locants needed).'},
+ {id:'b15',t:'benzene',s:'Cc1ccc(Br)cc1',n:'1-bromo-4-methylbenzene',alt:['4-bromotoluene','p-bromotoluene'],d:['1-methyl-4-bromobenzene','4-bromo-1-methylbenzene','1-bromo-3-methylbenzene'],why:'The groups are 1,4 either way, so the first alphabetically (bromo) gets C1.'},
+ {id:'b16',t:'benzene',s:'O=[N+]([O-])c1ccc(Cl)cc1',n:'1-chloro-4-nitrobenzene',alt:['4-chloronitrobenzene','p-chloronitrobenzene'],d:['1-nitro-4-chlorobenzene','4-chloro-1-nitrobenzene','1-chloro-3-nitrobenzene'],why:'Chloro and nitro are both prefixes. They tie at 1,4, so chloro (first in the alphabet) gets C1.'},
+ {id:'b17',t:'benzene',s:'Oc1ccc(C)cc1',n:'4-methylphenol',alt:['p-cresol','4-methylbenzenol'],d:['1-methyl-4-phenol','2-methylphenol','3-methylphenol'],why:'Phenol is the parent (the OH carbon is C1). The methyl is opposite it, on C4.'},
+ {id:'b18',t:'benzene',s:'OC(=O)c1ccc(N)cc1',n:'4-aminobenzoic acid',alt:['p-aminobenzoic acid','PABA'],d:['4-aminobenzaldehyde','1-amino-4-benzoic acid','3-aminobenzoic acid'],why:'The carboxylic acid ranks above the amine, so benzoic acid is the parent (COOH carbon = C1) and amino is the prefix on C4.'},
+ {id:'b19',t:'benzene',s:'CCc1ccccc1',n:'ethylbenzene',alt:['phenylethane'],d:['1-ethylbenzene','methylbenzene','ethenylbenzene'],why:'One substituent on benzene doesn’t need a locant.'},
+ {id:'b20',t:'benzene',s:'Clc1cccc(Cl)c1',n:'1,3-dichlorobenzene',alt:['m-dichlorobenzene'],d:['1,5-dichlorobenzene','1,4-dichlorobenzene','3,5-dichlorobenzene'],why:'The two Cl atoms are meta: 1 and 3.'},
+ {id:'s9',t:'stereo',s:'C/C=C\\CC',n:'(Z)-pent-2-ene',alt:['cis-pent-2-ene','(2Z)-pent-2-ene','cis-2-pentene'],d:['(E)-pent-2-ene','(Z)-pent-3-ene','(Z)-pent-1-ene'],why:'On C2, CH₃ > H; on C3, CH₂CH₃ > H. The higher groups are on the same side: Z.'},
+ {id:'s10',t:'stereo',s:'C[C@H](Cl)CC',n:'(S)-2-chlorobutane',alt:['(2S)-2-chlorobutane'],d:['(R)-2-chlorobutane','(S)-3-chlorobutane','(S)-1-chlorobutane'],why:'Cl > CH₂CH₃ > CH₃ > H. With H pointing away, Cl → ethyl → methyl runs anticlockwise: S.'},
+ {id:'s11',t:'stereo',s:'CC/C=C/C(=O)O',n:'(E)-pent-2-enoic acid',alt:['(2E)-pent-2-enoic acid','trans-pent-2-enoic acid'],d:['(Z)-pent-2-enoic acid','(E)-pent-3-enoic acid','(E)-pent-2-enal'],why:'On C2, COOH > H; on C3, CH₂CH₃ > H. The higher groups are on opposite sides: E.'},
+ {id:'s12',t:'stereo',s:'C[C@@H](O)C(=O)O',n:'(R)-2-hydroxypropanoic acid',alt:['(2R)-2-hydroxypropanoic acid','(R)-lactic acid','D-lactic acid'],d:['(S)-2-hydroxypropanoic acid','(R)-3-hydroxypropanoic acid','(R)-2-hydroxypropanal'],why:'OH > COOH > CH₃ > H. With H pointing away, the order runs clockwise: R.'},
+];
+const V19_SYN=[
+ {id:'ethanol-ester',lv:1,title:'Ethanol to ethyl ethanoate',s:'CCO',t:'CCOC(C)=O',intro:'Make an ester using ethanol twice: once as the acid part, once as the alcohol part.',
+  steps:[
+   {p:'CC(=O)O',hint:'Oxidise all the way to the carboxylic acid.',why:'Acidified dichromate, heated under reflux, oxidises the primary alcohol through ethanal to ethanoic acid.',
+    o:[['K₂Cr₂O₇, H₂SO₄, heat under reflux',''],['K₂Cr₂O₇, H₂SO₄, distil as it forms','Distilling removes ethanal before it is oxidised further.'],['Conc. H₂SO₄, 170 °C','Dehydration: ethene.'],['NaBH₄','A reducing agent.']]},
+   {p:'CCOC(C)=O',hint:'Fischer esterification: acid + alcohol with an acid catalyst.',why:'Heating ethanoic acid with ethanol and a little concentrated sulfuric acid gives the ester. The reaction is reversible, so excess alcohol or removing water drives it forward.',
+    o:[['CH₃CH₂OH, conc. H₂SO₄ (catalyst), heat',''],['CH₃CH₂OH, NaOH(aq)','Base turns the acid into its carboxylate, which won’t esterify.'],['CH₃CH₂OH, room temperature, no catalyst','Without an acid catalyst, esterification is extremely slow.'],['LiAlH₄, then H₂O','Reduces the acid to ethanol.']]}]},
+ {id:'alkene-amine',lv:1,title:'But-1-ene to butan-1-amine',s:'C=CCC',t:'NCCCC',intro:'Put NH₂ on the end carbon. First get a leaving group onto that carbon.',
+  steps:[
+   {p:'BrCCCC',hint:'You need anti-Markovnikov addition of HBr.',why:'With peroxides, HBr adds by a radical chain: Br· adds to the end carbon to make the more stable secondary radical, so Br ends up on C1.',
+    o:[['HBr, peroxides (ROOR)',''],['HBr, no peroxides','Markovnikov addition: 2-bromobutane.'],['Br₂ in CCl₄','Adds across the C=C: 1,2-dibromobutane.'],['H₂O, H₃PO₄, heat','Hydration gives butan-2-ol.']]},
+   {p:'NCCCC',hint:'Ammonia is the nucleophile; use plenty of it.',why:'NH₃ substitutes for bromide (SN2). A large excess makes it more likely that each bromoalkane meets an NH₃ rather than the amine product, which would go on to secondary and tertiary amines.',
+    o:[['Excess NH₃ in ethanol, heat in a sealed tube',''],['A little NH₃, heat','The amine product is also a nucleophile, so you’d get a mixture of more substituted amines.'],['KCN in ethanol, then LiAlH₄','Adds a carbon: you’d get pentan-1-amine.'],['NaNH₂, heat','A very strong base: elimination back to but-1-ene.']]}]},
+ {id:'cyclo-diol',lv:1,title:'Cyclohexanol to cyclohexane-1,2-diol',s:'OC1CCCCC1',t:'OC1CCCCC1O',intro:'You need a C=C first, then add two OH groups across it.',
+  steps:[
+   {p:'C1=CCCCC1',hint:'Dehydrate the alcohol.',why:'Concentrated phosphoric (or sulfuric) acid protonates the OH, water leaves and a proton is lost: cyclohexene, which distils out.',
+    o:[['Conc. H₃PO₄, heat, distil off the alkene',''],['NaOH(aq), heat','Hydroxide doesn’t remove OH; nothing happens.'],['K₂Cr₂O₇, H₂SO₄, heat','Oxidises the secondary alcohol to cyclohexanone.'],['PBr₃','Gives bromocyclohexane.']]},
+   {p:'OC1CCCCC1O',hint:'Dihydroxylation adds an OH to each alkene carbon.',why:'Cold, dilute, alkaline KMnO₄ (or OsO₄) adds two OH groups to the same face (syn), giving cis-cyclohexane-1,2-diol.',
+    o:[['Cold dilute KMnO₄, NaOH(aq)',''],['Hot acidified KMnO₄','Cleaves the ring: hexanedioic acid.'],['H₂O, H₃PO₄, heat','Adds only one OH: back to cyclohexanol.'],['O₃, then Zn/H₂O','Ozonolysis cuts the C=C: hexanedial.']]}]},
+ {id:'grignard-co2',lv:1,title:'Bromobenzene to benzoic acid',s:'Brc1ccccc1',t:'OC(=O)c1ccccc1',intro:'Turn the C–Br carbon into a nucleophile, then give it a carbon to attack.',
+  steps:[
+   {p:'Br[Mg]c1ccccc1',hint:'Make a Grignard reagent.',why:'Magnesium inserts into the C–Br bond in dry ether, making phenylmagnesium bromide, in which the ring carbon is nucleophilic.',
+    o:[['Mg, dry diethyl ether',''],['Mg, water','Grignard reagents are destroyed by water; you’d get benzene.'],['NaOH(aq), heat','Aryl bromides don’t do SN2 or SN1.'],['NaCN','Aryl halides don’t undergo ordinary substitution.']]},
+   {p:'OC(=O)c1ccccc1',hint:'Carbon dioxide is an electrophile.',why:'The Grignard adds to CO₂ (often as dry ice) to give a carboxylate; acid work-up gives the carboxylic acid with one more carbon.',
+    o:[['1. CO₂ (dry ice)  2. H₃O⁺',''],['1. HCHO  2. H₃O⁺','Methanal gives a primary alcohol: phenylmethanol.'],['H₂O','Protonates the Grignard: benzene.'],['1. CH₃CHO  2. H₃O⁺','Gives a secondary alcohol, 1-phenylethanol.']]}]},
+ {id:'aldol',lv:2,title:'Ethanal to but-2-enal',s:'CC=O',t:'C/C=C/C=O',intro:'Join two molecules of ethanal with a new C–C bond, then lose water.',
+  steps:[
+   {p:'CC(O)CC=O',hint:'The α-carbon of one aldehyde attacks the C=O of another.',why:'Dilute NaOH removes an α-H to make an enolate, which adds to a second ethanal molecule. Protonation gives the aldol, 3-hydroxybutanal.',
+    o:[['Dilute NaOH(aq), cold',''],['NaBH₄','Reduces ethanal to ethanol.'],['HCN, KCN','Adds cyanide: 2-hydroxypropanenitrile.'],['Tollens’ reagent','Oxidises ethanal to ethanoate.']]},
+   {p:'C/C=C/C=O',hint:'Lose water to make a C=C conjugated with the C=O.',why:'On heating, the aldol loses water (by E1cB through the enolate), giving the conjugated enal. The E isomer forms.',
+    o:[['Heat (with the same base)',''],['NaBH₄','Reduces the aldehyde: butane-1,3-diol.'],['PCC','Oxidises the OH to a ketone: 3-oxobutanal.'],['H₂, Ni','Reduces the C=O: you can’t make an alkene this way.']]}]},
+ {id:'wittig',lv:2,title:'Cyclohexanone to (bromomethyl)cyclohexane',s:'O=C1CCCCC1',t:'BrCC1CCCCC1',intro:'Turn C=O into C=CH₂, then add HBr so Br goes on the end carbon.',
+  steps:[
+   {p:'C=C1CCCCC1',hint:'The Wittig reaction swaps O for CH₂.',why:'The ylide Ph₃P=CH₂ attacks the carbonyl; the oxaphosphetane breaks down to the alkene and triphenylphosphine oxide.',
+    o:[['Ph₃P=CH₂ (from Ph₃P⁺CH₃ Br⁻ and BuLi)',''],['CH₃MgBr, then H₃O⁺','Gives the tertiary alcohol, 1-methylcyclohexanol.'],['NaBH₄','Gives cyclohexanol.'],['Zn(Hg), conc. HCl','Clemmensen: cyclohexane.']]},
+   {p:'BrCC1CCCCC1',hint:'Anti-Markovnikov HBr addition.',why:'With peroxides, Br· adds to the CH₂ end so the tertiary radical forms; that radical then takes H from HBr.',
+    o:[['HBr, peroxides',''],['HBr, no peroxides','Markovnikov: 1-bromo-1-methylcyclohexane.'],['Br₂','Adds two Br atoms.'],['NBS, light','Allylic bromination: a different product.']]}]},
+ {id:'nitrile-amine',lv:2,title:'Bromoethane to propan-1-amine',s:'CCBr',t:'NCCC',intro:'The amine has one more carbon than the start, and the NH₂ is on the new carbon.',
+  steps:[
+   {p:'CCC#N',hint:'Add one carbon with a nucleophile.',why:'Cyanide displaces bromide by SN2, adding a carbon: propanenitrile.',
+    o:[['KCN in ethanol, heat under reflux',''],['Excess NH₃, heat','Gives ethylamine: no new carbon.'],['KOH in ethanol, heat','Elimination: ethene.'],['Mg, dry ether','Makes a Grignard reagent, not a nitrile.']]},
+   {p:'NCCC',hint:'Reduce the C≡N fully.',why:'LiAlH₄ (or H₂ with a nickel catalyst) adds four H atoms across C≡N, giving the primary amine.',
+    o:[['LiAlH₄ in dry ether, then H₂O',''],['NaBH₄','Too weak to reduce nitriles.'],['H₃O⁺, heat','Hydrolysis: propanoic acid.'],['DIBAL-H, then H₂O','Stops at the aldehyde: propanal.']]}]},
+ {id:'alkyne-ketone',lv:2,title:'Ethyne to butan-2-one',s:'C#C',t:'CCC(C)=O',intro:'Add two carbons to the alkyne, then turn the C≡C into a C=O.',
+  steps:[
+   {p:'C#CCC',hint:'Terminal alkynes are acidic enough to deprotonate.',why:'NaNH₂ removes the alkyne C–H (pKa about 25); the acetylide ion is a good nucleophile and does SN2 on bromoethane.',
+    o:[['1. NaNH₂  2. CH₃CH₂Br',''],['CH₃CH₂Br, heat','Ethyne itself isn’t nucleophilic enough.'],['1. NaOH(aq)  2. CH₃CH₂Br','Hydroxide is too weak a base to deprotonate an alkyne.'],['HBr','Adds across the C≡C.']]},
+   {p:'CCC(C)=O',hint:'Markovnikov hydration of the alkyne.',why:'Hg²⁺ and aqueous acid add water with OH going to the more substituted carbon; the enol tautomerises to the ketone.',
+    o:[['H₂O, H₂SO₄, HgSO₄',''],['1. BH₃  2. H₂O₂, NaOH','Anti-Markovnikov: gives the aldehyde butanal.'],['H₂, Lindlar catalyst','Gives but-1-ene.'],['O₃, then H₂O','Cleaves the triple bond.']]}]},
+ {id:'ester-bromide',lv:2,title:'Methyl benzoate to (bromomethyl)benzene',s:'COC(=O)c1ccccc1',t:'BrCc1ccccc1',intro:'Reduce the ester to an alcohol, then swap OH for Br.',
+  steps:[
+   {p:'OCc1ccccc1',hint:'Esters need a strong hydride donor.',why:'LiAlH₄ reduces the ester (through the aldehyde) to the primary alcohol, phenylmethanol, plus methanol.',
+    o:[['LiAlH₄ in dry ether, then H₂O',''],['NaBH₄ in ethanol','Usually too weak to reduce esters.'],['NaOH(aq), heat','Hydrolysis: sodium benzoate and methanol.'],['CH₃MgBr (2 equiv.), then H₃O⁺','Gives a tertiary alcohol, 2-phenylpropan-2-ol.']]},
+   {p:'BrCc1ccccc1',hint:'Replace OH with Br.',why:'PBr₃ converts the primary alcohol to the alkyl bromide by SN2.',
+    o:[['PBr₃',''],['Br₂, FeBr₃','Brominates the ring instead.'],['NaBr(aq)','OH⁻ is a poor leaving group: no reaction.'],['HBr, peroxides','Peroxides only matter for addition to alkenes.']]}]},
+ {id:'grignard-sec',lv:2,title:'Bromoethane to butan-2-ol',s:'CCBr',t:'CCC(C)O',intro:'Join a two-carbon nucleophile to a two-carbon electrophile.',
+  steps:[
+   {p:'CC[Mg]Br',hint:'Make the ethyl carbon nucleophilic.',why:'Mg in dry ether gives ethylmagnesium bromide.',
+    o:[['Mg, dry diethyl ether',''],['NaOH(aq)','Substitution: ethanol.'],['KCN in ethanol','Gives propanenitrile.'],['Mg, ethanol','The Grignard is destroyed by the O–H of ethanol.']]},
+   {p:'CCC(C)O',hint:'Which carbonyl gives a secondary alcohol with four carbons?',why:'The ethyl Grignard adds to ethanal; acid work-up gives butan-2-ol.',
+    o:[['1. CH₃CHO  2. H₃O⁺',''],['1. HCHO  2. H₃O⁺','Methanal gives propan-1-ol.'],['1. CH₃COCH₃  2. H₃O⁺','Propanone gives 2-methylbutan-2-ol, a tertiary alcohol.'],['1. CO₂  2. H₃O⁺','Gives propanoic acid.']]}]},
+ {id:'stereo-sn2',lv:3,title:'(R)-2-Bromobutane to (S)-2-methylbutanoic acid',s:'C[C@@H](Br)CC',t:'C[C@H](C(=O)O)CC',intro:'Add one carbon and keep control of the stereocentre.',
+  steps:[
+   {p:'C[C@H](C#N)CC',hint:'One step with inversion.',why:'Cyanide in a polar aprotic solvent attacks the secondary carbon by SN2, from the side opposite the bromide. The configuration inverts: (S)-2-methylbutanenitrile.',
+    o:[['NaCN in DMSO',''],['NaCN in hot water','A protic solvent and heat encourage SN1 and E1, so you’d lose the stereochemistry and get alkenes.'],['Mg, dry ether, then CO₂','Works for the carbon count, but the Grignard carbon doesn’t keep its configuration: racemic product.'],['KOH in ethanol, heat','Elimination: but-2-ene.']]},
+   {p:'C[C@H](C(=O)O)CC',hint:'Hydrolyse C≡N without touching the stereocentre.',why:'Acid hydrolysis converts the nitrile to COOH. No bond to the stereocentre breaks, so its arrangement is kept; COOH takes the same priority rank as CN, so it stays S.',
+    o:[['H₂SO₄(aq), heat under reflux',''],['LiAlH₄, then H₂O','Reduces to the amine.'],['DIBAL-H, then H₂O','Stops at the aldehyde.'],['KMnO₄','Nitriles aren’t oxidised by permanganate.']]}]},
+ {id:'nitrobenzoic',lv:3,title:'Benzene to 4-nitrobenzoic acid',s:'c1ccccc1',t:'OC(=O)c1ccc(cc1)[N+](=O)[O-]',intro:'Three steps, and the order matters: which group directs the nitro group to the para position?',
+  steps:[
+   {p:'Cc1ccccc1',hint:'Add a carbon that can later become COOH.',why:'Friedel–Crafts alkylation with chloromethane and AlCl₃ gives methylbenzene.',
+    o:[['CH₃Cl, AlCl₃',''],['Conc. HNO₃, conc. H₂SO₄','Nitrating first puts in a meta director; the carbon would then go meta, not para.'],['CO₂, AlCl₃','CO₂ isn’t electrophilic enough to react with benzene.'],['CH₃Cl, no catalyst','Without a Lewis acid, benzene doesn’t react with haloalkanes.']]},
+   {p:'Cc1ccc(cc1)[N+](=O)[O-]',hint:'Methyl is an ortho/para director.',why:'Nitration of methylbenzene goes ortho and para to the methyl. The para isomer is separated from the ortho one.',
+    o:[['Conc. HNO₃, conc. H₂SO₄, 30 °C, then separate the para isomer',''],['KMnO₄, heat','Oxidising now gives benzoic acid; COOH then directs nitration meta.'],['Dilute HNO₃','Too weak to nitrate.'],['Br₂, FeBr₃','Brominates instead.']]},
+   {p:'OC(=O)c1ccc(cc1)[N+](=O)[O-]',hint:'Oxidise the side chain.',why:'Hot alkaline KMnO₄, then acid, oxidises the CH₃ on the ring to COOH. The nitro group is unaffected.',
+    o:[['KMnO₄, heat, then H₃O⁺',''],['K₂Cr₂O₇, H₂SO₄, room temperature','Not strong enough to oxidise a ring CH₃ under these conditions.'],['Sn, conc. HCl','Reduces NO₂ to NH₂.'],['NaBH₄','Doesn’t oxidise anything.']]}]},
+ {id:'bromonitro',lv:3,title:'Benzene to 1-bromo-3-nitrobenzene',s:'c1ccccc1',t:'Brc1cccc(c1)[N+](=O)[O-]',intro:'The two groups are meta to each other. Which one should go on first?',
+  steps:[
+   {p:'O=[N+]([O-])c1ccccc1',hint:'Put the meta director on first.',why:'Nitro is a meta director, so nitrating first and brominating second gives the 1,3 product.',
+    o:[['Conc. HNO₃, conc. H₂SO₄, below 55 °C',''],['Br₂, FeBr₃','Bromine is an ortho/para director: nitration next would give 1-bromo-2- and 4-nitrobenzene.'],['NO₂ gas','Not electrophilic enough.'],['NaNO₂, HCl','That makes diazonium salts from amines; benzene doesn’t react.']]},
+   {p:'Brc1cccc(c1)[N+](=O)[O-]',hint:'Electrophilic bromination of a deactivated ring.',why:'With a Lewis acid catalyst and some heat, Br⁺ substitutes meta to the nitro group.',
+    o:[['Br₂, FeBr₃, heat',''],['Br₂(aq), room temperature','Without a catalyst, the deactivated ring doesn’t react.'],['HBr','Doesn’t substitute aromatic rings.'],['NBS, light','Radical conditions; there’s no side chain to brominate.']]}]},
+ {id:'enolate-alkyl',lv:3,title:'Cyclohexanone to 2-methylcyclohexan-1-ol',s:'O=C1CCCCC1',t:'CC1CCCCC1O',intro:'Make a new C–C bond next to the carbonyl, then reduce it.',
+  steps:[
+   {p:'CC1CCCCC1=O',hint:'Form the enolate completely, then alkylate it.',why:'LDA at −78 °C removes an α-H quickly and completely; the enolate does SN2 on iodomethane.',
+    o:[['1. LDA, THF, −78 °C  2. CH₃I',''],['CH₃I, heat','The ketone itself isn’t nucleophilic enough.'],['1. NaOH(aq)  2. CH₃I','Hydroxide makes only a little enolate, which mostly aldol-condenses.'],['CH₃MgBr, then H₃O⁺','Adds to the C=O: 1-methylcyclohexanol.']]},
+   {p:'CC1CCCCC1O',hint:'Reduce the ketone.',why:'NaBH₄ reduces the C=O to the secondary alcohol (as a mixture of cis and trans isomers).',
+    o:[['NaBH₄ in methanol',''],['H₂O, H₂SO₄','No reaction with a ketone.'],['Zn(Hg), conc. HCl','Clemmensen removes the oxygen: methylcyclohexane.'],['K₂Cr₂O₇, H₂SO₄','An oxidant.']]}]},
+];
+const V19_GLOSS=[
+ ['stereoisomer','stereoisomers','c','Isomers with the same atoms joined in the same order but arranged differently in space. Enantiomers and diastereomers (including E/Z isomers) are stereoisomers.'],
+ ['constitutional isomer','constitutional isomers|structural isomer|structural isomers','c','Isomers with the same molecular formula but atoms joined in a different order, such as butan-1-ol and butan-2-ol.'],
+ ['absolute configuration','R/S configuration','c','The actual 3D arrangement of groups at a stereocentre, described as R or S.'],
+ ['relative configuration','','c','How stereocentres in a molecule are arranged relative to each other (cis/trans, syn/anti), without saying which enantiomer it is.'],
+ ['R/S','rectus|sinister','c','Labels for a stereocentre from the CIP rules. With the lowest-priority group pointing away, 1 → 2 → 3 clockwise is R (rectus), anticlockwise is S (sinister).'],
+ ['Fischer projection','Fischer projections','c','A drawing of stereocentres as crosses: horizontal bonds point toward the viewer, vertical bonds away. Rotating it 180° in the page gives the same molecule; 90° gives the enantiomer.'],
+ ['D/L','D-sugar|D-sugars|L-amino acid|L-amino acids','c','An older system for sugars and amino acids, based on the Fischer projection: OH (or NH₂) on the right of the lowest stereocentre is D, on the left L. Not the same as R/S.'],
+ ['dextrorotatory','dextrorotary','c','Rotating plane-polarised light clockwise, as seen by the observer; written (+).'],
+ ['levorotatory','levorotary','c','Rotating plane-polarised light anticlockwise; written (−).'],
+ ['polarimeter','polarimetry','t','An instrument that measures how far a sample rotates the plane of plane-polarised light.'],
+ ['plane-polarised light','plane polarised light|plane-polarized light|plane polarized light','c','Light whose electric field oscillates in a single plane. Chiral compounds rotate that plane.'],
+ ['plane of symmetry','mirror plane|internal mirror plane','c','A plane that cuts a molecule into two mirror-image halves. A molecule with one is achiral.'],
+ ['superimposable','non-superimposable','c','Able to be placed on top of another structure so every atom matches. A chiral molecule isn’t superimposable on its mirror image.'],
+ ['chiral resolution','resolution of enantiomers|resolving agent','t','Separating a racemic mixture into its enantiomers, often by forming diastereomeric salts with a single enantiomer of a chiral acid or base.'],
+ ['asymmetric synthesis','enantioselective synthesis|enantioselective','c','A synthesis that makes one enantiomer in excess, using a chiral catalyst, reagent or auxiliary.'],
+ ['chiral auxiliary','chiral auxiliaries','r','A removable chiral group attached to a molecule to control the stereochemistry of a reaction, then cleaved off.'],
+ ['prochiral','prochirality','c','A centre that becomes a stereocentre in one step, such as the carbon of a ketone C=O or a CH₂ with two different neighbours.'],
+ ['enantiotopic','','c','Two identical groups (often H atoms) whose separate replacement gives enantiomers. They can’t be told apart by NMR in an achiral solvent.'],
+ ['diastereotopic','','c','Two identical groups whose separate replacement gives diastereomers, often H atoms on a CH₂ next to a stereocentre. They can give different NMR signals.'],
+ ['atropisomer','atropisomers|axial chirality','c','Stereoisomers caused by hindered rotation about a single bond, such as ortho-substituted biaryls like BINAP.'],
+ ['staggered conformation','staggered','c','A conformation in which the bonds on neighbouring carbons are 60° apart in a Newman projection. Lower in energy than eclipsed.'],
+ ['eclipsed conformation','eclipsed','c','A conformation in which the bonds on neighbouring carbons line up in a Newman projection. Raised in energy by torsional strain.'],
+ ['gauche','gauche conformation','c','A staggered conformation in which two large groups are 60° apart. In butane it is about 3.8 kJ mol⁻¹ above anti.'],
+ ['anti conformation','anti conformer','c','A staggered conformation in which two large groups are 180° apart: the most stable conformation of butane.'],
+ ['torsional strain','','c','Extra energy from eclipsed bonds on neighbouring atoms. Eclipsed ethane has about 12 kJ mol⁻¹.'],
+ ['ring strain','angle strain|Baeyer strain','c','Extra energy in a ring from bond angles away from the ideal and from eclipsing. Large in cyclopropane and cyclobutane, almost zero in cyclohexane.'],
+ ['1,3-diaxial interaction','1,3-diaxial interactions|diaxial interaction','c','Steric clash between an axial substituent on cyclohexane and the axial H atoms two carbons away on the same face. It makes axial substituents less stable.'],
+ ['A-value','A-values','c','The energy cost of putting a substituent axial rather than equatorial on cyclohexane: CH₃ about 7 kJ mol⁻¹, tert-butyl about 20 kJ mol⁻¹.'],
+ ['dihedral angle','torsion angle|torsional angle','c','The angle between two bonds on neighbouring atoms, seen in a Newman projection.'],
+ ['retention of configuration','','c','The 3D arrangement at a stereocentre kept the same through a reaction, because no bond to it breaks or the mechanism replaces a group on the same face.'],
+ ['nucleophilic acyl substitution','addition–elimination','x','The reaction of carboxylic acid derivatives: a nucleophile adds to C=O to give a tetrahedral intermediate, then the leaving group is expelled and C=O reforms.'],
+];
+NM_BANK.push(...V19_NM);V19_NM.forEach(q=>{NM_BY[q.id]=q});
+SYN.push(...V19_SYN);V19_SYN.forEach(p=>{SYN_BY[p.id]=p});
+GLOSS_DATA.push(...V19_GLOSS);
+
+/* ---------- v19: stereochemistry lessons, interactive models and practice ---------- */
+const ST_TOPICS=[{id:'chiral',title:'Chirality and stereocentres'},{id:'rs',title:'R and S'},{id:'ez',title:'E and Z'},{id:'rel',title:'Stereoisomer relationships'},
+  {id:'fischer',title:'Fischer projections'},{id:'conf',title:'Conformations'},{id:'optical',title:'Optical activity'},{id:'rxn',title:'Stereochemistry in reactions'}];
+const ST_BANK=[{"id": "st:rs:1", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C[C@@H](O)CC"}}, {"id": "st:rs:2", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: Cl > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@H](Cl)CC"}}, {"id": "st:rs:3", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: NH₂ > COOH > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C[C@@H](N)C(=O)O"}}, {"id": "st:rs:4", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > CHO > CH₂OH > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "OC[C@@H](O)C=O"}}, {"id": "st:rs:5", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > COOH > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@H](O)C(=O)O"}}, {"id": "st:rs:6", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: Br > CH₂CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C[C@@H](Br)CCC"}}, {"id": "st:rs:7", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: CH₂OH > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "CC[C@H](C)CO"}}, {"id": "st:rs:8", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > C₆H₅ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@H](O)c1ccccc1"}}, {"id": "st:rs:9", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > CH(CH₃)CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "CC(C)[C@@H](C)O"}}, {"id": "st:rs:10", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > CH=CH₂ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C=C[C@H](C)O"}}, {"id": "st:rs:11", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > C≡CH > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C#C[C@@H](C)O"}}, {"id": "st:rs:12", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > C≡N > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@@H](C#N)O"}}, {"id": "st:rs:13", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: COOH > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "CC[C@@H](C)C(=O)O"}}, {"id": "st:rs:14", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: NH₂ > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@H](N)CC"}}, {"id": "st:rs:15", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: ring CH₂ next to C=O (C2) > the other ring CH₂ (C4) > CH₃ > H. C2 and C4 tie at the first atom (C, H, H), so move one atom further: C2 leads to the carbonyl carbon (O, O, C), which beats C5 (C, H, H). With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C[C@@H]1CCCC(=O)C1"}}, {"id": "st:rs:16", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > CH₂Cl > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "ClC[C@@H](O)C"}}, {"id": "st:rs:17", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: Cl > COOH > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C[C@@H](Cl)C(=O)O"}}, {"id": "st:rs:18", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: NH₂ > COOH > CH₂OH > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "OC[C@H](N)C(=O)O"}}, {"id": "st:rs:19", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > CH₂CH=CH₂ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@H](O)CC=C"}}, {"id": "st:rs:20", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: CH₂Br > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "BrC[C@H](C)CC"}}, {"id": "st:rs:21", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > C(CH₃)₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "C[C@@H](O)C(C)(C)C"}}, {"id": "st:rs:22", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > COCH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "CC(=O)[C@H](C)O"}}, {"id": "st:rs:23", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: Cl > F > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@@H](F)Cl"}}, {"id": "st:rs:24", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: I > Br > Cl > F. With F (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>. There’s no H here, so the lowest-priority group is F.", "fig": {"k": "smi", "s": "F[C@](Cl)(Br)I"}}, {"id": "st:rs:25", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > C₆H₅ > CH₂CH₃ > CH₃. With CH₃ (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>. There’s no H here, so the lowest-priority group is CH₃.", "fig": {"k": "smi", "s": "C[C@](O)(CC)c1ccccc1"}}, {"id": "st:rs:26", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: the ring =CH (C2) > the ring CH₂ (C4) > CH₃ > H. The double bond counts twice, so C2 has (C, C, H), which beats C4 with (C, H, H). With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@@H]1C=CCC1"}}, {"id": "st:rs:27", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > C≡N > C₆H₅ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs clockwise, so it is <b>R</b>.", "fig": {"k": "smi", "s": "N#C[C@H](O)c1ccccc1"}}, {"id": "st:rs:28", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > COOH > C₆H₅ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "OC(=O)[C@@H](O)c1ccccc1"}}, {"id": "st:rs:29", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: SH > COOH > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "C[C@H](S)C(=O)O"}}, {"id": "st:rs:30", "t": "rs", "prompt": "Is the stereocentre in this molecule <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OCH₃ > CH₂CH₃ > CH₃ > H. With H (lowest priority) pointing away from you, 1 → 2 → 3 runs anticlockwise, so it is <b>S</b>.", "fig": {"k": "smi", "s": "CO[C@@H](C)CC"}}, {"id": "st:rsn:1", "t": "rs", "prompt": "Which descriptors complete the name <b>…-3-bromobutan-2-ol</b>?", "opts": ["(2R,3S)", "(2R,3R)", "(2S,3R)", "(2S,3S)"], "why": "C2 (bearing OH): OH > CH(Br)CH₃ > CH₃ > H. C3 (bearing Br): Br > CH(OH)CH₃ > CH₃ > H. Work out each centre separately with its own H at the back. So the full name is <b>(2R,3S)-3-bromobutan-2-ol</b>.", "fig": {"k": "smi", "s": "C[C@@H](O)[C@H](C)Br"}}, {"id": "st:rsn:2", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2,3-dibromobutane</b>?", "opts": ["(2R,3R)", "(2R,3S)", "(2S,3R)", "(2S,3S)"], "why": "Each stereocentre: Br > CH(Br)CH₃ > CH₃ > H. Both centres have the same configuration in this isomer. So the full name is <b>(2R,3R)-2,3-dibromobutane</b>.", "fig": {"k": "smi", "s": "C[C@@H](Br)[C@@H](C)Br"}}, {"id": "st:rsn:3", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2,3-dihydroxybutanedioic acid</b>?", "opts": ["(2R,3R)", "(2R,3S)", "(2S,3R)", "(2S,3S)"], "why": "Each stereocentre: OH > COOH > CH(OH)COOH > H. COOH (O, O, O) beats CH(OH)COOH (O, C, H). So the full name is <b>(2R,3R)-2,3-dihydroxybutanedioic acid</b>.", "fig": {"k": "smi", "s": "O[C@H]([C@@H](O)C(=O)O)C(=O)O"}}, {"id": "st:rsn:4", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2-chloro-3-methylpentane</b>?", "opts": ["(2S,3S)", "(2R,3R)", "(2R,3S)", "(2S,3R)"], "why": "C2 (bearing Cl): Cl > CH(CH₃)CH₂CH₃ > CH₃ > H. C3: CH(Cl)CH₃ > CH₂CH₃ > CH₃ > H, because the Cl one atom out wins. So the full name is <b>(2S,3S)-2-chloro-3-methylpentane</b>.", "fig": {"k": "smi", "s": "C[C@H](Cl)[C@@H](C)CC"}}, {"id": "st:rsn:5", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2-methylcyclohexan-1-ol</b>?", "opts": ["(1S,2R)", "(1R,2R)", "(1R,2S)", "(1S,2S)"], "why": "C1 (bearing OH): OH > C2 (C, C, H) > C6 (C, H, H) > H. C2 (bearing CH₃): C1 (O, C, H) > C3 (C, H, H) > CH₃ > H. So the full name is <b>(1S,2R)-2-methylcyclohexan-1-ol</b>.", "fig": {"k": "smi", "s": "C[C@@H]1CCCC[C@@H]1O"}}, {"id": "st:rsn:6", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2,3,4-trihydroxybutanal</b>?", "opts": ["(2R,3R)", "(2R,3S)", "(2S,3R)", "(2S,3S)"], "why": "C2: OH > CHO > CH(OH)CH₂OH > H. C3: OH > CH(OH)CHO > CH₂OH > H. At C3, compare CH(OH)CHO and CH₂OH: (O, C, H) beats (O, H, H). So the full name is <b>(2R,3R)-2,3,4-trihydroxybutanal</b>.", "fig": {"k": "smi", "s": "OC[C@@H](O)[C@@H](O)C=O"}}, {"id": "st:rsn:7", "t": "rs", "prompt": "Which descriptors complete the name <b>…-3-methylpentan-2-ol</b>?", "opts": ["(2S,3R)", "(2R,3R)", "(2R,3S)", "(2S,3S)"], "why": "C2 (bearing OH): OH > CH(CH₃)CH₂CH₃ > CH₃ > H. C3: CH(OH)CH₃ > CH₂CH₃ > CH₃ > H. So the full name is <b>(2S,3R)-3-methylpentan-2-ol</b>.", "fig": {"k": "smi", "s": "CC[C@@H](C)[C@H](C)O"}}, {"id": "st:rsn:8", "t": "rs", "prompt": "Which descriptors complete the name <b>…-1,2-dichlorocyclohexane</b>?", "opts": ["(1R,2R)", "(1R,2S)", "(1S,2R)", "(1S,2S)"], "why": "Each stereocentre: Cl > the ring CH bearing the other Cl (Cl, C, H) > the ring CH₂ (C, H, H) > H. So the full name is <b>(1R,2R)-1,2-dichlorocyclohexane</b>.", "fig": {"k": "smi", "s": "Cl[C@@H]1CCCC[C@H]1Cl"}}, {"id": "st:rsn:9", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2-amino-3-hydroxybutanoic acid</b>?", "opts": ["(2R,3R)", "(2R,3S)", "(2S,3R)", "(2S,3S)"], "why": "C2 (bearing NH₂): NH₂ > COOH > CH(OH)CH₃ > H. C3 (bearing OH): OH > CH(NH₂)COOH > CH₃ > H. So the full name is <b>(2R,3R)-2-amino-3-hydroxybutanoic acid</b>.", "fig": {"k": "smi", "s": "C[C@@H](O)[C@@H](N)C(=O)O"}}, {"id": "st:rsn:10", "t": "rs", "prompt": "Which descriptors complete the name <b>…-2-amino-3-methylpentanoic acid</b>?", "opts": ["(2S,3S)", "(2R,3R)", "(2R,3S)", "(2S,3R)"], "why": "C2 (bearing NH₂): NH₂ > COOH > CH(CH₃)CH₂CH₃ > H. C3: CH(NH₂)COOH > CH₂CH₃ > CH₃ > H. So the full name is <b>(2S,3S)-2-amino-3-methylpentanoic acid</b>.", "fig": {"k": "smi", "s": "CC[C@H](C)[C@H](N)C(=O)O"}}, {"id": "st:cnt:1", "t": "chiral", "prompt": "How many stereocentres does <b>butan-2-ol</b> have?", "opts": ["1", "0", "2", "3"], "why": "C2 carries OH, CH₃, CH₂CH₃ and H: four different groups.", "fig": {"k": "smi", "s": "CC(O)CC"}}, {"id": "st:cnt:2", "t": "chiral", "prompt": "How many stereocentres does <b>2,3-dichloropentane</b> have?", "opts": ["2", "0", "1", "3"], "why": "C2 and C3 each carry four different groups.", "fig": {"k": "smi", "s": "CC(Cl)C(Cl)CC"}}, {"id": "st:cnt:3", "t": "chiral", "prompt": "How many stereocentres does <b>glucose (open-chain form)</b> have?", "opts": ["4", "0", "1", "2"], "why": "C2, C3, C4 and C5 each carry H, OH and two different carbon chains. C1 (CHO) and C6 (CH₂OH) can’t be stereocentres.", "fig": {"k": "smi", "s": "OCC(O)C(O)C(O)C(O)C=O"}}, {"id": "st:cnt:4", "t": "chiral", "prompt": "How many stereocentres does <b>menthol</b> have?", "opts": ["3", "0", "1", "2"], "why": "The ring carbons bearing OH, the isopropyl group and the methyl group are all stereocentres.", "fig": {"k": "smi", "s": "CC(C)C1CCC(C)CC1O"}}, {"id": "st:cnt:5", "t": "chiral", "prompt": "How many stereocentres does <b>ibuprofen</b> have?", "opts": ["1", "0", "2", "3"], "why": "Only the carbon bearing CH₃ and COOH (next to the ring) has four different groups.", "fig": {"k": "smi", "s": "CC(C)Cc1ccc(cc1)C(C)C(=O)O"}}, {"id": "st:cnt:6", "t": "chiral", "prompt": "How many stereocentres does <b>2-methylbutane</b> have?", "opts": ["0", "1", "2", "3"], "why": "C2 has two identical CH₃ groups, so it isn’t a stereocentre. No carbon has four different groups.", "fig": {"k": "smi", "s": "CCC(C)C"}}, {"id": "st:cnt:7", "t": "chiral", "prompt": "How many stereocentres does <b>3-methylhexane</b> have?", "opts": ["1", "0", "2", "3"], "why": "C3 carries H, CH₃, CH₂CH₃ and CH₂CH₂CH₃.", "fig": {"k": "smi", "s": "CCCC(C)CC"}}, {"id": "st:cnt:8", "t": "chiral", "prompt": "How many stereocentres does <b>1,2-dimethylcyclohexane</b> have?", "opts": ["2", "0", "1", "3"], "why": "C1 and C2 each carry H, CH₃ and two different ring paths.", "fig": {"k": "smi", "s": "CC1CCCCC1C"}}, {"id": "st:cnt:9", "t": "chiral", "prompt": "How many stereocentres does <b>thalidomide</b> have?", "opts": ["1", "0", "2", "3"], "why": "Only the CH in the six-membered ring that bears the nitrogen.", "fig": {"k": "smi", "s": "O=C1CCC(N2C(=O)c3ccccc3C2=O)C(=O)N1"}}, {"id": "st:cnt:10", "t": "chiral", "prompt": "How many stereocentres does <b>ephedrine</b> have?", "opts": ["2", "0", "1", "3"], "why": "The carbon bearing OH and the carbon bearing the NHCH₃ group.", "fig": {"k": "smi", "s": "CNC(C)C(O)c1ccccc1"}}, {"id": "st:cnt:11", "t": "chiral", "prompt": "How many stereocentres does <b>threonine</b> have?", "opts": ["2", "0", "1", "3"], "why": "The carbons bearing NH₂ and OH.", "fig": {"k": "smi", "s": "CC(O)C(N)C(=O)O"}}, {"id": "st:cnt:12", "t": "chiral", "prompt": "How many stereocentres does <b>isoleucine</b> have?", "opts": ["2", "0", "1", "3"], "why": "The carbon bearing NH₂ and the carbon bearing the CH₃ and CH₂CH₃ groups.", "fig": {"k": "smi", "s": "CCC(C)C(N)C(=O)O"}}, {"id": "st:cnt:13", "t": "chiral", "prompt": "How many stereocentres does <b>carvone</b> have?", "opts": ["1", "0", "2", "3"], "why": "Only the ring carbon carrying the isopropenyl group. The ring paths either side of it are different.", "fig": {"k": "smi", "s": "CC1=CCC(CC1=O)C(C)=C"}}, {"id": "st:cnt:14", "t": "chiral", "prompt": "How many stereocentres does <b>camphor</b> have?", "opts": ["2", "0", "1", "3"], "why": "The two bridgehead carbons. They are joined, so only two of the four possible combinations can exist.", "fig": {"k": "smi", "s": "CC12CCC(CC1=O)C2(C)C"}}, {"id": "st:cnt:15", "t": "chiral", "prompt": "How many stereocentres does <b>glycerol</b> have?", "opts": ["0", "1", "2", "3"], "why": "C2 carries two identical CH₂OH groups.", "fig": {"k": "smi", "s": "OCC(O)CO"}}, {"id": "st:cnt:16", "t": "chiral", "prompt": "How many stereocentres does <b>citric acid</b> have?", "opts": ["0", "1", "2", "3"], "why": "The central carbon carries two identical CH₂COOH groups.", "fig": {"k": "smi", "s": "OC(=O)CC(O)(CC(=O)O)C(=O)O"}}, {"id": "st:cnt:17", "t": "chiral", "prompt": "How many stereocentres does <b>3-methylcyclohexene</b> have?", "opts": ["1", "0", "2", "3"], "why": "C3 carries H, CH₃, the ring CH=CH and the ring CH₂CH₂.", "fig": {"k": "smi", "s": "CC1CCCC=C1"}}, {"id": "st:iso:1", "t": "rel", "prompt": "How many stereoisomers of <b>threonine</b> are there?", "opts": ["4", "2", "3", "6"], "why": "Two stereocentres, no symmetry: 2² = 4 stereoisomers (two pairs of enantiomers).", "fig": {"k": "smi", "s": "CC(O)C(N)C(=O)O"}}, {"id": "st:iso:2", "t": "rel", "prompt": "How many stereoisomers of <b>ephedrine</b> are there?", "opts": ["4", "2", "3", "6"], "why": "Two stereocentres, no symmetry: 2² = 4. Ephedrine and pseudoephedrine are diastereomers.", "fig": {"k": "smi", "s": "CNC(C)C(O)c1ccccc1"}}, {"id": "st:iso:3", "t": "rel", "prompt": "How many stereoisomers of <b>2,3-dibromobutane</b> are there?", "opts": ["3", "2", "4", "6"], "why": "Two stereocentres would allow 4, but the (2R,3S) and (2S,3R) forms are the same meso compound. So 3: a pair of enantiomers plus meso.", "fig": {"k": "smi", "s": "CC(Br)C(C)Br"}}, {"id": "st:iso:4", "t": "rel", "prompt": "How many stereoisomers of <b>tartaric acid</b> are there?", "opts": ["3", "2", "4", "6"], "why": "Two stereocentres, but the two ends are identical, so (2R,3S) is meso. 3 stereoisomers: (R,R), (S,S) and meso.", "fig": {"k": "smi", "s": "O=C(O)C(O)C(O)C(=O)O"}}, {"id": "st:iso:5", "t": "rel", "prompt": "How many stereoisomers of <b>2-bromo-3-chlorobutane</b> are there?", "opts": ["4", "2", "3", "6"], "why": "Two different stereocentres (one with Br, one with Cl), so no meso form: 2² = 4.", "fig": {"k": "smi", "s": "CC(Cl)C(C)Br"}}, {"id": "st:iso:6", "t": "rel", "prompt": "How many stereoisomers of <b>menthol</b> are there?", "opts": ["8", "2", "3", "4"], "why": "Three stereocentres: 2³ = 8. Only one of them, (−)-menthol, is the natural peppermint compound.", "fig": {"k": "smi", "s": "CC1CCC(C(C)C)C(O)C1"}}, {"id": "st:iso:7", "t": "rel", "prompt": "How many stereoisomers of <b>pent-3-en-2-ol</b> are there?", "opts": ["4", "2", "3", "6"], "why": "One stereocentre (C2) and one C=C that can be E or Z: 2 × 2 = 4.", "fig": {"k": "smi", "s": "CC=CC(C)O"}}, {"id": "st:iso:8", "t": "rel", "prompt": "How many stereoisomers of <b>glucose (open-chain form)</b> are there?", "opts": ["16", "2", "3", "4"], "why": "Four stereocentres: 2⁴ = 16 aldohexoses, of which glucose is one.", "fig": {"k": "smi", "s": "O=CC(O)C(O)C(O)C(O)CO"}}, {"id": "st:ch:1", "t": "chiral", "prompt": "Is this molecule (<b>bromochlorofluoromethane</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "Its carbon carries four different atoms (H, F, Cl, Br), and it has no plane of symmetry.", "fig": {"k": "smi", "s": "FC(Cl)Br"}}, {"id": "st:ch:2", "t": "chiral", "prompt": "Is this molecule (<b>dichloromethane</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "Two identical Cl atoms on the same carbon give a plane of symmetry.", "fig": {"k": "smi", "s": "ClCCl"}}, {"id": "st:ch:3", "t": "chiral", "prompt": "Is this molecule (<b>butan-2-ol</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "C2 is a stereocentre and there’s no plane of symmetry, so its mirror image is a different molecule.", "fig": {"k": "smi", "s": "CC(O)CC"}}, {"id": "st:ch:4", "t": "chiral", "prompt": "Is this molecule (<b>propan-2-ol</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "C2 carries two identical CH₃ groups, so the molecule has a plane of symmetry.", "fig": {"k": "smi", "s": "CC(C)O"}}, {"id": "st:ch:5", "t": "chiral", "prompt": "Is this molecule (<b>tartaric acid</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "Both stereocentres have the same configuration (R,R), so the molecule has no internal mirror plane.", "fig": {"k": "smi", "s": "O[C@H]([C@@H](O)C(=O)O)C(=O)O"}}, {"id": "st:ch:6", "t": "chiral", "prompt": "Is this molecule (<b>tartaric acid</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "Both stereocentres have the same configuration (S,S), so the molecule has no internal mirror plane. Its enantiomer is the (R,R) isomer.", "fig": {"k": "smi", "s": "O[C@@H]([C@H](O)C(=O)O)C(=O)O"}}, {"id": "st:ch:7", "t": "chiral", "prompt": "Is this molecule (<b>cis-1,2-dimethylcyclohexane</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "cis-1,2-Dimethylcyclohexane has two stereocentres but a mirror plane through the ring: it is meso.", "fig": {"k": "smi", "s": "C[C@@H]1CCCC[C@@H]1C"}}, {"id": "st:ch:8", "t": "chiral", "prompt": "Is this molecule (<b>trans-1,2-dimethylcyclohexane</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "In the trans isomer the methyls are on opposite faces, so there is no mirror plane. It exists as a pair of enantiomers.", "fig": {"k": "smi", "s": "C[C@@H]1CCCC[C@H]1C"}}, {"id": "st:ch:9", "t": "chiral", "prompt": "Is this molecule (<b>cis-1,3-dimethylcyclohexane</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "The cis-1,3 isomer has a mirror plane through C2 and C5: meso, so achiral.", "fig": {"k": "smi", "s": "C[C@@H]1CCC[C@H](C)C1"}}, {"id": "st:ch:10", "t": "chiral", "prompt": "Is this molecule (<b>trans-1,3-dimethylcyclohexane</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "trans-1,3-Dimethylcyclohexane has no mirror plane, so it is chiral.", "fig": {"k": "smi", "s": "C[C@@H]1CCC[C@@H](C)C1"}}, {"id": "st:ch:11", "t": "chiral", "prompt": "Is this molecule (<b>2,3-dibromobutane</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "The two stereocentres are opposite (R,S) and carry identical groups, so there’s an internal mirror plane: meso.", "fig": {"k": "smi", "s": "C[C@@H](Br)[C@H](C)Br"}}, {"id": "st:ch:12", "t": "chiral", "prompt": "Is this molecule (<b>2,3-dibromobutane</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "Both stereocentres are the same (R,R), so there’s no mirror plane. This isomer is chiral.", "fig": {"k": "smi", "s": "C[C@@H](Br)[C@@H](C)Br"}}, {"id": "st:ch:13", "t": "chiral", "prompt": "Is this molecule (<b>3-methylpentane</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "C3 carries two identical ethyl groups, so it isn’t a stereocentre.", "fig": {"k": "smi", "s": "CCC(C)CC"}}, {"id": "st:ch:14", "t": "chiral", "prompt": "Is this molecule (<b>3-methylhexane</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "C3 carries H, CH₃, ethyl and propyl: a stereocentre, so the molecule is chiral.", "fig": {"k": "smi", "s": "CCCC(C)CC"}}, {"id": "st:ch:15", "t": "chiral", "prompt": "Is this molecule (<b>glycine</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "Glycine’s α-carbon carries two H atoms. It is the only common amino acid that isn’t chiral.", "fig": {"k": "smi", "s": "NCC(=O)O"}}, {"id": "st:ch:16", "t": "chiral", "prompt": "Is this molecule (<b>alanine</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "The α-carbon carries H, CH₃, NH₂ and COOH.", "fig": {"k": "smi", "s": "C[C@H](N)C(=O)O"}}, {"id": "st:ch:17", "t": "chiral", "prompt": "Is this molecule (<b>2-phenylethanol</b>) chiral?", "opts": ["Achiral", "Chiral"], "why": "No carbon has four different groups, and the molecule has a plane of symmetry.", "fig": {"k": "smi", "s": "OCCc1ccccc1"}}, {"id": "st:ch:18", "t": "chiral", "prompt": "Is this molecule (<b>1-phenylethanol</b>) chiral?", "opts": ["Chiral", "Achiral"], "why": "The carbon bearing OH also carries H, CH₃ and phenyl: four different groups.", "fig": {"k": "smi", "s": "C[C@@H](O)c1ccccc1"}}, {"id": "st:ez:1", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, CH₃ > H. On the other, CH₃ > H. The two higher-priority groups (CH₃ and CH₃) are on opposite sides, so it is <b>E</b>. Full name: (E)-but-2-ene.", "fig": {"k": "smi", "s": "C/C=C/C"}}, {"id": "st:ez:2", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["Z", "E"], "why": "On one carbon, CH₃ > H. On the other, CH₃ > H. The two higher-priority groups (CH₃ and CH₃) are on the same side, so it is <b>Z</b>. Full name: (Z)-but-2-ene.", "fig": {"k": "smi", "s": "C/C=C\\C"}}, {"id": "st:ez:3", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, CH₃ > H. On the other, CH₂CH₃ > H. The two higher-priority groups (CH₃ and CH₂CH₃) are on opposite sides, so it is <b>E</b>. Full name: (E)-pent-2-ene.", "fig": {"k": "smi", "s": "C/C=C/CC"}}, {"id": "st:ez:4", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, Cl > H. On the other, Cl > H. The two higher-priority groups (Cl and Cl) are on opposite sides, so it is <b>E</b>. Full name: (E)-1,2-dichloroeth-1-ene.", "fig": {"k": "smi", "s": "Cl/C=C/Cl"}}, {"id": "st:ez:5", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["Z", "E"], "why": "On one carbon, Cl > H. On the other, Cl > H. The two higher-priority groups (Cl and Cl) are on the same side, so it is <b>Z</b>. Full name: (Z)-1,2-dichloroeth-1-ene.", "fig": {"k": "smi", "s": "Cl/C=C\\Cl"}}, {"id": "st:ez:6", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["Z", "E"], "why": "On one carbon, Cl > CH₃. On the other, CH₃ > H. The two higher-priority groups (Cl and CH₃) are on the same side, so it is <b>Z</b>. Full name: (Z)-2-chlorobut-2-ene.", "fig": {"k": "smi", "s": "C/C(Cl)=C/C"}}, {"id": "st:ez:7", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, Br > CH₃. On the other, CH₂CH₃ > CH₃. The two higher-priority groups (Br and CH₂CH₃) are on opposite sides, so it is <b>E</b>. Full name: (E)-2-bromo-3-methylpent-2-ene.", "fig": {"k": "smi", "s": "C/C(Br)=C(/C)CC"}}, {"id": "st:ez:8", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, CH₂CH₃ > CH₃. On the other, CH₃ > H. The two higher-priority groups (CH₂CH₃ and CH₃) are on opposite sides, so it is <b>E</b>. Full name: (E)-3-methylpent-2-ene.", "fig": {"k": "smi", "s": "CC/C(C)=C/C"}}, {"id": "st:ez:9", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, CH₂OH > H. On the other, CH₃ > H. The two higher-priority groups (CH₂OH and CH₃) are on opposite sides, so it is <b>E</b>. Full name: (E)-but-2-en-1-ol.", "fig": {"k": "smi", "s": "OC/C=C/C"}}, {"id": "st:ez:10", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, CH₃ > H. On the other, COOH > H. The two higher-priority groups (CH₃ and COOH) are on opposite sides, so it is <b>E</b>. Full name: (E)-but-2-enoic acid.", "fig": {"k": "smi", "s": "C/C=C/C(=O)O"}}, {"id": "st:ez:11", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["Z", "E"], "why": "On one carbon, COOH > H. On the other, COOH > H. The two higher-priority groups (COOH and COOH) are on the same side, so it is <b>Z</b>. Full name: (Z)-but-2-enedioic acid.", "fig": {"k": "smi", "s": "OC(=O)/C=C\\C(=O)O"}}, {"id": "st:ez:12", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, COOH > H. On the other, COOH > H. The two higher-priority groups (COOH and COOH) are on opposite sides, so it is <b>E</b>. Full name: (E)-but-2-enedioic acid.", "fig": {"k": "smi", "s": "OC(=O)/C=C/C(=O)O"}}, {"id": "st:ez:13", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, CH₃ > H. On the other, CH₂OH > CH₃. The two higher-priority groups (CH₃ and CH₂OH) are on opposite sides, so it is <b>E</b>. Full name: (E)-2-methylbut-2-en-1-ol.", "fig": {"k": "smi", "s": "C/C=C(\\C)CO"}}, {"id": "st:ez:14", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["E", "Z"], "why": "On one carbon, Cl > F. On the other, I > Br. The two higher-priority groups (Cl and I) are on opposite sides, so it is <b>E</b>. Full name: (E)-1-bromo-2-chloro-2-fluoro-1-iodoeth-1-ene.", "fig": {"k": "smi", "s": "F/C(Cl)=C(/Br)I"}}, {"id": "st:ez:15", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["Z", "E"], "why": "On one carbon, CH₃ > H. On the other, C₆H₅ > H. The two higher-priority groups (CH₃ and C₆H₅) are on the same side, so it is <b>Z</b>. Full name: (Z)-(prop-1-en-1-yl)benzene.", "fig": {"k": "smi", "s": "C/C=C\\c1ccccc1"}}, {"id": "st:ez:16", "t": "ez", "prompt": "Is this alkene <b>E</b> or <b>Z</b>?", "opts": ["Z", "E"], "why": "On one carbon, CH₂CH₃ > H. On the other, Br > CH₃. The two higher-priority groups (CH₂CH₃ and Br) are on the same side, so it is <b>Z</b>. Full name: (Z)-2-bromopent-2-ene.", "fig": {"k": "smi", "s": "CC/C=C(/C)Br"}}, {"id": "st:ezq:1", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["No", "Yes"], "why": "One alkene carbon carries two identical CH₃ groups.", "fig": {"k": "smi", "s": "C=C(C)C"}}, {"id": "st:ezq:2", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["No", "Yes"], "why": "C1 carries two H atoms.", "fig": {"k": "smi", "s": "C=CC"}}, {"id": "st:ezq:3", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["No", "Yes"], "why": "C2 carries two CH₃ groups.", "fig": {"k": "smi", "s": "CC(C)=CC"}}, {"id": "st:ezq:4", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["Yes", "No"], "why": "Each alkene carbon carries two different groups (CH₃ and H).", "fig": {"k": "smi", "s": "CC=CC"}}, {"id": "st:ezq:5", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["Yes", "No"], "why": "C1 carries Cl and H; C2 carries CH₃ and H.", "fig": {"k": "smi", "s": "CC=CCl"}}, {"id": "st:ezq:6", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["No", "Yes"], "why": "C1 carries two Cl atoms.", "fig": {"k": "smi", "s": "ClC(Cl)=CC"}}, {"id": "st:ezq:7", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["No", "Yes"], "why": "C3 carries two identical ethyl groups.", "fig": {"k": "smi", "s": "CCC(CC)=CC"}}, {"id": "st:ezq:8", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["Yes", "No"], "why": "C2 carries CH₃ and H; C3 carries CH₃ and CH₂CH₃.", "fig": {"k": "smi", "s": "CCC(C)=CC"}}, {"id": "st:ezq:9", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["No", "Yes"], "why": "In a small ring the C=C must be cis; a trans double bond can’t fit in a six-membered ring.", "fig": {"k": "smi", "s": "C1=CCCCC1"}}, {"id": "st:ezq:10", "t": "ez", "prompt": "Can this alkene exist as E and Z isomers?", "opts": ["Yes", "No"], "why": "Each alkene carbon carries Br and H.", "fig": {"k": "smi", "s": "BrC=CBr"}}, {"id": "st:rel:1", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Enantiomers", "Diastereomers", "The same compound", "Constitutional isomers"], "why": "Same connectivity, and the one stereocentre is inverted. Mirror images: enantiomers.", "fig": {"k": "pair", "a": "C[C@@H](O)CC", "b": "C[C@H](O)CC"}}, {"id": "st:rel:2", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Enantiomers", "Diastereomers", "The same compound", "Constitutional isomers"], "why": "Both stereocentres are inverted (R,R vs S,S): enantiomers.", "fig": {"k": "pair", "a": "C[C@@H](Br)[C@@H](C)Br", "b": "C[C@H](Br)[C@H](C)Br"}}, {"id": "st:rel:3", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Diastereomers", "Enantiomers", "The same compound", "Constitutional isomers"], "why": "Only one of the two stereocentres differs: diastereomers.", "fig": {"k": "pair", "a": "C[C@@H](Br)[C@@H](C)Br", "b": "C[C@@H](Br)[C@H](C)Br"}}, {"id": "st:rel:4", "t": "rel", "prompt": "How are these two structures related?", "opts": ["The same compound", "Enantiomers", "Diastereomers", "Constitutional isomers"], "why": "Both are the meso (R,S) form of 2,3-dibromobutane, drawn differently. Meso compounds are their own mirror image.", "fig": {"k": "pair", "a": "C[C@@H](Br)[C@H](C)Br", "b": "C[C@H](Br)[C@@H](C)Br"}}, {"id": "st:rel:5", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Diastereomers", "Enantiomers", "The same compound", "Constitutional isomers"], "why": "E and Z isomers aren’t mirror images of each other: they are diastereomers.", "fig": {"k": "pair", "a": "C/C=C/C", "b": "C/C=C\\C"}}, {"id": "st:rel:6", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Constitutional isomers", "Enantiomers", "Diastereomers", "The same compound"], "why": "The OH is on a different carbon: same formula, different connectivity.", "fig": {"k": "pair", "a": "OCCCC", "b": "CC(O)CC"}}, {"id": "st:rel:7", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Enantiomers", "Diastereomers", "The same compound", "Constitutional isomers"], "why": "Written in a different order, but work out R/S for each: one is R, the other S. Enantiomers.", "fig": {"k": "pair", "a": "C[C@@H](O)CC", "b": "CC[C@H](C)O"}}, {"id": "st:rel:8", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Diastereomers", "Enantiomers", "The same compound", "Constitutional isomers"], "why": "Threonine and allo-threonine: one stereocentre the same, one different. Diastereomers.", "fig": {"k": "pair", "a": "C[C@@H](O)[C@H](N)C(=O)O", "b": "C[C@H](O)[C@H](N)C(=O)O"}}, {"id": "st:rel:9", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Enantiomers", "Diastereomers", "The same compound", "Constitutional isomers"], "why": "Both trans-1,2-dimethylcyclohexane, with both centres inverted: (R,R) vs (S,S), enantiomers.", "fig": {"k": "pair", "a": "C[C@@H]1CCCC[C@H]1C", "b": "C[C@H]1CCCC[C@@H]1C"}}, {"id": "st:rel:10", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Diastereomers", "Enantiomers", "The same compound", "Constitutional isomers"], "why": "cis and trans isomers of the same ring: diastereomers.", "fig": {"k": "pair", "a": "C[C@@H]1CCCC[C@@H]1C", "b": "C[C@@H]1CCCC[C@H]1C"}}, {"id": "st:rel:11", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Diastereomers", "Enantiomers", "The same compound", "Constitutional isomers"], "why": "Erythrose and threose differ at one of their two stereocentres: diastereomers (epimers).", "fig": {"k": "pair", "a": "OC[C@@H](O)[C@@H](O)C=O", "b": "OC[C@@H](O)[C@H](O)C=O"}}, {"id": "st:rel:12", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Diastereomers", "Enantiomers", "The same compound", "Constitutional isomers"], "why": "E and Z isomers: diastereomers.", "fig": {"k": "pair", "a": "C/C=C/C(=O)O", "b": "C/C=C\\C(=O)O"}}, {"id": "st:rel:13", "t": "rel", "prompt": "How are these two structures related?", "opts": ["Constitutional isomers", "Enantiomers", "Diastereomers", "The same compound"], "why": "Cl on C2 versus C1: constitutional isomers.", "fig": {"k": "pair", "a": "C[C@H](Cl)CC", "b": "ClCCCC"}}, {"id": "st:rel:14", "t": "rel", "prompt": "How are these two structures related?", "opts": ["The same compound", "Enantiomers", "Diastereomers", "Constitutional isomers"], "why": "The same molecule, (S)-alanine, written in two orders. Work out R/S and both come out S.", "fig": {"k": "pair", "a": "C[C@H](N)C(=O)O", "b": "C[C@@H](C(=O)O)N"}}, {"id": "st:fi:1", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > CHO > CH₂OH > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>R</b>. This is the D form.", "fig": {"k": "fischer", "g": ["CHO", "OH", "CH2OH", "H"]}}, {"id": "st:fi:1dl", "t": "fischer", "prompt": "Is this the <b>D</b> or the <b>L</b> form?", "opts": ["D", "L"], "why": "With the most oxidised carbon (CHO) at the top, look at the stereocentre: the OH is on the right, so it is <b>D</b>.", "fig": {"k": "fischer", "g": ["CHO", "OH", "CH2OH", "H"]}}, {"id": "st:fi:2", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > CHO > CH₂OH > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>S</b>. This is the L form.", "fig": {"k": "fischer", "g": ["CHO", "H", "CH2OH", "OH"]}}, {"id": "st:fi:3", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: NH₂ > COOH > CH₃ > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>S</b>. This is the L form.", "fig": {"k": "fischer", "g": ["COOH", "H", "CH3", "NH2"]}}, {"id": "st:fi:3dl", "t": "fischer", "prompt": "Is this the <b>D</b> or the <b>L</b> form?", "opts": ["L", "D"], "why": "With the most oxidised carbon (COOH) at the top, look at the stereocentre: the NH₂ is on the left, so it is <b>L</b>.", "fig": {"k": "fischer", "g": ["COOH", "H", "CH3", "NH2"]}}, {"id": "st:fi:4", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: NH₂ > COOH > CH₃ > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>R</b>. This is the D form.", "fig": {"k": "fischer", "g": ["COOH", "NH2", "CH3", "H"]}}, {"id": "st:fi:4dl", "t": "fischer", "prompt": "Is this the <b>D</b> or the <b>L</b> form?", "opts": ["D", "L"], "why": "With the most oxidised carbon (COOH) at the top, look at the stereocentre: the NH₂ is on the right, so it is <b>D</b>.", "fig": {"k": "fischer", "g": ["COOH", "NH2", "CH3", "H"]}}, {"id": "st:fi:5", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > COOH > CH₃ > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>R</b>. This is the D form.", "fig": {"k": "fischer", "g": ["COOH", "OH", "CH3", "H"]}}, {"id": "st:fi:6", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > CH₂CH₃ > CH₃ > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>S</b>.", "fig": {"k": "fischer", "g": ["CH3", "OH", "C2H5", "H"]}}, {"id": "st:fi:7", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: Br > Cl > F > H. The lowest-priority group (H) is on a vertical bond, pointing away from you, so read 1 → 2 → 3 directly. It is <b>R</b>.", "fig": {"k": "fischer", "g": ["H", "Cl", "F", "Br"]}}, {"id": "st:fi:8", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: Br > Cl > F > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>S</b>.", "fig": {"k": "fischer", "g": ["Br", "H", "Cl", "F"]}}, {"id": "st:fi:9", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > CHO > CH₂OH > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>R</b>.", "fig": {"k": "fischer", "g": ["CH2OH", "H", "CHO", "OH"]}}, {"id": "st:fi:10", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: OH > CH₂CH₃ > CH₃ > H. The lowest-priority group (H) is on a vertical bond, pointing away from you, so read 1 → 2 → 3 directly. It is <b>S</b>.", "fig": {"k": "fischer", "g": ["OH", "CH3", "H", "C2H5"]}}, {"id": "st:fi:11", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["S", "R"], "why": "Priorities: NH₂ > COOH > CH₂OH > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>S</b>. This is the L form.", "fig": {"k": "fischer", "g": ["COOH", "H", "CH2OH", "NH2"]}}, {"id": "st:fi:11dl", "t": "fischer", "prompt": "Is this the <b>D</b> or the <b>L</b> form?", "opts": ["L", "D"], "why": "With the most oxidised carbon (COOH) at the top, look at the stereocentre: the NH₂ is on the left, so it is <b>L</b>.", "fig": {"k": "fischer", "g": ["COOH", "H", "CH2OH", "NH2"]}}, {"id": "st:fi:12", "t": "fischer", "prompt": "Is the stereocentre in this Fischer projection <b>R</b> or <b>S</b>?", "opts": ["R", "S"], "why": "Priorities: OH > COOH > CH₃ > H. The lowest-priority group (H) is on a horizontal bond, pointing toward you, so 1 → 2 → 3 as drawn runs the opposite way to the true answer: reverse it. It is <b>R</b>.", "fig": {"k": "fischer", "g": ["CH3", "H", "COOH", "OH"]}}, {"id": "st:sn2:1", "t": "rxn", "prompt": "<b>(R)-2-bromobutane</b> reacts with NaOH(aq) by an SN2 mechanism. What is the product?", "opts": ["(S)-butan-2-ol", "(R)-butan-2-ol", "A 50:50 mixture of (R)-butan-2-ol and (S)-butan-2-ol"], "why": "SN2 goes with inversion: the nucleophile attacks from the side opposite the leaving group, flipping the other three groups like an umbrella. Here the new group takes the same priority rank as the old one, so the label changes from R to <b>S</b>.", "fig": {"k": "smi", "s": "C[C@@H](Br)CC"}}, {"id": "st:sn2:2", "t": "rxn", "prompt": "<b>(R)-2-bromobutane</b> reacts with NaCN in DMSO by an SN2 mechanism. What is the product?", "opts": ["(S)-2-methylbutanenitrile", "(R)-2-methylbutanenitrile", "A 50:50 mixture of (R)-2-methylbutanenitrile and (S)-2-methylbutanenitrile"], "why": "SN2 goes with inversion: the nucleophile attacks from the side opposite the leaving group, flipping the other three groups like an umbrella. Here the new group takes the same priority rank as the old one, so the label changes from R to <b>S</b>.", "fig": {"k": "smi", "s": "C[C@@H](Br)CC"}}, {"id": "st:sn2:3", "t": "rxn", "prompt": "<b>(S)-2-iodobutane</b> reacts with NaBr in acetone by an SN2 mechanism. What is the product?", "opts": ["(R)-2-bromobutane", "(S)-2-bromobutane", "A 50:50 mixture of (R)-2-bromobutane and (S)-2-bromobutane"], "why": "SN2 goes with inversion: the nucleophile attacks from the side opposite the leaving group, flipping the other three groups like an umbrella. Here the new group takes the same priority rank as the old one, so the label changes from S to <b>R</b>.", "fig": {"k": "smi", "s": "C[C@H](I)CC"}}, {"id": "st:sn2:4", "t": "rxn", "prompt": "<b>(R)-2-chloropentane</b> reacts with NaSCH₃ in DMF by an SN2 mechanism. What is the product?", "opts": ["(S)-2-(methylsulfanyl)pentane", "(R)-2-(methylsulfanyl)pentane", "A 50:50 mixture of (R)-2-(methylsulfanyl)pentane and (S)-2-(methylsulfanyl)pentane"], "why": "SN2 goes with inversion: the nucleophile attacks from the side opposite the leaving group, flipping the other three groups like an umbrella. Here the new group takes the same priority rank as the old one, so the label changes from R to <b>S</b>.", "fig": {"k": "smi", "s": "C[C@@H](Cl)CCC"}}, {"id": "st:sn2:5", "t": "rxn", "prompt": "<b>methyl (S)-2-bromopropanoate</b> reacts with NaN₃ in DMF by an SN2 mechanism. What is the product?", "opts": ["methyl (R)-2-azidopropanoate", "methyl (S)-2-azidopropanoate", "A 50:50 mixture of methyl (R)-2-azidopropanoate and methyl (S)-2-azidopropanoate"], "why": "SN2 goes with inversion: the nucleophile attacks from the side opposite the leaving group, flipping the other three groups like an umbrella. Here the new group takes the same priority rank as the old one, so the label changes from S to <b>R</b>.", "fig": {"k": "smi", "s": "C[C@H](Br)C(=O)OC"}}, {"id": "st:nw:1", "t": "conf", "prompt": "This Newman projection looks along the C2–C3 bond of butane. Which conformation is it?", "opts": ["Anti", "Gauche", "Eclipsed", "Fully eclipsed"], "why": "The two CH₃ groups are 180° apart: anti, the most stable conformation.", "fig": {"k": "newman", "ang": 180}}, {"id": "st:nw:2", "t": "conf", "prompt": "This Newman projection looks along the C2–C3 bond of butane. Which conformation is it?", "opts": ["Gauche", "Anti", "Eclipsed", "Fully eclipsed"], "why": "The CH₃ groups are 60° apart in a staggered conformation: gauche. About 3.8 kJ mol⁻¹ above anti.", "fig": {"k": "newman", "ang": 60}}, {"id": "st:nw:3", "t": "conf", "prompt": "This Newman projection looks along the C2–C3 bond of butane. Which conformation is it?", "opts": ["Gauche", "Anti", "Eclipsed", "Fully eclipsed"], "why": "The CH₃ groups are 60° apart (measured the other way round) in a staggered conformation: gauche.", "fig": {"k": "newman", "ang": 300}}, {"id": "st:nw:4", "t": "conf", "prompt": "This Newman projection looks along the C2–C3 bond of butane. Which conformation is it?", "opts": ["Fully eclipsed", "Anti", "Gauche", "Eclipsed"], "why": "The CH₃ groups are directly behind each other: fully eclipsed, the least stable conformation (about 19 kJ mol⁻¹ above anti).", "fig": {"k": "newman", "ang": 0}}, {"id": "st:nw:5", "t": "conf", "prompt": "This Newman projection looks along the C2–C3 bond of butane. Which conformation is it?", "opts": ["Eclipsed", "Anti", "Gauche", "Fully eclipsed"], "why": "Each CH₃ eclipses an H: eclipsed, about 16 kJ mol⁻¹ above anti.", "fig": {"k": "newman", "ang": 120}}, {"id": "st:nw:6", "t": "conf", "prompt": "This Newman projection looks along the C2–C3 bond of butane. Which conformation is it?", "opts": ["Eclipsed", "Anti", "Gauche", "Fully eclipsed"], "why": "Each CH₃ eclipses an H on the other carbon: eclipsed.", "fig": {"k": "newman", "ang": 240}}, {"id": "st:c:1", "t": "chiral", "prompt": "A carbon atom bonded to four different groups is called…", "opts": ["A stereocentre", "A meso centre", "A prochiral carbon", "A conformer"], "why": "It is also called a chirality centre or chiral centre. Swapping any two of its groups gives the other stereoisomer.", "fig": null}, {"id": "st:c:2", "t": "chiral", "prompt": "Which feature makes a molecule achiral even if it has stereocentres?", "opts": ["A plane of symmetry", "An even number of stereocentres", "A C=C double bond", "An OH group"], "why": "A molecule with an internal mirror plane (or a centre of inversion) is superimposable on its mirror image. Meso compounds are like this.", "fig": null}, {"id": "st:c:3", "t": "chiral", "prompt": "A molecule with exactly one stereocentre is…", "opts": ["Always chiral", "Always achiral", "Chiral only if it contains a ring", "Meso"], "why": "With one stereocentre there’s nothing to cancel it out, so the molecule can’t have a mirror plane.", "fig": null}, {"id": "st:c:4", "t": "chiral", "prompt": "Which everyday object is chiral?", "opts": ["A left-hand glove", "A fork", "A plain coffee mug", "A football"], "why": "A glove can’t be superimposed on its mirror image (a right-hand glove). The others each have a plane of symmetry.", "fig": null}, {"id": "st:c:5", "t": "chiral", "prompt": "What is the maximum number of stereoisomers for a molecule with n stereocentres?", "opts": ["2ⁿ", "n²", "2n", "n + 1"], "why": "Each centre can be R or S. Meso forms can reduce the actual number.", "fig": null}, {"id": "st:c:6", "t": "rs", "prompt": "In the CIP rules, substituents are ranked first by…", "opts": ["The atomic number of the atom attached to the stereocentre", "The mass of the whole group", "The number of atoms in the group", "How electronegative the group is overall"], "why": "Compare the attached atoms by atomic number. Only if they tie do you move one atom further out.", "fig": null}, {"id": "st:c:7", "t": "rs", "prompt": "Which has the higher CIP priority?", "opts": ["–CH₂OH", "–CH(CH₃)₂", "They tie", "It depends on the solvent"], "why": "Both attach through carbon, so compare what’s on that carbon: (O, H, H) against (C, C, H). Compare the highest first: O beats C.", "fig": null}, {"id": "st:c:8", "t": "rs", "prompt": "Which has the higher CIP priority?", "opts": ["–CH₂Br", "–C(CH₃)₃", "They tie", "–C(CH₃)₃, because it is bigger"], "why": "(Br, H, H) against (C, C, C). The first point of difference decides: Br beats C. Size doesn’t matter.", "fig": null}, {"id": "st:c:9", "t": "rs", "prompt": "Which has the higher CIP priority?", "opts": ["–CH=CH₂", "–CH(CH₃)₂", "They tie", "Neither, double bonds are ignored"], "why": "A double bond counts as two single bonds, so the vinyl carbon has (C, C, H), the same as isopropyl. One atom further, the vinyl CH₂ carries a duplicate C and beats the methyl hydrogens.", "fig": null}, {"id": "st:c:10", "t": "rs", "prompt": "Rank these groups from highest to lowest priority: –COOH, –CHO, –CH₂OH, –CH₃.", "opts": ["COOH > CHO > CH₂OH > CH₃", "CHO > COOH > CH₂OH > CH₃", "CH₂OH > COOH > CHO > CH₃", "COOH > CH₂OH > CHO > CH₃"], "why": "Count O atoms on the attached carbon, treating C=O as two: COOH (O, O, O) > CHO (O, O, H) > CH₂OH (O, H, H) > CH₃ (H, H, H).", "fig": null}, {"id": "st:c:11", "t": "rs", "prompt": "The lowest-priority group points toward you and 1 → 2 → 3 runs clockwise. The stereocentre is…", "opts": ["S", "R", "You can’t tell", "Meso"], "why": "Viewed from the wrong side, the direction is reversed. Clockwise from the front means anticlockwise from the proper viewpoint: S.", "fig": null}, {"id": "st:c:12", "t": "rs", "prompt": "What happens to the configuration if you swap any two groups on a stereocentre?", "opts": ["It changes from R to S (or S to R)", "It stays the same", "It becomes meso", "It depends which two groups"], "why": "One swap gives the mirror-image arrangement. Two swaps take you back to where you started.", "fig": null}, {"id": "st:c:13", "t": "rs", "prompt": "Is there a fixed link between R/S and the sign of optical rotation (+ or −)?", "opts": ["No: you have to measure the rotation", "Yes: R is always (+)", "Yes: S is always (+)", "Only for amino acids"], "why": "R/S comes from naming rules; (+)/(−) is a measurement. (R)-glyceraldehyde is (+), but (R)-lactic acid is (−).", "fig": null}, {"id": "st:c:14", "t": "ez", "prompt": "What does the Z in (Z)-but-2-ene stand for?", "opts": ["Zusammen: together", "Zero: no rotation", "Zig-zag", "Zwitterion"], "why": "Z (German zusammen) means the two higher-priority groups are on the same side. E (entgegen) means opposite.", "fig": null}, {"id": "st:c:15", "t": "ez", "prompt": "Why can’t an alkene rotate freely about its C=C bond?", "opts": ["Rotation would break the π bond", "The σ bond is too strong", "The carbons are too heavy", "Hydrogen bonding holds it"], "why": "The π bond needs the two p orbitals to stay parallel. Twisting the bond 90° breaks it, which costs about 250 kJ mol⁻¹.", "fig": null}, {"id": "st:c:16", "t": "ez", "prompt": "Do “cis” and “Z” always mean the same thing?", "opts": ["No: cis compares similar groups, Z compares CIP priorities", "Yes, always", "Only in rings", "Only for halogens"], "why": "In (E)-2-bromobut-2-ene the two CH₃ groups are cis to each other, but Br outranks CH₃, so the higher-priority groups are opposite: E.", "fig": null}, {"id": "st:c:17", "t": "ez", "prompt": "Which isomer of but-2-ene is more stable?", "opts": ["E (trans)", "Z (cis)", "They are equally stable", "Neither: they interconvert"], "why": "In the Z isomer the two CH₃ groups crowd each other on the same side. E is about 4 kJ mol⁻¹ more stable.", "fig": null}, {"id": "st:c:18", "t": "rel", "prompt": "Enantiomers have the same…", "opts": ["Melting point, boiling point and solubility in ordinary solvents", "Sign of optical rotation", "Smell and drug activity in every case", "Configuration at every stereocentre"], "why": "Enantiomers differ only in how they interact with other chiral things: plane-polarised light (opposite rotations), enzymes, receptors and chiral reagents.", "fig": null}, {"id": "st:c:19", "t": "rel", "prompt": "Diastereomers are stereoisomers that…", "opts": ["Are not mirror images of each other", "Are mirror images of each other", "Differ in connectivity", "Can be interconverted by rotating a single bond"], "why": "Diastereomers have different physical properties, so they can be separated by ordinary methods such as crystallisation or chromatography.", "fig": null}, {"id": "st:c:20", "t": "rel", "prompt": "A meso compound…", "opts": ["Has stereocentres but is achiral", "Is a 50:50 mixture of enantiomers", "Has no stereocentres", "Rotates light more strongly than either enantiomer"], "why": "Its internal mirror plane makes one half the mirror image of the other, so it is superimposable on its own mirror image.", "fig": null}, {"id": "st:c:21", "t": "rel", "prompt": "Two stereoisomers that differ at only one of several stereocentres are called…", "opts": ["Epimers", "Anomers", "Enantiomers", "Rotamers"], "why": "Epimers are a kind of diastereomer. D-glucose and D-galactose are epimers at C4.", "fig": null}, {"id": "st:c:22", "t": "rel", "prompt": "Staggered and eclipsed ethane are…", "opts": ["Conformations of the same molecule", "Enantiomers", "Diastereomers", "Constitutional isomers"], "why": "They interconvert by rotation about a single bond, millions of times a second at room temperature, so they aren’t separate isomers.", "fig": null}, {"id": "st:c:23", "t": "fischer", "prompt": "In a Fischer projection, the horizontal bonds point…", "opts": ["Toward you", "Away from you", "In the plane of the page", "Up the page"], "why": "Horizontal lines are wedges and vertical lines are hashes: think of a bow tie, or arms reaching out to hug you.", "fig": null}, {"id": "st:c:24", "t": "fischer", "prompt": "Rotating a Fischer projection by 180° in the plane of the page gives…", "opts": ["The same molecule", "The enantiomer", "A diastereomer", "A meso compound"], "why": "A 180° turn keeps horizontal groups horizontal (toward you) and vertical groups vertical, so nothing changes in 3D.", "fig": null}, {"id": "st:c:25", "t": "fischer", "prompt": "Rotating a Fischer projection by 90° gives…", "opts": ["The enantiomer", "The same molecule", "A diastereomer", "A constitutional isomer"], "why": "After 90° the horizontal groups are now drawn vertical (as if pointing away) and vice versa, which inverts the stereocentre.", "fig": null}, {"id": "st:c:26", "t": "fischer", "prompt": "In a D-sugar, the OH on the stereocentre furthest from the C=O is drawn…", "opts": ["On the right", "On the left", "At the top", "At the bottom"], "why": "D and L are defined by comparison with D-glyceraldehyde, whose OH is on the right. Almost all natural sugars are D.", "fig": null}, {"id": "st:c:27", "t": "fischer", "prompt": "Most amino acids in proteins are…", "opts": ["L", "D", "Racemic", "Meso"], "why": "In the Fischer projection of an L-amino acid (COOH at the top, side chain at the bottom), NH₂ is on the left. Most are S; cysteine is R because sulfur changes the priorities.", "fig": null}, {"id": "st:c:28", "t": "conf", "prompt": "Which conformation of cyclohexane is the most stable?", "opts": ["Chair", "Boat", "Twist-boat", "Planar"], "why": "The chair has all C–C bonds staggered and bond angles close to 109.5°, so it has almost no strain.", "fig": null}, {"id": "st:c:29", "t": "conf", "prompt": "A methyl group on cyclohexane prefers to be…", "opts": ["Equatorial", "Axial", "Either: there is no preference", "Planar"], "why": "An axial methyl bumps into the two axial H atoms on the same side (1,3-diaxial interactions). Equatorial is about 7 kJ mol⁻¹ more stable, so about 95% of molecules have it equatorial at room temperature.", "fig": null}, {"id": "st:c:30", "t": "conf", "prompt": "What happens to an axial group when a cyclohexane chair flips?", "opts": ["It becomes equatorial", "It stays axial", "It moves to the next carbon", "It flips to the opposite face of the ring"], "why": "A ring flip swaps every axial position for an equatorial one. Groups stay on the same face (up stays up).", "fig": null}, {"id": "st:c:31", "t": "conf", "prompt": "In the more stable chair of trans-1,4-dimethylcyclohexane, the methyl groups are…", "opts": ["Both equatorial", "Both axial", "One axial, one equatorial", "Neither: the ring is planar"], "why": "For 1,4 substitution, trans means one up and one down, which in the chair can be both equatorial (or, after flipping, both axial).", "fig": null}, {"id": "st:c:32", "t": "conf", "prompt": "In cis-1,2-dimethylcyclohexane, the methyl groups are…", "opts": ["One axial and one equatorial, in either chair", "Both equatorial", "Both axial", "Both equatorial in one chair, both axial in the other"], "why": "Adjacent cis groups can’t both be equatorial. The two chairs are equal in energy.", "fig": null}, {"id": "st:c:33", "t": "conf", "prompt": "In the more stable chair of cis-1,3-dimethylcyclohexane, the methyl groups are…", "opts": ["Both equatorial", "Both axial", "One axial, one equatorial", "It depends on the temperature"], "why": "For 1,3 substitution, cis allows both groups to be equatorial. The other chair (both axial) has a severe 1,3-diaxial clash.", "fig": null}, {"id": "st:c:34", "t": "conf", "prompt": "In trans-1,2-dimethylcyclohexane, the more stable chair has the methyls…", "opts": ["Both equatorial", "Both axial", "One axial, one equatorial", "Eclipsed"], "why": "trans-1,2 can be diequatorial or diaxial. Diequatorial is far more stable.", "fig": null}, {"id": "st:c:35", "t": "conf", "prompt": "Why is eclipsed ethane less stable than staggered ethane?", "opts": ["Torsional strain from eclipsing C–H bonds", "Angle strain", "Hydrogen bonding", "The C–C bond is longer"], "why": "Eclipsed bonds repel (and lose a stabilising σ→σ* overlap). The barrier is about 12 kJ mol⁻¹: 4 kJ mol⁻¹ per eclipsed H/H pair.", "fig": null}, {"id": "st:c:36", "t": "conf", "prompt": "A very bulky group such as tert-butyl on cyclohexane…", "opts": ["Locks the ring with that group equatorial", "Forces the ring into a boat", "Prefers to be axial", "Has no effect on the conformation"], "why": "An axial tert-butyl group costs about 20 kJ mol⁻¹, so essentially all molecules sit with it equatorial. Chemists use it to fix a ring’s conformation.", "fig": null}, {"id": "st:c:37", "t": "optical", "prompt": "A racemic mixture…", "opts": ["Is 50:50 and doesn’t rotate plane-polarised light", "Rotates light twice as much as a pure enantiomer", "Contains a meso compound", "Is a single enantiomer"], "why": "The rotations of the two enantiomers are equal and opposite, so they cancel.", "fig": null}, {"id": "st:c:38", "t": "optical", "prompt": "A dextrorotatory compound rotates plane-polarised light…", "opts": ["Clockwise, as seen by the observer: (+)", "Anticlockwise: (−)", "Not at all", "Only when heated"], "why": "Dextrorotatory (+) is clockwise; levorotatory (−) is anticlockwise.", "fig": null}, {"id": "st:c:39", "t": "optical", "prompt": "Why is a meso compound optically inactive?", "opts": ["Its two halves rotate light equally and oppositely within the same molecule", "It has no stereocentres", "It is always a racemic mixture", "It absorbs the light"], "why": "A meso compound is achiral: it is its own mirror image, so it can’t rotate light.", "fig": null}, {"id": "st:c:40", "t": "rxn", "prompt": "An optically pure tertiary bromide reacts by SN1 in water. The product alcohol is…", "opts": ["Mostly racemic", "Pure inverted product", "Pure product with retention", "Meso"], "why": "The carbocation is planar, so water can attack either face. Usually there’s a small excess of inversion, because the leaving bromide briefly shields one face.", "fig": null}, {"id": "st:c:41", "t": "rxn", "prompt": "Butan-2-one is reduced with NaBH₄. The butan-2-ol formed is…", "opts": ["Racemic", "Pure (R)", "Pure (S)", "Meso"], "why": "The C=O is flat and hydride attacks both faces equally, because nothing chiral is present to favour one.", "fig": null}, {"id": "st:c:42", "t": "rxn", "prompt": "Br₂ adds to (E)-but-2-ene. The product is…", "opts": ["meso-2,3-dibromobutane", "Racemic (2R,3R)- and (2S,3S)-2,3-dibromobutane", "(Z)-2,3-dibromobut-2-ene", "1,2-dibromobutane"], "why": "Addition goes through a bromonium ion and is anti. Anti addition to a trans alkene gives the meso product.", "fig": null}, {"id": "st:c:43", "t": "rxn", "prompt": "Br₂ adds to (Z)-but-2-ene. The product is…", "opts": ["Racemic (2R,3R)- and (2S,3S)-2,3-dibromobutane", "meso-2,3-dibromobutane", "Only (2R,3R)-2,3-dibromobutane", "1,2-dibromobutane"], "why": "Anti addition to a cis alkene gives a pair of enantiomers, formed in equal amounts.", "fig": null}, {"id": "st:c:44", "t": "rxn", "prompt": "OsO₄ (then workup) dihydroxylates (Z)-but-2-ene. The product is…", "opts": ["meso-butane-2,3-diol", "Racemic butane-2,3-diol", "(E)-but-2-ene-2,3-diol", "Butane-1,2-diol"], "why": "OsO₄ adds both OH groups to the same face (syn). Syn addition to a cis alkene gives the meso diol.", "fig": null}, {"id": "st:c:45", "t": "rxn", "prompt": "But-2-yne is hydrogenated with H₂ and Lindlar’s catalyst. The product is…", "opts": ["(Z)-but-2-ene", "(E)-but-2-ene", "Butane", "But-1-ene"], "why": "Both H atoms are delivered from the catalyst surface to the same face (syn), and the poisoned catalyst stops at the alkene.", "fig": null}, {"id": "st:c:46", "t": "rxn", "prompt": "But-2-yne is reduced with sodium in liquid ammonia. The product is…", "opts": ["(E)-but-2-ene", "(Z)-but-2-ene", "Butane", "Butan-2-ol"], "why": "Dissolving-metal reduction goes through a radical anion that adopts the less hindered trans shape, giving the E alkene.", "fig": null}, {"id": "st:c:47", "t": "rxn", "prompt": "For an E2 elimination, the H and the leaving group must be…", "opts": ["Anti-periplanar", "Syn-periplanar", "On the same carbon", "Gauche"], "why": "Anti-periplanar (180° apart) lines up the C–H bond with the C–LG σ* orbital. In cyclohexanes this means both must be axial (trans-diaxial).", "fig": null}, {"id": "st:c:48", "t": "rxn", "prompt": "A reaction in which stereoisomeric starting materials give stereoisomerically different products is…", "opts": ["Stereospecific", "Regioselective", "Racemic", "Chemoselective"], "why": "Bromine addition is stereospecific: the E alkene gives meso product, the Z alkene the racemate.", "fig": null}, {"id": "st:c:49", "t": "rxn", "prompt": "mCPBA epoxidises (Z)-but-2-ene. The product is…", "opts": ["cis-2,3-dimethyloxirane", "trans-2,3-dimethyloxirane", "Racemic butane-2,3-diol", "Butanone"], "why": "Epoxidation adds the oxygen to one face in a single step, so the cis relationship of the methyl groups is kept.", "fig": null}, {"id": "st:sr:1", "t": "optical", "prompt": "A solution of concentration 0.1 g mL⁻¹ in a 1 dm tube gives an observed rotation of +1.30°. What is its specific rotation?", "opts": ["+13.0°", "+0.1°", "−13.0°"], "why": "[α] = α ÷ (l × c) = +1.30° ÷ (1 × 0.1) = <b>+13.0°</b>. Path length l is in dm and concentration c in g mL⁻¹.", "fig": null}, {"id": "st:sr:2", "t": "optical", "prompt": "A solution of concentration 0.15 g mL⁻¹ in a 2 dm tube gives an observed rotation of −4.50°. What is its specific rotation?", "opts": ["−15.0°", "−30.0°", "−1.3°", "+15.0°"], "why": "[α] = α ÷ (l × c) = −4.50° ÷ (2 × 0.15) = <b>−15.0°</b>. Path length l is in dm and concentration c in g mL⁻¹.", "fig": null}, {"id": "st:sr:3", "t": "optical", "prompt": "A solution of concentration 0.2 g mL⁻¹ in a 1 dm tube gives an observed rotation of +6.60°. What is its specific rotation?", "opts": ["+33.0°", "+1.3°", "−33.0°"], "why": "[α] = α ÷ (l × c) = +6.60° ÷ (1 × 0.2) = <b>+33.0°</b>. Path length l is in dm and concentration c in g mL⁻¹.", "fig": null}, {"id": "st:sr:4", "t": "optical", "prompt": "A solution of concentration 0.12 g mL⁻¹ in a 0.5 dm tube gives an observed rotation of −0.84°. What is its specific rotation?", "opts": ["−14.0°", "−7.0°", "−0.1°", "+14.0°"], "why": "[α] = α ÷ (l × c) = −0.84° ÷ (0.5 × 0.12) = <b>−14.0°</b>. Path length l is in dm and concentration c in g mL⁻¹.", "fig": null}, {"id": "st:ee:1", "t": "optical", "prompt": "A pure sample of one enantiomer has [α] = +40°. A mixture of the two enantiomers gives [α] = +30°. What is the enantiomeric excess?", "opts": ["75%", "25%", "88%", "85%"], "why": "ee = |observed| ÷ |pure| × 100 = 30 ÷ 40 × 100 = <b>75%</b>, in favour of the enantiomer measured.", "fig": null}, {"id": "st:ee:2", "t": "optical", "prompt": "A pure sample of one enantiomer has [α] = −120°. A mixture of the two enantiomers gives [α] = −84°. What is the enantiomeric excess?", "opts": ["70%", "30%", "85%", "80%"], "why": "ee = |observed| ÷ |pure| × 100 = 84 ÷ 120 × 100 = <b>70%</b>, in favour of the enantiomer measured.", "fig": null}, {"id": "st:ee:3", "t": "optical", "prompt": "A pure sample of one enantiomer has [α] = +25°. A mixture of the two enantiomers gives [α] = −5°. What is the enantiomeric excess?", "opts": ["20%", "80%", "60%", "30%"], "why": "ee = |observed| ÷ |pure| × 100 = 5 ÷ 25 × 100 = <b>20%</b>, in favour of the other enantiomer, because the sign is opposite.", "fig": null}, {"id": "st:ee:4", "t": "optical", "prompt": "A pure sample of one enantiomer has [α] = +80°. A mixture of the two enantiomers gives [α] = +72°. What is the enantiomeric excess?", "opts": ["90%", "10%", "95%", "100%"], "why": "ee = |observed| ÷ |pure| × 100 = 72 ÷ 80 × 100 = <b>90%</b>, in favour of the enantiomer measured.", "fig": null}, {"id": "st:cmp:1", "t": "optical", "prompt": "A sample has an enantiomeric excess of 80%. What is the ratio of the major to the minor enantiomer?", "opts": ["90 : 10", "80 : 20", "95 : 5", "100 : 0"], "why": "The excess is the major minus the minor, and they add up to 100. Major = (100 + 80) ÷ 2 = 90%, minor = 10%.", "fig": null}, {"id": "st:cmp:2", "t": "optical", "prompt": "A sample has an enantiomeric excess of 50%. What is the ratio of the major to the minor enantiomer?", "opts": ["75 : 25", "60 : 40", "80 : 20", "100 : 0"], "why": "The excess is the major minus the minor, and they add up to 100. Major = (100 + 50) ÷ 2 = 75%, minor = 25%.", "fig": null}, {"id": "st:cmp:3", "t": "optical", "prompt": "A sample has an enantiomeric excess of 0%. What is the ratio of the major to the minor enantiomer?", "opts": ["50 : 50", "60 : 40", "55 : 45", "100 : 0"], "why": "The excess is the major minus the minor, and they add up to 100. Major = (100 + 0) ÷ 2 = 50%, minor = 50%. 0% ee is a racemic mixture.", "fig": null}, {"id": "st:cmp:4", "t": "optical", "prompt": "A sample has an enantiomeric excess of 96%. What is the ratio of the major to the minor enantiomer?", "opts": ["98 : 2", "96 : 4", "100 : 0", "70 : 30"], "why": "The excess is the major minus the minor, and they add up to 100. Major = (100 + 96) ÷ 2 = 98%, minor = 2%.", "fig": null}];
+const ST_BY=Object.fromEntries(ST_BANK.map(q=>[q.id,q]));
+const STQ={view:null,lesson:null,qz:null,setupSel:null,setupLen:10,views:[]};
+const stSub=s=>String(s).replace(/(\d)/g,'<sub>$1</sub>');
+
+/* ---------- 3D: tiny ball-and-stick engine for the lessons ---------- */
+const ST_EL={H:[0xf1f3f6,.24],C:[0x4b5563,.38],O:[0xe5484d,.38],N:[0x3e63dd,.38],F:[0x6fcf4f,.32],Cl:[0x2fa36b,.44],Br:[0xa1462c,.48],I:[0x8e4ec6,.52],S:[0xe0b300,.46]};
+const ST_BL={H:1.0,C:1.45,O:1.38,N:1.4,F:1.32,Cl:1.7,Br:1.85,I:2.05,S:1.75};
+/* fragments: el, kids, o = bond order to parent, sp2/sp for geometry */
+const ST_FR={H:{el:'H'},F:{el:'F'},Cl:{el:'Cl'},Br:{el:'Br'},I:{el:'I'},OH:{el:'O',k:['H']},NH2:{el:'N',k:['H','H']},SH:{el:'S',k:['H']},
+  CH3:{el:'C',k:['H','H','H']},Et:{el:'C',k:['H','H','CH3']},CHO:{el:'C',sp2:1,k:[{el:'O',o:2},'H']},COOH:{el:'C',sp2:1,k:[{el:'O',o:2},'OH']},
+  CH2OH:{el:'C',k:['H','H','OH']},CN:{el:'C',sp:1,k:[{el:'N',o:3}]},vinyl:{el:'C',sp2:1,k:['H',{el:'C',o:2,sp2:1,k:['H','H']}]}};
+const ST_LBL={H:'H',F:'F',Cl:'Cl',Br:'Br',I:'I',OH:'OH',NH2:'NH₂',SH:'SH',CH3:'CH₃',Et:'CH₂CH₃',CHO:'CHO',COOH:'COOH',CH2OH:'CH₂OH',CN:'C≡N',vinyl:'CH=CH₂'};
+const V3n=v=>{const l=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/l,v[1]/l,v[2]/l]},V3c=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],V3d=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const V3s=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],V3a=(a,b,k=1)=>[a[0]+b[0]*k,a[1]+b[1]*k,a[2]+b[2]*k];
+function stPerp(d){const t=Math.abs(d[1])<.9?[0,1,0]:[1,0,0];const e1=V3n(V3c(d,t));return[e1,V3c(d,e1)]}
+/* child bond directions for an atom reached along `d` (parent → atom) */
+function stKidDirs(d,n,kind,roll){
+  const[e1,e2]=stPerp(d),out=[];
+  if(kind==='sp'){out.push(d);return out}
+  const c=kind==='sp2'?.5:1/3,s=Math.sqrt(1-c*c),step=kind==='sp2'?Math.PI:2*Math.PI/3;
+  for(let i=0;i<n;i++){const a=roll+i*step;out.push(V3n(V3a(V3a(d.map(x=>x*c),e1,s*Math.cos(a)),e2,s*Math.sin(a))))}
+  return out}
+function stFrag(M,spec,parent,pos,d,roll,tag){
+  if(typeof spec==='string')spec=Object.assign({},ST_FR[spec]);
+  const i=M.atoms.length;M.atoms.push({el:spec.el,p:pos,tag});
+  if(parent>=0)M.bonds.push([parent,i,spec.o||1]);
+  const kids=spec.k||[];if(!kids.length)return i;
+  const kind=spec.sp?'sp':spec.sp2?'sp2':'sp3',dirs=stKidDirs(d,kind==='sp3'?3:kids.length,kind,roll||0);
+  kids.forEach((k,j)=>{const ks=typeof k==='string'?ST_FR[k]:k,el=ks.el,L=Math.max(ST_BL[el]||1.4,(spec.el==='H'||el==='H')?1.0:1.0)*(el==='H'||spec.el==='H'?1:1);
+    const bl=el==='H'?1.0:(ST_BL[el]+ST_BL[spec.el])/2;stFrag(M,k,i,V3a(pos,dirs[j],bl),dirs[j],(roll||0)+.6,tag)});
+  return i}
+/* standard tetrahedral directions: two in the page, one toward you (+z), one away */
+const ST_TET=[[-.816,.577,0],[.816,.577,0],[0,-.577,.816],[0,-.577,-.816]];
+/* one stereocentre: groups[i] sits on ST_TET[slot[i]] */
+function stCentreModel(groups,slots){
+  const M={atoms:[{el:'C',p:[0,0,0],tag:-1}],bonds:[],gIdx:[]};
+  groups.forEach((g,i)=>{const d=ST_TET[slots[i]],el=ST_FR[g].el,bl=el==='H'?1.05:(ST_BL[el]+ST_BL.C)/2;M.gIdx.push(stFrag(M,g,0,d.map(x=>x*bl),d,.4,i))});
+  return M}
+/* R/S from geometry: a,b,c,d = direction vectors in priority order (z toward the viewer) */
+function stRS(a,b,c,d){return V3d(V3c(V3s(b,a),V3s(c,a)),d)>0?'R':'S'}
+/* lesson molecules for the 3D widgets. pr = group indices high → low priority (checked by the app's CIP code in tests) */
+const ST_MOLS={
+  bcf:{name:'Bromochlorofluoromethane',g:['Br','Cl','F','H'],pr:[0,1,2,3],slots:[0,1,2,3],smi:'Br[C@@H](Cl)F',why:'Br (35) > Cl (17) > F (9) > H (1): rank by atomic number.'},
+  but:{name:'Butan-2-ol',g:['OH','Et','CH3','H'],pr:[0,1,2,3],slots:[2,0,1,3],smi:'C[C@@H](O)CC',why:'O (8) beats C (6) and H (1). CH₂CH₃ and CH₃ tie at C, so look one atom further: CH₂CH₃ has (C, H, H), CH₃ only (H, H, H).'},
+  ala:{name:'Alanine',g:['NH2','COOH','CH3','H'],pr:[0,1,2,3],slots:[0,1,3,2],smi:'C[C@H](N)C(=O)O',why:'N (7) first. COOH and CH₃ both attach through C: COOH has (O, O, O), counting C=O twice, so it beats CH₃ (H, H, H).'},
+  gly:{name:'Glyceraldehyde',g:['OH','CHO','CH2OH','H'],pr:[0,1,2,3],slots:[3,0,1,2],smi:'OC[C@@H](O)C=O',why:'OH first. CHO has (O, O, H) and CH₂OH has (O, H, H): at the first difference O beats H, so CHO is 2.'},
+  lac:{name:'Lactic acid',g:['OH','COOH','CH3','H'],pr:[0,1,2,3],slots:[1,0,2,3],smi:'C[C@H](O)C(=O)O',why:'OH (O) > COOH (O, O, O) > CH₃ (H, H, H) > H.'}};
+function stModelRS(m,mirror){const M=stCentreModel(m.g,m.slots);const D=i=>{const p=M.atoms[M.gIdx[i]].p;return mirror?[-p[0],p[1],p[2]]:p};return stRS(D(m.pr[0]),D(m.pr[1]),D(m.pr[2]),D(m.pr[3]))}
+
+async function stEnsure3D(){await loadLib('THREE')}
+function stDark(){return document.documentElement.classList.contains('dark')||document.body.classList.contains('dark')||matchMedia('(prefers-color-scheme: dark)').matches&&!document.documentElement.classList.contains('light')}
+/* a rotatable 3D view inside `host` */
+function stView(host,opt){
+  opt=opt||{};
+  const r=new THREE.WebGLRenderer({antialias:true,alpha:true});r.setPixelRatio(Math.min(2,devicePixelRatio||1));r.domElement.className='st-cv';
+  const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(32,1,.1,200);
+  scene.add(new THREE.HemisphereLight(0xffffff,0x3a3f48,.85));const dl=new THREE.DirectionalLight(0xffffff,.75);dl.position.set(3,5,8);cam.add(dl);scene.add(cam);
+  const pivot=new THREE.Group(),root=new THREE.Group();pivot.add(root);scene.add(pivot);
+  const stage=document.createElement('div');stage.className='st-stage';stage.appendChild(r.domElement);
+  const ov=document.createElement('div');ov.className='st-ov';stage.appendChild(ov);
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('class','st-ovsvg');stage.appendChild(svg);
+  host.appendChild(stage);
+  const V={r,scene,cam,pivot,root,stage,ov,svg,dist:opt.dist||9,labels:[],raf:0,anim:null,onFrame:null,alive:true};
+  const ptrs=new Map();
+  r.domElement.addEventListener('pointerdown',e=>{r.domElement.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.classList.add('grab')});
+  r.domElement.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;const a=Math.hypot(dx,dy)*.01;if(!a)return;
+    pivot.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(dy,dx,0).normalize(),a));V.draw();if(V.onDrag)V.onDrag()});
+  const up=e=>{ptrs.delete(e.pointerId);if(!ptrs.size)stage.classList.remove('grab')};r.domElement.addEventListener('pointerup',up);r.domElement.addEventListener('pointercancel',up);
+  r.domElement.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();V.dist=Math.max(4,Math.min(24,V.dist*Math.exp(e.deltaY*.0015)));V.draw()},{passive:false});
+  V.size=()=>{const w=stage.clientWidth||300,h=stage.clientHeight||260;r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();svg.setAttribute('viewBox',`0 0 ${w} ${h}`);V.draw()};
+  V.ro=window.ResizeObserver?new ResizeObserver(V.size):null;if(V.ro)V.ro.observe(stage);
+  V.proj=(p,obj)=>{const v=new THREE.Vector3(p[0],p[1],p[2]);(obj||root).localToWorld(v);v.project(cam);return[(v.x+1)/2*(stage.clientWidth||1),(1-v.y)/2*(stage.clientHeight||1),v.z]};
+  V.draw=()=>{if(V.raf||!V.alive)return;V.raf=requestAnimationFrame(t=>{V.raf=0;if(!V.alive||!stage.isConnected){V.dispose();return}
+    if(V.anim){const k=Math.min(1,(t-V.anim.t0)/V.anim.dur);V.anim.step(k<1?(1-Math.cos(Math.PI*k))/2:1);if(k>=1){const f=V.anim.done;V.anim=null;if(f)f()}else V.draw()}
+    cam.position.set(0,0,V.dist);cam.lookAt(0,0,0);r.render(scene,cam);
+    for(const L of V.labels){const[x,y,z]=V.proj(L.p,L.obj);L.el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;L.el.style.opacity=z>1?0:''}
+    if(V.onFrame)V.onFrame()})};
+  V.animate=(dur,step,done)=>{V.anim={t0:performance.now(),dur,step,done};V.draw()};
+  V.label=(p,html,cls,obj)=>{const el=document.createElement('span');el.className='st-lb '+(cls||'');el.innerHTML=html;ov.appendChild(el);const L={p,el,obj};V.labels.push(L);return L};
+  V.clearLabels=()=>{V.labels.forEach(L=>L.el.remove());V.labels=[]};
+  V.dispose=()=>{if(!V.alive)return;V.alive=false;if(V.ro)V.ro.disconnect();try{r.dispose();r.forceContextLoss()}catch(e){}};
+  STQ.views.push(V);requestAnimationFrame(V.size);
+  return V}
+const ST_GEO={};
+function stMat(hex){const k='m'+hex;if(!ST_GEO[k])ST_GEO[k]=new THREE.MeshStandardMaterial({color:hex,roughness:.45,metalness:.05});return ST_GEO[k]}
+function stSphere(){return ST_GEO.sph||(ST_GEO.sph=new THREE.SphereGeometry(1,28,20))}
+function stCyl(){return ST_GEO.cyl||(ST_GEO.cyl=new THREE.CylinderGeometry(1,1,1,16))}
+function stPlaceCyl(m,a,b,rad){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),d=B.clone().sub(A),L=d.length();m.position.copy(A).add(B).multiplyScalar(.5);m.scale.set(rad,L,rad);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize())}
+/* build meshes for a model into a group; returns handles so positions can be updated */
+function stMesh(M,group,opt){
+  opt=opt||{};const H={atoms:[],bonds:[]};
+  M.atoms.forEach((a,i)=>{const[c,rad]=ST_EL[a.el]||ST_EL.C;const m=new THREE.Mesh(stSphere(),stMat(a.hl||c));m.scale.setScalar(rad*(opt.scale||1));m.position.set(...a.p);group.add(m);H.atoms.push(m)});
+  M.bonds.forEach(([i,j,o])=>{const parts=[];const n=o||1;for(let k=0;k<n;k++){const m=new THREE.Mesh(stCyl(),stMat(0x9aa3ae));group.add(m);parts.push(m)}H.bonds.push({i,j,o:n,parts})});
+  H.update=()=>{M.atoms.forEach((a,i)=>H.atoms[i].position.set(...a.p));H.bonds.forEach(b=>{const A=M.atoms[b.i].p,B=M.atoms[b.j].p;
+    if(b.o===1){stPlaceCyl(b.parts[0],A,B,.09);return}
+    const d=V3n(V3s(B,A)),[e1]=stPerp(d),off=b.o===2?[-.09,.09]:[-.13,0,.13];b.parts.forEach((m,k)=>stPlaceCyl(m,V3a(A,e1,off[k]),V3a(B,e1,off[k]),.055))})};
+  H.update();return H}
+
+/* ---------- widget: R/S step-through ---------- */
+function stwRS(host){
+  const W={mol:'but',step:0,mirror:false};
+  host.innerHTML=`<div class="stw-top"><div class="qz-chips stw-chips" role="group" aria-label="Molecule">${Object.entries(ST_MOLS).map(([k,m])=>`<button class="qz-chip${k===W.mol?' on':''}" data-m="${k}">${m.name}</button>`).join('')}</div></div>
+   <div class="stw-body"><div class="stw-3d"></div><div class="stw-side"><div class="stw-steps" aria-live="polite"></div><div class="stw-nav"><button class="btn small" data-a="prev">← Back</button><button class="btn primary small" data-a="next">Next step →</button></div><label class="stw-tog"><input type="checkbox" data-a="mirror"> Show the mirror image</label></div></div>`;
+  const box=host.querySelector('.stw-3d');let V,H,M;
+  const STEPS=['Look','Rank the groups','Lowest priority to the back','Trace 1 → 2 → 3','Name it'];
+  function build(){
+    const m=ST_MOLS[W.mol];M=stCentreModel(m.g,m.slots);if(W.mirror)M.atoms.forEach(a=>a.p=[-a.p[0],a.p[1],a.p[2]]);
+    while(V.root.children.length)V.root.remove(V.root.children[0]);H=stMesh(M,V.root);V.clearLabels();V.svg.innerHTML='';
+    V.pivot.quaternion.setFromEuler(new THREE.Euler(.15,-.35,0));
+    m.g.forEach((g,i)=>{const a=M.atoms[M.gIdx[i]].p,L=V3a(a,V3n(a),.62);V.label(L,`<b>${ST_LBL[g]}</b><i class="st-rk" data-rk="${m.pr.indexOf(i)+1}">${m.pr.indexOf(i)+1}</i>`,'grp')});
+    render()}
+  function dirW(i){const m=ST_MOLS[W.mol],p=M.atoms[M.gIdx[i]].p,v=new THREE.Vector3(...p);V.root.localToWorld(v);return v.normalize()}
+  function toBack(){const m=ST_MOLS[W.mol],cur=dirW(m.pr[3]),q0=V.pivot.quaternion.clone(),dq=new THREE.Quaternion().setFromUnitVectors(cur,new THREE.Vector3(0,0,-1)),q1=dq.multiply(q0);
+    V.animate(900,k=>{V.pivot.quaternion.copy(q0).slerp(q1,k)},()=>{if(W.step>=3)arrow()})}
+  function arrow(){
+    const m=ST_MOLS[W.mol],P=m.pr.slice(0,3).map(i=>{const a=M.atoms[M.gIdx[i]].p;return V.proj(V3a(a,V3n(a),.05))}),O=V.proj([0,0,0]);
+    const ang=P.map(p=>Math.atan2(p[1]-O[1],p[0]-O[0]));let a0=ang[0],a1=ang[1],a2=ang[2];
+    const cw=((P[1][0]-P[0][0])*(P[2][1]-P[0][1])-(P[1][1]-P[0][1])*(P[2][0]-P[0][0]))>0; // screen y is down: >0 means clockwise on screen
+    const R=Math.min(stageR(),Math.max(40,Math.min(...P.map(p=>Math.hypot(p[0]-O[0],p[1]-O[1])))*.75));
+    const norm=(a,b)=>{let d=b-a;if(cw){while(d<=0)d+=2*Math.PI}else{while(d>=0)d-=2*Math.PI}return d};
+    const d1=norm(a0,a1),d2=norm(a1,a2),pts=[];const N=40;for(let k=0;k<=N;k++){const t=k/N,a=a0+(d1+d2)*t;pts.push([O[0]+R*Math.cos(a),O[1]+R*Math.sin(a)])}
+    const end=pts[N],pre=pts[N-3],ang2=Math.atan2(end[1]-pre[1],end[0]-pre[0]),hs=10;
+    const head=`M${(end[0]-hs*Math.cos(ang2-.45)).toFixed(1)},${(end[1]-hs*Math.sin(ang2-.45)).toFixed(1)}L${end[0].toFixed(1)},${end[1].toFixed(1)}L${(end[0]-hs*Math.cos(ang2+.45)).toFixed(1)},${(end[1]-hs*Math.sin(ang2+.45)).toFixed(1)}`;
+    V.svg.innerHTML=`<path class="st-arc" d="M${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')}"/><path class="st-arch" d="${head}"/>`;W.cw=cw;render(true)}
+  function stageR(){return Math.min(V.stage.clientWidth,V.stage.clientHeight)*.32}
+  function render(keepSvg){
+    const m=ST_MOLS[W.mol],lab=stModelRS(m,W.mirror),s=W.step;
+    host.querySelectorAll('.st-rk').forEach(x=>x.hidden=s<1);
+    if(!keepSvg&&s<3)V.svg.innerHTML='';
+    const txt=[`<b>${m.name}${W.mirror?' (mirror image)':''}</b>. Drag the model to turn it. Wedges in a drawing are the bonds coming toward you; hashed bonds go away.`,
+      `Give each group a priority from 1 (highest) to 4 by the atomic number of the atom attached to the stereocentre. ${m.why}`,
+      `Turn the molecule so group 4 (${ST_LBL[m.g[m.pr[3]]]}) points straight away from you, like looking at a steering wheel with the column behind it.`,
+      `Follow 1 → 2 → 3. ${W.cw==null?'':W.cw?'The path runs <b>clockwise</b>.':'The path runs <b>anticlockwise</b>.'}`,
+      `Clockwise is <b>R</b> (rectus, right); anticlockwise is <b>S</b> (sinister, left). This is <b class="st-big">(${lab})</b>-${m.name.toLowerCase()}.${W.mirror?' The mirror image always has the opposite label: it is the other enantiomer.':' Tick “Show the mirror image” to see its enantiomer.'}`];
+    host.querySelector('.stw-steps').innerHTML=STEPS.map((t,i)=>`<div class="stw-step${i===s?' on':i<s?' done':''}"><span>${i+1}</span><div><b>${t}</b>${i===s?`<p>${txt[i]}</p>`:''}</div></div>`).join('');
+    host.querySelector('[data-a="prev"]').disabled=s===0;const nx=host.querySelector('[data-a="next"]');nx.textContent=s===4?'Start again':'Next step →';V.draw()}
+  host.addEventListener('click',e=>{const c=e.target.closest('[data-m]');if(c){W.mol=c.dataset.m;W.step=0;W.cw=null;host.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b===c));build();return}
+    const a=e.target.closest('[data-a]');if(!a||a.tagName==='INPUT')return;
+    if(a.dataset.a==='next'){if(W.step===4){W.step=0;W.cw=null;build();return}W.step++;if(W.step===2)toBack();if(W.step===3){toBack()}render()}
+    if(a.dataset.a==='prev'&&W.step>0){W.step--;if(W.step<3){V.svg.innerHTML='';W.cw=null}render()}});
+  host.querySelector('[data-a="mirror"]').addEventListener('change',e=>{W.mirror=e.target.checked;W.cw=null;const s=W.step;build();W.step=s;if(s>=2)toBack();render()});
+  stEnsure3D().then(()=>{V=stView(box,{dist:9.6});V.onDrag=()=>{if(W.step>=3)arrow()};build()}).catch(()=>{box.innerHTML='<p class="hm-muted">The 3D model needs WebGL, which isn’t available here.</p>'});
+}
+
+/* ---------- widget: mirror images and superimposing ---------- */
+function stwMirror(host){
+  const SETS={chiral:{g:['Br','Cl','F','H'],match:[0,3],lbl:'CHBrClF (chiral)'},achiral:{g:['Br','Cl','H','H'],match:[0,1],lbl:'CH₂BrCl (achiral)'}};
+  const W={set:'chiral',busy:false,done:false};
+  host.innerHTML=`<div class="stw-top"><div class="qz-chips stw-chips">${Object.entries(SETS).map(([k,s])=>`<button class="qz-chip${k===W.set?' on':''}" data-m="${k}">${s.lbl}</button>`).join('')}</div></div>
+   <div class="stw-3d wide"></div><div class="stw-row"><button class="btn primary small" data-a="sup">Try to superimpose</button><button class="btn small" data-a="reset">Reset</button><p class="stw-msg" aria-live="polite"></p></div>`;
+  const box=host.querySelector('.stw-3d');let V,A,B,MA,MB,plane;
+  const slots=[0,1,2,3],OFF=2.6;
+  function build(){
+    while(V.root.children.length)V.root.remove(V.root.children[0]);V.clearLabels();W.done=false;
+    const s=SETS[W.set];MA=stCentreModel(s.g,slots);MB=stCentreModel(s.g,slots);MB.atoms.forEach(a=>a.p=[-a.p[0],a.p[1],a.p[2]]);
+    A=new THREE.Group();B=new THREE.Group();A.position.x=-OFF;B.position.x=OFF;stMesh(MA,A);stMesh(MB,B);V.root.add(A,B);
+    plane=new THREE.Mesh(new THREE.PlaneGeometry(4.2,4.6),new THREE.MeshBasicMaterial({color:0x8fb3ff,transparent:true,opacity:.16,side:THREE.DoubleSide,depthWrite:false}));plane.rotation.y=Math.PI/2;V.root.add(plane);
+    s.g.forEach((g,i)=>{const pa=MA.atoms[MA.gIdx[i]].p;V.label(V3a(pa,V3n(pa),.55),ST_LBL[g],'grp sm',A);const pb=MB.atoms[MB.gIdx[i]].p;V.label(V3a(pb,V3n(pb),.55),ST_LBL[g],'grp sm',B)});
+    V.pivot.quaternion.setFromEuler(new THREE.Euler(.2,0,0));
+    msg(W.set==='chiral'?'A molecule and its mirror image. Press <b>Try to superimpose</b> to slide one onto the other.':'This one has two identical H atoms. Can it be superimposed on its mirror image?');V.draw()}
+  function msg(h){host.querySelector('.stw-msg').innerHTML=h}
+  function sup(){
+    if(W.busy||W.done)return;W.busy=true;const s=SETS[W.set],[a,b]=s.match;
+    const dA=i=>new THREE.Vector3(...MA.atoms[MA.gIdx[i]].p).normalize(),dB=i=>new THREE.Vector3(...MB.atoms[MB.gIdx[i]].p).normalize();
+    const fr=(u,v)=>{const x=u.clone(),y=v.clone().sub(x.clone().multiplyScalar(v.dot(x))).normalize(),z=x.clone().cross(y);return new THREE.Matrix4().makeBasis(x,y,z)};
+    const Fa=fr(dA(a),dA(b)),Fb=fr(dB(a),dB(b)),Rm=Fa.clone().multiply(Fb.clone().invert()),q1=new THREE.Quaternion().setFromRotationMatrix(Rm),q0=B.quaternion.clone();
+    V.animate(1400,k=>{B.position.x=OFF*(1-k);A.position.x=-OFF*(1-k);B.quaternion.copy(q0).slerp(q1,k);plane.material.opacity=.16*(1-k)},()=>{W.busy=false;W.done=true;
+      const bad=[];s.g.forEach((g,i)=>{const v=dB(i).applyQuaternion(B.quaternion);let best=-2,bi=-1;s.g.forEach((g2,j)=>{const d=v.dot(dA(j));if(d>best){best=d;bi=j}});if(s.g[bi]!==g)bad.push(i)});
+      if(bad.length){bad.forEach(i=>{const m=B.children[MB.gIdx[i]];if(m)m.material=stMat(0xff5a5f)});msg(`${ST_LBL[s.g[a]]} and ${ST_LBL[s.g[b]]} line up, but <b>${bad.map(i=>ST_LBL[s.g[i]]).join(' and ')} are swapped</b>. Turn it any way you like: you can never match all four. The molecule is <b>chiral</b>, and the two are enantiomers.`)}
+      else msg('Every atom lines up: the mirror image is the same molecule. It has a plane of symmetry (through C, Br and Cl), so it is <b>achiral</b>.');V.draw()})}
+  host.addEventListener('click',e=>{const c=e.target.closest('[data-m]');if(c){W.set=c.dataset.m;host.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===c));build();return}
+    const a=e.target.closest('[data-a]');if(!a)return;if(a.dataset.a==='sup')sup();if(a.dataset.a==='reset'&&!W.busy)build()});
+  stEnsure3D().then(()=>{V=stView(box,{dist:11});build()}).catch(()=>{box.innerHTML='<p class="hm-muted">The 3D model needs WebGL, which isn’t available here.</p>'});
+}
+
+/* ---------- widget: meso vs chiral 2,3-dibromobutane ---------- */
+function stwMeso(host){
+  const W={iso:'meso',plane:true};
+  host.innerHTML=`<div class="stw-top"><div class="qz-chips stw-chips"><button class="qz-chip on" data-m="meso">(2R,3S): meso</button><button class="qz-chip" data-m="rr">(2R,3R)</button><button class="qz-chip" data-m="ss">(2S,3S)</button></div></div>
+   <div class="stw-body"><div class="stw-3d"></div><div class="stw-side"><p class="stw-msg" aria-live="polite"></p><label class="stw-tog"><input type="checkbox" data-a="plane" checked> Show the mirror plane</label></div></div>`;
+  const box=host.querySelector('.stw-3d');let V,plane;
+  // C2 at x = −0.75, C3 at x = +0.75. C3's three directions are the mirror image (x → −x) of C2's, so equal groups in equal slots give the meso form
+  const d2=stKidDirs([-1,0,0],3,'sp3',Math.PI/2),d3=d2.map(d=>[-d[0],d[1],d[2]]);
+  function make(g2,g3){const M={atoms:[{el:'C',p:[-.75,0,0]},{el:'C',p:[.75,0,0]}],bonds:[[0,1,1]]};
+    const put=(ci,dirs,g)=>g.forEach((x,j)=>{const el=ST_FR[x].el,bl=el==='H'?1.05:(ST_BL[el]+ST_BL.C)/2;stFrag(M,x,ci,V3a(M.atoms[ci].p,dirs[j],bl),dirs[j],.4)});
+    put(0,d2,g2);put(1,d3,g3);
+    const lab=(dirs,g,toOther)=>{const P=k=>dirs[g.indexOf(k)];return stRS(P('Br'),toOther,P('CH3'),P('H'))};
+    return{M,L2:lab(d2,g2,[1,0,0]),L3:lab(d3,g3,[-1,0,0])}}
+  function pick(){const A=['Br','CH3','H'],B=['Br','H','CH3'];
+    if(W.iso==='meso')return make(A,A);
+    const x=make(A,B),y=make(B,A),want=W.iso==='rr'?'R':'S';return x.L2===want?x:y}
+  function build(){
+    while(V.root.children.length)V.root.remove(V.root.children[0]);V.clearLabels();
+    const{M,L2,L3}=pick();stMesh(M,V.root);
+    // in the meso form either carbon can be C2, so number from the R end to match the usual (2R,3S) name
+    const swap=W.iso==='meso'&&L2==='S';
+    V.label([-.75,.2,.95],`${swap?'C3':'C2'} <b>${L2}</b>`,'cen');V.label([.75,.2,.95],`${swap?'C2':'C3'} <b>${L3}</b>`,'cen');
+    plane=new THREE.Mesh(new THREE.PlaneGeometry(4.4,4.4),new THREE.MeshBasicMaterial({color:0x8fb3ff,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false}));plane.rotation.y=Math.PI/2;plane.visible=W.plane&&W.iso==='meso';V.root.add(plane);
+    V.pivot.quaternion.setFromEuler(new THREE.Euler(.35,-.55,0));
+    const name=W.iso==='meso'?'(2R,3S)':`(2${L2},3${L3})`,mir=`(2${L2==='R'?'S':'R'},3${L3==='R'?'S':'R'})`;
+    host.querySelector('.stw-msg').innerHTML=W.iso==='meso'?`<b>${name}-2,3-Dibromobutane is meso.</b> In this eclipsed conformation a mirror plane cuts the C2–C3 bond in half: Br reflects onto Br, CH₃ onto CH₃, H onto H. So the molecule is its own mirror image and is achiral, even though it has two stereocentres.`
+      :`<b>${name}-2,3-Dibromobutane is chiral.</b> Whichever way you turn it, there is no mirror plane: here the CH₃ on one carbon lines up with the H on the other. Its mirror image is the ${mir} isomer. The two are enantiomers, and each is a diastereomer of the meso form.`;
+    host.querySelector('.stw-tog').hidden=W.iso!=='meso';
+    V.draw()}
+  host.addEventListener('click',e=>{const c=e.target.closest('[data-m]');if(!c)return;W.iso=c.dataset.m;host.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===c));build()});
+  host.querySelector('[data-a="plane"]').addEventListener('change',e=>{W.plane=e.target.checked;if(plane){plane.visible=W.plane&&W.iso==='meso';V.draw()}});
+  stEnsure3D().then(()=>{V=stView(box,{dist:10});build()}).catch(()=>{box.innerHTML='<p class="hm-muted">The 3D model needs WebGL, which isn’t available here.</p>'});
+}
+
+/* ---------- widget: cyclohexane chair and ring flip ---------- */
+function stwChair(host){
+  const W={t:0,busy:false,sub:'CH3'};
+  host.innerHTML=`<div class="stw-body"><div class="stw-3d"></div><div class="stw-side"><p class="stw-msg" aria-live="polite"></p><div class="stw-nav"><button class="btn primary small" data-a="flip">Ring flip</button></div>
+    <div class="stw-key"><span><i class="k-ax"></i>Axial H</span><span><i class="k-eq"></i>Equatorial H</span><span><i class="k-cl"></i>1,3-diaxial clash</span></div></div></div>`;
+  const box=host.querySelector('.stw-3d');let V,M,H;
+  const R=1.45,h=.25;
+  function geom(t){ // t: 0 = methyl axial, 1 = methyl equatorial
+    const atoms=[],bonds=[];const s0=i=>i%2?-1:1;
+    const sig=i=>s0(i)*Math.cos(Math.PI*t);
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;atoms.push({el:'C',p:[R*Math.cos(a),h*sig(i),R*Math.sin(a)]})}
+    for(let i=0;i<6;i++)bonds.push([i,(i+1)%6,1]);
+    const slot=(i,face)=>{ // face +1 = top, -1 = bottom; direction blends axial/equatorial as the ring flips
+      const a=i*Math.PI/3,rad=[Math.cos(a),0,Math.sin(a)],axA=s0(i)===face,eqDir=V3n(V3a(rad.map(x=>x*.94),[0,face*.33,0])),axDir=[0,face,0];
+      const wA=axA?1-t:t;return V3n(V3a(eqDir.map(x=>x*(1-wA)),axDir,wA))};
+    const hs=[];
+    for(let i=0;i<6;i++)for(const face of[1,-1]){if(i===0&&face===1)continue;const d=slot(i,face),p=V3a(atoms[i].p,d,1.05);const k=atoms.length;
+      const ax=(s0(i)===face)===(t<.5);atoms.push({el:'H',p,ax,dia:t<.5&&face===1&&(i===2||i===4)});bonds.push([i,k,1]);hs.push(k)}
+    const d=slot(0,1),cm=V3a(atoms[0].p,d,1.5),ci=atoms.length;atoms.push({el:W.sub==='CH3'?'C':'C',p:cm,me:true});bonds.push([0,ci,1]);
+    stKidDirs(d,3,'sp3',.3).forEach(dd=>{const k=atoms.length;atoms.push({el:'H',p:V3a(cm,dd,1.0),me:true});bonds.push([ci,k,1])});
+    return{atoms,bonds}}
+  function colourH(){M.atoms.forEach((a,i)=>{if(a.el!=='H'||a.me)return;H.atoms[i].material=stMat(a.dia?0xffb020:a.ax?0x7fb2ff:0xd5dae1)})}
+  function msg(){host.querySelector('.stw-msg').innerHTML=W.t<.5?'<b>Methyl axial.</b> It points straight up, alongside the axial H atoms on C3 and C5 (amber). These 1,3-diaxial interactions make this chair about 7 kJ mol⁻¹ less stable.'
+    :'<b>Methyl equatorial.</b> It points out around the ring’s “equator”, away from other atoms. This is the more stable chair: about 95% of methylcyclohexane molecules are in it at room temperature.'}
+  function build(){while(V.root.children.length)V.root.remove(V.root.children[0]);M=geom(W.t);H=stMesh(M,V.root);colourH();V.pivot.quaternion.setFromEuler(new THREE.Euler(.32,.5,0));msg();V.draw()}
+  function flip(){if(W.busy)return;W.busy=true;const t0=W.t,t1=t0<.5?1:0;V.animate(1600,k=>{W.t=t0+(t1-t0)*k;const G=geom(W.t);G.atoms.forEach((a,i)=>{M.atoms[i].p=a.p;M.atoms[i].ax=a.ax;M.atoms[i].dia=a.dia});H.update();colourH()},()=>{W.busy=false;W.t=t1;msg()})}
+  host.addEventListener('click',e=>{const a=e.target.closest('[data-a="flip"]');if(a)flip()});
+  stEnsure3D().then(()=>{V=stView(box,{dist:9.5});build()}).catch(()=>{box.innerHTML='<p class="hm-muted">The 3D model needs WebGL, which isn’t available here.</p>'});
+}
+
+/* ---------- widget: just a model to turn ---------- */
+function stwModel(host,key){const m=ST_MOLS[key]||ST_MOLS.bcf;host.innerHTML='<div class="stw-3d small"></div><p class="stw-cap">Drag to turn it. The bond toward you is a wedge in a drawing; the one going away is hashed.</p>';
+  stEnsure3D().then(()=>{const V=stView(host.querySelector('.stw-3d'),{dist:8});const M=stCentreModel(m.g,m.slots);stMesh(M,V.root);m.g.forEach((g,i)=>{const a=M.atoms[M.gIdx[i]].p;V.label(V3a(a,V3n(a),.6),`<b>${ST_LBL[g]}</b>`,'grp')});V.pivot.quaternion.setFromEuler(new THREE.Euler(.12,-.3,0));V.draw()}).catch(()=>{})}
+
+/* ---------- widget: E/Z builder (labels from Bondline's own CIP code) ---------- */
+const EZ_G=[['H','[H]','[H]'],['CH₃','C','C'],['CH₂CH₃','CC','CC'],['CH(CH₃)₂','C(C)C','CC(C)'],['Cl','Cl','Cl'],['Br','Br','Br'],['OH','O','O'],['CH₂OH','CO','OC'],['CHO','C=O','O=C'],['COOH','C(=O)O','OC(=O)']];
+function ezHigher(x,y){ // is group x higher than group y by CIP? (probe stereocentre: I, x, y, H)
+  if(x===y)return null;const X=EZ_G[x][1],Y=EZ_G[y][1];if(X==='[H]')return false;if(Y==='[H]')return true;
+  const lab=(a,b)=>{try{const m=analyseDrawing(smilesToScheme(`I[C@@H](${a})${b}`))[0];return m.cip.centres[0]&&m.cip.centres[0].label}catch(e){return null}};
+  const ref=lab('Br','Cl'),l=lab(X,Y);if(!ref||!l)return null;return l===ref}
+function stwEZ(host){
+  const W={tl:1,bl:0,tr:2,br:0};
+  const sel=k=>`<select data-s="${k}" aria-label="Group">${EZ_G.map((g,i)=>`<option value="${i}"${W[k]===i?' selected':''}>${g[0]}</option>`).join('')}</select>`;
+  host.innerHTML=`<div class="ez-lab"><div class="ez-c">${sel('tl')}${sel('bl')}</div><svg class="ez-svg" viewBox="0 0 320 200" aria-hidden="true"></svg><div class="ez-c">${sel('tr')}${sel('br')}</div></div><div class="ez-out" aria-live="polite"></div>`;
+  function upd(){
+    const g=k=>EZ_G[W[k]],smi=`${g('tl')[2]}/C(${g('bl')[1]})=C(\\${g('tr')[1]})${g('br')[1]}`;
+    let lab=null,name='';try{const a=analyseDrawing(smilesToScheme(smi))[0],d=a.cip.dbs[0];if(d)lab=d.label;name=a.name&&a.name.name||''}catch(e){}
+    const hL=ezHigher(W.tl,W.bl),hR=ezHigher(W.tr,W.br),none=hL==null||hR==null;
+    const hl={tl:hL===true,bl:hL===false,tr:hR===true,br:hR===false};
+    if(!none&&lab){const mine=(hl.tl===hl.tr)?'Z':'E';if(mine!==lab)console.warn('E/Z mismatch',smi,mine,lab)}
+    const svg=host.querySelector('.ez-svg'),L=t=>EZ_G[W[t]][0],pos={tl:[70,40],bl:[70,160],tr:[250,40],br:[250,160]};
+    svg.innerHTML=`<line x1="125" y1="95" x2="195" y2="95" class="ez-b"/><line x1="125" y1="105" x2="195" y2="105" class="ez-b"/>`+
+      ['tl','bl'].map(k=>`<line x1="125" y1="100" x2="${pos[k][0]+20}" y2="${pos[k][1]+(k[0]==='t'?14:-14)}" class="ez-b"/>`).join('')+['tr','br'].map(k=>`<line x1="195" y1="100" x2="${pos[k][0]-20}" y2="${pos[k][1]+(k[0]==='t'?14:-14)}" class="ez-b"/>`).join('')+
+      `<text x="125" y="128" text-anchor="middle" class="ez-cl">C</text><text x="195" y="128" text-anchor="middle" class="ez-cl">C</text>`+
+      Object.entries(pos).map(([k,p])=>`<g class="ez-g${!none&&lab&&hl[k]?' hi':''}"><rect x="${p[0]-40}" y="${p[1]-16}" width="80" height="32" rx="9"/><text x="${p[0]}" y="${p[1]+5}" text-anchor="middle">${L(k)}</text>${!none&&lab&&hl[k]?`<circle cx="${p[0]+38}" cy="${p[1]-15}" r="10" class="ez-nb"/><text class="ez-n" x="${p[0]+38}" y="${p[1]-11}" text-anchor="middle">1</text>`:''}</g>`).join('');
+    const out=host.querySelector('.ez-out');
+    if(none)out.innerHTML=`<b>No E/Z isomers.</b> One carbon carries two identical groups, so swapping them changes nothing.${name?` This is ${esc(name)}.`:''}`;
+    else if(lab)out.innerHTML=`On each carbon the higher-priority group is marked <b>1</b>. They are on ${lab==='Z'?'the <b>same side</b>':'<b>opposite sides</b>'}, so this is <b class="st-big">${lab}</b> (${lab==='Z'?'zusammen, together':'entgegen, opposite'}).${name?` Name: <b>${esc(name)}</b>.`:''}`;
+    else out.innerHTML='Bondline couldn’t work out the priorities for this combination.';
+  }
+  host.addEventListener('change',e=>{const s=e.target.closest('[data-s]');if(!s)return;W[s.dataset.s]=+s.value;upd()});
+  upd();
+}
+
+/* ---------- widget: Fischer projection ---------- */
+const FI_SETS={gly:{n:'Glyceraldehyde',g:['CHO','OH','CH2OH','H']},ala:{n:'Alanine',g:['COOH','H','CH3','NH2']},lac:{n:'Lactic acid',g:['COOH','OH','CH3','H']},bcf:{n:'CHBrClF',g:['Br','H','F','Cl']}};
+const FI_SMI={CHO:'C=O',CH2OH:'CO',OH:'O',H:'[H]',NH2:'N',COOH:'C(=O)O',CH3:'C',C2H5:'CC',Br:'Br',Cl:'Cl',F:'F',Et:'CC'};
+const FI_V={top:[0,.82,-.57],right:[.82,0,.57],bottom:[0,-.82,-.57],left:[-.82,0,.57]};
+function fiSmiles(g){const v=[FI_V.top,FI_V.right,FI_V.bottom,FI_V.left];const n=V3c(V3s(v[2],v[1]),V3s(v[3],v[1]));const tag=V3d(n,v[0])>0?'@':'@@';return`[C${tag}](${FI_SMI[g[0]]})(${FI_SMI[g[1]]})(${FI_SMI[g[2]]})${FI_SMI[g[3]]}`}
+function fiLabel(g){try{const a=analyseDrawing(smilesToScheme(fiSmiles(g)))[0];return a.cip.centres[0]&&a.cip.centres[0].label}catch(e){return null}}
+function stFischerSVG(g,opt){opt=opt||{};const L=k=>stSub(ST_LBL[k]||k).replace(/<sub>/g,'<tspan class="sb" dy="4">').replace(/<\/sub>/g,'</tspan><tspan dy="-4"></tspan>');
+  const sel=opt.sel;const W=270,H=220,cx=135,cy=110,r=62;
+  const pos=[[cx,cy-r-14],[cx+r+26,cy+5],[cx,cy+r+24],[cx-r-26,cy+5]];
+  const bonds=opt.wedge?`<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-r}" class="fi-h" stroke-dasharray="3 4"/><line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy+r}" class="fi-h" stroke-dasharray="3 4"/><polygon points="${cx},${cy} ${cx+r},${cy-6} ${cx+r},${cy+6}" class="fi-w"/><polygon points="${cx},${cy} ${cx-r},${cy-6} ${cx-r},${cy+6}" class="fi-w"/><text x="${cx}" y="${cy-8}" text-anchor="middle" class="fi-c">C</text>`
+    :`<line x1="${cx}" y1="${cy-r}" x2="${cx}" y2="${cy+r}" class="fi-l"/><line x1="${cx-r}" y1="${cy}" x2="${cx+r}" y2="${cy}" class="fi-l"/>`;
+  return`<svg class="fi-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fischer projection: ${g.map(k=>ST_LBL[k]||k).join(' top, ').replace(/ top, ([^,]*), ([^,]*), (.*)$/,' top, $1 right, $2 bottom, $3 left')}">${bonds}${pos.map((p,i)=>`<g class="fi-g${sel===i?' sel':''}" data-fi="${i}"><rect x="${p[0]-36}" y="${p[1]-17}" width="72" height="30" rx="8"/><text x="${p[0]}" y="${p[1]+3}" text-anchor="middle">${L(g[i])}</text></g>`).join('')}</svg>`}
+function stwFischer(host){
+  const W={set:'gly',g:FI_SETS.gly.g.slice(),sel:null,ops:[],start:null};
+  host.innerHTML=`<div class="stw-top"><div class="qz-chips stw-chips">${Object.entries(FI_SETS).map(([k,s])=>`<button class="qz-chip${k===W.set?' on':''}" data-m="${k}">${s.n}</button>`).join('')}</div></div>
+   <div class="fi-wrap"><div class="fi-a"></div><div class="fi-b"></div></div><div class="stw-row"><button class="btn small" data-a="r90">Rotate 90°</button><button class="btn small" data-a="r180">Rotate 180°</button><button class="btn small" data-a="reset">Reset</button><span class="hm-muted">Or click two groups to swap them.</span></div><p class="stw-msg" aria-live="polite"></p>`;
+  W.start=fiLabel(W.g);
+  function upd(note){const lab=fiLabel(W.g);host.querySelector('.fi-a').innerHTML=`<div class="fi-t">Fischer projection</div>`+stFischerSVG(W.g,{sel:W.sel});host.querySelector('.fi-b').innerHTML=`<div class="fi-t">What it means in 3D</div>`+stFischerSVG(W.g,{wedge:true});
+    const same=lab===W.start;host.querySelector('.stw-msg').innerHTML=`${note?note+' ':''}This is <b class="st-big">(${lab})</b>-${FI_SETS[W.set].n.toLowerCase()}${W.ops.length?`: ${same?'the <b>same</b> molecule you started with':'the <b>enantiomer</b> of the one you started with'}.`:'. Horizontal groups come toward you; vertical groups go away.'}`}
+  host.addEventListener('click',e=>{const c=e.target.closest('[data-m]');if(c){W.set=c.dataset.m;W.g=FI_SETS[W.set].g.slice();W.ops=[];W.sel=null;W.start=fiLabel(W.g);host.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===c));upd();return}
+    const a=e.target.closest('[data-a]');if(a){W.sel=null;const g=W.g;
+      if(a.dataset.a==='r90'){W.g=[g[3],g[0],g[1],g[2]];W.ops.push('90');upd('Rotated 90°: what was horizontal is now vertical, so in 3D everything has swapped front and back.')}
+      if(a.dataset.a==='r180'){W.g=[g[2],g[3],g[0],g[1]];W.ops.push('180');upd('Rotated 180°: horizontal groups stay horizontal and vertical stay vertical.')}
+      if(a.dataset.a==='reset'){W.g=FI_SETS[W.set].g.slice();W.ops=[];upd()}return}
+    const f=e.target.closest('[data-fi]');if(f&&f.closest('.fi-a')){const i=+f.dataset.fi;if(W.sel==null){W.sel=i;upd('Now click the group to swap it with.')}else if(W.sel===i){W.sel=null;upd()}else{const g=W.g.slice();[g[W.sel],g[i]]=[g[i],g[W.sel]];W.g=g;W.sel=null;W.ops.push('swap');upd('Swapped two groups: one swap always inverts the stereocentre.')}}});
+  upd();
+}
+
+/* ---------- widget: Newman projection of butane with the energy curve ---------- */
+const NW_C=[9.7667,2.2667,-.2667,7.2333];
+const nwE=th=>{const t=th*Math.PI/180;return NW_C[0]+NW_C[1]*Math.cos(t)+NW_C[2]*Math.cos(2*t)+NW_C[3]*Math.cos(3*t)};
+function nwName(th){th=((th%360)+360)%360;const d=Math.min(th,360-th);if(d<15)return'Fully eclipsed';if(Math.abs(d-60)<15)return'Gauche';if(Math.abs(d-120)<15)return'Eclipsed';if(d>165)return'Anti';return d<60?'Between fully eclipsed and gauche':d<120?'Between gauche and eclipsed':'Between eclipsed and anti'}
+function stNewmanSVG(th,opt){opt=opt||{};const cx=110,cy=110,r=48,L=86,front=opt.front||['CH3','H','H'],back=opt.back||['CH3','H','H'];
+  const lb=k=>(ST_LBL[k]||k).replace('₃','<tspan class="sb" dy="4">3</tspan><tspan dy="-4"></tspan>');
+  const ray=(a,len,from)=>{const t=(a-90)*Math.PI/180;return[cx+Math.cos(t)*len,cy+Math.sin(t)*len,cx+Math.cos(t)*from,cy+Math.sin(t)*from]};
+  let s=`<svg class="nw-svg" viewBox="0 0 220 220" role="img" aria-label="Newman projection, dihedral angle ${Math.round(th)} degrees">`;
+  back.forEach((g,i)=>{const a=th+i*120,[x,y,x0,y0]=ray(a,L,r);s+=`<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="nw-bk"/><text x="${(cx+(x-cx)*1.18).toFixed(1)}" y="${(cy+(y-cy)*1.18+5).toFixed(1)}" text-anchor="middle" class="nw-t${g!=='H'?' me':''}${opt.hl&&opt.hl.includes('b'+i)?' hl':''}">${lb(g)}</text>`});
+  s+=`<circle cx="${cx}" cy="${cy}" r="${r}" class="nw-c"/>`;
+  front.forEach((g,i)=>{const a=i*120,[x,y]=ray(a,L,0);s+=`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="nw-fr"/><text x="${(cx+(x-cx)*1.18).toFixed(1)}" y="${(cy+(y-cy)*1.18+5).toFixed(1)}" text-anchor="middle" class="nw-t${g!=='H'?' me':''}${opt.hl&&opt.hl.includes('f'+i)?' hl':''}">${lb(g)}</text>`});
+  return s+`<circle cx="${cx}" cy="${cy}" r="3" class="nw-dot"/></svg>`}
+function stwNewman(host){
+  const W={th:180,play:null};
+  host.innerHTML=`<div class="nw-wrap"><div class="nw-a"></div><div class="nw-b"><svg class="nw-plot" viewBox="0 0 360 170" role="img" aria-label="Energy of butane against dihedral angle"></svg>
+   <input type="range" min="0" max="360" step="1" value="180" class="nw-r" aria-label="Rotate the back carbon"><div class="stw-row"><button class="btn small" data-a="play">▶ Rotate</button>${[['Anti',180],['Gauche',60],['Eclipsed',120],['Fully eclipsed',0]].map(([n,a])=>`<button class="btn small" data-th="${a}">${n}</button>`).join('')}</div></div></div><p class="stw-msg" aria-live="polite"></p>`;
+  const X=a=>20+a*.9,Y=e=>150-e*6.6;
+  function plot(){let d='';for(let a=0;a<=360;a+=4)d+=(a?'L':'M')+X(a).toFixed(1)+','+Y(nwE(a)).toFixed(1);
+    return`<line x1="20" y1="150" x2="344" y2="150" class="nw-ax"/><line x1="20" y1="20" x2="20" y2="150" class="nw-ax"/><path d="${d}" class="nw-line"/>`+
+      [0,60,120,180,240,300,360].map(a=>`<text x="${X(a)}" y="165" text-anchor="middle" class="nw-tick">${a}°</text>`).join('')+`<text x="26" y="18" class="nw-tick">kJ mol⁻¹</text>`+
+      [0,5,10,15,20].map(e=>`<text x="15" y="${Y(e)+4}" text-anchor="end" class="nw-tick">${e}</text>`).join('')+
+      `<circle cx="${X(W.th).toFixed(1)}" cy="${Y(nwE(W.th)).toFixed(1)}" r="6" class="nw-pt"/>`}
+  function upd(){const th=W.th;host.querySelector('.nw-a').innerHTML=stNewmanSVG(th);host.querySelector('.nw-plot').innerHTML=plot();host.querySelector('.nw-r').value=th;
+    const n=nwName(th),e=nwE(th);host.querySelector('.stw-msg').innerHTML=`Dihedral angle between the two CH₃ groups: <b>${Math.round(th)}°</b>. <b>${n}</b>, about <b>${Math.max(0,e).toFixed(1)} kJ mol⁻¹</b> above anti. ${n==='Anti'?'The CH₃ groups are as far apart as possible: the lowest-energy conformation.':n==='Gauche'?'Staggered, but the two CH₃ groups are close enough to bump (steric strain).':n==='Eclipsed'?'Each CH₃ is lined up with an H: torsional strain plus some steric strain.':n==='Fully eclipsed'?'CH₃ directly behind CH₃: the highest-energy conformation.':''}`}
+  host.querySelector('.nw-r').addEventListener('input',e=>{W.th=+e.target.value;upd()});
+  host.addEventListener('click',e=>{const t=e.target.closest('[data-th]');if(t){W.th=+t.dataset.th;upd();return}const p=e.target.closest('[data-a="play"]');if(!p)return;
+    if(W.play){cancelAnimationFrame(W.play);W.play=null;p.textContent='▶ Rotate';return}p.textContent='❚❚ Pause';let last=performance.now();
+    const step=t=>{if(!host.isConnected){W.play=null;return}W.th=(W.th+(t-last)*.06)%360;last=t;upd();W.play=requestAnimationFrame(step)};W.play=requestAnimationFrame(step)});
+  upd();
+}
+
+/* ---------- widget: polarimeter and enantiomeric excess ---------- */
+function stwPolar(host){
+  const W={p:75,alpha:40};
+  host.innerHTML=`<div class="po-wrap"><svg class="po-svg" viewBox="0 0 220 220" aria-hidden="true"></svg><div class="po-ctl"><label>Amount of the (+) enantiomer: <b class="po-p"></b><input type="range" min="0" max="100" value="75" class="po-r"></label><div class="po-read"></div></div></div>`;
+  function upd(){const p=W.p,ee=Math.abs(2*p-100),obs=(2*p-100)/100*W.alpha,ang=obs*2.2;
+    host.querySelector('.po-p').textContent=`${p}% (+), ${100-p}% (−)`;
+    host.querySelector('.po-svg').innerHTML=`<circle cx="110" cy="110" r="86" class="po-dial"/>${Array.from({length:13},(_,i)=>{const a=(i-6)*15*Math.PI/180;return`<line x1="${110+Math.sin(a)*78}" y1="${110-Math.cos(a)*78}" x2="${110+Math.sin(a)*86}" y2="${110-Math.cos(a)*86}" class="po-tick"/>`}).join('')}
+      <line x1="110" y1="110" x2="110" y2="30" class="po-zero"/><line x1="110" y1="110" x2="${(110+Math.sin(ang*Math.PI/180)*80).toFixed(1)}" y2="${(110-Math.cos(ang*Math.PI/180)*80).toFixed(1)}" class="po-arm"/><circle cx="110" cy="110" r="5" class="po-hub"/><text x="110" y="200" text-anchor="middle" class="po-txt">${obs>=0?'+':'−'}${Math.abs(obs).toFixed(1)}°</text>`;
+    host.querySelector('.po-read').innerHTML=`<p><b>Observed [α]:</b> ${obs>=0?'+':'−'}${Math.abs(obs).toFixed(1)}° (pure (+) enantiomer: +${W.alpha}°)</p><p><b>Enantiomeric excess:</b> ${ee}% ${ee?`in favour of the ${p>50?'(+)':'(−)'} enantiomer`:''}</p><p class="hm-muted">${ee===0?'A 50:50 racemic mixture: the rotations cancel exactly.':`ee = |% (+) − % (−)| = |${p} − ${100-p}| = ${ee}%. Also ee = observed ÷ pure × 100.`}</p>`}
+  host.querySelector('.po-r').addEventListener('input',e=>{W.p=+e.target.value;upd()});upd();
+}
+
+/* ---------- widget: SN2 inversion figure ---------- */
+function stwSN2(host){host.innerHTML=`<div class="sn-row"><figure>${smilesSVG('C[C@@H](Br)CC',1)}<figcaption>(R)-2-bromobutane</figcaption></figure><div class="sn-ar"><span>OH⁻</span><svg viewBox="0 0 60 16" aria-hidden="true"><path d="M2 8h52M46 3l8 5-8 5"/></svg><small>SN2, one step</small></div><figure>${smilesSVG('C[C@H](O)CC',1)}<figcaption>(S)-butan-2-ol</figcaption></figure></div>
+  <div class="stw-row"><button class="btn small" data-a="lib">Watch the SN2 inversion in 3D</button><span class="hm-muted">Opens the reaction library.</span></div>`;
+  host.querySelector('[data-a="lib"]').onclick=()=>{try{openLibrary('sn2')}catch(e){}}}
+
+const ST_WIDGETS={rs3d:stwRS,mirror:stwMirror,meso:stwMeso,chair:stwChair,model:stwModel,ez:stwEZ,fischer:stwFischer,newman:stwNewman,polar:stwPolar,sn2:stwSN2};
+function stMount(root){root.querySelectorAll('[data-stw]').forEach(el=>{if(el.dataset.on)return;el.dataset.on='1';const f=ST_WIDGETS[el.dataset.stw];if(!f)return;
+  const go=()=>{try{f(el,el.dataset.arg)}catch(e){console.error(e);el.innerHTML='<p class="hm-muted">This interactive model couldn’t load.</p>'}};
+  if(window.IntersectionObserver){const io=new IntersectionObserver(es=>{if(es.some(x=>x.isIntersecting)){io.disconnect();go()}},{rootMargin:'200px'});io.observe(el)}else go()})}
+function stDisposeViews(){STQ.views.forEach(V=>V.dispose());STQ.views=[]}
+const stW=(k,arg,cap)=>`<figure class="stw" data-stw="${k}"${arg?` data-arg="${arg}"`:''}>${''}</figure>${cap?`<p class="stw-cap">${cap}</p>`:''}`;
+const stS=(s,cap)=>`<figure class="nm-ex st-ex"><div class="nm-struct">${smilesSVG(s,1.05)}</div><figcaption>${cap}</figcaption><button class="linkbtn nm-3d" data-3d="${esc(s)}" data-name="">View in 3D</button></figure>`;
+const stT=(rows,head)=>`<div class="nm-tablewrap"><table class="nm-table"><thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+
+/* ---------- lessons ---------- */
+const ST_LESSONS=[
+ {id:'intro',title:'Thinking in 3D',lede:'Stereochemistry is about how atoms are arranged in space. Two molecules can have exactly the same bonds and still be different compounds.',sections:[
+  {h:'Kinds of isomer',html:`<div class="st-tree"><div class="st-node top">Isomers<small>same molecular formula</small></div><div class="st-kids"><div class="st-col"><div class="st-node">Constitutional isomers<small>atoms joined in a different order</small></div><p class="st-eg">butan-1-ol and butan-2-ol</p></div><div class="st-col"><div class="st-node">Stereoisomers<small>same connections, different arrangement in space</small></div><div class="st-kids"><div class="st-col"><div class="st-node sm">Enantiomers<small>non-superimposable mirror images</small></div></div><div class="st-col"><div class="st-node sm">Diastereomers<small>stereoisomers that aren’t mirror images, including E/Z and cis/trans</small></div></div></div></div></div></div><p>Conformations (staggered or eclipsed ethane, the two chairs of cyclohexane) are different shapes of the <i>same</i> molecule. They interconvert by rotating single bonds, so they aren’t separate isomers.</p>`},
+  {h:'Wedges and hashes',html:`<p>A drawing on paper is flat, so chemists use three kinds of bond line around a tetrahedral carbon:</p><ul><li>a plain line lies in the plane of the page;</li><li>a solid <b>wedge</b> comes toward you;</li><li>a <b>hashed</b> bond goes away from you, behind the page.</li></ul><p>The usual drawing has two plain bonds, one wedge and one hash, all about 109.5° apart in 3D. Try turning this model of bromochlorofluoromethane.</p>${stW('model','bcf')}`},
+  {h:'Why it matters',html:'<p>Enzymes, receptors and many drugs are chiral, so they can tell mirror-image molecules apart. (R)-carvone smells of spearmint and (S)-carvone of caraway; one enantiomer of a drug can be active while the other is inactive or harmful. Stereochemistry also explains reaction outcomes: why SN2 inverts a carbon, why bromine adds anti, and why E2 needs a particular conformation.</p>'}]},
+ {id:'chiral',title:'Chirality and stereocentres',lede:'A molecule is chiral if it can’t be superimposed on its mirror image, just like your left and right hands.',sections:[
+  {h:'Superimposing mirror images',html:`<p>Slide each molecule onto its mirror image and try to make every atom line up.</p>${stW('mirror')}`},
+  {h:'Stereocentres',html:`<p>The usual cause of chirality is a <b>stereocentre</b> (chirality centre): an sp³ atom, usually carbon, carrying <b>four different groups</b>. Swapping any two groups on it gives the other enantiomer.</p><div class="nm-exgrid">${stS('CC(O)CC','Butan-2-ol: C2 carries H, OH, CH₃ and CH₂CH₃, so it is a stereocentre.')}${stS('CC(C)O','Propan-2-ol: C2 carries two CH₃ groups, so it isn’t.')}${stS('CC1CCCC=C1','3-Methylcyclohexene: the two ring paths from C3 are different, so C3 is a stereocentre.')}</div>
+   <p>To find stereocentres quickly, skip any carbon with two H atoms (CH₂ or CH₃), any carbon in a double or triple bond, and any carbon with two identical groups. Check what’s left. In rings, follow the ring both ways round: if the two paths differ, they count as different groups.</p>`},
+  {h:'Planes of symmetry',html:'<p>A molecule with an internal <b>mirror plane</b> (or a centre of inversion) is achiral, even if it contains stereocentres. Such molecules are called <b>meso</b> compounds; there’s a 3D model in “Stereoisomer relationships”. A molecule with exactly one stereocentre is always chiral.</p>'},
+  {h:'How many stereoisomers?',html:'<p>With <i>n</i> stereocentres there can be at most <b>2ⁿ</b> stereoisomers. Meso forms reduce the number: 2,3-dibromobutane has two stereocentres but only three stereoisomers, because (2R,3S) and (2S,3R) are the same meso compound. Each C=C that can be E or Z also doubles the count.</p>'}]},
+ {id:'rs',title:'R and S',lede:'The Cahn–Ingold–Prelog (CIP) rules give every stereocentre a label, R or S, that tells you exactly how its groups are arranged.',sections:[
+  {h:'Assign a configuration, step by step',html:stW('rs3d')},
+  {h:'The priority rules',html:stT([['1','Rank by the atomic number of the atom attached to the stereocentre. Higher number wins.','–Br > –Cl > –OH > –NH₂ > –CH₃ > –H'],['2','If two attached atoms tie, list the three atoms attached to each, highest first, and compare at the first difference.','–CH₂OH (O, H, H) beats –CH(CH₃)₂ (C, C, H)'],['3','Double and triple bonds count as two or three single bonds to duplicate atoms.','–CHO counts as (O, O, H), so it beats –CH₂OH (O, H, H)'],['4','Isotopes: the heavier one wins.','–D > –H']],['Rule','What to do','Example'])+'<p>The first point of difference decides, however big the rest of the group is: –CH₂Br (Br, H, H) beats –C(CH₃)₃ (C, C, C).</p>'},
+  {h:'Shortcuts',html:'<ul><li>If the lowest-priority group is on a <b>wedge</b> (toward you), read 1 → 2 → 3 as drawn and <b>reverse</b> the answer.</li><li>If it’s on a plain bond, swap it with the group on the hash, read the answer, then reverse it (one swap inverts the centre).</li><li>R/S says nothing about the sign of optical rotation: (R)-glyceraldehyde is (+), but (R)-lactic acid is (−).</li></ul>'}]},
+ {id:'ez',title:'E and Z',lede:'A C=C can’t rotate, so groups on either end are fixed on the same side or on opposite sides.',sections:[
+  {h:'Build an alkene',html:`<p>Pick the groups on each carbon. Bondline ranks them with the CIP rules and labels the double bond.</p>${stW('ez')}`},
+  {h:'How to assign E or Z',html:'<ol><li>On each alkene carbon, find which of its two groups has the higher CIP priority.</li><li>If the two higher groups are on the same side, it is <b>Z</b> (German zusammen, together). If they’re on opposite sides, it is <b>E</b> (entgegen, opposite).</li></ol><p>If either carbon carries two identical groups, there are no E/Z isomers. Rings of up to seven atoms can only hold a cis double bond, so cyclohexene has no E isomer.</p>'},
+  {h:'cis/trans and E/Z',html:`<p>cis and trans compare <i>similar</i> groups; E and Z compare <i>priorities</i>. They usually agree, but not always:</p><div class="nm-exgrid">${stS('C/C(Br)=C/C','The two CH₃ groups are cis, but Br outranks CH₃ on its carbon, so the higher-priority groups are opposite: (E)-2-bromobut-2-ene.')}${stS('OC(=O)/C=C\\C(=O)O','Maleic acid, (Z)-butenedioic acid. Its E isomer is fumaric acid.')}</div>`}]},
+ {id:'rel',title:'Stereoisomer relationships',lede:'Two stereoisomers are either mirror images (enantiomers) or not (diastereomers). Meso compounds are a special case.',sections:[
+  {h:'Meso compounds',html:`<p>2,3-Dibromobutane has two identical stereocentres. Compare the meso isomer with one of the chiral ones.</p>${stW('meso')}`},
+  {h:'Telling them apart',html:stT([['Same compound','Same configuration at every stereocentre (after naming both)'],['Enantiomers','Every stereocentre inverted: (2R,3R) and (2S,3S)'],['Diastereomers','Some, but not all, inverted: (2R,3R) and (2R,3S); also E and Z isomers'],['Constitutional isomers','Different connectivity: check this first']],['Relationship','Test'])+'<p>A meso compound is identical to its own “enantiomer”: (2R,3S)-2,3-dibromobutane and (2S,3R)-2,3-dibromobutane are the same molecule.</p>'},
+  {h:'Properties',html:'<p>Enantiomers have identical melting points, boiling points, solubilities and spectra. They differ only in how they interact with other chiral things: plane-polarised light, enzymes, chiral reagents. Diastereomers are different compounds with different physical properties, so they can be separated by crystallisation or chromatography. That’s how racemic mixtures are often resolved: react them with one enantiomer of a chiral acid or base to make diastereomeric salts, separate those, then release the pure enantiomers.</p>'}]},
+ {id:'fischer',title:'Fischer projections',lede:'A compact way to draw stereocentres, used for sugars and amino acids.',sections:[
+  {h:'Try it',html:`<p>Rotate the projection or swap groups, and watch what happens to the configuration.</p>${stW('fischer')}`},
+  {h:'The rules',html:'<ul><li>Each crossing point is a stereocentre. Horizontal bonds point <b>toward you</b>, vertical bonds <b>away</b>.</li><li>Rotating by <b>180°</b> in the page gives the same molecule. Rotating by <b>90°</b> gives the enantiomer.</li><li>One swap of two groups gives the enantiomer; two swaps give the original back.</li><li>To assign R/S: if the lowest-priority group is on a vertical bond, read 1 → 2 → 3 directly. If it’s on a horizontal bond, read it and reverse the answer.</li></ul>'},
+  {h:'D and L',html:'<p>Draw the carbon chain vertically with the most oxidised carbon (CHO or COOH) at the top. If the OH (sugars) or NH₂ (amino acids) on the stereocentre furthest from the top is on the <b>right</b>, it is <b>D</b>; on the left, <b>L</b>. Natural sugars are D; the amino acids in proteins are L. D/L is a separate system from R/S: most L-amino acids are S, but L-cysteine is R.</p>'}]},
+ {id:'conf',title:'Conformations',lede:'Single bonds rotate. The shapes a molecule passes through have different energies.',sections:[
+  {h:'Newman projections: butane',html:`<p>Look straight down the C2–C3 bond: the front carbon is the dot, the back carbon the circle. Drag the slider to turn the back carbon.</p>${stW('newman')}`},
+  {h:'Cyclohexane chairs',html:`<p>Cyclohexane is puckered into a chair, with every C–C bond staggered. Each carbon has one <b>axial</b> position (straight up or down) and one <b>equatorial</b> (around the ring). A ring flip swaps them all.</p>${stW('chair')}`},
+  {h:'Two substituents',html:stT([['1,2','one axial, one equatorial','both equatorial'],['1,3','both equatorial','one axial, one equatorial'],['1,4','one axial, one equatorial','both equatorial']],['Positions','cis: more stable chair','trans: more stable chair'])+'<p>Bigger groups have a stronger preference for equatorial. A tert-butyl group effectively locks the ring with it equatorial.</p>'}]},
+ {id:'optical',title:'Optical activity',lede:'Enantiomers rotate plane-polarised light by equal amounts in opposite directions.',sections:[
+  {h:'Polarimetry',html:`<p>A polarimeter passes plane-polarised light through a solution and measures how far the plane turns. Clockwise is <b>(+)</b>, dextrorotatory; anticlockwise is <b>(−)</b>, levorotatory.</p><p class="sp-eq">[α] = α ÷ (l × c)</p><p>where α is the observed rotation, l the path length in dm and c the concentration in g mL⁻¹. The specific rotation [α] is a property of the compound, like a melting point.</p>`},
+  {h:'Mixtures and enantiomeric excess',html:`<p>Move the slider to change the mixture.</p>${stW('polar')}<p><b>Enantiomeric excess</b> (ee) = % major − % minor = observed [α] ÷ [α] of the pure enantiomer × 100. A 90:10 mixture has 80% ee.</p>`},
+  {h:'Things that don’t rotate light',html:'<p>Achiral compounds, racemic mixtures (50:50 of two enantiomers) and meso compounds are all optically inactive. There’s no way to predict the sign of rotation from R or S: it has to be measured.</p>'}]},
+ {id:'rxn',title:'Stereochemistry in reactions',lede:'Mechanisms decide the stereochemistry of the products.',sections:[
+  {h:'SN2: inversion',html:`<p>The nucleophile attacks from the side opposite the leaving group, and the other three groups flip over like an umbrella in the wind (Walden inversion).</p>${stW('sn2')}<p>The geometry always inverts. The R/S label changes only if the new group takes the same priority rank as the old one, which is the usual case.</p>`},
+  {h:'SN1 and planar intermediates',html:'<p>A carbocation is flat, so the nucleophile can attack either face: an optically pure starting material gives a largely racemic product. The same applies to any planar intermediate attacked by an achiral reagent, such as NaBH₄ reducing a ketone.</p>'},
+  {h:'Additions to alkenes',html:stT([['Br₂ (via bromonium ion)','anti','meso','racemic'],['OsO₄ or cold KMnO₄ (diol)','syn','racemic','meso'],['mCPBA (epoxide)','syn','trans epoxide (racemic)','cis epoxide (meso)'],['H₂, Pd or Pt','syn','',''],['BH₃, then H₂O₂/NaOH','syn','','']],['Reagent','Adds','to (E)-but-2-ene gives','to (Z)-but-2-ene gives'])+'<p>Reactions like these, where different stereoisomers of the starting material give different stereoisomers of the product, are <b>stereospecific</b>.</p>'},
+  {h:'Alkynes to alkenes',html:'<p>H₂ with Lindlar’s catalyst adds both H atoms to the same face: alkyne → <b>Z</b> alkene. Sodium in liquid ammonia goes through a radical anion that takes the trans shape: alkyne → <b>E</b> alkene.</p>'},
+  {h:'E2 needs anti-periplanar',html:`<p>In E2, the C–H and C–leaving group bonds must be <b>anti-periplanar</b> (180° apart in a Newman projection), so the breaking C–H bond lines up with the C–LG σ* orbital. In cyclohexanes both must be axial (trans-diaxial).</p><div class="nw-static">${stNewmanSVG(180,{front:['Br','CH3','H'],back:['H','H','CH3'],hl:['f0','b0']})}<p class="stw-cap">H and Br anti-periplanar, ready for E2.</p></div>`}]},
+];
+const ST_PRACTICE_LABEL={intro:'Start practising'};
+
+/* ---------- side list, lessons, practice ---------- */
+function stTopicStats(t){const qs=ST_BANK.filter(q=>q.t===t);return{m:qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,n:qs.length}}
+function stAllStats(){const qs=ST_BANK;return{m:qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,n:qs.length}}
+function renderStSide(){const box=$('#stList');if(!box)return;const cur=STQ.view==='lesson'?STQ.lesson:null;
+  box.innerHTML=ST_LESSONS.map(l=>{const t=ST_TOPICS.find(x=>x.id===l.id),s=t?stTopicStats(t.id):null;return`<button class="item${cur===l.id?' on':''}" data-stlesson="${l.id}"><span class="t">${esc(l.title)}</span><span class="m">${s?`${s.m} of ${s.n} mastered`:'Start here'}</span>${s?`<span class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*s.m/s.n)}%"></i></span>`:''}</button>`}).join('')+
+  `<button class="item" data-stsetup="1"><span class="t">Practice questions</span><span class="m">${stAllStats().m} of ${ST_BANK.length} mastered</span></button>`}
+function stOpen(){if(!STQ.view)stLesson('intro');else if(STQ.view==='lesson')stLesson(STQ.lesson);else if(STQ.view==='quiz'&&STQ.qz)stRenderQ();else if(STQ.view==='setup')stSetup([...(STQ.setupSel||[])]);else stLesson('intro')}
+function stLesson(id){
+  const i=ST_LESSONS.findIndex(l=>l.id===id),l=ST_LESSONS[i];if(!l)return;stDisposeViews();STQ.view='lesson';STQ.lesson=id;const next=ST_LESSONS[i+1],topic=ST_TOPICS.find(t=>t.id===id);
+  $('#stPage').innerHTML=`<article class="nm-lesson st-lesson"><header class="nm-head"><div class="nm-kicker">${i===0?'Start here':`Lesson ${i} of ${ST_LESSONS.length-1}`}</div><h1>${esc(l.title)}</h1><p class="nm-lede">${esc(l.lede)}</p></header>
+   ${l.sections.map(s=>`<section class="nm-sec"><h2>${esc(s.h)}</h2>${s.html}</section>`).join('')}
+   <div class="nm-actions"><button class="btn primary" data-stpractice="${topic?topic.id:''}">${topic?'Practise this topic':'Start practising'}</button>${next?`<button class="btn" data-stlesson="${next.id}">Next: ${esc(next.title)}</button>`:''}</div></article>`;
+  stMount($('#stPage'));renderStSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+function stSetup(topics){
+  stDisposeViews();STQ.view='setup';const sel=new Set(topics&&topics.length?topics:ST_TOPICS.map(t=>t.id));STQ.setupSel=sel;
+  $('#stPage').innerHTML=`<section class="qz-setup"><header class="nm-head"><div class="nm-kicker">Practice</div><h1>Stereochemistry practice</h1><p class="nm-lede">${ST_BANK.length} questions on stereocentres, R/S, E/Z, isomer relationships, Fischer projections, conformations, optical activity and reactions. Questions you haven’t seen or got wrong come up first.</p></header>
+   <h2 class="qz-h">Topics</h2><div class="qz-chips" id="stTopics">${ST_TOPICS.map(t=>{const s=stTopicStats(t.id);return`<button class="qz-chip${sel.has(t.id)?' on':''}" data-sttopic="${t.id}" aria-pressed="${sel.has(t.id)}"><span>${esc(t.title)}</span><small>${s.m}/${s.n}</small></button>`}).join('')}</div>
+   <div class="qz-row"><button class="linkbtn" id="stAll">Select all</button><button class="linkbtn" id="stNone">Clear</button></div>
+   <h2 class="qz-h">Length</h2><div class="qz-len">${[10,20].map(n=>`<label class="qz-lenopt"><input type="radio" name="stlen" value="${n}"${STQ.setupLen===n?' checked':''}><span>${n} questions</span></label>`).join('')}</div>
+   <div class="nm-actions"><button class="btn primary" id="stStart">Start practice</button></div></section>`;
+  const sync=()=>{document.querySelectorAll('#stTopics .qz-chip').forEach(b=>{const on=sel.has(b.dataset.sttopic);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});$('#stStart').disabled=!sel.size};
+  $('#stTopics').onclick=e=>{const b=e.target.closest('.qz-chip');if(!b)return;sel.has(b.dataset.sttopic)?sel.delete(b.dataset.sttopic):sel.add(b.dataset.sttopic);sync()};
+  $('#stAll').onclick=()=>{ST_TOPICS.forEach(t=>sel.add(t.id));sync()};$('#stNone').onclick=()=>{sel.clear();sync()};
+  $('#stStart').onclick=()=>{STQ.setupLen=+document.querySelector('input[name="stlen"]:checked').value;stStart({topics:[...sel],len:STQ.setupLen})};
+  sync();renderStSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
+}
+const ST_FIXED=[['R','S'],['E','Z'],['Chiral','Achiral'],['Yes','No'],['D','L']];
+function stFig(f){if(!f)return'';
+  if(f.k==='smi')return`<div class="qz-struct">${smilesSVG(f.s,1.2)}<button class="linkbtn nm-3d" data-3d="${esc(f.s)}" data-name="">View in 3D</button></div>`;
+  if(f.k==='pair')return`<div class="st-pair">${[['A',f.a],['B',f.b]].map(([n,s])=>`<figure><span class="st-pl">${n}</span>${smilesSVG(s,1.05)}<button class="linkbtn nm-3d" data-3d="${esc(s)}" data-name="Structure ${n}">View ${n} in 3D</button></figure>`).join('')}</div>`;
+  if(f.k==='fischer')return`<div class="qz-struct st-fi">${stFischerSVG(f.g)}</div>`;
+  if(f.k==='newman')return`<div class="qz-struct st-fi">${stNewmanSVG(f.ang)}</div>`;
+  return''}
+function stBuild(q){let opts=q.opts.slice();const fx=ST_FIXED.find(p=>p.length===opts.length&&p.every(x=>opts.includes(x)));opts=fx?fx.slice():shuffle(opts);
+  return{prompt:q.prompt,fig:stFig(q.fig),opts,ans:q.opts[0],why:q.why}}
+function stPick(pool,len){const w=q=>{const r=App.quiz.q[q.id];return!r?0:r.last===0?1:2};const g=[0,1,2].map(k=>shuffle(pool.filter(q=>w(q)===k)));return g.flat().slice(0,len||pool.length)}
+function stStart(cfg){
+  const pool=cfg.ids?cfg.ids.map(id=>ST_BY[id]).filter(Boolean):ST_BANK.filter(q=>cfg.topics.includes(q.t));if(!pool.length)return toast('Choose at least one topic.');
+  const items=(cfg.ids?shuffle(pool):stPick(pool,cfg.len)).map(q=>({q,b:stBuild(q)}));
+  stDisposeViews();STQ.qz={cfg,items,i:0,score:0,answered:false,results:[]};STQ.view='quiz';stRenderQ();
+}
+function stRenderQ(){
+  const Z=STQ.qz,it=Z.items[Z.i],b=it.b,n=Z.items.length,topic=ST_TOPICS.find(t=>t.id===it.q.t);
+  $('#stPage').innerHTML=`<section class="qz st-qz"><div class="qz-top"><span><b>Question ${Z.i+1}</b> of ${n}</span><span class="qz-topic">${esc(topic?topic.title:'')}</span><span class="qz-score">Score ${Z.score}</span><button class="linkbtn" id="stQuit">End practice</button></div>
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*Z.i/n)}%"></i></div><div class="qz-card"><p class="qz-prompt">${b.prompt}</p>${b.fig}<div class="qz-opts${b.opts.length===2?' two':''}" role="group" aria-label="Answers">${b.opts.map((o,k)=>`<button class="qz-opt" data-stk="${k}"><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div><div class="qz-fb" id="stFb" hidden></div></div></section>`;
+  Z.answered=false;$('#stQuit').onclick=()=>stFinish(true);renderStSide();$('#main').scrollTop=0;
+}
+function stAnswer(k){
+  const Z=STQ.qz;if(!Z||Z.answered)return;const it=Z.items[Z.i],b=it.b;if(k<0||k>=b.opts.length)return;const ok=b.opts[k]===b.ans;
+  document.querySelectorAll('#stPage [data-stk]').forEach((el,j)=>{el.disabled=true;if(b.opts[j]===b.ans)el.classList.add('right');else if(j===k)el.classList.add('wrong')});
+  const r=App.quiz.q[it.q.id]||{c:0,w:0};ok?r.c++:r.w++;r.last=ok?1:0;r.at=Date.now();App.quiz.q[it.q.id]=r;if(ok)Z.score++;Z.results.push({q:it.q,ok});Z.answered=true;saveQuiz();logAns(ok);
+  const last=Z.i===Z.items.length-1,fb=$('#stFb');fb.className='qz-fb '+(ok?'ok':'bad');fb.hidden=false;
+  fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':`Not quite. The answer is <b>${b.ans}</b>.`}</p><p class="qz-why">${b.why}</p><div class="qz-next"><button class="btn primary" id="stNext">${last?'See results':'Next question'}</button><span class="qz-hint">or press Enter</span></div>`;
+  $('#stNext').onclick=stNext;$('.st-qz .qz-score').textContent='Score '+Z.score;fb.scrollIntoView({block:'nearest',behavior:'smooth'});setTimeout(()=>{const x=$('#stNext');if(x)x.focus({preventScroll:true})},50);
+}
+function stNext(){const Z=STQ.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.length-1)return stFinish(false);Z.i++;stRenderQ()}
+function stFinish(early){
+  const Z=STQ.qz;if(!Z)return;if(early&&!Z.results.length){STQ.qz=null;return stSetup(Z.cfg.topics)}
+  STQ.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok);if(Z.cfg.onDone){const cb=Z.cfg.onDone;Z.cfg.onDone=null;cb(sc,Z.items.length,res)}
+  const byT={};res.forEach(r=>{const b=byT[r.q.t]=byT[r.q.t]||{ok:0,n:0};b.n++;if(r.ok)b.ok++});
+  const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. The lessons have interactive models for anything you missed.':'Keep going. Try the 3D models in the lessons, then practise again.';
+  $('#stPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Practice results</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
+   <div class="qz-break">${Object.entries(byT).map(([t,b])=>`<div class="qz-brow"><span>${esc((ST_TOPICS.find(x=>x.id===t)||{}).title||t)}</span><span class="nm-meter"><i style="width:${Math.round(100*b.ok/b.n)}%"></i></span><b>${b.ok}/${b.n}</b></div>`).join('')}</div>
+   <div class="nm-actions">${missed.length?`<button class="btn primary" id="stRetry">Retry the ${missed.length} I missed</button>`:''}<button class="btn${missed.length?'':' primary'}" id="stNew">New practice</button><button class="btn" data-stlesson="${Z.cfg.topics&&Z.cfg.topics.length===1?Z.cfg.topics[0]:'intro'}">Back to lessons</button></div></section>`;
+  if(missed.length)$('#stRetry').onclick=()=>stStart({ids:missed.map(r=>r.q.id),topics:Z.cfg.topics});
+  $('#stNew').onclick=()=>stSetup(Z.cfg.topics);STQ.qz=null;renderStSide();$('#main').scrollTop=0;
+}
+function stKey(e){if(App.mode!=='stereo'||!STQ.qz||STQ.view!=='quiz')return;if(e.target.closest('input,textarea,select,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;if(document.querySelector('.scrim:not([hidden])'))return;
+  if(/^[1-4]$/.test(e.key)&&!STQ.qz.answered){e.preventDefault();stAnswer(+e.key-1)}else if(e.key==='Enter'&&STQ.qz.answered&&!e.target.closest('button')){e.preventDefault();stNext()}}
+
+/* ---------- mock exams and Progress ---------- */
+function exItemSt(q){const b=stBuild(q);return{area:'stereo',id:q.id,t:q.t,kind:'text',prompt:b.prompt,fig:b.fig,opts:b.opts,ans:b.opts.indexOf(b.ans),answer:b.ans,why:b.why}}
+
+function wireV19(){
+  const i=PX_MODES.indexOf('naming');PX_MODES.splice(i+1,0,'stereo');PX_LABEL.stereo='Stereo';
+  AREA_LABEL.stereo='Stereo';
+  AREAS.stereo={label:'Stereo',full:'Stereochemistry',topics:()=>ST_TOPICS,bank:()=>ST_BANK,byId:id=>ST_BY[id],item:q=>exItemSt(q),
+    go:(t,wrong)=>{setMode('stereo');wrong.length?stStart({ids:wrong,topics:[t]}):stSetup([t])}};
+  MX.setup.areas=['naming','stereo','spectra'];
+  const go=e=>{const l=e.target.closest('[data-stlesson]');if(l){stLesson(l.dataset.stlesson);return}
+    const p=e.target.closest('[data-stpractice]');if(p){stSetup(p.dataset.stpractice?[p.dataset.stpractice]:null);return}
+    const s=e.target.closest('[data-stsetup]');if(s){stSetup();return}
+    const k=e.target.closest('[data-stk]');if(k){stAnswer(+k.dataset.stk);return}};
+  $('#stPage').addEventListener('click',go);$('#stSide').addEventListener('click',go);
+  document.addEventListener('keydown',stKey);
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();I.push({label:'Go to Stereochemistry',kind:'Go to',fn:()=>setMode('stereo'),kw:'stereo chirality chiral r s e z enantiomer diastereomer meso fischer newman chair conformation'},
+    {label:'Stereochemistry practice',kind:'Practice',fn:()=>{setMode('stereo');stSetup()},kw:'stereo quiz r/s e/z chirality'},
+    {label:'R and S step by step (3D)',kind:'Lesson',fn:()=>{setMode('stereo');stLesson('rs')},kw:'cip priority rules r s configuration 3d'},
+    {label:'Cyclohexane chair flip (3D)',kind:'Lesson',fn:()=>{setMode('stereo');stLesson('conf')},kw:'chair axial equatorial ring flip newman butane'});return I} }
+}
+function v19AfterBoot(){if(V18_Q.has('stereo')){setMode('stereo');const l=V18_Q.get('stereo');if(l&&ST_LESSONS.some(x=>x.id===l))stLesson(l)}}
+
+CHANGELOG.unshift({v:'19',d:'4 November 2026',t:'Stereochemistry, plus more practice',items:[
+  ['Stereochemistry','A new Practice tab with nine lessons: chirality, R and S, E and Z, meso compounds, Fischer projections, conformations, optical activity and stereochemistry in reactions.'],
+  ['Interactive models','Turn 3D models with your finger or mouse. Step through assigning R or S, try to superimpose a molecule on its mirror image, find the mirror plane in a meso compound, flip a cyclohexane chair, rotate a Newman projection along its energy curve, build alkenes and watch E/Z change, and play with Fischer projections.'],
+  ['211 stereochemistry questions','Every R/S, E/Z, chirality and isomer answer is checked with two independent chemistry engines. They count towards Progress and appear in mock exams.'],
+  ['More practice everywhere','44 new naming questions, 14 new synthesis problems (27 in all) and 31 new glossary terms.'],
+  ['Fix','Clicking an answer in Spectra or Progress could also answer an unfinished naming quiz in the background. It no longer does.']]});
+if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{ST_BANK,ST_MOLS,stCentreModel,stModelRS,nameToSmiles,nameMolecule,parseSmiles,toSmiles,fiLabel,fiSmiles,ezHigher,EZ_G,NM_BANK,SYN,GLOSS_DATA,stBuild,exItemSt,AREAS,setMode,stLesson,stSetup});
+
+CHANGELOG.unshift({v:'20',d:'5 November 2026',t:'25 guides, and faster updates',items:[
+  ['16 new guides','How to study organic chemistry, functional groups, drawing structures, resonance, naming compounds, esters and amides, types of reactions, organic vs inorganic, chiral centres, enantiomers vs diastereomers, meso compounds, Fischer and Newman projections, chair conformations, ¹³C NMR and mass spectrometry. Find them under Guides at bondline.site/guides.'],
+  ['Smaller updates','When Bondline updates, your phone now downloads only what changed. Fonts and the 3D, maths and export tools stay saved between versions, and the export tools download the first time you use them.']]});
+
+/* ---------- v21: IChO course, units 1–8 (content) ----------
+   Question ids are made from the unit id and the question's position, so only ever ADD questions at the end of a unit's list. */
+const coSv=(x,k)=>{try{return smilesSVG(x,k)}catch(e){console.warn('Bondline: could not draw',x,e);return''}};
+const coR=(a,r,b,cap)=>`<figure class="co-rx"><div class="co-rxrow"><div class="nm-struct">${coSv(a,.85)}</div><div class="co-arr"><span>${r}</span><svg viewBox="0 0 60 12" aria-hidden="true"><path d="M2 6h52M48 1.5l7 4.5-7 4.5"/></svg></div><div class="nm-struct">${coSv(b,.85)}</div></div>${cap?`<figcaption>${cap}</figcaption>`:''}</figure>`;
+const coG=(...figs)=>`<div class="nm-exgrid">${figs.join('')}</div>`;
+const coNote=(h,b)=>`<aside class="co-note"><b>${h}</b> ${b}</aside>`;
+const coEq=t=>`<p class="sp-eq">${t}</p>`;
+
+const CO_UNITS_A=[
+/* ======================= CORE ======================= */
+{id:'u1',lv:'core',free:true,title:'Structure and bonding',lede:'Hybridisation, σ and π bonds, resonance and aromaticity: the ideas every later unit uses to explain reactivity.',
+ syl:['Hybridisation and geometry at carbon centres','σ and π bonds','Delocalisation and mesomeric (resonance) structures','Aromaticity (Hückel’s rule)'],
+ sections:[
+  {h:'Hybridisation and shape',html:`<p>Count the atoms bonded to a carbon plus its lone pairs (its <b>steric number</b>). That number fixes the hybridisation and the shape.</p>${stT([['4','sp³','tetrahedral, 109.5°','ethane, the CH₃ in ethanol'],['3','sp²','trigonal planar, 120°','ethene, the C of C=O, benzene'],['2','sp','linear, 180°','ethyne, the C of C≡N, the middle C of allene']],['Steric number','Hybridisation','Shape','Examples'])}
+   <p>Bond lengths follow: C–C 154 pm, C=C 134 pm, C≡C 120 pm. Every C–C bond in benzene is 139 pm, between a single and a double bond.</p>
+   ${coNote('Watch out:','an atom with a lone pair next to a π bond often becomes sp² so the lone pair can join the π system. The N of an amide is planar (sp²), not pyramidal like an amine.')}`},
+  {h:'σ and π bonds',html:`<p>A <b>σ bond</b> forms by head-on overlap along the line between two nuclei; it allows free rotation. A <b>π bond</b> forms by sideways overlap of two p orbitals above and below that line. Twisting would break the overlap, so π bonds stop rotation. This is why E and Z alkenes exist.</p>
+   <p>A double bond is one σ plus one π; a triple bond is one σ plus two π, at right angles to each other. To count bonds, count every bond line as one σ, then add one π for each extra line.</p>${coG(stS('CC#N','Ethanenitrile: 5 σ bonds (three C–H, C–C, and the σ part of C≡N) and 2 π bonds.'),stS('C=C=C','Allene: the middle carbon is sp. Its two π bonds are at right angles, so the two CH₂ groups lie in perpendicular planes.'))}`},
+  {h:'Resonance (mesomeric) structures',html:`<p>When a single Lewis structure can’t describe where the electrons are, draw several and imagine a blend of them. The rules:</p><ul><li>Only electrons move (π bonds and lone pairs). Atoms stay where they are.</li><li>Every structure has the same total charge and the same number of electrons.</li><li>Second-row atoms never exceed an octet.</li></ul>
+   <p>The most important contributors have the most atoms with full octets, the most bonds, the least separation of charge, and any negative charge on the more electronegative atom.</p>${coG(stS('CC(=O)[O-]','Ethanoate: the charge is shared equally by both oxygens, so both C–O bonds have the same length.'),stS('C=C[CH2+]','The allyl cation: the positive charge is spread over both end carbons.'),stS('CC(N)=O','Ethanamide: the N lone pair is delocalised onto oxygen. The C–N bond has partial double-bond character and doesn’t rotate freely.'))}
+   <p>Bondline’s guide <a href="/guides/how-to-draw-resonance-structures/" target="_blank" rel="noopener">How to draw resonance structures</a> works through more examples with curly arrows.</p>`},
+  {h:'Aromaticity',html:`<p>A ring is <b>aromatic</b>, and unusually stable, if it is:</p><ol><li>cyclic and planar;</li><li>fully conjugated: every ring atom has a p orbital in the π system;</li><li>holding <b>4n + 2</b> π electrons (2, 6, 10, …). This is Hückel’s rule.</li></ol><p>A planar, conjugated ring with <b>4n</b> π electrons is <b>antiaromatic</b> and unusually unstable (cyclobutadiene). Rings that avoid this by bending out of plane, like tub-shaped cyclooctatetraene, are simply non-aromatic.</p>
+   ${stT([['benzene','6','one p electron from each of the six carbons'],['pyridine','6','N lone pair is in the ring plane (sp²), not in the π system, so it is free to accept a proton'],['pyrrole','6','N lone pair is in the π system, so pyrrole is a very weak base'],['furan','6','one O lone pair is in the π system, the other in the plane'],['cyclopentadienyl anion','6','the carbanion lone pair completes the sextet'],['tropylium (cycloheptatrienyl) cation','6','seven p orbitals, one empty']],['Ring','π electrons','Notes'])}
+   ${coG(stS('c1ccncc1','Pyridine'),stS('c1cc[nH]c1','Pyrrole'),stS('c1ccoc1','Furan'))}
+   <p>Aromaticity explains odd acidities: cyclopentadiene (pKa ≈ 16) is about 10³⁴ times more acidic than an ordinary alkane, because its conjugate base is aromatic.</p>`}],
+ tools:[['orb','','Molecular orbitals','See the π orbitals of ethene, butadiene and benzene'],['guide','how-to-draw-resonance-structures','Resonance structures guide','Worked examples with curly arrows'],['view3d','c1ccccc1','Benzene in 3D','Turn the model and see that it’s flat']],
+ prob:{title:'A salt made of hydrocarbon',stem:'7-Bromocyclohepta-1,3,5-triene, C₇H₇Br, is a yellow solid that dissolves in water and gives an immediate precipitate with aqueous AgNO₃. Most alkyl bromides do neither.',parts:[
+  ['Explain this behaviour.','The C–Br bond ionises easily to give Br⁻ and the cycloheptatrienyl (tropylium) cation, C₇H₇⁺. The cation is planar, has a p orbital on all seven carbons and holds 6 π electrons, so it is aromatic. The compound behaves as an ionic salt, tropylium bromide, so Ag⁺ precipitates AgBr straight away.'],
+  ['Would 5-bromocyclopenta-1,3-diene ionise in the same way? Explain.','No. Losing Br⁻ would give the cyclopentadienyl cation: planar and conjugated but with only 4 π electrons, so it would be antiaromatic and very unstable. The C–Br bond stays covalent.'],
+  ['Cyclopentadiene (pKa ≈ 16) is far more acidic than cycloheptatriene (pKa ≈ 36). Explain.','Removing H⁺ from cyclopentadiene gives the cyclopentadienyl anion, with 6 π electrons: aromatic. Removing H⁺ from cycloheptatriene gives an anion with 8 π electrons, which would be antiaromatic if planar, so it gains no such stabilisation.']]},
+ qs:[
+  {prompt:'What is the hybridisation of the central carbon in allene, CH₂=C=CH₂?',fig:{k:'smi',s:'C=C=C'},opts:['sp','sp²','sp³'],why:'The central carbon forms two σ bonds and no lone pairs (steric number 2), so it is sp and linear. Its two unhybridised p orbitals make two π bonds at right angles.'},
+  {prompt:'How many σ and π bonds are there in ethanenitrile, CH₃C≡N?',fig:{k:'smi',s:'CC#N'},opts:['5 σ and 2 π','4 σ and 3 π','6 σ and 1 π','5 σ and 3 π'],why:'Three C–H, one C–C and the σ part of C≡N make 5 σ bonds. The triple bond adds 2 π bonds.'},
+  {prompt:'Which compound is aromatic?',opts:['Furan','Cyclooctatetraene','Cyclobutadiene','Cyclohexa-1,3-diene'],why:'Furan is planar and fully conjugated with 6 π electrons (two C=C plus one O lone pair). Cyclobutadiene (4 π) is antiaromatic, cyclooctatetraene (8 π) is tub-shaped and non-aromatic, and cyclohexa-1,3-diene has two sp³ carbons, so it is not fully conjugated.'},
+  {prompt:'In which molecule is the nitrogen lone pair part of the aromatic sextet?',opts:['Pyrrole','Pyridine','Both','Neither'],why:'Pyrrole needs the N lone pair to reach 6 π electrons. In pyridine, the N already contributes one electron to the π system through its p orbital; the lone pair sits in an sp² orbital in the ring plane.'},
+  {prompt:'What is the hybridisation of the nitrogen in ethanamide, CH₃CONH₂?',fig:{k:'smi',s:'CC(N)=O'},opts:['sp²','sp³','sp'],why:'The N lone pair is delocalised into the C=O π bond, which needs it in a p orbital. The nitrogen is planar and sp², and the C–N bond has partial double-bond character.'},
+  {prompt:'In the enolate of propanone, which resonance contributor is more important?',fig:{k:'smi',s:'C=C(C)[O-]'},opts:['The one with the negative charge on oxygen','The one with the negative charge on carbon','They contribute equally'],why:'Both are valid, but oxygen is more electronegative than carbon, so the contributor with the charge on oxygen is more important. The enolate still usually reacts at carbon with carbon electrophiles.'},
+  {prompt:'Why is cyclopentadiene (pKa ≈ 16) so much more acidic than other hydrocarbons?',fig:{k:'smi',s:'C1C=CC=C1'},opts:['Its conjugate base is aromatic','The CH₂ carbon is sp hybridised','Losing H⁺ relieves ring strain','The C=C bonds withdraw electrons inductively'],why:'The cyclopentadienyl anion is planar, cyclic, fully conjugated and has 6 π electrons. That aromatic stabilisation is what makes the C–H bond so acidic.'},
+  {prompt:'Which molecule has the shortest carbon–carbon bond?',opts:['Ethyne','Benzene','Ethene','Ethane'],why:'Bond length falls as bond order rises: C≡C 120 pm, C=C 134 pm, benzene 139 pm, C–C 154 pm.'},
+  {prompt:'How many π electrons does the tropylium (cycloheptatrienyl) cation have?',opts:['6','7','8','4'],why:'Three C=C bonds give 6 π electrons; the seventh carbon has an empty p orbital. With 6 π electrons the planar ring is aromatic.'}]},
+
+{id:'u2',lv:'core',free:true,title:'Isomerism',lede:'Constitutional isomers, tautomers, stereoisomers and conformers. IChO problems often ask you to count or draw every isomer of a formula.',
+ syl:['Constitutional isomers','Configurational isomers: E/Z, cis/trans, R/S (CIP rules)','Conformations','Tautomerism','Chirality, optical activity and Fischer projections'],
+ sections:[
+  {h:'The kinds of isomer',html:`<p>Isomers share a molecular formula. <b>Constitutional</b> (structural) isomers have their atoms joined in a different order. <b>Stereoisomers</b> have the same connections but a different arrangement in space: enantiomers, diastereomers, E/Z isomers. <b>Conformers</b> differ only by rotation about single bonds and interconvert rapidly at room temperature, so they aren’t separate compounds.</p>
+   <p>Bondline’s Stereo tab covers stereoisomers in depth, with 3D models you can turn. Use the links at the end of this unit.</p>`},
+  {h:'Counting constitutional isomers',html:`<p>Work systematically: first list every carbon skeleton, then place functional groups on each symmetry-distinct position.</p>${stT([['C₄H₁₀','2'],['C₅H₁₂','3'],['C₆H₁₄','5'],['C₇H₁₆','9'],['C₄H₉Br','4'],['C₃H₆Cl₂','4']],['Formula','Constitutional isomers'])}
+   <p>For C₄H₉Br: the butane skeleton has two kinds of carbon (C1, C2) and the 2-methylpropane skeleton has two (CH₃, the central CH), so there are 4. 2-Bromobutane has a stereocentre, so counting stereoisomers gives 5.</p>
+   <p>Use the formula to find the <b>degree of unsaturation</b> (rings + π bonds) before you start drawing:</p>${coEq('DoU = (2C + 2 + N − H − X) ÷ 2')}<p>where X is the number of halogen atoms. Oxygen and sulfur don’t appear in the formula.</p>`},
+  {h:'Tautomerism',html:`<p><b>Tautomers</b> are constitutional isomers that interconvert quickly, usually by moving an H atom and a double bond. Acid or base catalyses the change. Unlike resonance structures, tautomers are real, different compounds in equilibrium: an atom moves.</p>
+   ${coR('CC(C)=O','H⁺ or OH⁻','C=C(C)O','Keto–enol tautomerism. For propanone the enol is present at far below 0.001%.')}
+   ${stT([['propanone','keto','C=O is much stronger than C=C'],['pentane-2,4-dione','mostly enol (about 80% in the pure liquid)','conjugated C=C–C=O and an internal O–H···O hydrogen bond'],['phenol','enol (“phenol”) form','the keto form would lose aromaticity'],['2-hydroxypyridine','mostly 2-pyridone (amide form) in water','the amide is strongly stabilised by resonance and solvation']],['Compound','Favoured form','Why'])}
+   <p>Other examples: imine ⇌ enamine, and the lactam–lactim tautomers of the nucleobases, which matter for base pairing.</p>`},
+  {h:'Counting stereoisomers',html:`<p>Each stereocentre and each stereogenic C=C can double the count, up to 2ⁿ. Symmetry reduces it.</p>${stT([['2,3-dibromobutanoic acid','2 different stereocentres','4 (two pairs of enantiomers)'],['2,3-dibromobutane','2 identical stereocentres','3 (R,R and S,S, plus meso)'],['tartaric acid','2 identical stereocentres','3 (R,R and S,S, plus meso)'],['hepta-2,5-diene','2 stereogenic C=C, same ends','3 (E,E; Z,Z; E,Z)']],['Compound','Stereo units','Stereoisomers'])}`}],
+ tools:[['st','intro','Thinking in 3D','The map of isomer types, with 3D models'],['st','rs','R and S step by step','Assign CIP priorities on a 3D model'],['st','ez','E and Z','Build alkenes and watch the label change'],['st','fischer','Fischer projections','Rotate and swap groups'],['st','conf','Conformations','Newman projections and chair flips'],['mode','naming','IUPAC naming practice','Name the isomers you draw']],
+ prob:{title:'Every isomer of C₄H₈',stem:'Draw and name every isomer, including stereoisomers, with the formula C₄H₈.',parts:[
+  ['What is the degree of unsaturation, and what does it allow?','DoU = (2×4 + 2 − 8) ÷ 2 = 1. Each isomer has either one C=C or one ring.'],
+  ['List the alkenes.','But-1-ene, (E)-but-2-ene, (Z)-but-2-ene and 2-methylpropene. Only but-2-ene has E/Z isomers: each of its alkene carbons carries two different groups (H and CH₃).'],
+  ['List the cyclic isomers.','Cyclobutane and methylcyclopropane. Neither has a stereocentre: in methylcyclopropane the substituted carbon carries two identical ring CH₂ groups.'],
+  ['How many isomers are there in total?','Six: four alkenes (counting E and Z separately) and two cycloalkanes.']]},
+ qs:[
+  {prompt:'How many constitutional isomers have the formula C₅H₁₂?',opts:['3','2','4','5'],why:'Pentane, 2-methylbutane and 2,2-dimethylpropane.'},
+  {prompt:'How many constitutional isomers have the formula C₄H₉Br?',opts:['4','3','5','2'],why:'1-Bromobutane, 2-bromobutane, 1-bromo-2-methylpropane and 2-bromo-2-methylpropane.'},
+  {prompt:'Counting stereoisomers as well, how many isomers of C₄H₉Br are there?',opts:['5','4','6','8'],why:'Four constitutional isomers, and 2-bromobutane exists as two enantiomers: 5 in all.'},
+  {prompt:'Ethanol and methoxymethane (dimethyl ether) are:',opts:['constitutional isomers','tautomers','conformers','stereoisomers'],why:'Both are C₂H₆O but the atoms are joined differently (C–C–O versus C–O–C). They don’t interconvert, so they aren’t tautomers.'},
+  {prompt:'Which compound has the highest proportion of enol at equilibrium?',opts:['Pentane-2,4-dione','Propanone','Cyclohexanone','Ethanal'],why:'The enol of pentane-2,4-dione is stabilised by conjugation and by an internal hydrogen bond, so it makes up most of the mixture. Simple ketones and aldehydes are almost entirely keto.'},
+  {prompt:'What is the difference between a keto–enol pair of tautomers and two resonance structures?',opts:['Tautomers differ in the position of an atom (H); resonance structures differ only in electron positions','Tautomers differ only in electron positions; resonance structures move atoms','There is no difference','Tautomers are always stereoisomers'],why:'Tautomers are separate compounds in equilibrium, with an H atom in a different place. Resonance structures are different drawings of a single compound.'},
+  {prompt:'How many stereoisomers does 2,3-dibromobutanoic acid, CH₃CHBrCHBrCOOH, have?',fig:{k:'smi',s:'CC(Br)C(Br)C(=O)O'},opts:['4','3','2','8'],why:'It has two stereocentres with different groups, so 2² = 4. There is no internal symmetry, so no meso form.'},
+  {prompt:'How many stereoisomers does tartaric acid (2,3-dihydroxybutanedioic acid) have?',fig:{k:'smi',s:'OC(C(O)C(=O)O)C(=O)O'},opts:['3','4','2','1'],why:'The two stereocentres carry identical sets of groups: (R,R) and (S,S) are enantiomers, and (R,S) is meso.'},
+  {prompt:'(E)-But-2-ene and (Z)-but-2-ene are:',opts:['diastereomers','enantiomers','conformers','constitutional isomers'],why:'They are stereoisomers that aren’t mirror images, so they are diastereomers. They have different boiling points: 1 °C for E, 4 °C for Z.'},
+  {prompt:'The anti and gauche forms of butane are:',opts:['conformers','enantiomers','diastereomers','tautomers'],why:'They differ only by rotation about the C2–C3 single bond and interconvert millions of times a second at room temperature.'}]},
+
+{id:'u3',lv:'core',free:true,title:'Reactivity: acids, bases, nucleophiles and electrophiles',lede:'Inductive and mesomeric effects explain acidity, basicity, intermediate stability and physical properties.',
+ syl:['Structure–reactivity relations: polarity, electrophilicity, nucleophilicity, inductive effects, relative stability','Structure–property relations: boiling point, acidity, basicity','Common electrophiles and nucleophiles','Hydrophilic and hydrophobic groups'],
+ sections:[
+  {h:'Inductive and mesomeric effects',html:`${stT([['−I (withdraws through σ bonds)','–F, –Cl, –Br, –OH, –NO₂, –CN, C=O','weakens with distance; adds up with more groups'],['+I (donates through σ bonds)','alkyl groups, –O⁻, –COO⁻','helps stabilise carbocations'],['+M (donates a lone pair into π)','–OH, –OR, –NH₂, –NHCOR, –O⁻, halogens (weakly)','often outweighs −I for O and N'],['−M (withdraws π electrons)','–NO₂, –CN, –CHO, –COR, –COOH, –SO₃H','stabilises negative charge by resonance']],['Effect','Groups','Notes'])}`},
+  {h:'Stability of intermediates',html:`<p><b>Carbocations</b> and <b>radicals</b> are electron-poor, so donating groups stabilise them: tertiary &gt; secondary &gt; primary &gt; methyl. Alkyl groups help by hyperconjugation (donation from neighbouring C–H σ bonds) and by induction. Allyl and benzyl cations and radicals are stabilised much more, by resonance.</p><p><b>Carbanions</b> are electron-rich, so the order reverses: methyl &gt; primary &gt; secondary &gt; tertiary. Carbanions are stabilised by −M groups (C=O, NO₂, CN) and by more s character in the orbital holding the lone pair (sp &gt; sp² &gt; sp³).</p>`},
+  {h:'Acidity',html:`<p>An acid is strong if its conjugate base is stable. Look, in this order, at: the atom carrying the charge (larger and more electronegative is better), resonance, induction, and hybridisation.</p>
+   ${stT([['HCl','−7'],['CF₃COOH','≈ 0.5'],['CCl₃COOH','0.7'],['ClCH₂COOH','2.9'],['HCOOH','3.8'],['CH₃COOH','4.8'],['4-nitrophenol','7.2'],['phenol','10.0'],['CF₃CH₂OH','12.4'],['CH₃CH₂OH','16'],['HC≡CH','25'],['NH₃','38'],['CH₂=CH₂','44'],['CH₃CH₃','50']],['Acid','pKa (in water, approx.)'])}
+   ${coG(stS('[O-]c1ccccc1','Phenoxide: the charge spreads onto the ortho and para carbons of the ring.'),stS('[O-]c1ccc(cc1)[N+](=O)[O-]','4-Nitrophenoxide: the NO₂ group can take the charge onto its own oxygens.'))}<p>Phenol is far more acidic than ethanol because the phenoxide charge spreads into the ring. A nitro group at the 2- or 4-position spreads it further onto its oxygens (−M); at the 3-position it can only help inductively, so 3-nitrophenol (pKa 8.4) is weaker than 4-nitrophenol.</p>`},
+  {h:'Basicity',html:`<p>Compare bases by the pKa of their conjugate acids (pKaH): the higher the pKaH, the stronger the base.</p>${stT([['guanidine','13.6','the protonated form is stabilised by three equivalent resonance structures'],['ethylamine','10.7','alkyl groups push electron density onto N'],['ammonia','9.2',''],['pyridine','5.2','lone pair in an sp² orbital: more s character, held more tightly'],['phenylamine (aniline)','4.6','lone pair delocalised into the ring'],['ethanamide','≈ −0.5','lone pair delocalised onto C=O; protonates on O, not N'],['pyrrole','≈ −4','lone pair is part of the aromatic sextet']],['Base','pKaH','Reason'])}`},
+  {h:'Nucleophiles and electrophiles',html:`<p>A <b>nucleophile</b> donates an electron pair: a lone pair (OH⁻, NH₃, CN⁻, I⁻) or a π bond (alkenes, enols, aromatic rings). An <b>electrophile</b> accepts one: an empty orbital (H⁺, BF₃, AlCl₃, carbocations, NO₂⁺) or a polar bond with a low-lying σ* or π* orbital (C–Br, C=O).</p>
+   <p>Basicity is about affinity for H⁺ (thermodynamics); nucleophilicity is about the rate of attack on carbon (kinetics). They usually run together across a row but can split:</p><ul><li>In protic solvents (water, alcohols), nucleophilicity <b>increases down a group</b>: I⁻ &gt; Br⁻ &gt; Cl⁻ &gt; F⁻. Small anions are held tightly by hydrogen bonds; large, polarisable ones aren’t.</li><li>In polar aprotic solvents (DMSO, DMF, acetone) anions are “naked” and the order follows basicity: F⁻ is then a good nucleophile.</li><li>Bulky bases such as tert-butoxide are strong bases but poor nucleophiles.</li></ul>`},
+  {h:'Physical properties',html:`<p>Boiling point rises with molar mass and with stronger intermolecular forces: hydrogen bonding &gt; dipole–dipole &gt; London forces. Branching lowers it (less surface contact).</p>${stT([['butane','58','−1'],['propanal','58','49'],['propan-1-ol','60','97'],['propanoic acid','74','141']],['Compound','M (g mol⁻¹)','bp (°C)'])}
+   <p>Carboxylic acids form hydrogen-bonded dimers, which is why their boiling points are so high. Hydrophilic groups (–OH, –NH₂, –COOH, –COO⁻, –SO₃⁻) increase water solubility; hydrophobic groups (long alkyl chains, aryl rings) decrease it. Roughly, one –OH keeps about four carbons in solution.</p>`}],
+ tools:[['mech','acidbase','Acid–base mechanism','Draw the arrows for a proton transfer'],['mode','cards','Flashcards','Build a deck of pKa values to learn'],['guide','organic-functional-groups','Functional groups guide','Every group, with examples']],
+ prob:{title:'Ranking acids',stem:'Put these in order of increasing acidity and explain each step: ethanol, phenol, 4-nitrophenol, ethanoic acid, 2,2,2-trifluoroethanol.',parts:[
+  ['Give the order.','Ethanol (pKa 16) &lt; 2,2,2-trifluoroethanol (12.4) &lt; phenol (10.0) &lt; 4-nitrophenol (7.2) &lt; ethanoic acid (4.8).'],
+  ['Why is trifluoroethanol more acidic than ethanol?','Three fluorine atoms withdraw electron density inductively (−I) and stabilise the alkoxide. There is no resonance; the effect is purely inductive.'],
+  ['Why is phenol more acidic than trifluoroethanol?','The negative charge on phenoxide is delocalised into the benzene ring by resonance, which stabilises it more than induction alone can.'],
+  ['Why is 4-nitrophenol more acidic than phenol, and ethanoic acid the most acidic of all?','In 4-nitrophenoxide the charge can be delocalised onto the oxygens of the NO₂ group (−M). In ethanoate the charge is shared equally between two oxygen atoms, both electronegative, which is better still.']]},
+ qs:[
+  {prompt:'Which is the strongest acid?',opts:['Trichloroethanoic acid','Chloroethanoic acid','Ethanoic acid','Propanoic acid'],why:'Three chlorines withdraw electron density inductively and stabilise the carboxylate most (pKa 0.7, against 2.9 for chloroethanoic acid and 4.8 for ethanoic acid).'},
+  {prompt:'Which is the strongest base?',opts:['Ethylamine','Phenylamine','Ethanamide','Pyrrole'],why:'Ethylamine’s lone pair is localised on N and pushed out by the ethyl group (pKaH 10.7). In the others the lone pair is delocalised into a ring or a C=O group.'},
+  {prompt:'Which carbocation is the most stable?',opts:['(CH₃)₃C⁺','(CH₃)₂CH⁺','CH₃CH₂⁺','CH₃⁺'],why:'Tertiary cations are stabilised most by hyperconjugation and by the +I effect of three alkyl groups.'},
+  {prompt:'Why is phenylamine a much weaker base than cyclohexylamine?',opts:['The N lone pair is delocalised into the benzene ring','The phenyl group donates electrons inductively','Phenylamine is less soluble in water','The N atom in phenylamine is sp hybridised'],why:'Protonating N would remove the lone pair from conjugation with the ring and lose that resonance stabilisation. The pKaH values are 4.6 and 10.6.'},
+  {prompt:'Which halide ion is the best nucleophile in methanol?',opts:['I⁻','Br⁻','Cl⁻','F⁻'],why:'In a protic solvent, small anions are strongly hydrogen-bonded and held back. Large, polarisable I⁻ is the least solvated and attacks fastest.'},
+  {prompt:'Which compound has the highest boiling point?',opts:['Propanoic acid','Propan-1-ol','Propanal','Butane'],why:'Propanoic acid forms hydrogen-bonded dimers and has the highest molar mass of the four: bp 141 °C, against 97 °C for propan-1-ol.'},
+  {prompt:'Which hydrocarbon is the most acidic?',opts:['Ethyne','Ethene','Ethane','Propane'],why:'The ethynide lone pair sits in an sp orbital, with 50% s character, close to the nucleus. pKa values: about 25, 44 and 50.'},
+  {prompt:'Why is chloroethanoic acid stronger than ethanoic acid?',opts:['Cl withdraws electron density and stabilises the carboxylate','Cl donates a lone pair into the C=O group','Cl forms a hydrogen bond with the O–H','The C–Cl bond is weak'],why:'This is the −I effect: it spreads the negative charge of the conjugate base. It gets weaker as the Cl moves further from the COOH.'},
+  {prompt:'Which species is an electrophile?',opts:['BF₃','NH₃','CH₃O⁻','H₂O'],why:'Boron in BF₃ has only six valence electrons and an empty p orbital, so it accepts an electron pair. The others are nucleophiles.'},
+  {prompt:'Which nitrophenol is the strongest acid?',opts:['4-Nitrophenol','3-Nitrophenol','Phenol','They are all the same'],why:'At the 4-position (and the 2-position) the NO₂ group can take the negative charge by resonance (−M). At the 3-position it acts only inductively, so 3-nitrophenol (pKa 8.4) is weaker than 4-nitrophenol (7.2).'}]},
+
+{id:'u4',lv:'core',title:'Substitution and elimination',lede:'SN1, SN2, E1, E2 and radical halogenation: mechanisms, stereochemistry and how to predict which one wins.',
+ syl:['Nucleophilic substitution: SN1 and SN2, stereochemistry','Elimination: E1 and E2, stereochemistry, leaving groups','Radical substitution of alkanes with halogens'],
+ sections:[
+  {h:'SN2',html:`<p>One concerted step: the nucleophile attacks the carbon from the side opposite the leaving group as the C–LG bond breaks. Rate = k[RX][Nu⁻]. The carbon is <b>inverted</b> (Walden inversion).</p>${coR('C[C@@H](Br)CC.[I-]','acetone','C[C@H](I)CC.[Br-]','(R)-2-Bromobutane gives (S)-2-iodobutane: the geometry inverts.')}
+   <p>Rate order: methyl &gt; primary &gt; secondary ≫ tertiary (no reaction, the back is blocked). Neopentyl halides, (CH₃)₃CCH₂X, are also very slow. Good nucleophiles and polar aprotic solvents (acetone, DMSO, DMF) favour SN2.</p>`},
+  {h:'SN1',html:`<p>Two steps: the leaving group departs to give a planar carbocation (slow, rate-determining), then the nucleophile adds (fast). Rate = k[RX], independent of the nucleophile.</p><ul><li>Favoured by tertiary, allylic and benzylic substrates, weak nucleophiles (water, alcohols) and polar protic solvents, which stabilise the ions.</li><li>The nucleophile can attack either face, so a single enantiomer gives a largely racemic product.</li><li>The carbocation can <b>rearrange</b> by a 1,2-hydride or 1,2-methyl shift to a more stable cation before it is trapped.</li></ul>${coR('CC(Br)C(C)C','H₂O, warm','CCC(C)(C)O','2-Bromo-3-methylbutane: the secondary cation undergoes a hydride shift to a tertiary cation, so the main product is 2-methylbutan-2-ol.')}`},
+  {h:'E2',html:`<p>One concerted step: a base removes a β-H as the leaving group leaves. Rate = k[RX][B⁻]. The C–H and C–LG bonds must be <b>anti-periplanar</b> (180° apart). In cyclohexanes, both must be axial (trans-diaxial).</p><ul><li><b>Zaitsev</b>: a small strong base (EtO⁻, OH⁻) gives mainly the more substituted, more stable alkene.</li><li><b>Hofmann</b>: a bulky base (tert-butoxide) removes the most accessible H and gives mainly the less substituted alkene.</li><li>E2 is stereospecific: a given diastereomer of the substrate gives one alkene geometry.</li></ul>${coG(coR('CCC(C)(C)Br','NaOEt, EtOH, heat','CC=C(C)C','Small base: the more substituted alkene (Zaitsev).'),coR('CCC(C)(C)Br','KOC(CH₃)₃','C=C(C)CC','Bulky base: the less substituted alkene (Hofmann).'))}`},
+  {h:'E1',html:`<p>The same carbocation as SN1, but it loses a β-H instead of being trapped. E1 competes with SN1 and is favoured by heat and by non-nucleophilic acids (concentrated H₂SO₄ or H₃PO₄ for dehydrating alcohols). It gives the Zaitsev alkene, and rearrangements are possible.</p>`},
+  {h:'Leaving groups',html:`<p>A good leaving group is a weak base, stable on its own: I⁻ &gt; Br⁻ &gt; Cl⁻ ≫ F⁻. Sulfonates (tosylate TsO⁻, mesylate MsO⁻, triflate TfO⁻) are excellent. OH⁻, OR⁻ and NH₂⁻ are very poor, so an alcohol must first be protonated (H₂O leaves) or turned into a tosylate.</p>`},
+  {h:'Deciding which mechanism',html:stT([['methyl, primary','SN2','SN2 (E2 only with a bulky base)','very slow'],['secondary','SN2 with good, weakly basic nucleophiles (I⁻, CN⁻, N₃⁻, RS⁻) in aprotic solvents','E2 with strong bases (EtO⁻, OH⁻), especially when heated','SN1/E1 in protic solvents'],['tertiary','no SN2','E2','SN1 and E1 (heat favours E1)']],['Substrate','Good nucleophile','Strong base','Weak nucleophile/base, protic solvent'])},
+  {h:'Radical halogenation',html:`<p>Light or heat splits Cl₂ or Br₂ into atoms (<b>initiation</b>). A chain then runs (<b>propagation</b>): X• + R–H → H–X + R•, and R• + X₂ → R–X + X•. Two radicals combining ends a chain (<b>termination</b>).</p>
+   <p>Each H reacts at a rate set by the radical it leaves behind. Typical relative rates per H:</p>${stT([['Cl₂, 25 °C','1','3.8','5'],['Br₂, 125 °C','1','82','1600']],['Halogen','primary H','secondary H','tertiary H'])}
+   <p>To predict product ratios, multiply the number of each kind of H by its relative rate. For propane with Cl₂: 6 primary H × 1 = 6, and 2 secondary H × 3.8 = 7.6, so about 44% 1-chloropropane and 56% 2-chloropropane. Bromination is far more selective because its hydrogen-abstraction step is endothermic, so the transition state looks like the radical (Hammond postulate).</p>`}],
+ tools:[['mech','sn2','SN2 mechanism','Draw the curly arrows'],['mech','sn1','SN1 mechanism','Three steps through a carbocation'],['mech','e2','E2 mechanism',''],['mech','e1','E1 mechanism',''],['st','rxn','Stereochemistry in reactions','SN2 inversion as a 3D animation']],
+ prob:{title:'Chlorinating 2-methylbutane',stem:'2-Methylbutane reacts with Cl₂ in light. Use the relative rates per H at 25 °C: primary 1, secondary 3.8, tertiary 5.',parts:[
+  ['How many constitutional isomers of C₅H₁₁Cl can form?','Four. 2-Methylbutane has four kinds of H: the two equivalent CH₃ groups on C2 (6 H), the C2–H (1 H), the C3 CH₂ (2 H) and the C4 CH₃ (3 H).'],
+  ['Predict the percentage of each.','Relative amounts: 1-chloro-2-methylbutane 6 × 1 = 6; 2-chloro-2-methylbutane 1 × 5 = 5; 2-chloro-3-methylbutane 2 × 3.8 = 7.6; 1-chloro-3-methylbutane 3 × 1 = 3. Total 21.6, giving about 28%, 23%, 35% and 14%.'],
+  ['Which products are formed as racemic mixtures?','1-Chloro-2-methylbutane (C2 carries H, CH₃, CH₂Cl and CH₂CH₃) and 2-chloro-3-methylbutane (C2 carries H, Cl, CH₃ and CH(CH₃)₂). The planar radical is attacked equally from both faces.'],
+  ['Which product would dominate with Br₂ instead?','2-Bromo-2-methylbutane. Tertiary H reacts about 1600 times faster than primary H with bromine, which outweighs the statistical factor.']]},
+ qs:[
+  {prompt:'What is the rate equation for the hydrolysis of 2-bromo-2-methylpropane in water?',fig:{k:'smi',s:'CC(C)(C)Br'},opts:['Rate = k[RBr]','Rate = k[RBr][H₂O]','Rate = k[H₂O]','Rate = k[RBr]²'],why:'A tertiary halide in a protic solvent reacts by SN1. Only the substrate takes part in the slow step (ionisation).'},
+  {prompt:'(R)-2-Bromobutane reacts with NaI in acetone. What is the product?',opts:['(S)-2-Iodobutane','(R)-2-Iodobutane','Racemic 2-iodobutane','No reaction'],why:'A secondary halide with a good nucleophile in an aprotic solvent reacts by SN2, with inversion. I takes the same priority rank as Br did, so the label changes from R to S.'},
+  {prompt:'Which is the best leaving group?',opts:['Tosylate, TsO⁻','F⁻','HO⁻','H₂N⁻'],why:'Tosylate is the conjugate base of a strong acid (TsOH, pKa ≈ −2), and its charge is delocalised over three oxygens. The others are strong bases.'},
+  {prompt:'2-Bromo-2-methylbutane is heated with potassium tert-butoxide. What is the main product?',fig:{k:'smi',s:'CCC(C)(C)Br'},opts:['2-Methylbut-1-ene','2-Methylbut-2-ene','2-tert-Butoxy-2-methylbutane','2-Methylbutan-2-ol'],why:'A bulky base removes the most accessible H, on a CH₃ group, giving the less substituted (Hofmann) alkene. A tertiary halide can’t undergo SN2.'},
+  {prompt:'2-Bromo-2-methylbutane is heated with sodium ethoxide in ethanol. What is the main product?',opts:['2-Methylbut-2-ene','2-Methylbut-1-ene','2-Ethoxy-2-methylbutane','3-Methylbut-1-ene'],why:'A small strong base gives E2 with the more substituted, more stable (Zaitsev) alkene.'},
+  {prompt:'For E2 in a substituted cyclohexane, the H and the leaving group must be:',opts:['trans and both axial','cis and both equatorial','trans and both equatorial','cis, one axial and one equatorial'],why:'Only two axial bonds on neighbouring carbons are anti-periplanar (180°). Two trans-1,2 groups are either both axial or both equatorial, so only the diaxial chair can react.'},
+  {prompt:'What is the main product of radical bromination of 2-methylpropane?',opts:['2-Bromo-2-methylpropane','1-Bromo-2-methylpropane','A 9:1 mixture favouring the 1-bromo product','1,2-Dibromo-2-methylpropane'],why:'Bromination is very selective (tertiary H about 1600 times faster than primary), so the tertiary bromide dominates even though there are 9 primary H and only 1 tertiary H.'},
+  {prompt:'Which compound reacts fastest with NaCN in DMSO?',opts:['Bromomethane','1-Bromopropane','2-Bromopropane','2-Bromo-2-methylpropane'],why:'SN2 slows as the carbon becomes more hindered: methyl &gt; primary &gt; secondary, and tertiary doesn’t react by SN2 at all.'},
+  {prompt:'2-Bromo-3-methylbutane is warmed in water. What is the main substitution product?',fig:{k:'smi',s:'CC(Br)C(C)C'},opts:['2-Methylbutan-2-ol','3-Methylbutan-2-ol','3-Methylbutan-1-ol','2-Methylbutan-1-ol'],why:'SN1 gives a secondary carbocation at C2. A 1,2-hydride shift from C3 makes a more stable tertiary cation, which water traps: (CH₃)₂C(OH)CH₂CH₃.'},
+  {prompt:'Why is radical bromination much more selective than chlorination?',opts:['H abstraction by Br• is endothermic, so its transition state resembles the radical','Bromine atoms are smaller than chlorine atoms','The C–Br bond is stronger than the C–Cl bond','Bromination is an ionic reaction, not a radical one'],why:'By the Hammond postulate, an endothermic step has a late, product-like transition state, so differences in radical stability show up fully in the rates. Abstraction by Cl• is exothermic, with an early transition state.'}]},
+
+{id:'u5',lv:'core',title:'Alkenes, alkynes and the redox ladder',lede:'Electrophilic addition, its regio- and stereochemistry, and how to move between alkanes, alkenes, alkynes and alkyl halides.',
+ syl:['Electrophilic addition: regioselectivity (Markovnikov’s rule) and stereochemistry','Oxidation and reduction: alkyne ⇌ alkene ⇌ alkane ⇌ alkyl halide'],
+ sections:[
+  {h:'Adding HX: Markovnikov’s rule',html:`<p>H⁺ adds first, to the carbon that gives the <b>more stable carbocation</b>; then X⁻ adds to the cation. The practical rule (Markovnikov): H goes to the carbon that already has more H atoms.</p>${coR('C=CC','HBr','CC(C)Br','Propene gives 2-bromopropane through the secondary cation.')}
+   <p>With HBr and peroxides (or light), a radical chain runs instead: Br• adds first to give the more stable radical, so Br ends up on the less substituted carbon (<b>anti-Markovnikov</b>). This works for HBr only.</p>`},
+  {h:'Adding halogens',html:`<p>Br₂ and Cl₂ add through a bridged <b>halonium ion</b>. The halide then opens it from the back, so the two atoms add <b>anti</b>. Cyclohexene gives trans-1,2-dibromocyclohexane (racemic). In water, water opens the bromonium ion instead, at the more substituted carbon, giving a bromohydrin.</p>`},
+  {h:'Adding water',html:stT([['H₂O, H₂SO₄ or H₃PO₄ catalyst','Markovnikov','via the carbocation, which can rearrange'],['BH₃ (or 9-BBN), then H₂O₂, NaOH','anti-Markovnikov','syn addition of H and OH; no rearrangement'],['Hg(OAc)₂, H₂O, then NaBH₄','Markovnikov','no rearrangement']],['Reagents','Regiochemistry','Notes'])},
+  {h:'Oxidising alkenes',html:`${stT([['mCPBA (a peroxyacid)','epoxide','syn; stereospecific'],['OsO₄ (cat.) or cold dilute KMnO₄','cis-1,2-diol','syn'],['epoxide, then H₃O⁺','trans-1,2-diol','anti overall'],['O₃, then Zn/H₂O or (CH₃)₂S','aldehydes and ketones','cleaves the C=C'],['hot, concentrated KMnO₄, H⁺','ketones and carboxylic acids','=CH₂ ends become CO₂']],['Reagent','Product','Stereochemistry'])}
+   <p>Ozonolysis is a classic structure-determination tool: join the two carbonyl carbons of the products with a C=C to find the original alkene.</p>${coR('CC=C(C)C','1. O₃  2. Zn, H₂O','CC=O.CC(C)=O','2-Methylbut-2-ene gives ethanal and propanone.')}`},
+  {h:'Reducing alkenes and alkynes',html:`${stT([['H₂, Pd/C or Pt','alkene → alkane; alkyne → alkane','syn addition'],['H₂, Lindlar catalyst','alkyne → (Z)-alkene','syn addition, stops at the alkene'],['Na or Li in liquid NH₃','alkyne → (E)-alkene','through a radical anion']],['Reagents','Change','Stereochemistry'])}`},
+  {h:'Alkynes',html:`<p>A terminal alkyne C–H is acidic (pKa ≈ 25). NaNH₂ removes the proton, and the acetylide ion attacks primary alkyl halides by SN2 to make a new C–C bond. Hydration with HgSO₄ and H₂SO₄ gives an enol, which tautomerises to a ketone: propyne gives propanone.</p>`},
+  {h:'The interconversion map',html:stT([['alkane → alkyl halide','X₂, light (radical substitution)'],['alkyl halide → alkene','strong base, heat (E2)'],['alkene → alkyl halide','HX'],['alkene → alkane','H₂, Pd'],['alkene → 1,2-dihalide → alkyne','X₂, then 2 NaNH₂ (double E2)'],['alkyne → alkene','H₂ with Lindlar (Z) or Na/NH₃ (E)']],['Change','Reagents'])}],
+ tools:[['mech','hbr','HBr addition','Markovnikov addition through a carbocation'],['mech','br2','Bromine addition','Anti addition through a bromonium ion'],['mech','hydration','Acid-catalysed hydration',''],['mech','epoxidation','Epoxidation with mCPBA',''],['mode','synth','Synthesis problems','Chain several steps together']],
+ prob:{title:'Ozonolysis detective',stem:'Two isomeric hydrocarbons, A and B, both C₆H₁₂, decolourise bromine water. Ozonolysis followed by Zn/H₂O gives: A → propanone only; B → ethanal and 2-methylpropanal.',parts:[
+  ['What does the formula tell you?','DoU = (2×6 + 2 − 12) ÷ 2 = 1. Since they decolourise bromine, the unsaturation is one C=C, not a ring.'],
+  ['Identify A.','Two propanone units, (CH₃)₂C=O, joined at the carbonyl carbons: (CH₃)₂C=C(CH₃)₂, 2,3-dimethylbut-2-ene.'],
+  ['Identify B.','Join CH₃CHO and (CH₃)₂CHCHO at their carbonyl carbons: CH₃CH=CHCH(CH₃)₂, 4-methylpent-2-ene.'],
+  ['Which of A and B can exist as stereoisomers?','B, as (E)- and (Z)-4-methylpent-2-ene: each alkene carbon carries H and a different group. A has two identical CH₃ groups on each alkene carbon, so it has no E/Z isomers.']]},
+ qs:[
+  {prompt:'What is the main product of propene with HBr (no peroxides)?',opts:['2-Bromopropane','1-Bromopropane','1,2-Dibromopropane','Propan-2-ol'],why:'H⁺ adds to C1 to give the more stable secondary cation, which Br⁻ then traps.'},
+  {prompt:'What is the main product of propene with HBr in the presence of peroxides?',opts:['1-Bromopropane','2-Bromopropane','Racemic 1,2-dibromopropane','Propane'],why:'A radical chain runs: Br• adds to C1 to give the more stable secondary radical, so Br ends up on C1 (anti-Markovnikov).'},
+  {prompt:'What is the product of cyclohexene with Br₂?',opts:['trans-1,2-Dibromocyclohexane (racemic)','cis-1,2-Dibromocyclohexane','1,1-Dibromocyclohexane','Bromocyclohexane'],why:'Br⁻ opens the bromonium ion from the opposite face: anti addition gives the trans product, as a racemate.'},
+  {prompt:'But-2-yne is hydrogenated with H₂ and Lindlar’s catalyst. What forms?',opts:['(Z)-But-2-ene','(E)-But-2-ene','Butane','But-1-ene'],why:'Both H atoms add to the same face of the alkyne on the catalyst surface (syn), and the poisoned catalyst stops at the alkene.'},
+  {prompt:'1-Methylcyclohexene is treated with BH₃, then H₂O₂ and NaOH. What forms?',fig:{k:'smi',s:'CC1=CCCCC1'},opts:['trans-2-Methylcyclohexan-1-ol','1-Methylcyclohexan-1-ol','cis-2-Methylcyclohexan-1-ol','2-Methylcyclohexan-1-one'],why:'Hydroboration is anti-Markovnikov and syn: H and OH add to the same face, so OH ends up on C2 trans to the CH₃ group.'},
+  {prompt:'What does ozonolysis (then Zn/H₂O) of 2-methylbut-2-ene give?',opts:['Ethanal and propanone','Methanal and butanone','Two molecules of propanal','Ethanoic acid and propanone'],why:'Cut the C=C and put =O on each end: CH₃CH= becomes CH₃CHO, and =C(CH₃)₂ becomes (CH₃)₂C=O. Reductive work-up stops at the aldehyde.'},
+  {prompt:'Propyne is treated with H₂O, H₂SO₄ and HgSO₄. What forms?',opts:['Propanone','Propanal','Propan-2-ol','Propanoic acid'],why:'Markovnikov hydration gives the enol CH₂=C(OH)CH₃, which tautomerises to the ketone.'},
+  {prompt:'What is the degree of unsaturation of C₆H₁₀?',opts:['2','1','3','4'],why:'(2×6 + 2 − 10) ÷ 2 = 2: for example two C=C, one C≡C, or a ring plus a C=C (cyclohexene).'},
+  {prompt:'Which reagent turns hex-3-yne into (E)-hex-3-ene?',opts:['Na in liquid NH₃','H₂ with Lindlar’s catalyst','H₂ with Pd/C','BH₃, then H₂O₂'],why:'Dissolving-metal reduction goes through a radical anion and a vinyl radical that adopt the less hindered trans shape.'},
+  {prompt:'(Z)-But-2-ene reacts with OsO₄ (then NaHSO₃). What is the product?',opts:['meso-Butane-2,3-diol','Racemic butane-2,3-diol','Butanone','Two molecules of ethanal'],why:'Both OH groups add to the same face (syn). Syn addition to a Z alkene gives the meso diol; to the E alkene it gives the racemate.'}]},
+
+{id:'u6',lv:'core',title:'Aromatic chemistry',lede:'Electrophilic aromatic substitution, the directing effects of substituents, and planning syntheses on benzene rings.',
+ syl:['Electrophilic aromatic substitution: mechanism','Influence of substituents on reactivity and regioselectivity'],
+ sections:[
+  {h:'The mechanism',html:`<p>The π electrons attack the electrophile to give a positively charged, non-aromatic <b>arenium ion</b> (σ-complex, Wheland intermediate). This step is slow. A base then removes H⁺ from the sp³ carbon, restoring aromaticity. The ring substitutes rather than adds because adding would lose the aromatic stabilisation.</p>
+   ${stT([['nitration','conc. HNO₃ + conc. H₂SO₄','NO₂⁺ (nitronium)'],['bromination','Br₂ + FeBr₃','Br⁺ carried by FeBr₄⁻'],['sulfonation','SO₃ in H₂SO₄ (oleum)','SO₃ or HSO₃⁺ (reversible)'],['Friedel–Crafts alkylation','R–Cl + AlCl₃','carbocation (can rearrange)'],['Friedel–Crafts acylation','RCOCl + AlCl₃','acylium ion RC≡O⁺ (doesn’t rearrange)']],['Reaction','Reagents','Electrophile'])}
+   <p>Friedel–Crafts alkylation has two drawbacks: the cation can rearrange (1-chloropropane gives mainly isopropylbenzene), and the product is more reactive than benzene, so it can alkylate again. Acylation avoids both: the acyl group deactivates the ring, so the reaction stops after one substitution. Neither works on strongly deactivated rings such as nitrobenzene.</p>`},
+  {h:'Directing effects',html:`${stT([['strongly activating, ortho/para','–NH₂, –NHR, –OH, –O⁻'],['moderately activating, ortho/para','–OR, –NHCOR'],['weakly activating, ortho/para','alkyl, aryl'],['weakly deactivating, ortho/para','–F, –Cl, –Br, –I'],['deactivating, meta','–CHO, –COR, –COOH, –COOR, –CN, –SO₃H, –NO₂, –CF₃, –NR₃⁺']],['Effect','Substituents'])}
+   ${coG(stS('Oc1ccccc1','Phenol: strongly activating, ortho/para.'),stS('Cc1ccccc1','Methylbenzene: weakly activating, ortho/para.'),stS('Clc1ccccc1','Chlorobenzene: weakly deactivating, but ortho/para.'),stS('[O-][N+](=O)c1ccccc1','Nitrobenzene: strongly deactivating, meta.'))}<p><b>Why:</b> draw the arenium ion for ortho, meta and para attack. For ortho and para attack, one resonance form puts the positive charge on the carbon carrying the substituent. A donor (lone pair or alkyl) stabilises that form; a withdrawing group destabilises it, leaving meta as the least bad option. Halogens withdraw inductively (deactivating) but donate a lone pair by resonance (ortho/para).</p>`},
+  {h:'Very reactive rings',html:`<p>Phenol and phenylamine are so activated that bromine water substitutes every free ortho and para position with no catalyst, giving white precipitates of 2,4,6-tribromophenol and 2,4,6-tribromoaniline. To get mono-substitution on aniline, first convert it to the amide (ethanoyl chloride), which is only moderately activating, then hydrolyse afterwards. In strong acid, aniline is protonated to –NH₃⁺, a meta director.</p>`},
+  {h:'Side-chain and functional-group chemistry',html:`${stT([['alkylbenzene → benzoic acid','hot KMnO₄ (needs a benzylic H; tert-butylbenzene doesn’t react)'],['nitrobenzene → phenylamine','Sn + conc. HCl, then NaOH (or H₂, Pd)'],['phenylamine → benzenediazonium ion','NaNO₂ + HCl, 0–5 °C'],['diazonium → ArCl, ArBr, ArCN','CuCl, CuBr, CuCN (Sandmeyer)'],['diazonium → phenol','warm water'],['diazonium + phenol (alkaline) → azo dye','electrophilic substitution by ArN₂⁺']],['Change','Reagents'])}`},
+  {h:'Planning the order of steps',html:`<p>When you need two groups on a ring, the group added first decides where the second goes.</p><ul><li><b>1-Bromo-3-nitrobenzene:</b> nitrate first (NO₂ directs meta), then brominate.</li><li><b>1-Bromo-4-nitrobenzene:</b> brominate first (Br directs ortho/para), then nitrate and separate the para isomer.</li><li><b>4-Bromobenzoic acid from toluene:</b> brominate first (CH₃ directs ortho/para), then oxidise CH₃ to COOH. The other order gives 3-bromobenzoic acid.</li></ul>`}],
+ tools:[['mech','nitration','Nitration of benzene','Draw the arenium ion'],['mech','brbenzene','Bromination of benzene',''],['mech','fcacyl','Friedel–Crafts acylation',''],['mech','fcalkyl','Friedel–Crafts alkylation',''],['mode','synth','Synthesis problems','Plan the order of ring substitutions']],
+ prob:{title:'Making 3-bromoaniline',stem:'Plan a synthesis of 3-bromophenylamine (3-bromoaniline) from benzene.',parts:[
+  ['Give a three-step route.','1. Conc. HNO₃ and conc. H₂SO₄ (about 50 °C) give nitrobenzene. 2. Br₂ and FeBr₃ give 1-bromo-3-nitrobenzene. 3. Sn and conc. HCl, then NaOH, reduce NO₂ to NH₂: 3-bromophenylamine.'],
+  ['Why not brominate first?','Br is an ortho/para director, so nitrating bromobenzene gives 1-bromo-2-nitrobenzene and 1-bromo-4-nitrobenzene, not the 3-isomer.'],
+  ['Why not start by brominating phenylamine?','NH₂ directs ortho/para, and it activates the ring so strongly that bromine water gives 2,4,6-tribromophenylamine at once.']]},
+ qs:[
+  {prompt:'Methoxybenzene is nitrated. Where does the nitro group mainly go?',fig:{k:'smi',s:'COc1ccccc1'},opts:['Ortho and para to OCH₃','Meta to OCH₃','Only ortho','It replaces the OCH₃ group'],why:'The O lone pair stabilises the arenium ion for ortho and para attack, so –OCH₃ is an activating ortho/para director.'},
+  {prompt:'What is the main product of nitrating benzoic acid?',opts:['3-Nitrobenzoic acid','4-Nitrobenzoic acid','2-Nitrobenzoic acid','Nitrobenzene'],why:'–COOH withdraws electrons (−M), so it deactivates the ring and directs meta.'},
+  {prompt:'Which compound reacts fastest with bromine?',opts:['Phenol','Benzene','Chlorobenzene','Nitrobenzene'],why:'The OH lone pair strongly activates the ring: phenol reacts with bromine water at room temperature with no catalyst.'},
+  {prompt:'How does a chlorine substituent affect electrophilic substitution?',opts:['Deactivating, ortho/para directing','Activating, ortho/para directing','Deactivating, meta directing','Activating, meta directing'],why:'Cl withdraws inductively, which slows the reaction, but its lone pair stabilises the ortho and para arenium ions by resonance.'},
+  {prompt:'What is the electrophile in the nitration of benzene?',opts:['NO₂⁺','NO₃⁻','HNO₃','NO₂'],why:'Sulfuric acid protonates nitric acid, which loses water to give the nitronium ion: HNO₃ + 2 H₂SO₄ → NO₂⁺ + H₃O⁺ + 2 HSO₄⁻.'},
+  {prompt:'Benzene reacts with 1-chloropropane and AlCl₃. What is the main product?',opts:['Isopropylbenzene (cumene)','Propylbenzene','Chlorobenzene','1-Phenylpropan-1-one'],why:'The primary carbocation (or its AlCl₃ complex) rearranges by a hydride shift to the more stable secondary isopropyl cation before it attacks the ring.'},
+  {prompt:'Ethylbenzene is heated with alkaline KMnO₄, then acidified. What forms?',opts:['Benzoic acid','Phenylethanoic acid','1-Phenylethanol','Benzene-1,2-dicarboxylic acid'],why:'Any alkyl chain with a benzylic H is oxidised down to –COOH on the ring; the other carbon is lost.'},
+  {prompt:'What is the best route to 4-bromobenzoic acid from methylbenzene?',opts:['Br₂/FeBr₃, then hot KMnO₄','Hot KMnO₄, then Br₂/FeBr₃','Br₂ in light, then hot KMnO₄','HBr, then hot KMnO₄'],why:'CH₃ directs ortho/para, so brominate while it is still there, then oxidise. Oxidising first would give a meta-directing COOH. Br₂ in light would brominate the CH₃ group, not the ring.'},
+  {prompt:'Why does benzene undergo substitution rather than addition with Br₂/FeBr₃?',opts:['Losing H⁺ restores the aromatic ring','Addition products are too crowded','FeBr₃ only catalyses substitution','Br⁻ can’t attack the arenium ion'],why:'Addition would leave a non-aromatic diene. Losing H⁺ from the arenium ion gets back the aromatic stabilisation, which is large (about 150 kJ mol⁻¹).'}]},
+
+{id:'u7',lv:'core',title:'Carbonyl chemistry',lede:'Nucleophilic addition, addition–elimination, acid and base catalysis, Grignard reagents, tests for aldehydes, and the redox ladder from alcohols to acids.',
+ syl:['Nucleophilic addition, including acid and base catalysis','Addition–elimination (nucleophilic acyl substitution)','Grignard reaction','Fehling and Tollens tests','Oxidation and reduction: alcohol ⇌ aldehyde/ketone ⇌ carboxylic acid derivatives; nitriles'],
+ sections:[
+  {h:'The carbonyl group',html:`<p>C=O is polar: carbon is δ+ and electrophilic, oxygen δ− and weakly basic. Nucleophiles attack the carbon from above or below the plane, at about 107° to the C=O bond. Aldehydes are more reactive than ketones: they are less crowded and have only one electron-donating alkyl group.</p>
+   <p><b>Acid catalysis</b> protonates the oxygen, making the carbon far more electrophilic, so weak nucleophiles (water, alcohols) can add. <b>Base catalysis</b> turns a weak nucleophile into a stronger one (HCN + base → CN⁻).</p>`},
+  {h:'Nucleophilic addition',html:`${stT([['CN⁻ (HCN, KCN)','cyanohydrin','new C–C bond; the CN can be hydrolysed to COOH'],['NaBH₄ or LiAlH₄','alcohol','aldehyde → 1°, ketone → 2°'],['RMgBr, then H₃O⁺','alcohol','methanal → 1°, other aldehydes → 2°, ketones → 3°; CO₂ → carboxylic acid'],['H₂O','hydrate','favoured only for very reactive carbonyls such as methanal'],['ROH, H⁺','hemiacetal, then acetal','acetals protect C=O; stable to base, removed by aqueous acid'],['RNH₂, pH about 4–5','imine (C=N–R)','addition, then loss of water'],['Ph₃P=CHR (Wittig)','alkene','replaces C=O with C=C']],['Nucleophile','Product','Notes'])}
+   <p>Imine formation is fastest near pH 4–5: acid is needed to protonate the OH so water can leave, but too much acid protonates the amine and stops it attacking.</p>`},
+  {h:'Grignard reagents',html:`<p>RMgBr is made from R–Br and Mg in dry ether. The C–Mg bond is very polar, so the carbon acts like a carbanion: a strong nucleophile and a strong base. Water or any O–H or N–H group destroys it (R–MgBr + H₂O → R–H), so everything must be dry.</p>${coR('CCC=O','1. CH₃MgBr  2. H₃O⁺','CCC(C)O','Propanal gives butan-2-ol.')}
+   <p>Esters and acyl chlorides react twice: the first equivalent substitutes to give a ketone, which reacts again to give a tertiary alcohol with two identical R groups.</p>`},
+  {h:'Addition–elimination: acyl substitution',html:`<p>Carboxylic acid derivatives have a leaving group on the carbonyl carbon. The nucleophile adds to give a <b>tetrahedral intermediate</b>, which then expels the leaving group and reforms C=O. Overall, one group is substituted for another.</p>
+   ${stT([['acyl chloride, RCOCl','most reactive'],['acid anhydride, (RCO)₂O',''],['ester, RCOOR′ ≈ carboxylic acid',''],['amide, RCONH₂',''],['carboxylate, RCOO⁻','least reactive']],['Derivative','Reactivity'])}
+   <p>You can always go down this list in one step. Going up needs activation: for example SOCl₂ converts an acid into an acyl chloride.</p>
+   <ul><li><b>Ester hydrolysis</b> with acid is reversible. With base (<b>saponification</b>) it is irreversible, because the carboxylate formed is no longer electrophilic.</li><li><b>Fischer esterification</b>: acid + alcohol with an acid catalyst, an equilibrium pushed by excess alcohol or by removing water.</li><li><b>Nitriles</b>: hydrolysis in acid or base gives the carboxylic acid via the amide; LiAlH₄ gives the amine RCH₂NH₂; a Grignard reagent gives a ketone after hydrolysis.</li></ul>`},
+  {h:'The redox ladder',html:`${stT([['primary alcohol → aldehyde','PCC, or K₂Cr₂O₇/H₂SO₄ distilling the aldehyde out as it forms'],['primary alcohol or aldehyde → carboxylic acid','excess K₂Cr₂O₇/H₂SO₄ under reflux, or KMnO₄'],['secondary alcohol → ketone','K₂Cr₂O₇/H₂SO₄ or PCC'],['tertiary alcohol','not oxidised under these conditions'],['aldehyde/ketone → alcohol','NaBH₄ or LiAlH₄'],['ester → two alcohols; acid → primary alcohol','LiAlH₄ (NaBH₄ is too weak)'],['amide → amine','LiAlH₄']],['Change','Reagents'])}`},
+  {h:'Tests',html:`${stT([['Tollens’ reagent, [Ag(NH₃)₂]⁺, warm','silver mirror','aldehydes (oxidised to carboxylates); ketones don’t react'],['Fehling’s or Benedict’s solution, Cu²⁺, warm','blue → brick-red Cu₂O precipitate','aliphatic aldehydes and reducing sugars (aromatic aldehydes react poorly)'],['2,4-dinitrophenylhydrazine','orange or yellow precipitate','any aldehyde or ketone'],['I₂ + NaOH (iodoform test)','pale-yellow CHI₃ precipitate','CH₃CO– groups and CH₃CH(OH)– groups, including ethanol and ethanal']],['Reagent','Positive result','Detects'])}`},
+  {h:'Enols and enolates',html:`<p>A C–H next to a C=O is weakly acidic (pKa about 20 for ketones, 9–13 between two C=O groups), because the enolate is stabilised by resonance. Enolates are carbon nucleophiles. They aren’t named in the factual syllabus, but they appear in most IChO organic problems: <b>aldol</b> addition and condensation (enolate + aldehyde), <b>Claisen</b> condensation (enolate + ester) and <b>Michael</b> addition (enolate + C=C–C=O). Practise them in Bondline’s mechanisms.</p>`}],
+ tools:[['mech','grignard','Grignard addition',''],['mech','nabh4','Reduction with NaBH₄',''],['mech','saponification','Saponification',''],['mech','fischer','Fischer esterification',''],['mech','imine','Imine formation',''],['mech','acetal','Acetal formation',''],['mech','aldol','Aldol addition',''],['mech','claisen','Claisen condensation','']],
+ prob:{title:'Three ways to one alcohol',stem:'2-Phenylbutan-2-ol, C₆H₅C(OH)(CH₃)CH₂CH₃, is to be made using a Grignard reagent.',parts:[
+  ['Give three combinations of Grignard reagent and ketone.','C₆H₅MgBr + butanone; CH₃CH₂MgBr + 1-phenylethanone (acetophenone); CH₃MgBr + 1-phenylpropan-1-one. Each forms one of the three C–C bonds to the carbinol carbon.'],
+  ['Why must the apparatus and solvent be dry?','The Grignard reagent is a very strong base. Water protonates it straight away (C₆H₅MgBr + H₂O → C₆H₆ + Mg(OH)Br), destroying it before it can add to the ketone.'],
+  ['Is the product optically active?','No. The product has a stereocentre, but the planar ketone is attacked equally from both faces, so a racemic mixture forms.'],
+  ['Which ester could be used instead, with excess of one Grignard reagent?','None with excess of a single reagent: an ester reacts twice and gives two identical new groups, but here all three groups on the carbinol carbon are different. Methyl propanoate with excess C₆H₅MgBr would give 1,1-diphenylpropan-1-ol instead.']]},
+ qs:[
+  {prompt:'Propanal reacts with CH₃MgBr, followed by aqueous acid. What forms?',opts:['Butan-2-ol','Butan-1-ol','Butanone','2-Methylpropan-2-ol'],why:'CH₃⁻ adds to the carbonyl carbon of CH₃CH₂CHO. Protonation gives CH₃CH₂CH(OH)CH₃, a secondary alcohol.'},
+  {prompt:'Which reagent distinguishes propanal from propanone?',opts:['Tollens’ reagent','2,4-Dinitrophenylhydrazine','NaBH₄','HCN with KCN'],why:'Only the aldehyde is oxidised, giving a silver mirror. The other reagents react with both compounds.'},
+  {prompt:'Which compound reacts fastest with water?',opts:['Ethanoyl chloride','Ethanoic anhydride','Ethyl ethanoate','Ethanamide'],why:'Cl⁻ is the best leaving group, and Cl’s lone pairs donate very little into C=O, so the carbonyl is very electrophilic. Ethanoyl chloride fumes in moist air.'},
+  {prompt:'Ethyl ethanoate is reduced with excess LiAlH₄, then water is added. What forms?',opts:['Ethanol only','Ethanal and ethanol','Ethanoic acid and ethanol','Ethane'],why:'The acyl part becomes CH₃CH₂OH, and the ethoxy part is released as ethanol too: two moles of ethanol.'},
+  {prompt:'At what pH is imine formation from an aldehyde and a primary amine usually fastest?',opts:['About 4–5','About 1','About 7','About 12'],why:'Mild acid protonates the OH of the intermediate so water can leave. Strong acid protonates the amine, which then can’t attack.'},
+  {prompt:'Methyl benzoate reacts with excess CH₃MgBr, then aqueous acid. What forms?',opts:['2-Phenylpropan-2-ol','1-Phenylethanone','1-Phenylethanol','Methyl 2-phenylpropanoate'],why:'The first CH₃MgBr gives 1-phenylethanone; the second adds to that ketone. Two CH₃ groups end up on the carbinol carbon: C₆H₅C(OH)(CH₃)₂.'},
+  {prompt:'Which compound gives a positive iodoform test?',opts:['Propan-2-ol','Propan-1-ol','Pentan-3-one','Methanol'],why:'Propan-2-ol, CH₃CH(OH)CH₃, is oxidised to propanone, whose CH₃CO– group is tri-iodinated and cleaved, releasing yellow CHI₃.'},
+  {prompt:'Why is saponification (base hydrolysis of an ester) irreversible?',opts:['The carboxylate formed is not electrophilic','Base destroys the alcohol','The ester is a gas','Water is removed as it forms'],why:'The carboxylic acid is deprotonated straight away. The negatively charged carboxylate repels nucleophiles, so the alcohol can’t add back.'},
+  {prompt:'A ketone is heated with ethane-1,2-diol and an acid catalyst. What is this used for?',opts:['To protect the C=O as a cyclic acetal','To reduce the ketone to an alcohol','To make an ester','To oxidise the ketone'],why:'The cyclic acetal survives bases, Grignard reagents and hydride reductions. Aqueous acid removes it afterwards.'},
+  {prompt:'Ethanenitrile is heated under reflux with dilute HCl. What is the organic product?',opts:['Ethanoic acid','Ethanamine','Ethanal','Ethanol'],why:'Hydrolysis goes via ethanamide to ethanoic acid. The nitrogen ends up as NH₄⁺.'}]},
+
+{id:'u8',lv:'core',title:'Polymers and surfactants',lede:'Chain-growth and step-growth polymers, the common plastics and fibres, and how amphiphilic molecules form micelles.',
+ syl:['Polymers and monomers: chain polymerisation, polyaddition, polycondensation','Simple polymers: polystyrene, polyethylene, polyamides, polyesters','Hydrophilic and hydrophobic groups; micelle formation'],
+ sections:[
+  {h:'Chain-growth polymerisation',html:`<p>Alkenes join through a reactive chain end, one monomer at a time. In <b>radical</b> polymerisation an initiator (a peroxide or AIBN) makes radicals (<b>initiation</b>); each radical adds to C=C to make a new, larger radical (<b>propagation</b>); two chains meet to end the growth (<b>termination</b>), by combination or by disproportionation. Long chains form from the start, and the monomer is used up gradually. Chain growth can also run through carbocations or carbanions.</p>
+   ${stT([['ethene','poly(ethene), PE','–CH₂–CH₂–'],['propene','poly(propene), PP','–CH₂–CH(CH₃)–'],['chloroethene','poly(chloroethene), PVC','–CH₂–CHCl–'],['phenylethene (styrene)','poly(phenylethene), PS','–CH₂–CH(C₆H₅)–'],['tetrafluoroethene','PTFE','–CF₂–CF₂–'],['methyl 2-methylpropenoate','PMMA (Perspex)','–CH₂–C(CH₃)(COOCH₃)–']],['Monomer','Polymer','Repeat unit'])}
+   <p>To find the monomer from a chain, take a two-carbon repeat unit and put a double bond between its carbons.</p>`},
+  {h:'Step-growth polymerisation',html:`<p>Monomers with two functional groups each react with one another. Dimers, trimers and longer pieces join step by step, so long chains appear only near the end of the reaction. In <b>polycondensation</b> a small molecule (H₂O, HCl or CH₃OH) is lost at each link; in <b>polyaddition</b> nothing is lost.</p>
+   ${stT([['PET (Terylene)','benzene-1,4-dicarboxylic acid + ethane-1,2-diol','polyester; water lost'],['nylon-6,6','hexanedioic acid (or its acyl chloride) + hexane-1,6-diamine','polyamide; water (or HCl) lost'],['nylon-6','caprolactam (ring-opening)','polyamide from a single monomer'],['Kevlar','benzene-1,4-dicarbonyl chloride + benzene-1,4-diamine','aromatic polyamide; very strong, hydrogen-bonded sheets'],['polyurethanes','a diisocyanate + a diol','polyaddition: –NCO + HO– → –NH–CO–O–'],['poly(lactic acid)','lactic acid','biodegradable polyester']],['Polymer','Monomers','Type'])}
+   ${coG(stS('OC(=O)c1ccc(cc1)C(=O)O','Benzene-1,4-dicarboxylic acid, one of the two monomers of PET.'),stS('NCCCCCCN','Hexane-1,6-diamine, one of the two monomers of nylon-6,6.'),stS('O=C1CCCCCN1','Caprolactam, which ring-opens to nylon-6.'))}<p>Polyesters and polyamides can be hydrolysed back to their monomers (acid or base), which makes them recyclable and, for some, biodegradable. Poly(alkenes) have only C–C and C–H bonds and are very unreactive.</p>`},
+  {h:'How long are the chains? Carothers’ equation',html:`<p>For step growth with exactly equal amounts of the two groups, if p is the fraction of groups that have reacted, the average number of monomer units per chain is:</p>${coEq('X<sub>n</sub> = 1 ÷ (1 − p)')}<p>At 90% conversion X<sub>n</sub> is only 10; at 99% it is 100. Step-growth polymers need very pure monomers in exact proportions and very high conversion. A trace of a monofunctional impurity caps the chains.</p>`},
+  {h:'Surfactants and micelles',html:`<p>An <b>amphiphile</b> has a hydrophilic head (–COO⁻, –SO₃⁻, –OSO₃⁻, –NR₃⁺, or a polyether chain) and a hydrophobic tail (a long hydrocarbon chain). Soap is the sodium salt of a fatty acid, such as sodium octadecanoate; sodium dodecyl sulfate (SDS) is a common detergent.</p>
+   <p>In water, above the <b>critical micelle concentration</b>, the molecules cluster into spheres with the tails inside and the heads facing the water. Grease dissolves in the oily core, which is how soap cleans. Molecules with two tails, such as phospholipids, form bilayers instead, the basis of cell membranes and liposomes. In hard water, Ca²⁺ and Mg²⁺ precipitate soap as scum; sulfate detergents don’t do this.</p>`}],
+ tools:[['view3d','CCCCCCCCCCCCCCCCCC(=O)[O-]','Octadecanoate in 3D','A soap anion: long tail, charged head'],['mode','cards','Flashcards','Make a deck of polymers and their monomers']],
+ prob:{title:'Nylon-6,6 by numbers',stem:'Nylon-6,6 is made from hexanedioic acid and hexane-1,6-diamine.',parts:[
+  ['Draw the repeat unit and give its formula.','–[NH(CH₂)₆NH–CO(CH₂)₄CO]–, C₁₂H₂₂N₂O₂. It comes from one diacid and one diamine with the loss of two H₂O.'],
+  ['Calculate the molar mass of the repeat unit.','146.14 + 116.21 − 2 × 18.02 = 226.3 g mol⁻¹.'],
+  ['A sample has a number-average molar mass of 22 600 g mol⁻¹. How many repeat units does an average chain have?','22 600 ÷ 226.3 ≈ 100 repeat units.'],
+  ['What fraction of the functional groups must have reacted to reach this chain length?','100 repeat units contain 200 monomer residues, so X<sub>n</sub> = 200. From Carothers’ equation, 1 − p = 1/200, so p = 0.995: 99.5% of the groups have reacted.']]},
+ qs:[
+  {prompt:'What is the monomer of PVC?',opts:['Chloroethene','1,2-Dichloroethane','Chloroethane','Ethene and chlorine'],why:'PVC is poly(chloroethene), with repeat unit –CH₂–CHCl–. The monomer is CH₂=CHCl.'},
+  {prompt:'A diol and a dicarboxylic acid polymerise with loss of water. What kind of polymer forms?',opts:['A polyester','A polyamide','A poly(alkene)','A polyurethane'],why:'Each link is an ester, –CO–O–, formed by condensation.'},
+  {prompt:'What is the repeat unit of poly(propene)?',opts:['–CH₂–CH(CH₃)–','–CH₂–CH₂–CH₂–','–CH(CH₃)–CH(CH₃)–','–CH=CH–CH₂–'],why:'The C=C of propene, CH₂=CH–CH₃, opens up; the methyl group is a side group, not part of the backbone.'},
+  {prompt:'Kevlar is:',opts:['A polyamide','A polyester','A poly(alkene)','A polysaccharide'],why:'Kevlar is poly(p-phenylene terephthalamide), made from benzene-1,4-dicarbonyl chloride and benzene-1,4-diamine. Its rigid chains form hydrogen-bonded sheets.'},
+  {prompt:'In a step-growth polymerisation, 98% of the functional groups have reacted. What is the average number of monomer units per chain?',opts:['50','98','49','100'],why:'X<sub>n</sub> = 1 ÷ (1 − 0.98) = 50.'},
+  {prompt:'In a soap micelle in water, where are the hydrocarbon tails?',opts:['Pointing inwards, forming an oily core','Pointing outwards into the water','Lying flat on the surface of the water only','Bonded to each other covalently'],why:'The hydrophobic tails cluster away from water, and the charged heads face outward where they are solvated.'},
+  {prompt:'Which step-growth polymer forms without losing a small molecule?',opts:['A polyurethane from a diisocyanate and a diol','Nylon-6,6 from a diacid and a diamine','PET from a diacid and a diol','A polyester from a diol and a diacyl chloride'],why:'The O–H adds across N=C in each isocyanate group (polyaddition). The others are condensations that lose water or HCl.'},
+  {prompt:'Which ion makes soap form a scum in hard water?',opts:['Ca²⁺','Na⁺','Cl⁻','K⁺'],why:'Calcium (and magnesium) salts of fatty acids are insoluble and precipitate.'},
+  {prompt:'Which polymer can be broken down by hydrolysis in hot aqueous NaOH?',opts:['PET','Poly(ethene)','PTFE','Poly(phenylethene)'],why:'PET’s ester links are hydrolysed (saponified) to benzene-1,4-dicarboxylate and ethane-1,2-diol. Poly(alkenes) have only C–C and C–H bonds.'}]},
+];
+
+/* ---------- v21: IChO course, units 9–15 (content) ---------- */
+const CO_UNITS_B=[
+{id:'u9',lv:'core',title:'Biomolecules: amino acids, sugars and lipids',lede:'The biological molecules every IChO competitor is expected to know: amino acids and peptides, glucose and fructose, and fats.',
+ syl:['Amino acids: classification, isoelectric point, peptide bond; peptides and proteins','Glucose and fructose: open-chain and cyclic forms','Triacylglycerides; saturated and unsaturated fatty acids'],
+ sections:[
+  {h:'Amino acids',html:`<p>The 20 amino acids in proteins have the structure H₂N–CHR–COOH. All except glycine (R = H) are chiral, and all are <b>L</b>; in CIP terms they are S, except cysteine, which is R because its CH₂SH outranks COOH.</p>
+   ${stT([['non-polar','glycine Gly G, alanine Ala A, valine Val V, leucine Leu L, isoleucine Ile I, proline Pro P, phenylalanine Phe F, methionine Met M, tryptophan Trp W'],['polar, uncharged','serine Ser S, threonine Thr T, cysteine Cys C, tyrosine Tyr Y, asparagine Asn N, glutamine Gln Q'],['acidic (negative at pH 7)','aspartic acid Asp D, glutamic acid Glu E'],['basic (positive at pH 7)','lysine Lys K, arginine Arg R, histidine His H (only partly protonated at pH 7)']],['Side chain','Amino acids'])}
+   ${coG(stS('C[C@H]([NH3+])C(=O)[O-]','L-Alanine as its zwitterion, the form it takes in neutral water and in the solid.'),stS('N[C@@H](CS)C(=O)O','L-Cysteine is (R): sulfur outranks the oxygens of COOH.'))}`},
+  {h:'Charge and the isoelectric point',html:`<p>In water an amino acid is a <b>zwitterion</b>, H₃N⁺–CHR–COO⁻. Adding acid protonates COO⁻; adding base removes H⁺ from NH₃⁺.</p>${stT([['below pKa₁','H₃N⁺–CHR–COOH','+1'],['between pKa₁ and pKa₂','H₃N⁺–CHR–COO⁻','0'],['above pKa₂','H₂N–CHR–COO⁻','−1']],['pH','Main form (neutral R)','Net charge'])}
+   <p>The <b>isoelectric point</b> (pI) is the pH at which the average net charge is zero. It is the mean of the two pKa values on either side of the neutral form:</p>${coEq('pI = (pKa₁ + pKa₂) ÷ 2')}
+   ${stT([['glycine','2.34, 9.60','5.97'],['aspartic acid','1.88, 3.65 (side chain), 9.60','(1.88 + 3.65) ÷ 2 = 2.77'],['lysine','2.18, 8.95, 10.53 (side chain)','(8.95 + 10.53) ÷ 2 = 9.74']],['Amino acid','pKa values','pI'])}
+   <p>For an acidic amino acid, average the two lowest pKa values; for a basic one, the two highest. In <b>electrophoresis</b>, at a pH above its pI an amino acid is negative and moves towards the anode (+); below its pI it moves towards the cathode (−).</p>`},
+  {h:'Peptides',html:`<p>A <b>peptide bond</b> is an amide formed between the COOH of one amino acid and the NH₂ of the next. It is planar and doesn’t rotate, because of resonance (C–N partial double bond), and is almost always trans. Sequences are written from the N-terminus to the C-terminus: Gly-Ala has free NH₂ on glycine and free COOH on alanine.</p>${stS('NCC(=O)N[C@@H](C)C(=O)O','Gly-Ala. The peptide bond is the C(=O)–NH link in the middle.')}
+   <p>n different amino acids, each used once, can form n! sequences: three give 6 tripeptides.</p>`},
+  {h:'Glucose and fructose',html:`<p><b>Glucose</b> is an aldohexose, C₆H₁₂O₆. In the D series, the OH on C5 (the stereocentre furthest from C1) is on the right in the Fischer projection. In solution, the C5–OH attacks the C1 aldehyde to form a six-membered cyclic hemiacetal, a <b>pyranose</b>. C1 becomes a new stereocentre, the <b>anomeric carbon</b>: α has the C1–OH trans to the CH₂OH (down in a Haworth projection), β has it cis (up).</p>
+   ${coG(stS('OC[C@@H](O)[C@@H](O)[C@H](O)[C@@H](O)C=O','Open-chain D-glucose'),stS('OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@@H]1O','β-D-Glucopyranose. In its chair, every substituent is equatorial.'))}
+   <p>The α and β forms interconvert in water through the open chain (<b>mutarotation</b>), reaching about 36% α and 64% β.</p>
+   <p><b>Fructose</b> is a ketohexose (C=O at C2). Its C5–OH can attack C2 to give a five-membered <b>furanose</b> ring, the form found in sucrose; free fructose in water is mostly the six-membered pyranose.</p>
+   <p><b>Reducing sugars</b> have a free hemiacetal (or hemiketal) that opens to an aldehyde or α-hydroxyketone, so they reduce Tollens’ and Fehling’s reagents: glucose, fructose (in base, it isomerises via an enediol), maltose, lactose. In <b>sucrose</b> both anomeric carbons are tied up in the glycosidic bond, so it is non-reducing.</p>`},
+  {h:'Fats and fatty acids',html:`<p>A <b>triacylglyceride</b> (triglyceride) is a triester of propane-1,2,3-triol (glycerol) with three fatty acids: long, unbranched carboxylic acids, usually with an even number of carbons.</p>${stT([['stearic (octadecanoic)','C18, saturated','70'],['oleic','C18, one cis C=C at C9','13'],['linoleic','C18, two cis C=C at C9 and C12','−5']],['Fatty acid','Chain','mp (°C)'])}
+   <p>Cis double bonds kink the chains so they pack less well: fats rich in unsaturated acids are liquid oils. Hydrogenation (H₂, Ni) saturates them. Saponification with NaOH gives glycerol and soap. The <b>iodine value</b> (g I₂ absorbed per 100 g of fat) measures how unsaturated a fat is.</p>`}],
+ tools:[['st','fischer','Fischer projections and D/L','Including glyceraldehyde and amino acids'],['view3d','OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@@H]1O','β-D-Glucose in 3D','See the all-equatorial chair'],['mech','hemiacetal','Hemiacetal formation','How a sugar ring closes']],
+ prob:{title:'Amino acids in an electric field',stem:'A mixture of aspartic acid (pI 2.77), glycine (pI 5.97) and lysine (pI 9.74) is placed in the middle of a strip of paper soaked in a buffer at pH 6.0, and a voltage is applied.',parts:[
+  ['Which way does each amino acid move?','Aspartic acid: pH 6.0 is above its pI, so it is negatively charged and moves towards the anode (+). Glycine: pH 6.0 is about its pI, so it barely moves. Lysine: pH 6.0 is below its pI, so it is positively charged and moves towards the cathode (−).'],
+  ['Glycine has pKa values 2.34 and 9.60. Show how its pI is calculated.','The neutral zwitterion lies between the two ionisations, so pI = (2.34 + 9.60) ÷ 2 = 5.97.'],
+  ['What is the main form of glycine at pH 1 and at pH 12?','pH 1: H₃N⁺–CH₂–COOH (charge +1). pH 12: H₂N–CH₂–COO⁻ (charge −1).']]},
+ qs:[
+  {prompt:'Alanine has pKa values of 2.34 and 9.69. What is its isoelectric point?',opts:['6.02','7.35','12.03','4.68'],why:'pI = (2.34 + 9.69) ÷ 2 = 6.02.'},
+  {prompt:'In what form is glycine mainly present at pH 1?',opts:['H₃N⁺–CH₂–COOH','H₃N⁺–CH₂–COO⁻','H₂N–CH₂–COO⁻','H₂N–CH₂–COOH'],why:'pH 1 is below pKa₁ (2.34), so the carboxylate is protonated as well as the amine.'},
+  {prompt:'Which amino acid has no stereocentre?',opts:['Glycine','Alanine','Serine','Proline'],why:'Glycine’s α-carbon carries two H atoms.'},
+  {prompt:'How many different tripeptides can be made from glycine, alanine and serine, using each once?',opts:['6','3','9','27'],why:'There are 3! = 3 × 2 × 1 = 6 orders, because Gly-Ala-Ser and Ser-Ala-Gly are different peptides.'},
+  {prompt:'In the chair form of β-D-glucopyranose, the anomeric OH is:',opts:['equatorial','axial','in the plane of the ring','on the ring oxygen'],why:'Every substituent of β-D-glucopyranose is equatorial, which is one reason it is the most common aldohexose.'},
+  {prompt:'Which sugar is non-reducing?',opts:['Sucrose','Glucose','Maltose','Lactose'],why:'In sucrose, C1 of glucose and C2 of fructose are joined, so there is no free hemiacetal to open into a reducing carbonyl.'},
+  {prompt:'In glucopyranose, the ring forms when the OH on which carbon attacks C1?',opts:['C5','C4','C6','C2'],why:'Attack by O5 gives a six-membered ring (five carbons and one oxygen). Attack by O4 would give a five-membered furanose.'},
+  {prompt:'Why do fats rich in unsaturated fatty acids have lower melting points?',opts:['Cis double bonds kink the chains, so they pack less closely','Double bonds make the molecules lighter','Unsaturated fats form hydrogen bonds','Double bonds make the chains longer'],why:'Kinked chains can’t line up as closely, so the London forces between them are weaker.'},
+  {prompt:'Which amino acid has a basic side chain?',opts:['Lysine','Aspartic acid','Serine','Phenylalanine'],why:'Lysine’s side chain ends in –NH₂ (pKaH about 10.5), which is protonated at pH 7.'},
+  {prompt:'Glu-Lys and Lys-Glu are:',opts:['different dipeptides','the same dipeptide','enantiomers','tautomers'],why:'Peptides are written N-terminus to C-terminus. In Glu-Lys, glutamic acid has the free NH₃⁺; in Lys-Glu, lysine does.'}]},
+
+/* ======================= ADVANCED ======================= */
+{id:'u10',lv:'adv',title:'Heterocycles and nucleophilic aromatic substitution',lede:'How electron-rich and electron-poor heterocycles react, substitution on naphthalene, and SNAr through the Meisenheimer complex.',
+ syl:['Aromatic nucleophilic substitution','Electrophilic substitution on polycyclic aromatic compounds and heterocycles'],
+ sections:[
+  {h:'Nucleophilic aromatic substitution (SNAr)',html:`<p>Benzene rings normally resist nucleophiles, but a ring with strong electron-withdrawing groups <b>ortho or para</b> to a leaving group reacts by <b>addition–elimination</b>. The nucleophile adds to the carbon carrying the leaving group, giving an anionic, non-aromatic <b>Meisenheimer complex</b>; the leaving group then leaves and aromaticity returns.</p>
+   ${coR('[O-][N+](=O)c1ccc(F)c([N+](=O)[O-])c1','CH₃NH₂','CNc1ccc([N+](=O)[O-])cc1[N+](=O)[O-]','1-Fluoro-2,4-dinitrobenzene (Sanger’s reagent) reacts with amines in this way. Sanger used it to label the N-terminus of insulin.')}
+   <ul><li>The negative charge of the Meisenheimer complex is delocalised onto the NO₂ oxygens only when NO₂ is ortho or para to the site of attack. Each extra ortho/para NO₂ group speeds the reaction enormously.</li><li>The leaving-group order is reversed from SN2: <b>F &gt; Cl ≈ Br &gt; I</b>. The slow step is the addition, which the very electronegative F speeds up; breaking the strong C–F bond happens later, in the fast step.</li></ul>`},
+  {h:'Benzyne',html:`<p>Without activating groups, very strong bases can still substitute aryl halides, by <b>elimination–addition</b>. NaNH₂ removes the H ortho to Cl, Cl⁻ leaves, and a highly strained <b>benzyne</b> (a ring with a formal C≡C) forms; NH₂⁻ then adds to either end. Chlorobenzene labelled with ¹⁴C at C1 gives aniline with NH₂ at C1 and at C2 in roughly equal amounts, which is the evidence for benzyne.</p>`},
+  {h:'Five-membered heterocycles',html:`<p>Pyrrole, furan and thiophene are <b>electron-rich</b>: six π electrons spread over five atoms. They react with electrophiles much faster than benzene, under mild conditions: pyrrole &gt; furan &gt; thiophene &gt; benzene. Attack happens mainly at <b>C2</b>, next to the heteroatom, because the cation formed there has three resonance forms, against two for attack at C3.</p>${coG(stS('c1ccc2[nH]ccc2c1','Indole is the exception among fused rings: it substitutes at C3, which keeps the benzene ring intact in the intermediate.'),stS('c1ccsc1','Thiophene: the least reactive of the three, and the most “benzene-like”.'))}
+   <p>Strong acids can polymerise pyrrole and furan, so mild reagents are used.</p>`},
+  {h:'Pyridine',html:`<p>Pyridine is <b>electron-poor</b>: the electronegative N pulls π density from the ring, and in acid the N is protonated, which makes things worse. Electrophilic substitution needs harsh conditions and goes at <b>C3</b>, the only position where the intermediate avoids putting positive charge on N.</p>
+   <p>Pyridine is instead attacked by nucleophiles at <b>C2 and C4</b>, where the negative charge of the intermediate can rest on N. 2- and 4-Chloropyridines undergo SNAr readily, and in the <b>Chichibabin reaction</b> NaNH₂ converts pyridine into 2-aminopyridine.</p>`},
+  {h:'Naphthalene and other polycyclic rings',html:`<p>Naphthalene is more reactive than benzene, because its intermediate can keep one complete benzene ring. Attack at <b>C1</b> (α) gives an intermediate with more resonance forms that keep a benzene ring intact than attack at C2 (β), so most substitutions go at C1: nitration gives 1-nitronaphthalene.</p>
+   ${stT([['about 80 °C','naphthalene-1-sulfonic acid','kinetic product: formed fastest'],['about 160 °C','naphthalene-2-sulfonic acid','thermodynamic product: sulfonation is reversible, and the 2-isomer avoids a clash with the H at C8']],['Sulfonation temperature','Main product','Why'])}
+   <p>Anthracene reacts at C9 and C10, the middle ring, which leaves two intact benzene rings.</p>`}],
+ tools:[['mech','nitration','Electrophilic substitution','Compare with heterocycles'],['view3d','c1ccc2ccccc2c1','Naphthalene in 3D',''],['orb','','Molecular orbitals','Aromatic π systems']],
+ prob:{title:'Which chloride reacts first?',stem:'These compounds are each heated with sodium methoxide in methanol: chlorobenzene, 1-chloro-3-nitrobenzene, 1-chloro-4-nitrobenzene and 1-chloro-2,4-dinitrobenzene.',parts:[
+  ['Put them in order of increasing rate of substitution.','Chlorobenzene &lt; 1-chloro-3-nitrobenzene &lt; 1-chloro-4-nitrobenzene &lt; 1-chloro-2,4-dinitrobenzene.'],
+  ['Explain the order.','Methoxide adds to C1 to give a Meisenheimer complex. A para (or ortho) NO₂ group can take the negative charge onto its oxygens by resonance; a meta NO₂ group can only help inductively. Two ortho/para NO₂ groups stabilise it most. Chlorobenzene has no stabilising group and barely reacts.'],
+  ['1-Fluoro-2,4-dinitrobenzene reacts even faster than the chloro compound. Why, when C–F is the stronger bond?','The rate-determining step is the addition of methoxide, not the loss of the halide. Fluorine is the most electronegative halogen, so it makes C1 most electrophilic and stabilises the anionic intermediate inductively. The C–F bond breaks in the later, fast step.']]},
+ qs:[
+  {prompt:'Where does pyrrole mainly react with an electrophile?',fig:{k:'smi',s:'c1cc[nH]c1'},opts:['C2','C3','N1','It doesn’t react'],why:'The cation from attack at C2 has three resonance forms, one with the positive charge on N; attack at C3 gives only two.'},
+  {prompt:'Under forcing conditions, pyridine is nitrated at which position?',fig:{k:'smi',s:'c1ccncc1'},opts:['C3','C2','C4','N1'],why:'Attack at C2 or C4 would put positive charge on the electronegative N in one resonance form. Attack at C3 avoids that.'},
+  {prompt:'Which compound reacts fastest with sodium methoxide by SNAr?',opts:['1-Fluoro-2,4-dinitrobenzene','1-Iodo-2,4-dinitrobenzene','Fluorobenzene','1-Fluoro-3-nitrobenzene'],why:'Two ortho/para NO₂ groups stabilise the Meisenheimer complex, and F is the best leaving group for SNAr because it speeds up the rate-determining addition.'},
+  {prompt:'What is the intermediate in an SNAr reaction?',opts:['A Meisenheimer complex (an anionic σ-complex)','A carbocation','Benzyne','A radical anion'],why:'The nucleophile adds to the ring to give a resonance-stabilised cyclohexadienyl anion.'},
+  {prompt:'What is the main product of nitrating naphthalene?',opts:['1-Nitronaphthalene','2-Nitronaphthalene','1,8-Dinitronaphthalene','1-Naphthol'],why:'Attack at C1 gives an intermediate with more resonance forms that keep one benzene ring intact.'},
+  {prompt:'Naphthalene is sulfonated at 160 °C. What is the main product?',opts:['Naphthalene-2-sulfonic acid','Naphthalene-1-sulfonic acid','Naphthalene-1,5-disulfonic acid','No reaction'],why:'Sulfonation is reversible. At high temperature the mixture equilibrates to the more stable 2-isomer, which avoids the peri H at C8 (thermodynamic control).'},
+  {prompt:'Chlorobenzene is treated with NaNH₂ in liquid ammonia. What is the intermediate?',opts:['Benzyne','A Meisenheimer complex','A phenyl cation','A phenyl radical'],why:'With no activating groups, the strong base eliminates HCl to form benzyne, which NH₂⁻ then adds to.'},
+  {prompt:'Which ring reacts fastest with electrophiles?',opts:['Pyrrole','Thiophene','Benzene','Pyridine'],why:'N is the best π donor of the three heteroatoms, so pyrrole is the most electron-rich. Pyridine is the slowest of all.'},
+  {prompt:'Pyridine is heated with NaNH₂ (the Chichibabin reaction). What forms?',opts:['2-Aminopyridine','3-Aminopyridine','4-Aminopyridine','Piperidine'],why:'NH₂⁻ adds at C2, where N can carry the negative charge; the intermediate then loses hydride.'}]},
+
+{id:'u11',lv:'adv',title:'Stereoselectivity and conformational analysis',lede:'Stereospecific and stereoselective reactions, enantiomeric excess, the energies of conformations and the anomeric effect.',
+ syl:['Stereoselective transformations: diastereoselective, enantioselective','Optical purity','Conformational analysis, Newman projections','Anomeric effect'],
+ sections:[
+  {h:'The vocabulary',html:`${stT([['stereospecific','different stereoisomers of the starting material give different stereoisomers of the product','Br₂ adds to (E)-but-2-ene to give meso, to (Z) to give racemic 2,3-dibromobutane'],['stereoselective','one stereoisomer of the product forms in preference to others','reducing 4-tert-butylcyclohexanone gives mostly the trans alcohol'],['diastereoselective','the product stereoisomers are diastereomers','measured by the diastereomeric ratio (dr)'],['enantioselective','the product stereoisomers are enantiomers','needs a chiral catalyst, reagent or auxiliary; measured by ee']],['Term','Meaning','Example'])}
+   <p>Achiral reagents acting on achiral starting materials, in an achiral solvent, always give racemic (or achiral) products.</p>`},
+  {h:'Enantiomeric excess and optical purity',html:`${coEq('ee = (major − minor) ÷ (major + minor) × 100%')}${coEq('optical purity = [α]<sub>observed</sub> ÷ [α]<sub>pure enantiomer</sub> × 100%')}
+   <p>For an ideal mixture the two are equal. A 90:10 mixture has 80% ee. Going back: % major = (100 + ee) ÷ 2, so 20% ee means a 60:40 mixture.</p>
+   <p>Practise with the polarimeter slider in Bondline’s Stereo lessons.</p>`},
+  {h:'Conformational energies',html:`<p>Butane, viewed down C2–C3: anti (0 kJ mol⁻¹) &lt; gauche (3.8) &lt; eclipsed CH₃/H (about 16) &lt; fully eclipsed CH₃/CH₃ (about 19). Each H/H eclipsing costs about 4 kJ mol⁻¹ (torsional strain); a gauche CH₃/CH₃ interaction costs about 3.8 kJ mol⁻¹ (steric strain).</p>
+   <p>A substituent on a cyclohexane prefers to be equatorial. Its <b>A-value</b> is ΔG° for moving it from axial to equatorial:</p>${stT([['–CH₃','7.3'],['–CH(CH₃)₂','9.2'],['–C(CH₃)₃','about 21'],['–OH','about 3.6 (depends on the solvent)'],['–Cl','2.2']],['Group','A-value (kJ mol⁻¹)'])}
+   <p>An axial methyl clashes with the two axial H atoms on the same face (1,3-diaxial interactions), equivalent to two gauche butane interactions: 2 × 3.8 ≈ 7.6 kJ mol⁻¹, close to the measured 7.3.</p>
+   <p>Convert an energy into an equilibrium ratio with:</p>${coEq('K = e<sup>ΔG°/RT</sup>')}<p>For methylcyclohexane at 298 K, K = e^(7300 ÷ (8.314 × 298)) ≈ 19, so about 95% of molecules have the methyl group equatorial. A tert-butyl group is so large that it effectively locks the ring in the chair with tert-butyl equatorial.</p>`},
+  {h:'The anomeric effect',html:`<p>In a pyranose ring, an electronegative group (OR, OH, halogen) on the anomeric carbon (C1, next to the ring O) prefers the <b>axial</b> position more than its size predicts. The explanation: when the group is axial, a lone pair on the ring oxygen is anti-periplanar to the C1–X bond and can donate into its σ* orbital, stabilising the molecule.</p>
+   <p>For glucose in water the effect is small against the preference of OH for equatorial, so β (equatorial) still wins, 64:36. For methyl glucosides it wins: Fischer glycosidation of glucose with methanol and acid gives mainly methyl α-D-glucopyranoside, with OCH₃ axial. Glycosyl halides are almost entirely axial (α).</p>`},
+  {h:'Diastereoselective reactions on rings',html:`<p>Small hydride reagents (NaBH₄, LiAlH₄) attack 4-tert-butylcyclohexanone mainly from the axial direction, giving about 90% of the <b>trans</b> alcohol, with OH equatorial: this is also the more stable product. Bulky hydrides (L-Selectride) can’t approach axially past the axial H atoms on C3 and C5, so they attack equatorially and give mainly the <b>cis</b> alcohol, with OH axial.</p>
+   <p>Other ring rules you’ve met: E2 needs trans-diaxial H and leaving group; Br₂ adds anti to give trans-1,2-dibromides; epoxides open with inversion, giving trans products.</p>`},
+  {h:'Making single enantiomers',html:`<p>Ways to get one enantiomer: start from the <b>chiral pool</b> (amino acids, sugars, terpenes); <b>resolve</b> a racemate, for example by forming diastereomeric salts with a pure chiral acid or base and crystallising them apart; use a removable <b>chiral auxiliary</b>; or use an <b>asymmetric catalyst</b>, including enzymes. Asymmetric catalysis was recognised by the 2001 Nobel Prize (Knowles, Noyori and Sharpless) and organocatalysis by the 2021 prize (List and MacMillan).</p>`}],
+ tools:[['st','conf','Newman projections and chairs','Rotate butane along its energy curve'],['st','optical','Optical activity and ee','A polarimeter slider'],['st','rxn','Stereochemistry in reactions',''],['mode','stereo','Stereochemistry practice','211 questions']],
+ prob:{title:'Locking a cyclohexane',stem:'The A-value of a methyl group is 7.3 kJ mol⁻¹; that of tert-butyl is about 21 kJ mol⁻¹. Take R = 8.314 J K⁻¹ mol⁻¹ and T = 298 K.',parts:[
+  ['Calculate the equatorial:axial ratio for methylcyclohexane at 298 K.','K = e^(7300 ÷ (8.314 × 298)) = e^2.95 ≈ 19, so about 19:1, or 95% equatorial.'],
+  ['Draw the more stable chair of cis-1-tert-butyl-4-methylcyclohexane.','In the cis-1,4 isomer one group must be axial and the other equatorial. tert-Butyl has by far the larger A-value, so it goes equatorial and the methyl axial.'],
+  ['Which is more stable, cis- or trans-1-tert-butyl-4-methylcyclohexane, and by about how much?','Trans: both groups can be equatorial. In the cis isomer the methyl is forced axial, so the difference is about one methyl A-value, 7.3 kJ mol⁻¹.'],
+  ['Which isomer of 1-tert-butyl-4-chlorocyclohexane reacts faster by E2 with ethoxide?','The cis isomer. With tert-butyl locked equatorial, the cis isomer has Cl axial, anti-periplanar to the axial H atoms on C3 and C5. In the trans isomer Cl is held equatorial and E2 is very slow.']]},
+ qs:[
+  {prompt:'A sample contains 90% of one enantiomer and 10% of the other. What is its enantiomeric excess?',opts:['80%','90%','10%','45%'],why:'ee = 90 − 10 = 80%.'},
+  {prompt:'A pure enantiomer has [α] = +60°. A mixture of the enantiomers shows [α] = +12°. What is the ratio of the enantiomers?',opts:['60:40','80:20','12:88','56:44'],why:'Optical purity = 12 ÷ 60 = 20% ee. % major = (100 + 20) ÷ 2 = 60%, so the mixture is 60:40.'},
+  {prompt:'4-tert-Butylcyclohexanone is reduced with NaBH₄. What is the main product?',opts:['trans-4-tert-Butylcyclohexanol (OH equatorial)','cis-4-tert-Butylcyclohexanol (OH axial)','A 50:50 mixture of cis and trans','4-tert-Butylcyclohexene'],why:'The small hydride attacks from the axial direction, which puts the new OH equatorial: the trans isomer, about 90%.'},
+  {prompt:'Br₂ adds to (Z)-but-2-ene to give racemic 2,3-dibromobutane, and to (E)-but-2-ene to give the meso compound. This is an example of a reaction that is:',opts:['stereospecific','regioselective only','enantioselective','not stereoselective at all'],why:'Each stereoisomer of the alkene gives a different stereoisomer of the product, which is the definition of stereospecific.'},
+  {prompt:'What is the anomeric effect?',opts:['An electronegative group on C1 of a pyranose prefers the axial position more than its size predicts','A sugar’s α and β forms interconverting','All substituents preferring equatorial positions','A sugar rotating plane-polarised light'],why:'A ring-O lone pair donates into the σ* orbital of the axial C1–X bond. The interconversion of anomers is mutarotation.'},
+  {prompt:'Which group has the largest A-value?',opts:['tert-Butyl','Isopropyl','Methyl','Chloro'],why:'An axial tert-butyl group must point a CH₃ straight at the axial H atoms on C3 and C5, a severe clash (about 21 kJ mol⁻¹).'},
+  {prompt:'An achiral alkene reacts with mCPBA, an achiral reagent, to give an epoxide with two stereocentres. The product is:',opts:['racemic, or meso if it has a mirror plane','a single enantiomer','always meso','an unequal mixture of enantiomers'],why:'With no chiral influence, both enantiomeric transition states have exactly the same energy.'},
+  {prompt:'What is the global minimum-energy conformation of butane?',opts:['Anti','Gauche','Eclipsed','Fully eclipsed'],why:'In the anti conformation the two methyl groups are 180° apart and every bond is staggered.'},
+  {prompt:'At 298 K, ΔG° between two conformations is 5.7 kJ mol⁻¹. What is the approximate equilibrium ratio?',opts:['10:1','100:1','2:1','5.7:1'],why:'K = e^(5700 ÷ (8.314 × 298)) = e^2.30 ≈ 10. A handy rule: every 5.7 kJ mol⁻¹ is a factor of 10 at room temperature.'}]},
+
+{id:'u12',lv:'adv',title:'Spectroscopy',lede:'Beer–Lambert calculations, mass spectra with isotope patterns, and reading ¹H and ¹³C NMR spectra to solve structures.',
+ syl:['Lambert–Beer law (core)','Mass spectrometry: molecular ions, isotope distributions','Interpretation of simple NMR spectra: chemical shift, multiplicity, integrals'],
+ sections:[
+  {h:'Beer–Lambert law (core)',html:`${coEq('A = log₁₀(I₀ ÷ I) = ε c l')}<p>A is the absorbance (no units), ε the molar absorption coefficient (dm³ mol⁻¹ cm⁻¹), c the concentration (mol dm⁻³) and l the path length (cm). Transmittance T = I ÷ I₀, so A = −log₁₀ T: 10% transmittance means A = 1, and 1% means A = 2.</p>
+   <p><b>Example:</b> a solution with ε = 1.2 × 10⁴ dm³ mol⁻¹ cm⁻¹ gives A = 0.60 in a 1.00 cm cell. c = A ÷ (εl) = 0.60 ÷ (1.2 × 10⁴ × 1.00) = 5.0 × 10⁻⁵ mol dm⁻³.</p>
+   <p>Absorbances add for a mixture: at each wavelength A = l(ε₁c₁ + ε₂c₂). Measuring at two wavelengths gives two equations for two unknown concentrations.</p>`},
+  {h:'Mass spectrometry',html:`<p>The <b>molecular ion</b> M⁺ gives the molar mass. Isotopes give extra peaks:</p>${stT([['one Cl','M : M+2 ≈ 3 : 1','³⁵Cl 76%, ³⁷Cl 24%'],['two Cl','M : M+2 : M+4 ≈ 9 : 6 : 1','(3 + 1)² expanded'],['one Br','M : M+2 ≈ 1 : 1','⁷⁹Br 51%, ⁸¹Br 49%'],['two Br','M : M+2 : M+4 ≈ 1 : 2 : 1',''],['n carbons','M+1 ≈ 1.1% × n of M','¹³C is 1.1% of carbon'],['one S','M+2 ≈ 4.4% of M','³⁴S']],['Atoms','Pattern','Why'])}
+   <p><b>Nitrogen rule:</b> an odd molecular mass means an odd number of N atoms. Common losses and fragments: −15 (CH₃), −18 (H₂O, alcohols), −29 (CHO or C₂H₅), −45 (COOH); m/z 43 (CH₃CO⁺ or C₃H₇⁺), 77 (C₆H₅⁺), 91 (C₇H₇⁺, benzyl/tropylium), 105 (C₆H₅CO⁺). Cleavage next to C=O, O or N, and at branch points, gives the most stable cations.</p>
+   <p>Bondline’s <a href="/guides/mass-spectrometry-fragmentation/" target="_blank" rel="noopener">mass spectrometry guide</a> has more worked examples.</p>`},
+  {h:'¹H NMR',html:`<p>Four things to read: the number of signals (different H environments), the <b>chemical shift</b> (electronic environment), the <b>integral</b> (relative number of H) and the <b>multiplicity</b> (neighbouring H).</p>
+   ${stT([['0.9–1.7','alkyl C–H'],['2.0–2.7','H–C next to C=O or an aromatic ring'],['3.3–4.5','H–C–O, H–C–halogen'],['4.5–6.5','alkene C=C–H'],['6.5–8.5','aromatic H'],['9–10','aldehyde CHO'],['10–13','carboxylic acid COOH'],['1–5 (broad, variable)','O–H and N–H; they disappear on shaking with D₂O']],['δ / ppm','Typical protons'])}
+   <p><b>n + 1 rule:</b> H with n equivalent neighbours on adjacent carbons give n + 1 lines (doublet, triplet, quartet…), with intensities from Pascal’s triangle. An ethyl group gives a triplet (3H) and a quartet (2H); an isopropyl group a doublet (6H) and a septet (1H). Typical coupling constant across H–C–C–H: about 7 Hz. O–H usually doesn’t couple, because it exchanges quickly.</p>`},
+  {h:'¹³C NMR',html:`<p>Count signals to count carbon environments; symmetry reduces the number. Typical shifts: 10–40 ppm alkyl, 50–90 C–O and C–N, 110–150 alkene and aromatic, 160–185 carboxylic acids and derivatives, 190–220 aldehydes and ketones. Routine ¹³C spectra are proton-decoupled, so each signal is a single line, and peak heights aren’t reliable integrals.</p>
+   <p>See also: <a href="/guides/13c-nmr-chemical-shifts/" target="_blank" rel="noopener">¹³C NMR chemical shifts guide</a>.</p>`},
+  {h:'Solving a structure',html:`<ol><li>From the formula, work out the degree of unsaturation.</li><li>From IR (if given), look for C=O (about 1700 cm⁻¹), O–H (broad 3200–3550) and N–H.</li><li>From ¹H NMR, list fragments: integrals give the H count, splitting gives the neighbours, shift gives what is attached.</li><li>Assemble the fragments so every atom of the formula is used, then check every peak against your structure.</li></ol>`}],
+ tools:[['sp','hnmr','¹H NMR lesson','Interactive spectra'],['sp','cnmr','¹³C NMR lesson',''],['sp','ms','Mass spectrometry lesson',''],['sp','combo','Solving structures','Combine IR, NMR and MS'],['mode','spectra','Spectra practice','']],
+ prob:{title:'An unknown liquid, C₄H₈O₂',stem:'A sweet-smelling liquid has the formula C₄H₈O₂. IR: strong peak at 1740 cm⁻¹, no broad O–H. ¹H NMR: δ 4.12 (quartet, 2H), 2.04 (singlet, 3H), 1.26 (triplet, 3H). Mass spectrum: M⁺ at m/z 88, base peak at m/z 43.',parts:[
+  ['What does the formula tell you?','DoU = (2×4 + 2 − 8) ÷ 2 = 1: one C=O, confirmed by the IR peak at 1740 cm⁻¹, typical of an ester. With no O–H, it isn’t an acid.'],
+  ['What fragments does the NMR show?','A quartet (2H) coupled to a triplet (3H) is an ethyl group, CH₃CH₂–. The CH₂ at δ 4.12 must be on oxygen (O–CH₂). A singlet CH₃ at δ 2.04 has no H neighbours and sits next to C=O.'],
+  ['Identify the compound.','CH₃–CO–O–CH₂CH₃, ethyl ethanoate. It uses all of C₄H₈O₂.'],
+  ['Explain the base peak at m/z 43.','Cleavage next to the C=O gives the acylium ion CH₃C≡O⁺ (m/z 43), stabilised by resonance.']]},
+ qs:[
+  {prompt:'A solution with ε = 1.5 × 10⁴ dm³ mol⁻¹ cm⁻¹ has A = 0.30 in a 1.00 cm cell. What is its concentration?',opts:['2.0 × 10⁻⁵ mol dm⁻³','5.0 × 10⁻⁵ mol dm⁻³','4.5 × 10³ mol dm⁻³','2.0 × 10⁻⁴ mol dm⁻³'],why:'c = A ÷ (εl) = 0.30 ÷ (1.5 × 10⁴ × 1.00) = 2.0 × 10⁻⁵ mol dm⁻³.'},
+  {prompt:'A solution transmits 1% of the incident light. What is its absorbance?',opts:['2','1','0.01','100'],why:'A = −log₁₀ T = −log₁₀(0.01) = 2.'},
+  {prompt:'A mass spectrum shows M⁺ and M+2 peaks of equal height. The compound contains:',opts:['one bromine atom','one chlorine atom','two chlorine atoms','one sulfur atom'],why:'⁷⁹Br and ⁸¹Br are almost equally abundant.'},
+  {prompt:'A compound containing only C, H, N and O has M⁺ at m/z 59. What can you conclude?',opts:['It has an odd number of N atoms','It has no N atoms','It has an even number of N atoms','It must contain Cl'],why:'By the nitrogen rule, an odd molecular mass means an odd number of N atoms. Ethanamide and trimethylamine, both 59, each have one.'},
+  {prompt:'In the ¹H NMR spectrum of bromoethane, what is the multiplicity of the CH₂ signal?',opts:['Quartet','Triplet','Doublet','Singlet'],why:'The CH₂ group has three neighbouring H atoms (the CH₃), so n + 1 = 4 lines.'},
+  {prompt:'How many signals are there in the ¹³C NMR spectrum of 1,4-dimethylbenzene?',fig:{k:'smi',s:'Cc1ccc(C)cc1'},opts:['3','4','2','8'],why:'By symmetry: the two CH₃ carbons are one environment, the two ring carbons carrying CH₃ another, and the four ring CH carbons a third.'},
+  {prompt:'At about what chemical shift does an aldehyde proton appear?',opts:['9–10 ppm','2–3 ppm','5–6 ppm','0.9 ppm'],why:'The CHO proton is strongly deshielded by the C=O group and its magnetic anisotropy.'},
+  {prompt:'How many ¹H NMR signals does propan-2-ol give?',fig:{k:'smi',s:'CC(C)O'},opts:['3','2','4','8'],why:'The six CH₃ protons are equivalent, plus the CH and the OH: three signals, with integrals 6:1:1.'},
+  {prompt:'A compound has two chlorine atoms. What are the approximate relative heights of M, M+2 and M+4?',opts:['9 : 6 : 1','3 : 1 : 0','1 : 2 : 1','1 : 1 : 1'],why:'Each Cl is ³⁵Cl or ³⁷Cl in a 3 : 1 ratio, so (3 + 1)² = 9 + 6 + 1.'}]},
+
+{id:'u13',lv:'adv',title:'Proteins and enzymes',lede:'How proteins are built, folded, separated and sequenced, and how enzymes work, including Michaelis–Menten kinetics.',
+ syl:['Amino acid side-chain chemistry; separation and sequencing','Protein structure (primary to quaternary), non-covalent interactions, denaturation, purification','Enzymes: classification, active sites, cofactors, catalysis'],
+ sections:[
+  {h:'Side chains that do chemistry',html:`${stT([['cysteine','–SH','two Cys oxidise to a disulfide bridge, –S–S–, which crosslinks chains'],['histidine','imidazole, pKaH about 6','acts as an acid or a base near pH 7, so it is common in active sites'],['serine','–CH₂OH','the nucleophile in serine proteases'],['lysine','–(CH₂)₄NH₂','positive at pH 7; forms imines (Schiff bases) with aldehydes'],['aspartic and glutamic acid','–COOH','negative at pH 7; form salt bridges, bind metal ions'],['proline','ring through N','rigid; breaks α-helices']],['Amino acid','Side chain','Role'])}`},
+  {h:'Levels of protein structure',html:`<ul><li><b>Primary:</b> the sequence of amino acids, held by covalent peptide bonds.</li><li><b>Secondary:</b> regular local shapes held by hydrogen bonds between backbone C=O and N–H groups. In the <b>α-helix</b> (3.6 residues per turn) the C=O of residue i bonds to the N–H of residue i + 4. In <b>β-sheets</b>, extended strands lie side by side, parallel or antiparallel.</li><li><b>Tertiary:</b> the overall fold of one chain, held by side-chain interactions: the hydrophobic effect (non-polar side chains buried inside), hydrogen bonds, salt bridges and disulfide bridges.</li><li><b>Quaternary:</b> how several chains pack together, such as the four subunits of haemoglobin (α₂β₂).</li></ul>
+   <p><b>Denaturation</b> by heat, extreme pH, urea, organic solvents or detergents unfolds the protein by breaking the non-covalent interactions. The peptide bonds, and so the primary structure, are untouched.</p>`},
+  {h:'Separating proteins and amino acids',html:`${stT([['electrophoresis','charge at a given pH (relative to pI)'],['SDS-PAGE','size: SDS coats proteins with a uniform negative charge'],['ion-exchange chromatography','charge'],['gel-filtration (size-exclusion) chromatography','size: large molecules come out first'],['affinity chromatography','binding to a specific ligand']],['Method','Separates by'])}`},
+  {h:'Sequencing a peptide',html:`<ol><li><b>Composition:</b> hydrolyse with 6 M HCl at 110 °C for 24 h and analyse the amino acids. (Trp is destroyed; Asn and Gln become Asp and Glu.)</li><li><b>N-terminus:</b> Sanger’s reagent (1-fluoro-2,4-dinitrobenzene) labels it, or the <b>Edman degradation</b> removes it: phenyl isothiocyanate (PhNCS) reacts with the free NH₂, and mild acid cleaves off that residue as a PTH-amino acid, leaving the rest of the chain to repeat the cycle.</li><li><b>C-terminus:</b> carboxypeptidase releases residues one at a time from that end.</li><li><b>Specific cleavage</b> into overlapping fragments, then fit them together:</li></ol>
+   ${stT([['trypsin','after Lys and Arg (not if followed by Pro)'],['chymotrypsin','after Phe, Tyr and Trp'],['cyanogen bromide (CNBr)','after Met']],['Reagent','Cuts the peptide bond'])}`},
+  {h:'Enzymes',html:`<p>Enzymes are protein catalysts. The substrate binds in the <b>active site</b>, where side chains (and cofactors) lower the activation energy, often by acid–base catalysis, covalent catalysis or stabilising the transition state. Like all catalysts, enzymes speed up the forward and reverse reactions equally and don’t change the equilibrium constant.</p>
+   ${stT([['1','oxidoreductases','redox reactions (e.g. alcohol dehydrogenase)'],['2','transferases','move a group between molecules (kinases move phosphate)'],['3','hydrolases','hydrolysis (proteases, lipases, esterases)'],['4','lyases','add to or form double bonds without hydrolysis or redox'],['5','isomerases','rearrangements within a molecule'],['6','ligases','join molecules using ATP'],['7','translocases','move ions or molecules across membranes']],['EC class','Name','Reaction'])}
+   <p><b>Cofactors:</b> metal ions (Zn²⁺, Mg²⁺, Fe²⁺) and organic coenzymes such as NAD⁺, FAD, coenzyme A and pyridoxal phosphate. Chymotrypsin uses a <b>catalytic triad</b>: Asp positions His, which acts as a general base to activate Ser, which attacks the peptide C=O.</p>`},
+  {h:'Michaelis–Menten kinetics',html:`${coEq('v = V<sub>max</sub>[S] ÷ (K<sub>M</sub> + [S])')}<p>K<sub>M</sub> is the substrate concentration at which v = V<sub>max</sub> ÷ 2. At low [S] the rate is first order in S; at high [S] the enzyme is saturated and the rate is zero order. The Lineweaver–Burk plot straightens the curve:</p>${coEq('1/v = (K<sub>M</sub> ÷ V<sub>max</sub>)(1/[S]) + 1/V<sub>max</sub>')}<p>y-intercept 1/V<sub>max</sub>, slope K<sub>M</sub>/V<sub>max</sub>, x-intercept −1/K<sub>M</sub>.</p>
+   ${stT([['competitive (binds the active site)','increases','unchanged'],['non-competitive (binds elsewhere, equally to E and ES)','unchanged','decreases'],['uncompetitive (binds ES only)','decreases','decreases']],['Inhibitor','Apparent K<sub>M</sub>','V<sub>max</sub>'])}`}],
+ tools:[['view3d','N[C@@H](Cc1c[nH]cn1)C(=O)O','Histidine in 3D','The imidazole side chain'],['mech','amide','Amide formation','How peptide bonds are made'],['mech','acylhydrolysis','Amide hydrolysis','What proteases catalyse']],
+ prob:{title:'Sequence a pentapeptide',stem:'A pentapeptide contains Ala, Gly, Lys, Phe and Ser, one of each. One cycle of Edman degradation releases PTH-Ser. Carboxypeptidase releases Gly first. Trypsin gives a tripeptide (Lys, Phe, Ser) and a dipeptide (Ala, Gly). Chymotrypsin gives a dipeptide (Phe, Ser) and a tripeptide (Ala, Gly, Lys).',parts:[
+  ['Which residues are at each end?','Ser is the N-terminus (Edman); Gly is the C-terminus (carboxypeptidase).'],
+  ['Use the chymotrypsin result.','Chymotrypsin cuts after Phe. The dipeptide containing the N-terminal Ser must be Ser-Phe, so the sequence starts Ser-Phe-…'],
+  ['Use the trypsin result and give the sequence.','Trypsin cuts after Lys, so the tripeptide is Ser-Phe-Lys and Lys is residue 3. The dipeptide Ala, Gly must end in the C-terminal Gly: Ala-Gly. The sequence is Ser-Phe-Lys-Ala-Gly.'],
+  ['Check it against the chymotrypsin tripeptide.','Cutting Ser-Phe-Lys-Ala-Gly after Phe leaves Lys-Ala-Gly, which contains Ala, Gly and Lys. ✓']]},
+ qs:[
+  {prompt:'Trypsin cleaves peptide bonds on the C-terminal side of which residues?',opts:['Lys and Arg','Phe, Tyr and Trp','Met','Gly and Ala'],why:'Trypsin’s binding pocket holds a negatively charged Asp that attracts the long, positive side chains of Lys and Arg.'},
+  {prompt:'In an α-helix, the C=O of residue i hydrogen-bonds to the N–H of which residue?',opts:['i + 4','i + 1','i + 2','i + 10'],why:'With 3.6 residues per turn, residue i + 4 sits directly above residue i, one turn up.'},
+  {prompt:'When a protein is denatured by heat, which bonds normally stay intact?',opts:['Peptide bonds','Hydrogen bonds','Hydrophobic interactions','Ionic salt bridges'],why:'Denaturation disrupts the non-covalent interactions that hold the fold. The covalent backbone, the primary structure, survives.'},
+  {prompt:'How does a competitive inhibitor change the kinetics of an enzyme?',opts:['Apparent K<sub>M</sub> increases; V<sub>max</sub> is unchanged','K<sub>M</sub> is unchanged; V<sub>max</sub> decreases','Both K<sub>M</sub> and V<sub>max</sub> decrease','Both increase'],why:'The inhibitor competes with the substrate for the active site, but at high enough [S] the substrate wins, so V<sub>max</sub> can still be reached.'},
+  {prompt:'What is K<sub>M</sub>?',opts:['The substrate concentration at which the rate is half of V<sub>max</sub>','The maximum rate of the reaction','The equilibrium constant of the overall reaction','The enzyme concentration needed for half of V<sub>max</sub>'],why:'Put [S] = K<sub>M</sub> into the Michaelis–Menten equation: v = V<sub>max</sub> × K<sub>M</sub> ÷ 2K<sub>M</sub> = V<sub>max</sub> ÷ 2.'},
+  {prompt:'What is the y-intercept of a Lineweaver–Burk plot?',opts:['1/V<sub>max</sub>','−1/K<sub>M</sub>','K<sub>M</sub>/V<sub>max</sub>','V<sub>max</sub>'],why:'1/v = (K<sub>M</sub>/V<sub>max</sub>)(1/[S]) + 1/V<sub>max</sub>, so when 1/[S] = 0, 1/v = 1/V<sub>max</sub>.'},
+  {prompt:'Which reagent is used in the Edman degradation?',opts:['Phenyl isothiocyanate','1-Fluoro-2,4-dinitrobenzene','Cyanogen bromide','Ninhydrin'],why:'PhNCS labels the N-terminal amino group, and mild acid then cleaves off just that residue, so the cycle can be repeated.'},
+  {prompt:'Disulfide bridges form between the side chains of which amino acid?',opts:['Cysteine','Methionine','Serine','Tyrosine'],why:'Two –SH groups are oxidised to –S–S–. Methionine’s sulfur is a thioether and can’t do this.'},
+  {prompt:'Which class of enzymes do proteases belong to?',opts:['Hydrolases (EC 3)','Transferases (EC 2)','Ligases (EC 6)','Lyases (EC 4)'],why:'Proteases catalyse the hydrolysis of peptide bonds.'},
+  {prompt:'In the catalytic triad of chymotrypsin, which residue acts as the general base?',opts:['Histidine','Serine','Aspartate','Lysine'],why:'His removes the proton from the Ser OH as Ser attacks the substrate. Asp holds His in the right orientation and charge state.'}]},
+
+{id:'u14',lv:'adv',title:'Carbohydrates and nucleic acids',lede:'Haworth projections, the reactions of sugars, glycosidic bonds and polysaccharides, then DNA, RNA and how genetic information is copied and read.',
+ syl:['Monosaccharides: ring forms, Haworth projections','Oligo- and polysaccharides','Bases, nucleosides and nucleotides; DNA and RNA','Replication, transcription and translation'],
+ sections:[
+  {h:'From Fischer to Haworth',html:`<p>To draw a D-pyranose in a Haworth projection: the ring O sits at the back right, C1 on the right, and every OH that is on the <b>right</b> in the Fischer projection points <b>down</b>. For a D sugar, the CH₂OH at C5 points up. The anomeric OH is down for α and up for β.</p>
+   <p><b>Epimers</b> differ at one stereocentre only: D-mannose is the C2 epimer of D-glucose, D-galactose the C4 epimer. <b>Anomers</b> are epimers at the anomeric carbon. An aldohexose has 4 stereocentres in the open chain, so there are 2⁴ = 16 stereoisomers, 8 of them D.</p>`},
+  {h:'Reactions of monosaccharides',html:`${stT([['Br₂ water','aldonic acid (C1 → COOH)','oxidises the aldehyde only'],['dilute HNO₃','aldaric acid (C1 and C6 → COOH)','galactaric acid is meso; glucaric acid is chiral'],['NaBH₄','alditol (C1 → CH₂OH)','D-glucose gives D-glucitol (sorbitol)'],['ROH, H⁺','glycoside (acetal)','non-reducing; no longer mutarotates'],['HIO₄ (periodate)','cuts every C–C bond between vicinal OH (or OH and C=O) carbons','counting the products gives the structure']],['Reagent','Product','Notes'])}
+   <p>Periodate on open-chain glucose: each CHOH in the middle of the chain becomes HCOOH, the CH₂OH end becomes HCHO, and the CHO end becomes HCOOH. One glucose consumes 5 IO₄⁻ and gives 5 HCOOH + 1 HCHO.</p>`},
+  {h:'Disaccharides and polysaccharides',html:`${stT([['maltose','Glc α(1→4) Glc','reducing'],['lactose','Gal β(1→4) Glc','reducing'],['sucrose','Glc α(1→2)β Fru','non-reducing: both anomeric carbons are used'],['amylose (starch)','Glc α(1→4), unbranched','coils into a helix; I₂ gives a blue-black complex inside it'],['amylopectin, glycogen','α(1→4) with α(1→6) branches','glycogen is more highly branched'],['cellulose','Glc β(1→4)','straight chains, hydrogen-bonded into fibres; humans have no enzyme to hydrolyse it']],['Sugar','Linkage','Notes'])}`},
+  {h:'The building blocks of nucleic acids',html:`<p>A <b>nucleoside</b> is a base joined to a sugar (D-ribose in RNA, 2-deoxy-D-ribose in DNA) by a β-N-glycosidic bond at C1′. A <b>nucleotide</b> is a nucleoside with a phosphate on the 5′-OH.</p>${stT([['purines (two rings)','adenine A, guanine G','DNA and RNA'],['pyrimidines (one ring)','cytosine C','DNA and RNA'],['','thymine T','DNA only'],['','uracil U','RNA only']],['Type','Bases','Found in'])}
+   ${coG(stS('Nc1ncnc2[nH]cnc12','Adenine'),stS('Cc1c[nH]c(=O)[nH]c1=O','Thymine'),stS('Nc1cc[nH]c(=O)n1','Cytosine'))}`},
+  {h:'DNA and RNA',html:`<p>Nucleotides are linked by <b>3′→5′ phosphodiester bonds</b>; a chain has a 5′ end and a 3′ end, and is written 5′→3′. DNA is a double helix of two <b>antiparallel</b> strands held by base pairing: <b>A=T</b> (two hydrogen bonds) and <b>G≡C</b> (three). So in double-stranded DNA, %A = %T and %G = %C (Chargaff’s rules), and DNA with more G–C pairs has a higher melting temperature. The phosphate groups make the backbone negatively charged.</p>
+   <p>RNA is usually single-stranded and uses U in place of T. Its 2′-OH can attack the neighbouring phosphate, so RNA is hydrolysed by base much more easily than DNA.</p>`},
+  {h:'Replication, transcription and translation',html:`<ul><li><b>Replication:</b> DNA polymerase copies each strand, adding nucleotides only to the 3′ end, so new strands grow 5′→3′. Each new double helix keeps one old strand (semi-conservative).</li><li><b>Transcription:</b> RNA polymerase reads the template strand 3′→5′ and makes mRNA 5′→3′. The mRNA has the same sequence as the coding (non-template) strand, with U for T.</li><li><b>Translation:</b> ribosomes read mRNA 5′→3′ in three-base <b>codons</b>. 64 codons code for 20 amino acids and three stop signals; AUG (Met) is the start codon. Each tRNA carries one amino acid and has an <b>anticodon</b> that pairs antiparallel with the codon.</li></ul>`}],
+ tools:[['st','fischer','Fischer projections and D/L',''],['view3d','OC[C@H]1O[C@@H](O)[C@H](O)[C@@H](O)[C@@H]1O','β-D-Glucose in 3D',''],['mech','acetal','Acetal formation','The chemistry of the glycosidic bond']],
+ prob:{title:'From DNA to protein',stem:'A sample of double-stranded DNA is 30% adenine. Part of its template strand reads 3′-TAC GGA TTT-5′.',parts:[
+  ['Give the percentages of T, G and C.','A pairs with T, so T = 30%. That leaves 40% for G + C, and G = C, so G = 20% and C = 20%.'],
+  ['Write the mRNA made from this part of the template strand.','The mRNA is complementary and antiparallel, with U for T: 5′-AUG CCU AAA-3′.'],
+  ['What tripeptide does it code for?','AUG = Met, CCU = Pro, AAA = Lys: Met-Pro-Lys.'],
+  ['What is the anticodon of the tRNA that carries Pro here?','It pairs antiparallel with 5′-CCU-3′, so the anticodon is 3′-GGA-5′ (written 5′-AGG-3′).']]},
+ qs:[
+  {prompt:'An OH on the right of a Fischer projection points which way in the Haworth projection?',opts:['Down','Up','In the plane of the ring','It depends on α or β'],why:'This rule converts any D-pyranose between the two drawings. Only the anomeric OH depends on α or β.'},
+  {prompt:'D-Glucose and D-mannose are:',opts:['C2 epimers','anomers','enantiomers','constitutional isomers'],why:'They differ only in the configuration at C2. Anomers differ at C1 of the ring form.'},
+  {prompt:'How many stereoisomers does an open-chain aldohexose have?',opts:['16','8','4','32'],why:'C2, C3, C4 and C5 are stereocentres: 2⁴ = 16, of which 8 are D and 8 are L.'},
+  {prompt:'Open-chain glucose is oxidised with excess HIO₄. What forms?',opts:['5 HCOOH and 1 HCHO','6 HCOOH','4 HCOOH and 2 HCHO','3 HCOOH and 3 CO₂'],why:'C1 (CHO) and C2–C5 (CHOH) each become HCOOH; C6 (CH₂OH) becomes HCHO. Five C–C bonds are cut, using 5 IO₄⁻.'},
+  {prompt:'Which linkage joins the glucose units in cellulose?',opts:['β(1→4)','α(1→4)','α(1→6)','β(1→2)'],why:'β-links give straight chains that hydrogen-bond into strong fibres. Starch uses α(1→4) (and α(1→6) at branches).'},
+  {prompt:'Oxidising D-galactose with HNO₃ gives galactaric acid, which is optically inactive. Why?',opts:['It is a meso compound','It is a racemic mixture','It has no stereocentres','It is a lactone'],why:'Making both ends COOH gives a molecule with an internal mirror plane, because of galactose’s pattern of OH groups. Glucaric acid has no such plane and stays chiral.'},
+  {prompt:'How many hydrogen bonds hold a G–C base pair together?',opts:['3','2','1','4'],why:'G≡C has three, A=T has two, which is why G–C-rich DNA melts at a higher temperature.'},
+  {prompt:'A DNA template strand reads 3′-ATG-5′. What mRNA is made from it?',opts:['5′-UAC-3′','5′-ATG-3′','5′-UAG-3′','5′-CAT-3′'],why:'Pair each base (A→U, T→A, G→C) and keep the strands antiparallel: 3′-ATG-5′ gives 5′-UAC-3′.'},
+  {prompt:'Which DNA has the highest melting temperature?',opts:['The one with the most G–C pairs','The one with the most A–T pairs','The shortest one','They all melt at the same temperature'],why:'G–C pairs have three hydrogen bonds and stack more strongly, so more energy is needed to separate the strands.'},
+  {prompt:'What is the difference between a nucleoside and a nucleotide?',opts:['A nucleotide also has a phosphate group','A nucleoside also has a phosphate group','A nucleotide has no sugar','They are the same'],why:'Nucleoside = base + sugar. Nucleotide = base + sugar + phosphate (usually on the 5′-OH).'}]},
+
+{id:'u15',lv:'adv',title:'Advanced polymers and supramolecular chemistry',lede:'Copolymers, rubbers and thermosets, polymerisation kinetics and molar-mass averages, and molecules that recognise one another without covalent bonds.',
+ syl:['Advanced polymers: rubbers, copolymers, thermosetting polymers','Polymerisation kinetics','Supramolecular chemistry'],
+ sections:[
+  {h:'Copolymers and tacticity',html:`${stT([['random','–A–B–B–A–B–A–A–','properties between those of the two homopolymers'],['alternating','–A–B–A–B–A–B–','e.g. some styrene–maleic anhydride polymers'],['block','–A–A–A–A–B–B–B–B–','SBS rubber: hard polystyrene blocks hold soft polybutadiene blocks together'],['graft','a B side chain on an A backbone','e.g. ABS plastic']],['Copolymer','Sequence','Example'])}
+   <p><b>Tacticity</b> describes the side groups along a chain such as polypropene: <b>isotactic</b> (all on the same side), <b>syndiotactic</b> (alternating) or <b>atactic</b> (random). Regular chains pack into crystalline regions, making isotactic polypropene strong and high-melting. Ziegler–Natta catalysts (Nobel Prize 1963) make it.</p>`},
+  {h:'Rubbers, thermoplastics and thermosets',html:`<p>Natural rubber is <b>cis-1,4-polyisoprene</b>; gutta-percha, the trans isomer, is hard. Rubbers are above their glass transition temperature (T<sub>g</sub>) at room temperature, so their chains move freely. <b>Vulcanisation</b>, heating with sulfur, makes –S–S– crosslinks between chains, so the rubber springs back instead of flowing.</p>
+   <p><b>Thermoplastics</b> (PE, PS, nylon) are separate chains that soften on heating and can be remoulded. <b>Thermosets</b> are three-dimensional networks, cured once and never melting again: phenol–methanal resins (Bakelite), epoxy resins, melamine. To form a network, at least one monomer must have three or more reactive groups.</p>`},
+  {h:'Molar-mass averages',html:`<p>A polymer sample has a spread of chain lengths. For N<sub>i</sub> chains of molar mass M<sub>i</sub>:</p>${coEq('M<sub>n</sub> = ΣN<sub>i</sub>M<sub>i</sub> ÷ ΣN<sub>i</sub>     M<sub>w</sub> = ΣN<sub>i</sub>M<sub>i</sub>² ÷ ΣN<sub>i</sub>M<sub>i</sub>')}<p>M<sub>w</sub> ≥ M<sub>n</sub>, and the <b>dispersity</b> Đ = M<sub>w</sub>/M<sub>n</sub> measures the spread (1 for chains all the same length).</p>`},
+  {h:'Kinetics of step growth',html:`<p>Carothers’ equation, X<sub>n</sub> = 1 ÷ (1 − p), holds for exact stoichiometry. With a ratio r &lt; 1 of the two kinds of group:</p>${coEq('X<sub>n</sub> = (1 + r) ÷ (1 + r − 2rp)')}<p>At full conversion (p = 1) this becomes (1 + r) ÷ (1 − r): with 1% excess of one monomer (r ≈ 0.99), X<sub>n</sub> can’t exceed about 200. For step growth Đ = 1 + p, approaching 2.</p>
+   <p>If each step is catalysed by acid with rate constant k and the starting concentration of groups is [A]₀, second-order kinetics give X<sub>n</sub> = 1 + k[A]₀t: the chain length grows linearly with time.</p>`},
+  {h:'Kinetics of chain growth',html:`<p>For radical polymerisation at steady state (radicals formed as fast as they are destroyed), with initiator efficiency f:</p>${coEq('R<sub>p</sub> = k<sub>p</sub>[M] (f k<sub>d</sub>[I] ÷ k<sub>t</sub>)<sup>½</sup>')}<p>The rate is proportional to [M] and to the square root of [I]. The <b>kinetic chain length</b> ν, the number of monomers added per radical made, falls as [I] rises: ν = k<sub>p</sub>[M] ÷ 2(f k<sub>d</sub> k<sub>t</sub>[I])<sup>½</sup>. Termination by combination gives X<sub>n</sub> = 2ν; by disproportionation, X<sub>n</sub> = ν.</p>
+   <p>In <b>living</b> polymerisation (for example anionic, initiated by BuLi) there is no termination: every initiator starts one chain, and X<sub>n</sub> = [M]₀ ÷ [I]₀ × conversion, with Đ close to 1. Adding a second monomer at the end makes a block copolymer.</p>`},
+  {h:'Supramolecular chemistry',html:`<p>Supramolecular chemistry is chemistry beyond the molecule: assemblies held together by non-covalent interactions such as hydrogen bonds, ion–dipole forces, π–π stacking, metal–ligand bonds and the hydrophobic effect.</p>
+   ${stT([['18-crown-6','K⁺','the ion fits the cavity; KMnO₄ dissolves in benzene with it (“purple benzene”)'],['15-crown-5','Na⁺',''],['12-crown-4','Li⁺',''],['[2.2.2]cryptand','K⁺, very strongly','a three-dimensional cage'],['β-cyclodextrin','non-polar guests in water','a ring of seven glucose units with a hydrophobic cavity']],['Host','Guest','Notes'])}
+   <p>Binding is strongest when the host is <b>preorganised</b>, already the right shape, so little entropy is lost on binding; this is why cryptands beat crown ethers, which beat open-chain polyethers (the macrocyclic effect, related to the chelate effect). <b>Self-assembly</b> builds larger structures from many such interactions, as in micelles and DNA. Mechanically interlocked molecules (catenanes, rotaxanes) led to molecular machines, recognised by the 2016 Nobel Prize (Sauvage, Stoddart and Feringa). Pedersen, Cram and Lehn shared the 1987 prize for crown ethers, host–guest chemistry and cryptands.</p>
+   ${stS('C1COCCOCCOCCOCCOCCO1','18-Crown-6')}`}],
+ tools:[['view3d','C1COCCOCCOCCOCCOCCO1','18-Crown-6 in 3D','See the cavity that holds K⁺'],['view3d','CC(=C)C=C','Isoprene in 3D','The monomer of natural rubber']],
+ prob:{title:'Two polymer samples',stem:'Sample 1 contains equal numbers of chains with molar masses 10 000 and 30 000 g mol⁻¹. Sample 2 is polystyrene made by living anionic polymerisation of 10.4 g of styrene (M = 104.15 g mol⁻¹) with 1.00 mmol of butyllithium, run to full conversion.',parts:[
+  ['Calculate M<sub>n</sub>, M<sub>w</sub> and Đ for sample 1.','M<sub>n</sub> = (10 000 + 30 000) ÷ 2 = 20 000 g mol⁻¹. M<sub>w</sub> = (10 000² + 30 000²) ÷ (10 000 + 30 000) = 1.0 × 10⁹ ÷ 4.0 × 10⁴ = 25 000 g mol⁻¹. Đ = 25 000 ÷ 20 000 = 1.25.'],
+  ['What is the average degree of polymerisation of sample 2?','10.4 g ÷ 104.15 g mol⁻¹ = 0.0999 mol of styrene. Each BuLi starts one chain, so X<sub>n</sub> = 0.0999 ÷ 0.00100 ≈ 100.'],
+  ['Estimate M<sub>n</sub> of sample 2.','100 × 104.15 = 10 415, plus the end groups (C₄H₉ and H, about 58): M<sub>n</sub> ≈ 1.05 × 10⁴ g mol⁻¹.'],
+  ['Why would sample 2 have a dispersity close to 1?','All chains start at almost the same moment (fast initiation) and none terminate, so they all grow for the same time and end up with similar lengths.']]},
+ qs:[
+  {prompt:'In a step-growth polymerisation with exact stoichiometry, p = 0.995. What is X<sub>n</sub>?',opts:['200','995','100','20'],why:'X<sub>n</sub> = 1 ÷ (1 − 0.995) = 1 ÷ 0.005 = 200.'},
+  {prompt:'At high conversion, the dispersity of a step-growth polymer approaches:',opts:['2','1','1.5','infinity'],why:'For step growth Đ = 1 + p, which approaches 2 as p approaches 1.'},
+  {prompt:'Which ion does 18-crown-6 bind most strongly?',opts:['K⁺','Li⁺','Na⁺','Mg²⁺'],why:'The K⁺ ion (radius about 138 pm) fits the cavity of 18-crown-6 best. Smaller crowns suit Na⁺ and Li⁺.'},
+  {prompt:'Natural rubber is:',opts:['cis-1,4-polyisoprene','trans-1,4-polyisoprene','poly(chloroethene)','polybutadiene'],why:'The cis double bonds keep the chains coiled and flexible. The trans polymer (gutta-percha) is hard.'},
+  {prompt:'Which of these is a thermosetting polymer?',opts:['Phenol–methanal resin (Bakelite)','Poly(ethene)','Nylon-6,6','Polystyrene'],why:'Phenol reacts with methanal at three ring positions, building a crosslinked network that can’t melt.'},
+  {prompt:'A polymer chain reads –AAAAAABBBBBBAAAAAA–. It is a:',opts:['block copolymer','random copolymer','alternating copolymer','homopolymer'],why:'Long runs of each monomer are blocks. SBS rubber has this structure.'},
+  {prompt:'A living anionic polymerisation uses 0.50 mol of monomer and 2.5 mmol of initiator, run to full conversion. What is X<sub>n</sub>?',opts:['200','2000','20','500'],why:'Each initiator starts one chain: 0.50 ÷ 0.0025 = 200.'},
+  {prompt:'What does vulcanisation do to rubber?',opts:['Forms sulfur crosslinks between the chains','Breaks the chains into shorter pieces','Converts cis double bonds into trans','Removes all the double bonds'],why:'–S–S– bridges tie the chains together, so the rubber returns to shape after stretching instead of flowing.'},
+  {prompt:'In isotactic polypropene, the methyl groups are:',opts:['all on the same side of the chain','on alternating sides','arranged randomly','in the main chain'],why:'Regular placement lets the chains pack into crystalline regions, so isotactic polypropene is strong and has a high melting point.'},
+  {prompt:'For radical polymerisation, how does the rate depend on the initiator concentration?',opts:['Rate ∝ [I]<sup>½</sup>','Rate ∝ [I]','Rate ∝ [I]²','The rate doesn’t depend on [I]'],why:'At steady state, termination (second order in radicals) balances initiation (first order in I), so [radicals] ∝ [I]<sup>½</sup>.'}]},
+];
+
+/* ---------- v21: Courses tab (IChO); v23: three courses ---------- */
+const CO_UNITS=[...CO_UNITS_A,...CO_UNITS_B];
+CO_UNITS.forEach((u,i)=>{u.n=i+1;u.qs.forEach((q,k)=>{q.id='ic-'+u.id+'-'+(k+1);q.t=u.id})});
+const CO_BANK=CO_UNITS.flatMap(u=>u.qs),CO_BY=Object.fromEntries(CO_BANK.map(q=>[q.id,q])),CO_UBY=Object.fromEntries(CO_UNITS.map(u=>[u.id,u]));
+const CO_TOPICS=CO_UNITS.map(u=>({id:u.id,title:`${u.n}. ${u.title}`}));
+
+/* v23: units shared by the Cambridge A Level (9701) and STPM (962) courses.
+   A section or question tagged only:'a' appears in 9701 only, only:'s' in STPM only.
+   Question ids come from the unit id and the question's position, so only ever ADD questions at the end of a unit's list. */
+const PU_UNITS=[
+/* ======== Atoms, orbitals and bonding ======== */
+{id:'pu-atom',title:'Atoms, isotopes and mass spectra',lede:'What an atom is made of, why isotopes behave the same chemically, and how a mass spectrum gives a relative atomic mass.',
+ ref:{a:'AS 1.1, 1.2, 22.2',s:'First term, topic 1'},
+ syl:{a:['1.1 Protons, neutrons and electrons: relative masses and charges, and where they are in the atom','1.1 Behaviour of beams of protons, neutrons and electrons in an electric field','1.1 Numbers of protons, neutrons and electrons in atoms and ions','1.1 Trends in atomic and ionic radius across a period and down a group','1.2 Isotopes: same chemical properties, different mass and density','22.2 Relative atomic mass from isotopic abundances or a mass spectrum'],
+      s:['Fundamental particles: relative masses and charges','Proton number, nucleon number and isotopes','Counting particles in atoms and ions','Mass spectrometry: relative isotopic and atomic masses','Calculating relative atomic mass from a mass spectrum']},
+ sections:[
+  {h:'Inside the atom',html:`<p>Almost all the mass of an atom is in a tiny, dense <b>nucleus</b> of protons and neutrons. The electrons occupy the rest of the space, in shells around it. An atom is mostly empty space.</p>
+   ${stT([['proton','1','+1','nucleus'],['neutron','1','0','nucleus'],['electron','1/1836 (about 0.0005)','−1','shells around the nucleus']],['Particle','Relative mass','Relative charge','Where'])}
+   <p>The <b>proton number</b> (atomic number, Z) is the number of protons. The <b>nucleon number</b> (mass number, A) is protons plus neutrons. In a neutral atom, electrons = protons; an ion has lost electrons (positive) or gained them (negative).</p>
+   ${coEq('neutrons = A − Z &nbsp;&nbsp;·&nbsp;&nbsp; electrons = Z − charge')}
+   <p>For <sup>56</sup>Fe<sup>3+</sup>: 26 protons, 56 − 26 = 30 neutrons, 26 − 3 = 23 electrons.</p>
+   ${coNote('In an electric field:','a beam of protons bends towards the negative plate and a beam of electrons bends towards the positive plate, much more sharply, because the angle depends on charge ÷ mass and an electron is about 1836 times lighter. Neutrons, with no charge, go straight through.')}`},
+  {h:'Isotopes',html:`<p><b>Isotopes</b> are atoms of the same element (same number of protons) with different numbers of neutrons, such as <sup>35</sup>Cl and <sup>37</sup>Cl, or <sup>12</sup>C and <sup>14</sup>C.</p>
+   <ul><li><b>Same chemical properties:</b> chemistry depends on the electrons, and isotopes have the same number and arrangement of electrons.</li><li><b>Different physical properties:</b> mass and density differ, because the nuclei have different masses.</li></ul>`},
+  {h:'Relative atomic mass from a mass spectrum',html:`<p>A mass spectrometer separates ions by their mass-to-charge ratio (m/e). For an element, each peak is one isotope; its height shows the relative abundance.</p>
+   ${coEq('A<sub>r</sub> = Σ (isotopic mass × abundance) ÷ Σ abundance')}
+   <p>Chlorine is 75% <sup>35</sup>Cl and 25% <sup>37</sup>Cl, so A<sub>r</sub> = (35 × 75 + 37 × 25) ÷ 100 = 35.5.</p>
+   ${stT([['Cl₂','70, 72, 74','9 : 6 : 1','³⁵Cl³⁵Cl, ³⁵Cl³⁷Cl, ³⁷Cl³⁷Cl'],['Br₂','158, 160, 162','1 : 2 : 1','⁷⁹Br and ⁸¹Br are about 1 : 1'],['CH₃Cl','50 and 52','3 : 1','the M⁺ and [M+2]⁺ peaks show one Cl atom']],['Molecule','Molecular ion peaks','Ratio','Why'])}
+   <p>The 9 : 6 : 1 comes from the probabilities: (3/4)² : 2 × (3/4)(1/4) : (1/4)² = 9 : 6 : 1.</p>`,only:''},
+  {h:'Atomic and ionic radius',html:`<p><b>Across a period</b> atoms get smaller: the nuclear charge increases while new electrons go into the same shell, with little extra shielding, so the electrons are pulled closer. <b>Down a group</b> atoms get larger: each element adds a shell.</p>
+   <p>A positive ion is smaller than its atom (it has lost its outer shell, or has fewer electrons repelling one another). A negative ion is larger than its atom (more electron–electron repulsion for the same nuclear charge).</p>
+   ${stT([['N³⁻','7','171'],['O²⁻','8','140'],['F⁻','9','133'],['Na⁺','11','102'],['Mg²⁺','12','72'],['Al³⁺','13','54']],['Ion (10 electrons each)','Protons','Ionic radius / pm'])}
+   <p>In an <b>isoelectronic</b> series (same number of electrons), radius falls as the number of protons rises.</p>`}],
+ tools:[['sp','ms','Mass spectrometry','Read molecular ions, isotope patterns and fragments'],['guide','mass-spectrometry-fragmentation','Mass spectrometry guide','Isotope peaks and common fragments']],
+ prob:{title:'Isotopes of magnesium',stem:'A sample of magnesium contains three isotopes: <sup>24</sup>Mg (78.99%), <sup>25</sup>Mg (10.00%) and <sup>26</sup>Mg (11.01%).',parts:[
+  ['Calculate the relative atomic mass of magnesium to two decimal places.','A<sub>r</sub> = (24 × 78.99 + 25 × 10.00 + 26 × 11.01) ÷ 100 = (1895.76 + 250.00 + 286.26) ÷ 100 = <b>24.32</b>.'],
+  ['State the numbers of protons, neutrons and electrons in <sup>26</sup>Mg<sup>2+</sup>.','12 protons, 26 − 12 = 14 neutrons, 12 − 2 = 10 electrons.'],
+  ['Explain why <sup>24</sup>Mg and <sup>26</sup>Mg react with oxygen in the same way.','They have the same number of protons and the same electronic configuration (2.8.2). Chemical reactions involve the electrons, so their chemistry is the same. Only the mass of the nucleus differs.'],
+  ['Which is smaller, a Mg atom or a Mg<sup>2+</sup> ion? Explain.','The Mg²⁺ ion. It has lost its outer (third) shell, and its 12 protons now pull on only 10 electrons, so the remaining shells are drawn closer.']]},
+ qs:[
+  {prompt:'How many neutrons are in an atom of <sup>37</sup>Cl?',opts:['20','17','37','18'],why:'Chlorine has 17 protons, so 37 − 17 = 20 neutrons.'},
+  {prompt:'How many electrons are in a <sup>32</sup>S<sup>2−</sup> ion?',opts:['18','16','14','32'],why:'Sulfur has 16 protons. A 2− ion has gained 2 electrons: 16 + 2 = 18.'},
+  {prompt:'Beams of protons, neutrons and electrons with the same speed pass between charged plates. Which is deflected most?',opts:['Electrons','Protons','Neutrons','All equally'],why:'Deflection depends on charge ÷ mass. Electrons and protons have the same size of charge, but an electron is about 1836 times lighter, so it bends far more. Neutrons are not deflected.'},
+  {prompt:'Why do isotopes of an element have the same chemical properties?',opts:['They have the same electronic configuration','They have the same number of neutrons','They have the same mass','Their nuclei are the same size'],why:'Chemical reactions involve electrons. Isotopes have the same number of protons and therefore the same number and arrangement of electrons.'},
+  {prompt:'Boron is 20% <sup>10</sup>B and 80% <sup>11</sup>B. What is its relative atomic mass?',opts:['10.8','10.2','10.5','11.0'],why:'(10 × 20 + 11 × 80) ÷ 100 = (200 + 880) ÷ 100 = 10.8.'},
+  {prompt:'The mass spectrum of Cl₂ shows peaks at m/e 70, 72 and 74. What is their ratio?',opts:['9 : 6 : 1','1 : 2 : 1','3 : 2 : 1','3 : 1 : 1'],why:'³⁵Cl : ³⁷Cl is 3 : 1. The chance of 35+35 is 9/16, 35+37 (either way round) 6/16, and 37+37 1/16.'},
+  {prompt:'Which of these ions is the largest?',opts:['O²⁻','F⁻','Na⁺','Mg²⁺'],why:'All four have 10 electrons. O²⁻ has the fewest protons (8) pulling on them, so it is the largest.'},
+  {prompt:'Why does atomic radius decrease from sodium to chlorine?',opts:['Nuclear charge increases while electrons are added to the same shell','Electrons are added to new shells','Shielding increases sharply across the period','The number of neutrons decreases'],why:'Each element has one more proton, but the extra electron goes into the same (third) shell with little extra shielding, so the outer electrons are pulled closer.'},
+  {prompt:'A molecule containing one bromine atom gives two molecular ion peaks, M⁺ and [M+2]⁺. What is their approximate height ratio?',opts:['1 : 1','3 : 1','9 : 6','1 : 3'],why:'⁷⁹Br and ⁸¹Br are almost equally abundant, so the two peaks are about the same height.'}]},
+
+{id:'pu-orb',title:'Electrons, orbitals and configurations',lede:'Shells, sub-shells and orbitals, the rules for filling them, and how to write the configuration of any atom or ion up to krypton.',
+ ref:{a:'AS 1.3',s:'First term, topic 2'},
+ syl:{a:['1.3 Shells, sub-shells, orbitals, principal quantum number (n) and ground state','1.3 Number of orbitals in s, p and d sub-shells, and how many electrons each holds','1.3 Relative energies of sub-shells, including 4s and 4p','1.3 Electronic configurations in full and shorthand form, and electrons-in-boxes','1.3 Shapes of s and p orbitals','1.3 Free radicals: species with one or more unpaired electrons'],
+      s:['Bohr model: energy levels and the Lyman and Balmer series of hydrogen','Number and relative energies of s, p and d orbitals for n = 1 to 3, and 4s','Shapes of s and p orbitals','Electronic configurations of atoms and ions','Aufbau principle, Hund’s rule and Pauli exclusion principle','s-, p-, d- and f-blocks of the Periodic Table']},
+ sections:[
+  {h:'Shells, sub-shells and orbitals',html:`<p>Electrons occupy <b>shells</b> (principal quantum number n = 1, 2, 3 …). Each shell is split into <b>sub-shells</b> (s, p, d, f), and each sub-shell is made of <b>orbitals</b>. An orbital is a region of space that holds at most <b>two electrons, with opposite spins</b>.</p>
+   ${stT([['s','1','2'],['p','3','6'],['d','5','10'],['f','7','14']],['Sub-shell','Orbitals','Maximum electrons'])}
+   ${stT([['1','1s','2'],['2','2s, 2p','8'],['3','3s, 3p, 3d','18'],['4','4s, 4p, 4d, 4f','32']],['Shell (n)','Sub-shells','Maximum electrons (2n²)'])}
+   <p><b>Shapes:</b> an s orbital is spherical. A p orbital is dumbbell-shaped, with two lobes either side of the nucleus; the three p orbitals (p<sub>x</sub>, p<sub>y</sub>, p<sub>z</sub>) point along three axes at right angles.</p>`},
+  {h:'Filling order and the three rules',html:`<p>The sub-shells fill in order of increasing energy:</p>${coEq('1s &lt; 2s &lt; 2p &lt; 3s &lt; 3p &lt; 4s &lt; 3d &lt; 4p')}
+   <ul><li><b>Aufbau principle:</b> electrons go into the lowest-energy orbital available.</li><li><b>Pauli exclusion principle:</b> an orbital holds at most two electrons, and they must have opposite spins.</li><li><b>Hund’s rule:</b> in a set of orbitals of equal energy (such as the three 2p), electrons occupy separate orbitals with parallel spins before they pair up, because paired electrons repel.</li></ul>
+   ${stT([['N','1s² 2s² 2p³','[He] 2s² 2p³','three unpaired 2p electrons'],['O','1s² 2s² 2p⁴','[He] 2s² 2p⁴','one 2p orbital now holds a pair'],['Fe','1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁶ 4s²','[Ar] 3d⁶ 4s²','four unpaired 3d electrons'],['Cr','… 3d⁵ 4s¹','[Ar] 3d⁵ 4s¹','exception: a half-filled d sub-shell'],['Cu','… 3d¹⁰ 4s¹','[Ar] 3d¹⁰ 4s¹','exception: a full d sub-shell']],['Atom','Full','Shorthand','Notes'])}
+   <p>In <b>electrons-in-boxes</b> notation each orbital is a box and each electron an arrow; nitrogen’s 2p shows three boxes with one up-arrow each.</p>
+   ${coNote('Ions of the d-block:','when a transition element forms a positive ion, it loses its 4s electrons before its 3d electrons. Fe is [Ar] 3d⁶ 4s², so Fe²⁺ is [Ar] 3d⁶ and Fe³⁺ is [Ar] 3d⁵.')}
+   <p>A <b>free radical</b> is a species with one or more unpaired electrons, such as Cl• or CH₃•.</p>`},
+  {h:'Blocks of the Periodic Table',html:`<p>An element’s block is the sub-shell its last (highest-energy) electron enters: the <b>s-block</b> (groups 1 and 2), the <b>p-block</b> (groups 13 to 18), the <b>d-block</b> (Sc to Zn in period 4) and the <b>f-block</b> (lanthanides and actinides). Elements in the same group have the same outer configuration, which is why they react alike.</p>`},
+  {h:'The hydrogen emission spectrum',only:'s',html:`<p>When hydrogen atoms are excited (for example in a discharge tube), electrons jump to higher energy levels. As they fall back, each drop emits a photon of a single frequency, giving a <b>line spectrum</b>:</p>${coEq('ΔE = hν')}
+   ${stT([['Lyman','n = 1','ultraviolet'],['Balmer','n = 2','visible'],['Paschen','n = 3','infrared']],['Series','Electron falls to','Region'])}
+   <p>In <b>Bohr’s model</b> the electron can only have certain energies, so only certain frequencies appear. The lines in each series get closer together at higher frequency, because the energy levels converge, and they meet at the <b>convergence limit</b>.</p>
+   <p>The convergence limit of the Lyman series corresponds to an electron falling from n = ∞ to n = 1: the reverse of removing it completely. So it gives the ionisation energy of hydrogen.</p>${coEq('ν = 3.29 × 10¹⁵ Hz → E = hν × L = (6.63 × 10⁻³⁴)(3.29 × 10¹⁵)(6.02 × 10²³) ≈ 1312 kJ mol⁻¹')}`}],
+ tools:[['orb','','Orbitals viewer','See σ and π molecular orbitals built from atomic orbitals']],
+ prob:{title:'Iron and chromium',stem:'Iron (Z = 26) and chromium (Z = 24) are both d-block elements.',parts:[
+  ['Write the full electronic configuration of an iron atom.','1s² 2s² 2p⁶ 3s² 3p⁶ 3d⁶ 4s²'],
+  ['Write the shorthand configuration of Fe³⁺, and draw its 3d sub-shell as electrons in boxes.','[Ar] 3d⁵. The 4s electrons are lost first, then one 3d electron. The 3d boxes each hold one electron with parallel spins: five unpaired electrons.'],
+  ['Chromium is [Ar] 3d⁵ 4s¹, not [Ar] 3d⁴ 4s². Suggest why.','The 4s and 3d sub-shells are very close in energy. Moving one electron from 4s to 3d gives a half-filled 3d sub-shell with no paired electrons, which lowers the electron–electron repulsion and gives a more stable arrangement.'],
+  ['How many unpaired electrons does an iron atom have?','Four. 3d⁶ puts one electron in each of the five 3d orbitals (Hund’s rule), then the sixth pairs up in one of them.']]},
+ qs:[
+  {prompt:'How many orbitals are there in a d sub-shell?',opts:['5','3','7','10'],why:'An s sub-shell has 1 orbital, p has 3, d has 5 and f has 7. Each orbital holds two electrons, so d holds 10.'},
+  {prompt:'What is the maximum number of electrons in the third shell (n = 3)?',opts:['18','8','32','9'],why:'2n² = 18: 3s (2) + 3p (6) + 3d (10).'},
+  {prompt:'Which sub-shell fills straight after 4s?',opts:['3d','4p','4d','3p'],why:'3d is slightly higher in energy than 4s, but lower than 4p, so it fills next (Sc to Zn).'},
+  {prompt:'What is the electronic configuration of Fe²⁺?',opts:['[Ar] 3d⁶','[Ar] 3d⁴ 4s²','[Ar] 3d⁵ 4s¹','[Ar] 3d⁶ 4s²'],why:'Iron is [Ar] 3d⁶ 4s². Transition elements lose their 4s electrons first when forming ions.'},
+  {prompt:'Which statement is Hund’s rule?',opts:['Electrons occupy separate orbitals of equal energy, with parallel spins, before pairing','An orbital holds at most two electrons with opposite spins','Electrons fill the lowest-energy orbitals first','No two electrons can have the same energy'],why:'Separate orbitals keep the electrons apart and lower their repulsion. The other statements are the Pauli exclusion and Aufbau principles.'},
+  {prompt:'How many unpaired electrons does an oxygen atom have?',opts:['2','0','1','4'],why:'O is 1s² 2s² 2p⁴: one 2p orbital holds a pair and the other two hold one electron each.'},
+  {prompt:'What is the shape of a p orbital?',opts:['A dumbbell with two lobes either side of the nucleus','A sphere','A ring around the nucleus','A cross with four lobes'],why:'Each p orbital has two lobes along one axis, with a node at the nucleus. s orbitals are spherical; the four-lobed shape belongs to most d orbitals.'},
+  {prompt:'Which species is a free radical?',opts:['Cl•','Cl⁻','Cl₂','Cl⁺ (with all electrons paired)'],why:'A free radical has at least one unpaired electron. A chlorine atom has 17 electrons, so one is unpaired.'},
+  {prompt:'Electrons falling to which level produce the Balmer series of hydrogen?',opts:['n = 2','n = 1','n = 3','n = ∞'],why:'Lyman lines end at n = 1 (ultraviolet); Balmer lines end at n = 2 and lie in the visible region.',only:'s'},
+  {prompt:'What does the convergence limit of the Lyman series tell you?',opts:['The ionisation energy of hydrogen','The energy of the first Balmer line','The electron affinity of hydrogen','The bond energy of H₂'],why:'It corresponds to a fall from n = ∞ to n = 1, the reverse of removing the electron completely, so ΔE at the limit equals the ionisation energy.',only:'s'}]},
+
+{id:'pu-ie',title:'Ionisation energy',lede:'Why it gets harder to remove electrons across a period, the two famous dips, and how successive ionisation energies reveal an element’s group.',
+ ref:{a:'AS 1.4',s:'First term, topic 2'},
+ syl:{a:['1.4 Define and use first ionisation energy, and write equations for first and successive ionisation energies','1.4 Trends in ionisation energy across a period and down a group','1.4 Successive ionisation energies of an element','1.4 Factors: nuclear charge, atomic or ionic radius, shielding, spin-pair repulsion','1.4 Deduce configurations and Periodic Table position from successive ionisation energies'],
+      s:['Define ionisation energy','Explain the trends across a period and down a group','Use successive ionisation energies to deduce the group','Ionisation energy from the convergence limit of the Lyman series']},
+ sections:[
+  {h:'What ionisation energy measures',html:`<p>The <b>first ionisation energy</b> is the energy needed to remove one electron from each atom in one mole of <b>gaseous</b> atoms, forming one mole of gaseous 1+ ions.</p>${coEq('Na(g) → Na⁺(g) + e⁻ &nbsp;&nbsp; ΔH = +496 kJ mol⁻¹')}
+   <p>The <b>second</b> ionisation energy removes an electron from each 1+ ion: Na⁺(g) → Na²⁺(g) + e⁻. Ionisation energies are always endothermic, and successive ones always increase (each electron is removed from an increasingly positive ion).</p>
+   <p>Four factors decide how strongly the outer electron is held:</p><ul><li><b>Nuclear charge:</b> more protons, stronger attraction.</li><li><b>Distance (atomic radius):</b> an electron further out is held less strongly.</li><li><b>Shielding:</b> inner electrons repel the outer electron and reduce the pull it feels.</li><li><b>Spin-pair repulsion:</b> an electron that shares an orbital is repelled by its partner, so it is easier to remove.</li></ul>`},
+  {h:'Trends and the two dips',html:`<p><b>Down a group</b> the first ionisation energy falls: the outer electron is further from the nucleus and more shielded, which outweighs the extra protons. <b>Across a period</b> it rises overall: more protons, similar shielding, smaller radius.</p>
+   ${stT([['Na','496','3s¹'],['Mg','738','3s²'],['Al','578','3p¹ (dip)'],['Si','787','3p²'],['P','1012','3p³'],['S','1000','3p⁴ (dip)'],['Cl','1251','3p⁵'],['Ar','1521','3p⁶']],['Element','First IE / kJ mol⁻¹','Outer electrons'])}
+   <ul><li><b>Mg → Al:</b> aluminium’s outer electron is in a 3p orbital, which is higher in energy than 3s and slightly shielded by the 3s electrons, so it is easier to remove.</li><li><b>P → S:</b> in sulfur (3p⁴) one 3p orbital holds a pair. Spin-pair repulsion makes one of them easier to remove.</li></ul>
+   <p>The same pattern appears in period 2: Be (900) → B (801), and N (1402) → O (1314).</p>`},
+  {h:'Successive ionisation energies',html:`<p>Removing electrons one at a time gives a series of values. A <b>big jump</b> means the next electron comes from a new shell, closer to the nucleus and much less shielded.</p>
+   ${stT([['1st','738'],['2nd','1451'],['3rd','7733'],['4th','10 541'],['5th','13 630']],['Ionisation','Mg / kJ mol⁻¹'])}
+   <p>For magnesium the jump comes after the 2nd electron, so it has 2 outer electrons: <b>group 2</b>. A graph of log(IE) against the number of electrons removed shows the shells clearly: for potassium, 1 + 8 + 8 + 2.</p>
+   ${coNote('Exam tip:','count the electrons removed before the first big jump. That number is the group number for groups 1–2, and the number of outer electrons for the p-block.')}`}],
+ tools:[['orb','','Orbitals viewer','Picture where the electrons are']],
+ prob:{title:'Identify element X',stem:'The first six ionisation energies of element X, in kJ mol⁻¹, are: 786, 1577, 3232, 4356, 16 091, 19 805. X is in period 3.',parts:[
+  ['Which group is X in? Explain.','Group 14. There is a large jump between the 4th and 5th ionisation energies, so X has 4 outer electrons and the 5th electron comes from an inner shell.'],
+  ['Identify X and write its electronic configuration.','Silicon: 1s² 2s² 2p⁶ 3s² 3p².'],
+  ['Write an equation for the third ionisation energy of X.','Si²⁺(g) → Si³⁺(g) + e⁻'],
+  ['Explain why the first ionisation energy of aluminium (578) is lower than that of X.','Aluminium has one fewer proton, so a smaller nuclear charge, while its outer 3p electron is at a similar distance with similar shielding. (Al’s 3p electron is also easier to remove than Mg’s 3s electron, which is why Al is below Mg.)']]},
+ qs:[
+  {prompt:'Which equation represents the first ionisation energy of calcium?',opts:['Ca(g) → Ca⁺(g) + e⁻','Ca(s) → Ca⁺(g) + e⁻','Ca(g) + e⁻ → Ca⁻(g)','Ca(g) → Ca²⁺(g) + 2e⁻'],why:'Ionisation energies refer to gaseous atoms or ions, removing one electron at a time.'},
+  {prompt:'Why is the first ionisation energy of aluminium lower than that of magnesium?',opts:['Al’s outer electron is in a 3p orbital, higher in energy and shielded by 3s','Al has fewer protons than Mg','Al’s outer electron is paired','Al has a larger atomic radius than Mg'],why:'The 3p electron is higher in energy than 3s and is partly shielded by the 3s electrons, so less energy is needed, despite Al having one more proton.'},
+  {prompt:'Why is the first ionisation energy of sulfur lower than that of phosphorus?',opts:['Spin-pair repulsion in sulfur’s doubly occupied 3p orbital','Sulfur has a smaller nuclear charge','Sulfur’s outer electron is in a new shell','Sulfur has more shielding from the 3s electrons'],why:'P is 3p³ (one electron per orbital). In S (3p⁴) one orbital holds two electrons, which repel each other, so one is easier to remove.'},
+  {prompt:'Successive ionisation energies of an element (kJ mol⁻¹) are 578, 1817, 2745, 11 577, 14 842. Which group is it in?',opts:['13','3','2','14'],why:'The big jump is after the 3rd electron, so there are 3 outer electrons: group 13 (aluminium).'},
+  {prompt:'Why does first ionisation energy decrease down group 1?',opts:['The outer electron is further away and more shielded','The nuclear charge decreases','The outer electron is paired','Spin-pair repulsion increases'],why:'Nuclear charge increases down the group, but the extra shells increase distance and shielding, which has the larger effect.'},
+  {prompt:'Which element has the highest first ionisation energy?',opts:['Neon','Fluorine','Sodium','Oxygen'],why:'Neon ends period 2: the highest nuclear charge in the period, with the outer electron in the same shell and similar shielding.'},
+  {prompt:'Why are successive ionisation energies always larger?',opts:['Each electron is removed from an increasingly positive ion','Inner electrons are always paired','The nucleus gains protons','The atomic radius increases'],why:'After each removal, the same nuclear charge holds fewer electrons, which are also drawn closer, so each next electron needs more energy.'},
+  {prompt:'Which pair shows a dip in first ionisation energy in period 2?',opts:['Be → B','C → N','N → F','Li → Be'],why:'Boron’s outer electron is in 2p, higher in energy than beryllium’s 2s and shielded by it. The other dip is N → O.'}]},
+
+{id:'pu-bond',title:'Ionic, covalent, coordinate and metallic bonding',lede:'Electronegativity, the four kinds of strong bond, dot-and-cross diagrams, and molecules that break the octet rule.',
+ ref:{a:'AS 3.1–3.4, 3.7',s:'First term, topic 3'},
+ syl:{a:['3.1 Electronegativity: definition, factors and trends; predicting ionic or covalent bonding from Pauling values','3.2 Ionic bonding in NaCl, MgO and CaF₂','3.3 Metallic bonding','3.4 Covalent bonding, expanded octets (SO₂, PCl₅, SF₆) and coordinate bonding (NH₄⁺, Al₂Cl₆)','3.4 Bond energy and bond length and their effect on reactivity','3.7 Dot-and-cross diagrams, including expanded octets and odd-electron species'],
+      s:['Ionic bonding in NaCl and MgCl₂','Lewis structures, including octet exceptions (BF₃, NO, NO₂, PCl₅, SF₆) and ions (SO₄²⁻, CO₃²⁻, NO₃⁻, CN⁻)','Polar bonds and molecular polarity','Bond length and bond strength; the inertness of N₂','Covalent character in ionic compounds (Al₂O₃, AlI₃, LiI)','Coordinate bonds in H₃O⁺, NH₄⁺, Al₂Cl₆ and [Fe(CN)₆]³⁻','Metallic bonding (electron-sea model)']},
+ sections:[
+  {h:'Electronegativity',html:`<p><b>Electronegativity</b> is the power of an atom to attract the bonding electrons in a covalent bond. It increases across a period (more protons, smaller radius) and decreases down a group (more distance and shielding). Fluorine is the most electronegative element.</p>
+   ${stT([['F','4.0'],['O','3.4'],['Cl','3.2'],['N','3.0'],['Br','3.0'],['C','2.6'],['H','2.2'],['Na','0.9']],['Element','Pauling electronegativity'])}
+   <p>Equal electronegativities give a <b>non-polar</b> covalent bond. A small difference gives a <b>polar</b> covalent bond (δ+ and δ−). A large difference (roughly 2 or more) gives mainly <b>ionic</b> bonding.</p>`},
+  {h:'Ionic and metallic bonding',html:`<p><b>Ionic bonding</b> is the electrostatic attraction between oppositely charged ions, in a giant lattice. In a dot-and-cross diagram the metal transfers its outer electrons: Na• gives Na⁺ and Cl⁻ with a full outer shell; Mg gives Mg²⁺ and O²⁻ (MgO), or Mg²⁺ and two Cl⁻ (MgCl₂); Ca²⁺ with two F⁻ (CaF₂).</p>
+   <p><b>Metallic bonding</b> is the electrostatic attraction between a lattice of positive metal ions and a “sea” of delocalised electrons. The delocalised electrons explain electrical conductivity; the strength of bonding grows with the charge on the ion and the number of delocalised electrons (Na &lt; Mg &lt; Al).</p>`},
+  {h:'Covalent and coordinate bonds',html:`<p>A <b>covalent bond</b> is a shared pair of electrons, attracted by both nuclei. In a <b>coordinate (dative covalent) bond</b> both electrons come from the same atom, which must have a lone pair, and the other atom must have an empty orbital.</p>
+   ${stT([['NH₄⁺','N lone pair → H⁺'],['H₃O⁺','O lone pair → H⁺'],['Al₂Cl₆','a Cl lone pair on each AlCl₃ → the other Al, which has only 6 outer electrons'],['NH₃BF₃','N lone pair → B (BF₃ has only 6 outer electrons)'],['[Fe(CN)₆]³⁻','six CN⁻ lone pairs → Fe³⁺']],['Example','Who donates'])}
+   <p><b>Octet exceptions:</b> BF₃ and AlCl₃ have only 6 outer electrons around the central atom. Period 3 and later elements can <b>expand the octet</b> because they have available d orbitals: PCl₅ (10), SF₆ (12), and SO₂ drawn with two S=O. <b>Odd-electron</b> molecules such as NO and NO₂ have an unpaired electron, so they are free radicals.</p>`},
+  {h:'Lewis structures of ions',only:'s',html:`<p>For an ion, add one electron per negative charge before sharing them out, then put the charge on the whole structure in square brackets.</p>
+   ${stT([['CN⁻','[:C≡N:]⁻','10 valence electrons: triple bond, one lone pair on each atom'],['CO₃²⁻','C with one C=O and two C–O⁻','delocalised: all three C–O bonds are actually equal'],['NO₃⁻','N with one N=O, two N–O⁻ (N is +)','delocalised in the same way'],['SO₄²⁻','S with two S=O and two S–O⁻','expanded octet on S']],['Ion','Structure','Notes'])}
+   <p><b>Covalent character in ionic compounds (polarisation):</b> a small, highly charged cation (high charge density) distorts the electron cloud of a large anion, pulling electron density into the region between the ions. Al³⁺ polarises I⁻ so strongly that AlI₃ is largely covalent; Al₂O₃ and LiI also show covalent character.</p>`},
+  {h:'Bond length and bond energy',html:`<p>The <b>bond energy</b> is the energy needed to break one mole of a covalent bond in gaseous molecules. Shorter bonds are generally stronger: the shared electrons are closer to both nuclei.</p>
+   ${stT([['C–C','154','347'],['C=C','134','612'],['C≡C','120','838'],['N≡N','110','945'],['H–Cl','127','431'],['H–I','161','299']],['Bond','Length / pm','Energy / kJ mol⁻¹'])}
+   <p>N₂ is very unreactive because its N≡N triple bond is very strong and non-polar. HI decomposes into its elements far more easily than HCl because the H–I bond is longer and weaker.</p>`}],
+ tools:[['view3d','[NH4+]','Ammonium ion in 3D','Four identical N–H bonds, one of them dative'],['view3d','ClP(Cl)(Cl)(Cl)Cl','PCl₅ in 3D','An expanded octet']],
+ prob:{title:'Aluminium chloride',stem:'Aluminium chloride sublimes at 180 °C. In the vapour at low temperature it exists as Al₂Cl₆ molecules.',parts:[
+  ['Draw a dot-and-cross diagram of AlCl₃, showing outer electrons only. Why can it accept a lone pair?','Al shares one electron with each Cl, giving three Al–Cl bonds and only 6 electrons around Al. Al has an empty orbital, so it can accept a lone pair.'],
+  ['Explain how two AlCl₃ molecules join to form Al₂Cl₆.','A lone pair on a Cl atom of each AlCl₃ forms a coordinate bond to the Al of the other molecule. Each Al now has 8 outer electrons, with two bridging Cl atoms.'],
+  ['Electronegativities: Al 1.6, Cl 3.2. Is the Al–Cl bond expected to be ionic or covalent?','The difference (1.6) is below about 2, so the bond is polar covalent, consistent with the low sublimation temperature.'],
+  ['Suggest why AlCl₃ is largely covalent while NaCl is ionic.','Al³⁺ is small and highly charged, so it strongly polarises the large Cl⁻ ion, giving the bond covalent character. Na⁺ has a lower charge density and polarises Cl⁻ far less.']]},
+ qs:[
+  {prompt:'Which definition describes electronegativity?',opts:['The power of an atom to attract the bonding electrons in a covalent bond','The energy to remove an electron from a gaseous atom','The energy released when an atom gains an electron','The charge on an ion'],why:'Electronegativity is about the shared pair in a bond. The other options describe ionisation energy, electron affinity and ionic charge.'},
+  {prompt:'Which species contains a coordinate bond?',opts:['NH₄⁺','CH₄','NH₃','H₂O'],why:'In NH₄⁺, the lone pair on N bonds to H⁺. Once formed, the four N–H bonds are identical.'},
+  {prompt:'How many electrons surround the boron atom in BF₃?',opts:['6','8','10','4'],why:'B has 3 outer electrons, each shared with an F: 6 electrons around B. It is electron-deficient and accepts lone pairs.'},
+  {prompt:'Which molecule has an expanded octet?',opts:['SF₆','CF₄','NF₃','OF₂'],why:'S is in period 3 and can have 12 electrons around it in SF₆. Period 2 atoms (C, N, O) cannot exceed 8.'},
+  {prompt:'Why is nitrogen gas so unreactive?',opts:['The N≡N bond is very strong and non-polar','N₂ has no lone pairs','N₂ is ionic','Nitrogen has a low electronegativity'],why:'Breaking N≡N needs 945 kJ mol⁻¹, and the bond has no polarity for reagents to attack.'},
+  {prompt:'Which compound has the most covalent character?',opts:['AlI₃','NaCl','NaF','MgF₂'],why:'Al³⁺ has a high charge density and I⁻ is large and easily polarised, so electron density is pulled between the ions.',only:''},
+  {prompt:'Which statement describes metallic bonding?',opts:['Attraction between positive metal ions and delocalised electrons','Attraction between positive and negative ions','A shared pair of electrons between two metal atoms','Hydrogen bonds between metal atoms'],why:'The delocalised electrons are free to move, which is why metals conduct electricity.'},
+  {prompt:'Which bond is the most polar?',opts:['H–F','H–Cl','H–Br','H–I'],why:'Fluorine is the most electronegative halogen, so the difference from H is largest.'},
+  {prompt:'How many electrons are in the outer shell of the carbon atom in the cyanide ion, CN⁻?',opts:['8','6','10','7'],why:'C≡N contributes 6 shared electrons and C has one lone pair: 8 electrons around carbon.',only:'s'}]},
+
+{id:'pu-shape',title:'Shapes of molecules and hybridisation',lede:'VSEPR theory for any molecule or ion, hybrid orbitals, and σ and π bonds.',
+ ref:{a:'AS 3.4–3.5, 13.3',s:'First term, topic 3'},
+ syl:{a:['3.5 VSEPR: shapes and bond angles of BF₃, CO₂, CH₄, NH₃, H₂O, SF₆ and PF₅, and analogous molecules and ions','3.4 σ bonds (direct overlap) and π bonds (sideways overlap of p orbitals)','3.4 σ and π bonding in H₂, C₂H₆, C₂H₄, HCN and N₂','3.4 sp, sp² and sp³ hybrid orbitals','3.6 Bond polarity and molecular dipole moments'],
+      s:['Orbital overlap and hybridisation (sp, sp², sp³) in BeCl₂, BF₃, CH₄, N₂, HCN, NH₃ and H₂O','VSEPR: linear, trigonal planar, tetrahedral, trigonal bipyramidal, octahedral, V-shaped, T-shaped, seesaw and pyramidal shapes','Bond angles of CH₄, NH₃ and H₂O','Polar bonds and molecular polarity']},
+ sections:[
+  {h:'VSEPR in three steps',html:`<ol><li>Count the electron pairs around the central atom: bonding pairs plus lone pairs. (A double or triple bond counts as one region.)</li><li>The regions repel and get as far apart as possible.</li><li>Lone pairs repel more than bonding pairs: <b>lone pair–lone pair &gt; lone pair–bond pair &gt; bond pair–bond pair</b>. Each lone pair squeezes the bond angles by about 2–2.5°.</li></ol>
+   ${stT([['2','0','linear','180°','CO₂, BeCl₂, HCN'],['3','0','trigonal planar','120°','BF₃, CO₃²⁻, NO₃⁻'],['4','0','tetrahedral','109.5°','CH₄, NH₄⁺, SO₄²⁻'],['4','1','pyramidal','107°','NH₃, H₃O⁺, PCl₃'],['4','2','bent (V-shaped)','104.5°','H₂O, SCl₂'],['5','0','trigonal bipyramidal','90° and 120°','PF₅, PCl₅'],['5','1','seesaw','about 90° and 117°','SF₄'],['5','2','T-shaped','about 87°','ClF₃'],['5','3','linear','180°','XeF₂, I₃⁻'],['6','0','octahedral','90°','SF₆'],['6','2','square planar','90°','XeF₄']],['Regions','Lone pairs','Shape','Bond angle','Examples'])}
+   <p>In a trigonal bipyramid, lone pairs go in the equatorial positions, where they have more room. That is why SF₄ is a seesaw and ClF₃ is T-shaped.</p>`},
+  {h:'Hybrid orbitals',html:`<p>A carbon atom (2s² 2p²) forms four equal bonds in methane. To explain this, one 2s and the 2p orbitals mix (<b>hybridise</b>) into new, equivalent orbitals.</p>
+   ${stT([['sp³','1 s + 3 p','4','tetrahedral, 109.5°','CH₄, C₂H₆, NH₃, H₂O'],['sp²','1 s + 2 p','3 (+1 unhybridised p)','trigonal planar, 120°','C₂H₄, BF₃'],['sp','1 s + 1 p','2 (+2 unhybridised p)','linear, 180°','C₂H₂, HCN, BeCl₂, N₂']],['Hybrid','Made from','Hybrid orbitals','Shape','Examples'])}
+   <p>In NH₃ and H₂O, the N and O atoms are also sp³; the lone pairs occupy hybrid orbitals, which is why the angles are close to 109.5°.</p>`},
+  {h:'σ and π bonds',html:`<p>A <b>σ bond</b> forms when orbitals overlap end-on, along the line between the nuclei. A <b>π bond</b> forms when two parallel p orbitals overlap sideways, above and below that line. Every single bond is σ; a double bond is σ + π; a triple bond is σ + 2π.</p>
+   ${coG(stS('C=C','Ethene: each C is sp². The C=C is one σ bond (sp²–sp²) plus one π bond from the two unhybridised p orbitals. The molecule is planar.'),stS('C#N','HCN: C is sp. The C≡N is one σ and two π bonds at right angles.'))}
+   <p>A π bond is weaker than a σ bond (its overlap is smaller) and its electrons are more exposed, which is why alkenes react with electrophiles. π bonds also prevent rotation, the origin of cis/trans isomers.</p>`},
+  {h:'Polar bonds, polar molecules',html:`<p>A molecule with polar bonds is <b>polar</b> overall only if the bond dipoles don’t cancel. Symmetrical shapes cancel them.</p>
+   ${stT([['CO₂','polar C=O','linear: dipoles cancel','non-polar'],['H₂O','polar O–H','bent: dipoles add','polar'],['CCl₄','polar C–Cl','tetrahedral, symmetric','non-polar'],['CHCl₃','polar C–Cl, C–H','not symmetric','polar'],['BF₃','polar B–F','trigonal planar, symmetric','non-polar'],['NH₃','polar N–H','pyramidal','polar']],['Molecule','Bonds','Shape','Overall'])}`}],
+ tools:[['view3d','O','Water in 3D','Bent, 104.5°'],['view3d','N','Ammonia in 3D','Pyramidal, 107°'],['view3d','FS(F)(F)(F)(F)F','SF₆ in 3D','Octahedral'],['orb','','Orbitals viewer','σ and π molecular orbitals of ethene']],
+ prob:{title:'Shapes of xenon and sulfur fluorides',stem:'Use VSEPR theory to predict shapes.',parts:[
+  ['State the shape of SF₄ and explain where the lone pair goes.','Sulfur has 6 outer electrons; 4 are used in S–F bonds, leaving one lone pair: 5 regions. They adopt a trigonal bipyramidal arrangement, with the lone pair in an equatorial position where it is 90° from only two pairs. The molecule is a seesaw.'],
+  ['Predict the shape and bond angle of XeF₄.','Xe has 8 outer electrons; 4 bonds leave 2 lone pairs: 6 regions, octahedral arrangement. The lone pairs sit opposite each other, so the molecule is square planar with 90° F–Xe–F angles.'],
+  ['Explain why the H–O–H angle in water (104.5°) is smaller than the H–N–H angle in ammonia (107°).','Both have 4 regions (tetrahedral arrangement). Water has 2 lone pairs and ammonia 1. Lone pairs repel more strongly than bonding pairs, so water’s two lone pairs squeeze the bond angle more.'],
+  ['Is XeF₄ polar? Explain.','No. Its Xe–F bonds are polar, but the square planar shape is symmetrical, so the dipoles cancel.']]},
+ qs:[
+  {prompt:'What is the shape of the ammonia molecule?',opts:['Pyramidal','Trigonal planar','Tetrahedral','Bent'],why:'4 regions (3 bonds and 1 lone pair) give a tetrahedral arrangement of pairs, but the shape of the atoms is pyramidal.'},
+  {prompt:'What is the bond angle in BF₃?',opts:['120°','109.5°','107°','180°'],why:'Boron has 3 bonding pairs and no lone pairs: trigonal planar.'},
+  {prompt:'What is the shape of PF₅?',opts:['Trigonal bipyramidal','Square pyramidal','Octahedral','Seesaw'],why:'Five bonding pairs and no lone pairs. Angles are 90° (axial–equatorial) and 120° (equatorial).'},
+  {prompt:'What is the hybridisation of carbon in ethyne, HC≡CH?',fig:{k:'smi',s:'C#C'},opts:['sp','sp²','sp³','sp³d'],why:'Each carbon forms two σ bonds (to H and to C) and no lone pairs, so it is sp and linear. Two unhybridised p orbitals make the two π bonds.'},
+  {prompt:'How many σ and π bonds does ethene, C₂H₄, contain?',opts:['5 σ and 1 π','4 σ and 2 π','6 σ and 0 π','5 σ and 2 π'],why:'Four C–H bonds and the σ part of C=C make 5 σ bonds; the double bond adds 1 π bond.'},
+  {prompt:'Which molecule is non-polar even though it contains polar bonds?',opts:['CO₂','H₂O','NH₃','CHCl₃'],why:'CO₂ is linear, so its two C=O dipoles point in opposite directions and cancel.'},
+  {prompt:'What is the shape of ClF₃?',opts:['T-shaped','Trigonal planar','Trigonal pyramidal','Seesaw'],why:'Cl has 7 outer electrons: 3 bonds and 2 lone pairs (5 regions). The lone pairs take equatorial positions, leaving a T shape.'},
+  {prompt:'Why is a π bond weaker than a σ bond?',opts:['The sideways overlap of p orbitals is smaller than end-on overlap','π electrons are closer to the nuclei','π bonds contain only one electron','π bonds form between s orbitals'],why:'Sideways overlap puts less electron density directly between the nuclei.'},
+  {prompt:'What is the shape of the sulfate ion, SO₄²⁻?',opts:['Tetrahedral','Square planar','Pyramidal','Octahedral'],why:'Sulfur has four regions of bonding (two S=O, two S–O⁻) and no lone pairs.'}]},
+
+{id:'pu-imf',title:'Intermolecular forces',lede:'London forces, permanent dipoles and hydrogen bonds: how they explain boiling points, solubility and the odd behaviour of water.',
+ ref:{a:'AS 3.6',s:'First term, topic 3'},
+ syl:{a:['3.6 Hydrogen bonding in molecules with N–H and O–H, using ammonia and water','3.6 Hydrogen bonding and water: high melting and boiling points, high surface tension, ice less dense than water','3.6 Electronegativity, bond polarity and dipole moments','3.6 van der Waals’ forces: instantaneous dipole–induced dipole (London) and permanent dipole–permanent dipole forces','3.6 Hydrogen bonding as a special case of permanent dipole forces','3.6 Strong bonds are generally stronger than intermolecular forces'],
+      s:['Van der Waals forces: permanent, temporary and induced dipoles','Hydrogen bonding and its effect on physical properties','Intermolecular and intramolecular hydrogen bonding','Deduce the effect of intermolecular forces on physical properties']},
+ sections:[
+  {h:'The three kinds of intermolecular force',html:`${stT([['instantaneous dipole–induced dipole (London, dispersion)','all molecules','uneven electron distribution at an instant creates a dipole that induces one in a neighbour','grows with the number of electrons and the contact area'],['permanent dipole–permanent dipole','polar molecules','δ+ end of one molecule attracts δ− end of another','HCl, CH₃Cl, propanone'],['hydrogen bond','H bonded to N, O or F, attracted to a lone pair on N, O or F of another molecule','the strongest intermolecular force','H₂O, NH₃, HF, alcohols, amines, carboxylic acids']],['Force','Present in','How it arises','Notes'])}
+   <p><b>van der Waals’ forces</b> is the general term for intermolecular forces other than hydrogen bonds. All are much weaker than ionic, covalent and metallic bonds. When a simple molecular substance boils, only the intermolecular forces are overcome; its covalent bonds stay intact.</p>`},
+  {h:'Boiling points',html:`<p>More electrons means stronger London forces, so boiling points rise down a group (F₂ &lt; Cl₂ &lt; Br₂ &lt; I₂) and along a homologous series. <b>Branching</b> lowers the boiling point because the molecules have less surface in contact.</p>
+   ${stT([['pentane','36'],['2-methylbutane','28'],['2,2-dimethylpropane','10']],['C₅H₁₂ isomer','Boiling point / °C'])}
+   <p>Among the hydrides of groups 15–17, NH₃, H₂O and HF boil far higher than the trend predicts because of hydrogen bonding. Water boils highest: each molecule can form two hydrogen bonds through its two H atoms and two lone pairs.</p>
+   ${coG(stS('CCO','Ethanol (bp 78 °C) hydrogen bonds; its isomer methoxymethane, CH₃OCH₃ (bp −24 °C), cannot, because it has no O–H.'),stS('CC(=O)O','Ethanoic acid forms hydrogen-bonded dimers, so its boiling point (118 °C) is unusually high.'))}`},
+  {h:'Water, the hydrogen-bond champion',html:`<ul><li><b>High melting and boiling points</b> for such a small molecule, because many hydrogen bonds must be broken.</li><li><b>High surface tension:</b> molecules at the surface are pulled inwards by hydrogen bonds.</li><li><b>Ice is less dense than liquid water:</b> in ice, each molecule hydrogen bonds to four others in an open tetrahedral lattice with lots of space. On melting the lattice partly collapses and the molecules pack closer together.</li></ul>`},
+  {h:'Intramolecular hydrogen bonds',only:'s',html:`<p>A hydrogen bond can also form <b>within</b> one molecule, if an O–H and a lone pair are close enough to make a six-membered ring.</p>
+   ${coG(stS('Oc1ccccc1[N+](=O)[O-]','2-Nitrophenol: the O–H hydrogen bonds to the neighbouring nitro group. Fewer hydrogen bonds form between molecules, so it boils at 216 °C and is steam-volatile.'),stS('Oc1ccc(cc1)[N+](=O)[O-]','4-Nitrophenol: the groups are too far apart, so it hydrogen bonds between molecules. It boils at 279 °C (with decomposition) and is more soluble in water.'))}`}],
+ tools:[['view3d','O','Water in 3D','Two O–H bonds and two lone pairs']],
+ prob:{title:'Hydrides of groups 15, 16 and 17',stem:'The boiling points of H₂O, H₂S, H₂Se and H₂Te are 100, −60, −41 and −2 °C.',parts:[
+  ['Explain the increase from H₂S to H₂Te.','These molecules are held mainly by London forces (plus weak permanent dipole forces). The number of electrons rises from H₂S to H₂Te, so the London forces get stronger and more energy is needed to separate the molecules.'],
+  ['Explain why water boils so much higher than H₂S.','Water molecules form hydrogen bonds: O is very electronegative and small, so the O–H bond is very polar and the H is attracted to a lone pair on a neighbouring O. Hydrogen bonds are much stronger than the van der Waals’ forces between H₂S molecules.'],
+  ['Draw two water molecules joined by a hydrogen bond, labelling the dipoles and the lone pair involved.','δ+ H of one molecule lies in line with a lone pair on the δ− O of the other, shown with a dashed line; the O–H···O arrangement is close to linear.'],
+  ['Explain why ice floats on water.','In ice, hydrogen bonds hold each molecule tetrahedrally to four others, in an open lattice with large spaces. When ice melts, some hydrogen bonds break and the molecules move closer together, so liquid water is denser.']]},
+ qs:[
+  {prompt:'Which intermolecular force is present between all molecules?',opts:['Instantaneous dipole–induced dipole (London) forces','Hydrogen bonds','Permanent dipole–permanent dipole forces','Ionic bonds'],why:'Every molecule has electrons whose distribution fluctuates, so London forces are always present.'},
+  {prompt:'Which compound forms hydrogen bonds between its molecules?',opts:['CH₃NH₂','CH₃Cl','CH₃OCH₃','CH₃CHO'],why:'Methylamine has an H bonded to N. The others have no H on N, O or F (in ethers and aldehydes the H atoms are on carbon).'},
+  {prompt:'Why does 2,2-dimethylpropane boil at a lower temperature than pentane?',opts:['Its compact shape gives less surface contact, so weaker London forces','It has fewer electrons','It forms fewer hydrogen bonds','It is more polar'],why:'Both are C₅H₁₂ with the same number of electrons. The near-spherical branched molecule touches its neighbours over a smaller area.'},
+  {prompt:'Why is ice less dense than liquid water?',opts:['Hydrogen bonds hold the molecules in an open lattice','Ice contains air bubbles','Covalent bonds lengthen on freezing','London forces are stronger in ice'],why:'Each molecule in ice is hydrogen bonded to four others in a tetrahedral arrangement that leaves empty space.'},
+  {prompt:'What is overcome when bromine, Br₂, boils?',opts:['London forces between molecules','The Br–Br covalent bond','Hydrogen bonds','Ionic bonds'],why:'Only the intermolecular forces are overcome. The Br₂ molecules stay intact in the gas.'},
+  {prompt:'Which has the highest boiling point?',opts:['H₂O','HF','NH₃','CH₄'],why:'Water can form two hydrogen bonds per molecule on average (two H, two lone pairs), more than HF or NH₃ can.'},
+  {prompt:'Why does ethanol boil at a much higher temperature than its isomer methoxymethane?',fig:{k:'smi',s:'CCO'},opts:['Ethanol has an O–H group and forms hydrogen bonds','Ethanol has more electrons','Methoxymethane is non-polar','Ethanol has a larger surface area'],why:'They have the same formula and number of electrons. Only ethanol has an H on oxygen, which allows hydrogen bonding.'},
+  {prompt:'Why is 2-nitrophenol more volatile than 4-nitrophenol?',opts:['It forms an intramolecular hydrogen bond, so fewer hydrogen bonds between molecules','It has fewer electrons','It is ionic','It cannot form any hydrogen bonds'],why:'In 2-nitrophenol the O–H bonds to the neighbouring nitro group inside the same molecule, leaving less hydrogen bonding between molecules.',only:'s'}]},
+/* ======== Organic: foundations and hydrocarbons ======== */
+{id:'pu-org',title:'Introduction to organic chemistry',lede:'Formulas, functional groups and names, the words used to describe reactions, curly arrows, and the inductive and resonance effects.',
+ ref:{a:'AS 13.1–13.3, A Level 29.1–29.3',s:'Third term, topic 14'},
+ syl:{a:['13.1 General, structural, displayed and skeletal formulas; empirical and molecular formulas','13.1 Naming aliphatic compounds up to six carbon atoms','29.1 Naming simple aromatic compounds such as 3-nitrobenzoic acid and 2,4,6-tribromophenol','13.2 Terms: homologous series, saturated, homolytic and heterolytic fission, free radical, nucleophile, electrophile, addition, substitution, elimination, hydrolysis, condensation, oxidation, reduction','13.2 Curly arrows in mechanisms','13.3 Shapes: sp, sp² and sp³ carbon atoms; planar molecules','29.3 Shape of benzene: sp², σ bonds and a delocalised π system'],
+      s:['Bonding of carbon: shapes of ethane, ethene, ethyne and benzene','General, empirical, molecular and structural formulae','Classification and IUPAC naming by functional group','Homolytic and heterolytic fission; free radicals, nucleophiles (Lewis bases) and electrophiles (Lewis acids)','Effect of molecular size and intermolecular forces on melting and boiling points','Inductive effect: acidity of chloro-substituted ethanoic and butanoic acids','Resonance effect: acidity of phenol vs ethanol, basicity of CH₃NH₂ vs C₆H₅NH₂']},
+ sections:[
+  {h:'Formulas',html:`${stT([['empirical','simplest whole-number ratio of atoms','CH₂O'],['molecular','actual number of each atom','C₂H₄O₂'],['general','formula for a whole homologous series','CₙH₂ₙ₊₂ (alkanes)'],['structural','enough detail to show the arrangement unambiguously','CH₃COOH'],['displayed','every atom and every bond drawn','(all bonds shown)'],['skeletal','carbon skeleton as lines; C and H on carbons not written','(zig-zag lines)']],['Formula','Shows','Example (ethanoic acid)'])}
+   <p><b>Finding an empirical formula:</b> a compound is 40.0% C, 6.7% H and 53.3% O by mass. Divide by A<sub>r</sub>: C 3.33, H 6.7, O 3.33. Divide by the smallest: 1 : 2 : 1, so CH₂O. If M<sub>r</sub> = 60, the molecular formula is (CH₂O)₂ = C₂H₄O₂.</p>`},
+  {h:'Functional groups and names',html:`${stT([['alkene','C=C','-ene','propene'],['halogenoalkane','C–X','chloro-, bromo-','2-bromobutane'],['alcohol','–OH','-ol','propan-2-ol'],['aldehyde','–CHO','-al','ethanal'],['ketone','C=O between two C','-one','propanone'],['carboxylic acid','–COOH','-oic acid','ethanoic acid'],['ester','–COO–','alkyl …-oate','ethyl ethanoate'],['acyl chloride','–COCl','-oyl chloride','ethanoyl chloride'],['amine','–NH₂','-amine','ethylamine (ethanamine)'],['amide','–CONH₂','-amide','ethanamide'],['nitrile','–C≡N','-nitrile','propanenitrile (counts the C of C≡N)'],['arene','benzene ring','-benzene, phenyl-','methylbenzene']],['Class','Group','Name ending','Example'])}
+   <p>Pick the longest chain containing the main functional group, number it so that group gets the lowest number, then list substituents alphabetically with their positions: 2-bromo-3-methylbutane. For benzene rings, number from the carbon carrying the group that gives the name (–COOH in benzoic acid, –OH in phenol): <b>3-nitrobenzoic acid</b>, <b>2,4,6-tribromophenol</b>. STPM also uses <i>ortho</i> (1,2), <i>meta</i> (1,3) and <i>para</i> (1,4).</p>
+   <p>Bondline’s Naming practice drills these rules with feedback on every mistake.</p>`},
+  {h:'The language of mechanisms',html:`${stT([['homolytic fission','a bond breaks and each atom keeps one electron, giving two free radicals','Cl–Cl → 2Cl•'],['heterolytic fission','a bond breaks and one atom takes both electrons, giving ions','(CH₃)₃C–Br → (CH₃)₃C⁺ + Br⁻'],['nucleophile','a lone-pair donor that attacks a δ+ carbon (a Lewis base)','OH⁻, CN⁻, NH₃, H₂O, Br⁻'],['electrophile','an electron-pair acceptor that attacks electron-rich sites such as C=C (a Lewis acid)','H⁺, NO₂⁺, Br₂ (polarised), carbocations, AlCl₃'],['addition','two molecules combine into one','C₂H₄ + Br₂ → C₂H₄Br₂'],['substitution','one atom or group is replaced by another','CH₃Br + OH⁻ → CH₃OH + Br⁻'],['elimination','a small molecule is removed, forming a double bond','C₂H₅Br → C₂H₄ + HBr'],['hydrolysis','breaking a bond by reaction with water','ester + water → acid + alcohol'],['condensation','two molecules join, losing a small molecule such as water','acid + alcohol → ester + water']],['Term','Meaning','Example'])}
+   <p>A <b>curly arrow</b> shows the movement of a pair of electrons. It always starts at a bond or a lone pair and points to where the pair ends up. A half-headed (fish-hook) arrow moves one electron.</p>
+   <p>In equations, <b>[O]</b> stands for oxygen from an oxidising agent and <b>[H]</b> for hydrogen from a reducing agent: CH₃CH₂OH + [O] → CH₃CHO + H₂O.</p>`},
+  {h:'Inductive and resonance effects',html:`<p>The <b>inductive effect</b> is the pull or push of electrons along σ bonds. Electronegative atoms such as Cl, O and N withdraw electrons (−I); alkyl groups donate them (+I). This explains two big trends:</p>
+   <ul><li><b>Carbocation stability:</b> tertiary &gt; secondary &gt; primary &gt; methyl, because each alkyl group donates electron density towards the positive carbon.</li><li><b>Acid strength:</b> electron-withdrawing groups stabilise the carboxylate ion by spreading its negative charge.</li></ul>
+   ${stT([['CH₃COOH','4.76'],['ClCH₂COOH','2.86'],['Cl₂CHCOOH','1.29'],['Cl₃CCOOH','0.65']],['Acid','pKa (lower = stronger)'])}
+   <p>The effect fades with distance: 2-chlorobutanoic acid (pKa 2.9) is much stronger than 4-chlorobutanoic acid (pKa 4.5).</p>
+   <p>The <b>resonance (mesomeric) effect</b> is the delocalisation of lone pairs or π electrons through a π system. In phenol, the O lone pair is delocalised into the ring, so the phenoxide ion is stabilised and phenol is more acidic than ethanol. In phenylamine, the N lone pair is delocalised into the ring, so it is less available to accept H⁺, and phenylamine is a weaker base than methylamine.</p>
+   ${coG(stS('Oc1ccccc1','Phenol: the O lone pair overlaps with the ring’s π system.'),stS('Nc1ccccc1','Phenylamine: the N lone pair is delocalised into the ring, so it is a weak base.'))}`}],
+ tools:[['mode','naming','IUPAC naming practice','Name structures with instant feedback'],['guide','how-to-draw-curly-arrows','Curly arrows guide','Where arrows start and end'],['guide','organic-functional-groups','Functional groups guide','Spot and name each group'],['mode','synth','Reaction practice','Recognise reaction types']],
+ prob:{title:'An unknown acid',stem:'Compound Q contains carbon, hydrogen and oxygen only: 54.5% C and 9.1% H by mass. Its relative molecular mass is 88.',parts:[
+  ['Calculate the empirical formula of Q.','O = 100 − 54.5 − 9.1 = 36.4%. Moles: C 54.5 ÷ 12 = 4.54, H 9.1 ÷ 1 = 9.1, O 36.4 ÷ 16 = 2.28. Ratio 2 : 4 : 1, so C₂H₄O.'],
+  ['Find the molecular formula.','M<sub>r</sub>(C₂H₄O) = 44, and 88 ÷ 44 = 2, so C₄H₈O₂.'],
+  ['Q is a carboxylic acid with an unbranched chain. Name it and draw its skeletal formula.','Butanoic acid, CH₃CH₂CH₂COOH: a zig-zag of three lines ending in C(=O)OH.'],
+  ['Which is the stronger acid, 2-chlorobutanoic acid or 4-chlorobutanoic acid? Explain.','2-Chlorobutanoic acid. The electronegative Cl withdraws electron density by the inductive effect, stabilising the carboxylate ion. The effect weakens with distance, so it is much greater when Cl is next to the COOH group.']]},
+ qs:[
+  {prompt:'What is the empirical formula of ethanoic acid, CH₃COOH?',opts:['CH₂O','C₂H₄O₂','CHO','CH₃O'],why:'The molecular formula is C₂H₄O₂; dividing by 2 gives CH₂O.'},
+  {prompt:'What is the name of CH₃CH(OH)CH₂CH₃?',fig:{k:'smi',s:'CC(O)CC'},opts:['Butan-2-ol','Butan-3-ol','2-Hydroxybutane','Butanol'],why:'The chain has four carbons. Numbering from the end nearer the OH puts it on C2.'},
+  {prompt:'Which species is a nucleophile?',opts:['CN⁻','NO₂⁺','H⁺','AlCl₃'],why:'A nucleophile donates a lone pair. CN⁻ has lone pairs and a negative charge. The others accept electron pairs: they are electrophiles.'},
+  {prompt:'What happens in homolytic fission of a covalent bond?',opts:['Each atom keeps one of the bonding electrons','One atom takes both electrons','The bond becomes a double bond','A proton is transferred'],why:'Homolytic fission gives two free radicals, each with an unpaired electron. Heterolytic fission gives ions.'},
+  {prompt:'Where must a curly arrow start?',opts:['At a lone pair or a bond','At a positive charge','At an atom that will lose a proton','Anywhere near the reacting atom'],why:'A curly arrow shows a pair of electrons moving, so it starts where those electrons are: a lone pair or a bond.'},
+  {prompt:'Which acid is the strongest?',opts:['Cl₃CCOOH','Cl₂CHCOOH','ClCH₂COOH','CH₃COOH'],why:'Each Cl withdraws electron density inductively, stabilising the carboxylate ion. Three Cl atoms give the largest effect.'},
+  {prompt:'Why is phenylamine a weaker base than methylamine?',opts:['The N lone pair is delocalised into the benzene ring','Phenylamine has no lone pair on N','The methyl group withdraws electrons from N','Phenylamine is insoluble in water'],why:'Delocalisation makes the lone pair less available to accept a proton. The methyl group in methylamine pushes electrons towards N, making it more basic.'},
+  {prompt:'What is the name of this compound?',fig:{k:'smi',s:'OC(=O)c1cccc(c1)[N+](=O)[O-]'},opts:['3-Nitrobenzoic acid','5-Nitrobenzoic acid','1-Nitrobenzoic acid','4-Nitrobenzoic acid'],why:'The carbon carrying –COOH is C1. Numbering the shorter way round puts the nitro group on C3 (meta).'},
+  {prompt:'Which carbocation is the most stable?',opts:['(CH₃)₃C⁺','(CH₃)₂CH⁺','CH₃CH₂⁺','CH₃⁺'],why:'A tertiary carbocation has three electron-donating alkyl groups that spread out the positive charge.'}]},
+
+{id:'pu-iso',title:'Isomerism',lede:'Structural isomers, cis/trans isomers and optical isomers: how to spot them, draw them and count them.',
+ ref:{a:'AS 13.4, A Level 29.4',s:'Third term, topic 14'},
+ syl:{a:['13.4 Structural isomerism: chain, positional and functional group','13.4 Cis/trans isomerism in alkenes from restricted rotation about C=C','13.4 Optical isomerism from a chiral centre','13.4 Identify chiral centres and cis/trans isomers, including in cyclic compounds; deduce isomers from a molecular formula','29.4 Enantiomers: same properties except the effect on plane-polarised light and biological activity','29.4 Optically active and racemic mixtures','29.4 Drugs: different activity of enantiomers, separating racemic mixtures, chiral catalysts'],
+      s:['Structural isomerism, including chain and position isomers','Cis-trans isomerism from restricted rotation about C=C','Optical isomerism from a chiral centre','Identify chiral centres and cis-trans isomerism; deduce the isomers of a molecular formula']},
+ sections:[
+  {h:'Structural isomers',html:`<p><b>Structural isomers</b> have the same molecular formula but different structural formulas.</p>
+   ${stT([['chain','different carbon skeleton','butane and 2-methylpropane (C₄H₁₀)'],['positional','same skeleton, functional group in a different place','propan-1-ol and propan-2-ol'],['functional group','different functional groups','propanal and propanone (C₃H₆O); ethanol and methoxymethane (C₂H₆O)']],['Kind','Difference','Example'])}
+   <p>Other common functional-group pairs: carboxylic acids and esters (C₃H₆O₂: propanoic acid, methyl ethanoate, ethyl methanoate), and alkenes and cycloalkanes (C₄H₈).</p>`},
+  {h:'Cis/trans isomers',html:`<p>A C=C bond cannot rotate, because rotation would break the sideways overlap of the π bond. So if <b>each</b> carbon of the double bond has two different groups, two arrangements exist.</p>
+   ${coG(stS('C/C=C\\C','cis-But-2-ene: both CH₃ groups on the same side (bp 4 °C).'),stS('C/C=C/C','trans-But-2-ene: on opposite sides (bp 1 °C).'))}
+   <p>But-1-ene has no cis/trans isomers: one alkene carbon carries two H atoms. Rings also restrict rotation, so 1,2-dimethylcyclohexane has cis and trans forms.</p>`},
+  {h:'Optical isomers',html:`<p>A <b>chiral centre</b> is a carbon atom bonded to four <b>different</b> atoms or groups. A molecule with one chiral centre exists as two <b>enantiomers</b>: non-superimposable mirror images.</p>
+   ${coG(stS('CC(O)C(=O)O','2-Hydroxypropanoic acid (lactic acid): the central carbon carries H, CH₃, OH and COOH.'),stS('NC(C)C(=O)O','Alanine: chiral, like every amino acid except glycine.'))}
+   <p>Enantiomers have identical physical and chemical properties except that they <b>rotate plane-polarised light</b> by the same angle in opposite directions, and they can have different <b>biological activity</b> (they fit chiral receptors and enzymes differently). A sample that rotates the plane of polarised light is <b>optically active</b>. A 50 : 50 mixture of enantiomers is a <b>racemic mixture</b>; it has no overall effect because the rotations cancel.</p>
+   <p>To draw them, show the chiral carbon with two bonds in the plane, one wedge and one dash, then draw its mirror image.</p>`},
+  {h:'Chirality and drugs',only:'a',html:`<p>Many drugs are chiral, and usually only one enantiomer has the desired effect. The other may be inactive, less effective, or harmful: one enantiomer of thalidomide treated morning sickness, while the other caused birth defects. (Thalidomide also interconverts between its enantiomers in the body, so even the pure “safe” form was not safe.)</p>
+   <p>Making a single enantiomer avoids wasting half the product, lowers the dose and reduces side-effects, but separating a racemic mixture is expensive. Chemists therefore use <b>chiral catalysts</b> (often enzymes or metal complexes with chiral ligands) that produce mainly one enantiomer.</p>`}],
+ tools:[['st','intro','Thinking in 3D','The map of isomer types with 3D models'],['st','ez','cis/trans and E/Z','Build alkenes and see when isomers exist'],['st','optical','Optical isomers','Mirror images and plane-polarised light'],['guide','chiral-centres','Chiral centres guide','How to spot them quickly']],
+ prob:{title:'The isomers of C₄H₈',stem:'Several compounds have the molecular formula C₄H₈.',parts:[
+  ['Draw and name the three structural isomers of C₄H₈ that are alkenes.','But-1-ene CH₂=CHCH₂CH₃, but-2-ene CH₃CH=CHCH₃ and 2-methylpropene (CH₃)₂C=CH₂.'],
+  ['Which of them shows cis/trans isomerism? Explain.','Only but-2-ene. Each alkene carbon has two different groups (H and CH₃), and the C=C cannot rotate. In but-1-ene and 2-methylpropene one alkene carbon carries two identical groups.'],
+  ['Name a C₄H₈ isomer that is a functional group isomer of but-1-ene.','Cyclobutane (or methylcyclopropane): a ring instead of a C=C.'],
+  ['Adding HBr to but-1-ene gives mainly 2-bromobutane. Explain why the product is formed as a racemic mixture.','C2 of 2-bromobutane is a chiral centre. The intermediate carbocation is planar, so Br⁻ attacks equally from either face, giving equal amounts of the two enantiomers.']]},
+ qs:[
+  {prompt:'Which pair are functional group isomers?',opts:['Propanal and propanone','Propan-1-ol and propan-2-ol','Butane and 2-methylpropane','cis- and trans-but-2-ene'],why:'Both are C₃H₆O, but one is an aldehyde and the other a ketone. The other pairs are positional, chain and cis/trans isomers.'},
+  {prompt:'Which compound shows cis/trans isomerism?',opts:['Pent-2-ene','Pent-1-ene','2-Methylbut-2-ene','Propene'],why:'In pent-2-ene each alkene carbon carries two different groups (H/CH₃ and H/C₂H₅). In the others, one alkene carbon carries two identical groups.'},
+  {prompt:'Why does cis/trans isomerism occur in alkenes?',opts:['Rotation about the C=C bond is restricted by the π bond','The C=C bond is longer than a C–C bond','Alkenes contain chiral centres','The double bond is polar'],why:'Rotating would break the sideways overlap of the p orbitals that forms the π bond.'},
+  {prompt:'Which compound has a chiral centre?',opts:['Butan-2-ol','Propan-2-ol','Butan-1-ol','2-Methylpropan-2-ol'],why:'C2 of butan-2-ol carries H, OH, CH₃ and C₂H₅: four different groups. In propan-2-ol, C2 has two identical CH₃ groups.'},
+  {prompt:'How do two enantiomers differ?',opts:['They rotate plane-polarised light in opposite directions','They have different boiling points','They have different molecular formulas','One reacts with NaOH and the other does not'],why:'Enantiomers share physical and chemical properties except their effect on plane-polarised light (and their interactions with other chiral molecules).'},
+  {prompt:'What is a racemic mixture?',opts:['An equal mixture of two enantiomers','A mixture of cis and trans isomers','A pure single enantiomer','A mixture of structural isomers'],why:'Equal amounts of the two enantiomers rotate light equally in opposite directions, so the mixture is optically inactive.'},
+  {prompt:'How many structural isomers have the formula C₃H₇Cl?',opts:['2','3','1','4'],why:'1-Chloropropane and 2-chloropropane.'},
+  {prompt:'Why do drug companies try to make only one enantiomer of a chiral drug?',opts:['The other enantiomer may be inactive or harmful','Enantiomers have different molecular masses','Racemic mixtures are always toxic','A single enantiomer is cheaper to separate'],why:'Biological receptors are chiral, so the two enantiomers can act differently. Making one avoids waste and side-effects; chiral catalysts help.',only:'a'},
+  {prompt:'How many chiral centres does 2-hydroxypropanoic acid (lactic acid) have?',fig:{k:'smi',s:'CC(O)C(=O)O'},opts:['1','0','2','3'],why:'Only C2 carries four different groups: H, CH₃, OH and COOH.'}]},
+
+{id:'pu-alkane',title:'Alkanes',lede:'Why alkanes are unreactive, the free-radical substitution mechanism, cracking, and the pollutants from burning fuels.',
+ ref:{a:'AS 14.1',s:'Third term, topic 15.1'},
+ syl:{a:['14.1 Making alkanes: hydrogenation of alkenes (H₂, Pt or Ni, heat) and cracking (heat with Al₂O₃)','14.1 Complete and incomplete combustion','14.1 Free-radical substitution with Cl₂ or Br₂ in ultraviolet light: initiation, propagation and termination','14.1 Cracking of longer alkanes into more useful alkanes and alkenes','14.1 Lack of reactivity: strong, non-polar C–H bonds','14.1 Pollutants (CO, NOₓ, unburnt hydrocarbons) and catalytic converters'],
+      s:['General formula, IUPAC names (C₁ to C₁₀), structural isomers and cycloalkanes; 1°, 2°, 3° and 4° carbons','Inertness to polar reagents','Free-radical chlorination of methane: initiation, propagation and termination','Combustion in limited and excess oxygen; crude oil as a source','Cracking','Catalytic converters; acid rain, photochemical smog and the greenhouse effect']},
+ sections:[
+  {h:'Why alkanes are unreactive',html:`<p>Alkanes (CₙH₂ₙ₊₂) are saturated: they have only C–C and C–H σ bonds. These bonds are strong, and because carbon and hydrogen have similar electronegativities, they are almost non-polar. So there are no δ+ or δ− sites to attract nucleophiles or electrophiles, and no π electrons. Alkanes react only with very reactive species such as free radicals and oxygen when ignited.</p>
+   <p>Carbons are classified by how many other carbons they are joined to: primary (1°, one), secondary (2°), tertiary (3°) and quaternary (4°).</p>`},
+  {h:'Combustion and pollution',html:`${coEq('C₃H₈ + 5O₂ → 3CO₂ + 4H₂O &nbsp;&nbsp; (complete)')}${coEq('C₃H₈ + 3½O₂ → 3CO + 4H₂O &nbsp;&nbsp; (incomplete)')}
+   ${stT([['carbon monoxide, CO','incomplete combustion','toxic: binds to haemoglobin'],['nitrogen oxides, NOₓ','N₂ and O₂ react at the high temperature in engines','acid rain, photochemical smog'],['unburnt hydrocarbons','fuel that escapes combustion','photochemical smog'],['carbon dioxide, CO₂','complete combustion','greenhouse gas: global warming']],['Pollutant','Source','Problem'])}
+   <p>A <b>catalytic converter</b> (platinum, palladium, rhodium on a ceramic honeycomb) removes most of them:</p>${coEq('2CO + 2NO → 2CO₂ + N₂')}<p>It also oxidises unburnt hydrocarbons to CO₂ and water.</p>`},
+  {h:'Free-radical substitution',html:`<p>Methane and chlorine react only in <b>ultraviolet light</b>, which provides the energy to break the Cl–Cl bond homolytically.</p>
+   ${stT([['initiation','Cl₂ → 2Cl•','UV light breaks Cl–Cl, the weakest bond present'],['propagation','CH₄ + Cl• → CH₃• + HCl<br>CH₃• + Cl₂ → CH₃Cl + Cl•','a radical is used and another made: a chain reaction'],['termination','Cl• + Cl• → Cl₂<br>CH₃• + Cl• → CH₃Cl<br>CH₃• + CH₃• → C₂H₆','two radicals combine and the chain stops']],['Stage','Equations','What happens'])}
+   <p>The product is a mixture: Cl• can also attack CH₃Cl, giving CH₂Cl₂, CHCl₃ and CCl₄. Small amounts of ethane form in termination. Use excess methane to favour CH₃Cl, excess chlorine to favour CCl₄.</p>`},
+  {h:'Cracking',html:`<p>Crude oil contains more long-chain alkanes than are needed, and too few short-chain ones for fuels. <b>Cracking</b> breaks long alkanes into shorter alkanes and alkenes:</p>${coEq('C₁₀H₂₂ → C₈H₁₈ + C₂H₄')}
+   <p>It needs heat with a catalyst (aluminium oxide, Al₂O₃, or zeolites) or very high temperature alone. The alkenes are valuable for making polymers and other chemicals.</p>`}],
+ tools:[['guide','types-of-organic-reactions','Types of organic reactions','Substitution, addition, elimination'],['mode','synth','Reaction practice','Predict products']],
+ prob:{title:'Brominating ethane',stem:'Ethane reacts with bromine in ultraviolet light to give bromoethane and hydrogen bromide.',parts:[
+  ['Name the type of reaction and the mechanism.','Substitution, by a free-radical (chain) mechanism.'],
+  ['Write the initiation step and explain the role of UV light.','Br₂ → 2Br•. UV light provides the energy to break the Br–Br bond homolytically, the weakest bond in the mixture.'],
+  ['Write the two propagation steps.','C₂H₆ + Br• → C₂H₅• + HBr; then C₂H₅• + Br₂ → C₂H₅Br + Br•.'],
+  ['Write a termination step that forms a hydrocarbon, and explain why it shows the reaction involves ethyl radicals.','2C₂H₅• → C₄H₁₀ (butane). Butane can only form if ethyl radicals are present and combine, which supports the radical mechanism.'],
+  ['Suggest why the reaction gives a mixture of products.','Br• can also remove H from bromoethane, leading to further substitution (dibromoethanes and so on), and radicals can combine in several ways during termination.']]},
+ qs:[
+  {prompt:'Why are alkanes unreactive towards most reagents?',opts:['C–C and C–H bonds are strong and almost non-polar','Alkanes have no electrons to donate','Alkanes are gases','Alkanes contain π bonds'],why:'There are no polar bonds to attract nucleophiles or electrophiles, and no weak π bonds.'},
+  {prompt:'What condition is needed for methane to react with chlorine?',opts:['Ultraviolet light','A nickel catalyst','Aqueous sodium hydroxide','Concentrated sulfuric acid'],why:'UV light breaks Cl–Cl homolytically to start the free-radical chain.'},
+  {prompt:'Which equation is a propagation step in the chlorination of methane?',opts:['CH₄ + Cl• → CH₃• + HCl','Cl₂ → 2Cl•','CH₃• + Cl• → CH₃Cl','2CH₃• → C₂H₆'],why:'A propagation step uses one radical and produces another. The others are initiation and termination steps.'},
+  {prompt:'Which pollutant does a catalytic converter remove by reacting it with carbon monoxide?',opts:['NO','CO₂','H₂O','SO₂'],why:'2CO + 2NO → 2CO₂ + N₂. Both toxic gases are removed.'},
+  {prompt:'What are the products of cracking?',opts:['Shorter alkanes and alkenes','Only alkenes','Carbon dioxide and water','Longer alkanes'],why:'Cracking breaks C–C bonds in long alkanes, giving a mixture of smaller alkanes and alkenes.'},
+  {prompt:'Why is carbon monoxide toxic?',opts:['It binds to haemoglobin and stops it carrying oxygen','It causes acid rain','It is a greenhouse gas','It depletes the ozone layer'],why:'CO binds to haemoglobin far more strongly than oxygen does.'},
+  {prompt:'Which product forms in a termination step when methane reacts with chlorine?',opts:['Ethane','Hydrogen','Methanol','Chloromethane radical'],why:'Two methyl radicals combine to give ethane, C₂H₆.'},
+  {prompt:'How are nitrogen oxides formed in a car engine?',opts:['N₂ and O₂ from the air react at the high temperature','Nitrogen compounds in petrol burn','The catalytic converter makes them','CO reacts with nitrogen'],why:'The very hot combustion provides enough energy for atmospheric N₂ and O₂ to react.'}]},
+
+{id:'pu-alkene',title:'Alkenes',lede:'Electrophilic addition and its mechanism, Markovnikov’s rule, oxidation with manganate(VII), and how alkenes are made.',
+ ref:{a:'AS 14.2',s:'Third term, topic 15.2'},
+ syl:{a:['14.2 Making alkenes: elimination of HX (ethanolic NaOH, heat), dehydration of alcohols (heated Al₂O₃ or concentrated acid), cracking','14.2 Electrophilic addition of H₂, steam (H₃PO₄ catalyst), HX and X₂','14.2 Oxidation by cold dilute and by hot concentrated acidified KMnO₄','14.2 Addition polymerisation of ethene and propene','14.2 Bromine water as a test for C=C','14.2 Mechanisms: Br₂ with ethene, HBr with propene','14.2 Stability of carbocations and Markovnikov addition'],
+      s:['General formula, naming (C₁ to C₅), structural and cis-trans isomerism','Reactions of ethene: H₂, steam, HX, X₂, bromine water, concentrated H₂SO₄','Oxidation by KMnO₄, by O₂ with Ag, and ozonolysis','Electrophilic addition mechanism and Markovnikov’s rule','Tests for unsaturation: bromine water and MnO₄⁻','Ethene as a feedstock: chloroethane, epoxyethane, ethane-1,2-diol, poly(ethene)']},
+ sections:[
+  {h:'Why alkenes react with electrophiles',html:`<p>The π bond of C=C is a region of high electron density, above and below the plane of the molecule. It is weaker than the σ bond and its electrons are exposed, so electrophiles attack it. The π bond breaks and two new σ bonds form: <b>electrophilic addition</b>.</p>
+   ${stT([['H₂','Ni (or Pt) catalyst, heat (about 150 °C)','alkane','hydrogenation, used to harden vegetable oils'],['H₂O (steam)','H₃PO₄ catalyst, about 300 °C, 60 atm','alcohol','industrial ethanol'],['HX (HCl, HBr)','room temperature','halogenoalkane','Markovnikov product'],['X₂ (Br₂, Cl₂)','room temperature, in the dark','dihalogenoalkane','1,2-dibromoethane from ethene'],['Br₂(aq), bromine water','room temperature','bromoalcohol (with some dibromide)','orange → colourless: the test for C=C']],['Reagent','Conditions','Product','Notes'])}`},
+  {h:'The mechanism and Markovnikov’s rule',html:`<p><b>Bromine and ethene:</b> as Br₂ approaches the π electrons it is polarised (Brδ+–Brδ−). The π bond attacks the δ+ Br, the Br–Br bond breaks heterolytically, and a carbocation forms with Br⁻. Br⁻ then attacks the carbocation, giving 1,2-dibromoethane.</p>
+   ${coR('C=C','Br₂','BrCCBr','Electrophilic addition: ethene to 1,2-dibromoethane.')}
+   <p><b>HBr and propene:</b> H⁺ (from Hδ+–Brδ−) can add to either end. Adding to the CH₂ end gives a <b>secondary</b> carbocation, which is more stable than the primary one, because two alkyl groups donate electron density (positive inductive effect). So the main product is 2-bromopropane.</p>
+   ${coR('C=CC','HBr','CC(Br)C','Markovnikov addition: 2-bromopropane is the major product; 1-bromopropane is minor.')}
+   ${coNote('Markovnikov’s rule:','when HX adds to an unsymmetrical alkene, H attaches to the carbon that already has more hydrogens, because that gives the more stable carbocation.')}`},
+  {h:'Oxidation with manganate(VII)',html:`${stT([['cold, dilute, acidified KMnO₄','–C=C– → diol (each C gains OH)','purple → colourless; ethene gives ethane-1,2-diol'],['hot, concentrated, acidified KMnO₄','C=C splits completely','=CH₂ → CO₂ + H₂O; =CHR → RCOOH; =CR₂ → ketone R₂C=O']],['Conditions','Result','Details'])}
+   <p>Hot oxidation shows where the double bond was. For example, 2-methylpent-2-ene, (CH₃)₂C=CHCH₂CH₃, gives propanone and propanoic acid.</p>`},
+  {h:'More STPM reactions of ethene',only:'s',html:`${stT([['concentrated H₂SO₄, room temperature','ethyl hydrogensulfate, CH₃CH₂OSO₃H','warm with water to give ethanol'],['O₂, Ag catalyst, about 250 °C','epoxyethane (a three-membered C–C–O ring)','hydrolysis gives ethane-1,2-diol (antifreeze, polyesters)'],['ozone, then Zn and water (ozonolysis)','C=C cut into two C=O','R₂C=CHR′ → R₂C=O + R′CHO; locates the double bond'],['HCl','chloroethane','used to make other chemicals'],['heat, pressure, catalyst','poly(ethene)','see the Polymers unit']],['Reagent and conditions','Product','Notes'])}`},
+  {h:'Making alkenes',html:`<ul><li><b>Elimination from a halogenoalkane:</b> heat with NaOH in <b>ethanol</b>: CH₃CH₂Br + NaOH → CH₂=CH₂ + NaBr + H₂O.</li><li><b>Dehydration of an alcohol:</b> pass the vapour over heated Al₂O₃, or heat with concentrated H₂SO₄ or H₃PO₄: CH₃CH₂OH → CH₂=CH₂ + H₂O.</li><li><b>Cracking</b> of long-chain alkanes.</li></ul>`}],
+ tools:[['mech','br2','Bromine adding to an alkene','Step through the curly arrows'],['mech','hbr','HBr adding to propene','See why the secondary carbocation wins'],['mech','hydration','Acid-catalysed hydration','Steam and an acid catalyst'],['guide','markovnikovs-rule','Markovnikov’s rule guide','Worked examples']],
+ prob:{title:'Identifying an alkene',stem:'Alkene A, C₆H₁₂, decolourises bromine water. Heating A with hot, concentrated, acidified KMnO₄ gives propanone, CH₃COCH₃, as the only organic product.',parts:[
+  ['What does decolourising bromine water show?','A contains a C=C double bond: bromine adds across it, so the orange colour disappears.'],
+  ['Deduce the structure of A.','Only propanone forms, so the molecule is symmetrical, with two (CH₃)₂C= halves: A is 2,3-dimethylbut-2-ene, (CH₃)₂C=C(CH₃)₂.'],
+  ['Does A show cis/trans isomerism? Explain.','No. Each alkene carbon carries two identical CH₃ groups.'],
+  ['Write the product of A with HBr and explain why only one product forms.','2-Bromo-2,3-dimethylbutane, (CH₃)₂CBr–CH(CH₃)₂. A is symmetrical, so H⁺ adding to either alkene carbon gives the same tertiary carbocation.'],
+  ['Draw the mechanism for HBr adding to A.','The π bond attacks Hδ+ of HBr (curly arrow from C=C to H; arrow from H–Br bond to Br). A tertiary carbocation forms; a lone pair on Br⁻ then attacks the C⁺ (curly arrow from Br⁻ to C⁺).']]},
+ qs:[
+  {prompt:'Which type of reaction occurs between ethene and bromine?',opts:['Electrophilic addition','Nucleophilic substitution','Free-radical substitution','Elimination'],why:'Br₂ is polarised by the π electrons and acts as an electrophile; the two atoms add across the double bond.'},
+  {prompt:'What is the major product when HBr adds to propene?',fig:{k:'smi',s:'C=CC'},opts:['2-Bromopropane','1-Bromopropane','1,2-Dibromopropane','Propan-2-ol'],why:'H adds to the CH₂ end, giving the more stable secondary carbocation, which Br⁻ then attacks.'},
+  {prompt:'Why is a secondary carbocation more stable than a primary one?',opts:['More alkyl groups donate electron density to the positive carbon','It has more hydrogen atoms','It is planar','It contains a π bond'],why:'Alkyl groups push electrons towards the C⁺ (positive inductive effect), spreading out the charge.'},
+  {prompt:'Which conditions convert ethene into ethanol industrially?',opts:['Steam with an H₃PO₄ catalyst, about 300 °C and 60 atm','Aqueous NaOH, heat','H₂ with a nickel catalyst','Cold dilute KMnO₄'],why:'This is the direct hydration of ethene.'},
+  {prompt:'What does cold, dilute, acidified KMnO₄ turn ethene into?',opts:['Ethane-1,2-diol','Ethanoic acid','Carbon dioxide','Ethanal'],why:'Under mild conditions each carbon of the C=C gains an OH group. Hot concentrated KMnO₄ would cleave the double bond.'},
+  {prompt:'What is the product when but-2-ene is heated with hot, concentrated, acidified KMnO₄?',fig:{k:'smi',s:'CC=CC'},opts:['Ethanoic acid','Ethanal','Butane-2,3-diol','Propanone'],why:'Each =CHCH₃ half is oxidised to CH₃COOH.'},
+  {prompt:'Which reagent converts bromoethane into ethene?',opts:['NaOH in ethanol, heated','NaOH in water, heated','Bromine water','H₂ with nickel'],why:'In ethanol, hydroxide acts as a base and eliminates HBr. In water it substitutes, giving ethanol.'},
+  {prompt:'What is formed when ethene reacts with oxygen over a silver catalyst?',opts:['Epoxyethane','Ethanal','Ethanoic acid','Carbon dioxide only'],why:'Ag catalyses partial oxidation to the three-membered ring epoxyethane, used to make ethane-1,2-diol.',only:'s'},
+  {prompt:'In the mechanism of bromine adding to ethene, what forms after the first step?',opts:['A carbocation and a bromide ion','Two bromine radicals','A carbanion','An alkoxide ion'],why:'The π electrons attack Brδ+, the Br–Br bond breaks heterolytically, and a carbocation and Br⁻ form.'}]},
+
+{id:'pu-arene',title:'Benzene and arenes',lede:'The delocalised structure of benzene, electrophilic substitution and its mechanism, and how substituents direct the next group.',
+ ref:{a:'A Level 29.3, 30.1',s:'Third term, topic 15.3'},
+ syl:{a:['29.3 Shape of benzene: sp² carbons, σ bonds and a delocalised π system','30.1 Substitution with Cl₂ or Br₂ (AlCl₃ or AlBr₃ catalyst)','30.1 Nitration with concentrated HNO₃ and H₂SO₄ at 25–60 °C','30.1 Friedel–Crafts alkylation (CH₃Cl, AlCl₃, heat) and acylation (CH₃COCl, AlCl₃, heat)','30.1 Oxidation of a side chain with hot alkaline KMnO₄ then dilute acid','30.1 Hydrogenation of the ring (H₂, Pt or Ni, heat)','30.1 Electrophilic substitution mechanism; why benzene substitutes rather than adds','30.1 Side-chain versus ring halogenation of methylbenzene','30.1 Directing effects of –NH₂, –OH, –R, –NO₂, –COOH and –COR'],
+      s:['Naming benzene derivatives, including ortho, meta and para','Friedel–Crafts alkylation and acylation, halogenation, nitration and sulfonation (SO₃)','Mechanism of nitration; benzene’s resistance to oxidation compared with alkenes','Oxidation of alkylbenzenes by hot acidified KMnO₄','Halogenation of methylbenzene in light versus with a Lewis acid','Directing effects of –OH, –Cl, –CH₃, –NO₂, –COCH₃ and –NH₂ (inductive and resonance effects)','Uses of arenes as solvents and their carcinogenic effects']},
+ sections:[
+  {h:'The structure of benzene',html:`<p>Each carbon in benzene is sp² hybridised. Three σ bonds (to two carbons and one hydrogen) lie in a plane at 120°. The remaining p orbital on each carbon overlaps sideways with both neighbours, forming a ring of <b>delocalised π electrons</b> above and below the plane.</p>
+   ${stS('c1ccccc1','Benzene: flat, with all six C–C bonds 0.139 nm long, between C–C (0.154 nm) and C=C (0.134 nm).')}
+   <p>Evidence against a Kekulé structure with alternating single and double bonds: all the bonds are the same length; benzene does not decolourise bromine water; and its enthalpy of hydrogenation (−208 kJ mol⁻¹) is about 150 kJ mol⁻¹ less exothermic than three C=C bonds would give (3 × −120). That difference is the extra stability from delocalisation.</p>
+   <p>Because addition would destroy the delocalised system, benzene reacts mainly by <b>electrophilic substitution</b>, which keeps it intact. Benzene is also not oxidised by KMnO₄ or K₂Cr₂O₇, unlike alkenes.</p>`},
+  {h:'Electrophilic substitution',html:`${stT([['nitration','conc. HNO₃ + conc. H₂SO₄, 25–60 °C (below 55 °C to avoid dinitration)','NO₂⁺','nitrobenzene'],['halogenation','Cl₂ or Br₂ with AlCl₃, AlBr₃ or FeBr₃ (halogen carrier), room temperature','Cl⁺ or Br⁺ (Br–Br polarised by the catalyst)','chlorobenzene or bromobenzene'],['Friedel–Crafts alkylation','CH₃Cl with AlCl₃, heat','CH₃⁺','methylbenzene'],['Friedel–Crafts acylation','CH₃COCl with AlCl₃, heat','CH₃CO⁺','phenylethanone (a ketone)'],['sulfonation','fuming sulfuric acid (SO₃ in H₂SO₄), warm','SO₃','benzenesulfonic acid']],['Reaction','Reagents and conditions','Electrophile','Product'])}
+   <p><b>Making the electrophile for nitration:</b></p>${coEq('HNO₃ + 2H₂SO₄ → NO₂⁺ + H₃O⁺ + 2HSO₄⁻')}
+   <p><b>Mechanism:</b> (1) the delocalised π electrons attack NO₂⁺; a positive intermediate forms in which the ring’s delocalisation is partly broken (draw a horseshoe over five carbons, with + in the middle, and H and NO₂ on the sp³ carbon). (2) HSO₄⁻ removes H⁺ from that carbon; the electrons return to the ring, restoring the delocalised system and regenerating H₂SO₄.</p>
+   ${coR('c1ccccc1','conc. HNO₃, conc. H₂SO₄, 55 °C','O=[N+]([O-])c1ccccc1','Nitration of benzene.')}
+   <p>In halogenation, the catalyst is regenerated: Br₂ + FeBr₃ → Br⁺ + FeBr₄⁻, then FeBr₄⁻ + H⁺ → FeBr₃ + HBr.</p>`},
+  {h:'Methylbenzene: ring or side chain?',html:`<ul><li><b>Cl₂ with AlCl₃, in the dark:</b> substitution in the ring, giving 2-chloro- and 4-chloromethylbenzene (electrophilic substitution).</li><li><b>Cl₂ in UV light (or boiling):</b> substitution in the CH₃ side chain, giving (chloromethyl)benzene, C₆H₅CH₂Cl, by free-radical substitution, as with an alkane.</li><li><b>Oxidation:</b> the whole side chain, however long, becomes –COOH. A-level uses hot alkaline KMnO₄ then dilute acid; STPM uses hot acidified KMnO₄. Methylbenzene gives benzoic acid.</li><li><b>Hydrogenation:</b> H₂ with Ni or Pt and heat saturates the ring, giving methylcyclohexane.</li></ul>
+   <p>Methylbenzene nitrates faster than benzene, at about 30 °C, because the methyl group donates electrons into the ring.</p>`},
+  {h:'Directing effects',html:`${stT([['–OH, –NH₂','2- and 4- (ortho, para)','strongly activating: lone pair delocalised into the ring'],['–CH₃ and other alkyl groups','2- and 4-','activating: electron-donating (inductive)'],['–Cl, –Br','2- and 4-','deactivating (inductive withdrawal) but lone pairs direct to 2- and 4-'],['–NO₂','3- (meta)','strongly deactivating'],['–COOH, –CHO, –COR (e.g. –COCH₃), –CN','3-','deactivating']],['Group already on the ring','Directs the next group to','Effect on rate'])}
+   <p>So nitrating methylbenzene gives mainly 2- and 4-nitromethylbenzene, while nitrating nitrobenzene gives 1,3-dinitrobenzene, and needs harsher conditions.</p>`},
+  {h:'Uses and hazards',only:'s',html:`<p>Benzene and methylbenzene are useful solvents and starting materials for dyes, drugs, plastics and explosives. Benzene is <b>carcinogenic</b> (long exposure can cause leukaemia), so less toxic methylbenzene is used as a solvent where possible.</p>`}],
+ tools:[['mech','nitration','Nitration of benzene','Curly arrows step by step'],['mech','brbenzene','Bromination of benzene','How FeBr₃ makes the electrophile'],['mech','fcacyl','Friedel–Crafts acylation','Acylium ion attack'],['mech','fcalkyl','Friedel–Crafts alkylation','Carbocation attack'],['view3d','c1ccccc1','Benzene in 3D','See the flat ring']],
+ prob:{title:'From benzene to 3-nitrobenzoic acid',stem:'3-Nitrobenzoic acid can be made from benzene in three steps.',parts:[
+  ['Suggest the reagents and conditions for each step, in the right order.','(1) Friedel–Crafts alkylation: CH₃Cl with AlCl₃, heat, giving methylbenzene. (2) Oxidation: hot KMnO₄ (alkaline then acidify, or acidified), giving benzoic acid. (3) Nitration: concentrated HNO₃ and H₂SO₄, heat, giving 3-nitrobenzoic acid.'],
+  ['Why must the oxidation come before the nitration?','–COOH directs incoming groups to the 3-position, while –CH₃ directs to 2- and 4-. Oxidising first means the nitro group goes to position 3.'],
+  ['Write an equation for the formation of the electrophile in step 3.','HNO₃ + 2H₂SO₄ → NO₂⁺ + H₃O⁺ + 2HSO₄⁻'],
+  ['Explain why benzene undergoes substitution rather than addition with bromine.','Addition would destroy the stable delocalised π system. Substitution restores it in the final step, so it is energetically favoured.']]},
+ qs:[
+  {prompt:'What is the electrophile in the nitration of benzene?',opts:['NO₂⁺','NO₃⁻','HNO₃','NO₂'],why:'Concentrated sulfuric acid protonates nitric acid, which then loses water to form the nitronium ion, NO₂⁺.'},
+  {prompt:'Why doesn’t benzene decolourise bromine water?',opts:['Its delocalised π electrons are too stable to undergo addition easily','It has no π electrons','Bromine is not an electrophile','Benzene is insoluble in water'],why:'Adding bromine would break the delocalised system, so benzene needs a halogen carrier and reacts by substitution instead.'},
+  {prompt:'What is the role of AlCl₃ in the chlorination of benzene?',opts:['It polarises Cl₂ to generate an electrophile (Cl⁺)','It is a reducing agent','It removes water','It provides UV light'],why:'AlCl₃ accepts a lone pair from Cl₂: Cl₂ + AlCl₃ → Cl⁺ + AlCl₄⁻. It is regenerated at the end.'},
+  {prompt:'Methylbenzene reacts with chlorine in UV light. What is the main organic product?',fig:{k:'smi',s:'Cc1ccccc1'},opts:['(Chloromethyl)benzene, C₆H₅CH₂Cl','2-Chloromethylbenzene','4-Chloromethylbenzene','Chlorobenzene'],why:'UV light gives free-radical substitution in the side chain. With AlCl₃ in the dark, the ring is substituted instead.'},
+  {prompt:'What does hot KMnO₄ (then acid) turn ethylbenzene into?',fig:{k:'smi',s:'CCc1ccccc1'},opts:['Benzoic acid','Phenylethanoic acid','Ethanoic acid and benzene','Phenylethanone'],why:'The whole side chain is oxidised down to –COOH attached to the ring.'},
+  {prompt:'Nitrobenzene is nitrated again. Where does the second nitro group go?',opts:['Position 3 (meta)','Position 2 (ortho)','Position 4 (para)','Positions 2 and 4 equally'],why:'–NO₂ withdraws electrons and directs substitution to the 3-position.'},
+  {prompt:'Which group makes the benzene ring more reactive towards electrophiles?',opts:['–OH','–NO₂','–COOH','–CHO'],why:'The O lone pair is delocalised into the ring, increasing its electron density. The other groups withdraw electrons.'},
+  {prompt:'What is the main product of benzene with CH₃COCl and AlCl₃?',opts:['Phenylethanone, C₆H₅COCH₃','Methylbenzene','Ethylbenzene','Phenyl ethanoate'],why:'Friedel–Crafts acylation adds the acyl group CH₃CO– to the ring, giving a ketone.'},
+  {prompt:'Why is the enthalpy of hydrogenation of benzene less exothermic than three times that of cyclohexene?',opts:['Delocalisation makes benzene more stable than a structure with three C=C bonds','Benzene has fewer hydrogen atoms','Benzene is a liquid','Cyclohexene is aromatic'],why:'−208 versus 3 × −120 = −360 kJ mol⁻¹: benzene is about 150 kJ mol⁻¹ more stable than the Kekulé structure predicts.'}]},
+
+{id:'pu-halo',title:'Halogenoalkanes and halogenoarenes',lede:'Nucleophilic substitution by SN1 and SN2, elimination, why chlorobenzene resists attack, and (for STPM) Grignard reagents and CFCs.',
+ ref:{a:'AS 15.1, A Level 31.1',s:'Third term, topic 16'},
+ syl:{a:['15.1 Making halogenoalkanes: free-radical substitution, addition of X₂ or HX to alkenes, and from alcohols (HX, KCl with conc. H₂SO₄ or H₃PO₄, PCl₃ and heat, PCl₅, SOCl₂)','15.1 Classifying primary, secondary and tertiary halogenoalkanes','15.1 Nucleophilic substitution: NaOH(aq) (alcohol), KCN in ethanol (nitrile), NH₃ in ethanol under pressure (amine), aqueous AgNO₃ in ethanol','15.1 Elimination with NaOH in ethanol','15.1 SN1 and SN2 mechanisms and the inductive effect of alkyl groups','15.1 Reactivity and C–X bond strength, shown by AgNO₃','31.1 Making halogenoarenes; why chlorobenzene is less reactive than chloroethane'],
+      s:['General formula, naming, isomerism and physical properties','Nucleophilic substitution of bromoethane: hydrolysis, nitrile formation (CN⁻), amine formation (NH₃)','Elimination to give alkenes','SN1 and SN2 mechanisms; reactivity of 1°, 2° and 3° haloalkanes','Hydrolysis of chlorobenzene compared with chloroalkanes','Grignard reagents: preparation and reactions with carbonyl compounds','Uses of fluoroalkanes and CFCs; DDT; CFCs and the ozone layer']},
+ sections:[
+  {h:'Substitution and elimination',html:`<p>The C–X bond is polar (Cδ+–Xδ−), so <b>nucleophiles</b> attack the δ+ carbon and replace X⁻.</p>
+   ${stT([['NaOH(aq) or KOH(aq), heat under reflux','alcohol','CH₃CH₂Br + OH⁻ → CH₃CH₂OH + Br⁻'],['KCN in ethanol, heat under reflux','nitrile (one more carbon)','CH₃CH₂Br + CN⁻ → CH₃CH₂CN + Br⁻'],['excess NH₃ in ethanol, heat in a sealed tube (pressure)','primary amine','CH₃CH₂Br + 2NH₃ → CH₃CH₂NH₂ + NH₄Br'],['NaOH in ethanol, heat','alkene (elimination)','CH₃CH₂Br + OH⁻ → CH₂=CH₂ + H₂O + Br⁻']],['Reagent and conditions','Product','Equation'])}
+   ${coNote('Same reagent, different solvent:','in water, OH⁻ acts as a nucleophile (substitution); in ethanol, it acts mainly as a base and removes H⁺ from the carbon next to C–X (elimination).')}
+   <p>The nitrile route is useful because it lengthens the carbon chain, and the –CN group can then be hydrolysed to –COOH or reduced to –CH₂NH₂.</p>`},
+  {h:'SN2 and SN1',html:`${stT([['SN2','primary (and methyl)','one step: OH⁻ attacks C from the side opposite Br as Br leaves; a five-coordinate transition state','rate = k[RX][OH⁻] (second order)'],['SN1','tertiary','two steps: C–Br breaks heterolytically to give a carbocation (slow), then OH⁻ attacks it (fast)','rate = k[RX] (first order)']],['','Typical for','Mechanism','Rate'])}
+   <p>Secondary halogenoalkanes react by a mixture of both. Tertiary ones use SN1 because three alkyl groups stabilise the carbocation by their inductive effect, and they also crowd the carbon, blocking a backside attack. Primary carbocations are too unstable, so primary halogenoalkanes use SN2.</p>
+   ${coG(stS('CCBr','Bromoethane: primary, SN2.'),stS('CC(C)(C)Br','2-Bromo-2-methylpropane: tertiary, SN1.'))}`},
+  {h:'Reactivity and the silver nitrate test',html:`<p>Warm the halogenoalkane with aqueous silver nitrate in ethanol. Water slowly substitutes the halogen, and the halide ions precipitate with Ag⁺:</p>
+   ${stT([['chloro-','white AgCl','slowest','C–Cl strongest (about 340 kJ mol⁻¹)'],['bromo-','cream AgBr','faster','C–Br weaker (about 280)'],['iodo-','yellow AgI','fastest','C–I weakest (about 240)']],['Compound','Precipitate','Rate','Why'])}
+   <p>Rate depends mainly on C–X bond strength, not polarity: C–I is the least polar but the weakest, and reacts fastest. Tertiary halogenoalkanes also react faster than primary ones.</p>`},
+  {h:'Why chlorobenzene is unreactive',html:`<p>Chlorobenzene does not react with NaOH(aq) under normal conditions, unlike chloroethane. A lone pair on Cl overlaps with the delocalised π system of the ring, so the C–Cl bond gains some double-bond character: it is <b>shorter and stronger</b>. The electron-rich ring also repels approaching nucleophiles, and backside attack is impossible through the ring.</p>
+   ${coEq('ease of hydrolysis: acyl chloride (fast, cold water) &gt; chloroalkane (warm, NaOH(aq)) &gt; chlorobenzene (no reaction)')}`},
+  {h:'Grignard reagents',only:'s',html:`<p>A halogenoalkane reacts with magnesium in <b>dry ether</b> to form a Grignard reagent, in which the carbon is bonded to Mg and carries a δ− charge, so it acts as a carbon nucleophile:</p>${coEq('CH₃CH₂Br + Mg → CH₃CH₂MgBr')}
+   ${stT([['methanal, HCHO','primary alcohol (chain + 1 C)'],['another aldehyde, RCHO','secondary alcohol'],['ketone, R₂CO','tertiary alcohol'],['carbon dioxide (dry ice)','carboxylic acid']],['Grignard + …, then dilute acid','Product'])}
+   <p>Water must be excluded, because it destroys the reagent: CH₃CH₂MgBr + H₂O → CH₃CH₃ + Mg(OH)Br.</p>`},
+  {h:'CFCs, DDT and the ozone layer',only:'s',html:`<p>CFCs (chlorofluorocarbons such as CCl₂F₂) are unreactive, non-toxic and non-flammable, so they were used as refrigerants, aerosol propellants, foaming agents and fire extinguishers (halons). In the stratosphere, UV light breaks C–Cl bonds, releasing Cl• radicals that destroy ozone in a chain reaction:</p>
+   ${coEq('Cl• + O₃ → ClO• + O₂ &nbsp;&nbsp;·&nbsp;&nbsp; ClO• + O → Cl• + O₂')}
+   <p>One Cl• can destroy many thousands of O₃ molecules. Ozone forms naturally when UV light splits O₂ (O₂ → 2O; O + O₂ → O₃) and absorbs harmful UV-B radiation. CFCs are now banned under the Montreal Protocol and replaced by HFCs and hydrocarbons.</p>
+   <p><b>DDT</b> is a chlorinated insecticide that helped control malaria, but it persists in the environment and builds up along food chains, harming birds of prey, so its use is now restricted.</p>`}],
+ tools:[['mech','sn2','SN2 substitution','Backside attack and inversion'],['mech','sn1','SN1 substitution','Carbocation then attack'],['mech','e2','E2 elimination','Base removes H as X leaves'],['mech','grignard','Grignard addition','A carbon nucleophile meets C=O'],['guide','sn1-sn2-e1-e2','SN1, SN2, E1, E2 guide','Choosing the mechanism']],
+ prob:{title:'Comparing two bromoalkanes',stem:'1-Bromobutane and 2-bromo-2-methylpropane are isomers of C₄H₉Br.',parts:[
+  ['Classify each as primary, secondary or tertiary.','1-Bromobutane is primary (the C–Br carbon is joined to one other carbon). 2-Bromo-2-methylpropane is tertiary (joined to three).'],
+  ['Each is warmed with NaOH(aq). Name the mechanism for each, and explain the difference.','1-Bromobutane: SN2, one step, because a primary carbocation would be too unstable and the carbon is not crowded. 2-Bromo-2-methylpropane: SN1, via a tertiary carbocation stabilised by three electron-donating methyl groups; the crowded carbon also hinders backside attack.'],
+  ['Write the rate equation for each reaction.','SN2: rate = k[C₄H₉Br][OH⁻]. SN1: rate = k[C₄H₉Br].'],
+  ['Each compound is warmed separately with ethanolic silver nitrate. Which gives a precipitate faster, and what colour is it?','2-Bromo-2-methylpropane, because it ionises readily (SN1). The precipitate is cream silver bromide.'],
+  ['Give the reagent and conditions to convert 1-bromobutane into pentanenitrile.','KCN in ethanol, heated under reflux.']]},
+ qs:[
+  {prompt:'What forms when bromoethane is heated under reflux with aqueous NaOH?',opts:['Ethanol','Ethene','Ethylamine','Ethanoic acid'],why:'In water, OH⁻ acts as a nucleophile and substitutes the bromine.'},
+  {prompt:'What forms when bromoethane is heated with NaOH in ethanol?',opts:['Ethene','Ethanol','Ethoxyethane','Ethane'],why:'In ethanol, OH⁻ acts as a base and eliminates HBr.'},
+  {prompt:'Which reagent increases the length of the carbon chain by one?',opts:['KCN in ethanol','NH₃ in ethanol','NaOH(aq)','AgNO₃(aq)'],why:'CN⁻ substitutes the halogen, adding the carbon of the nitrile group.'},
+  {prompt:'Which compound reacts fastest with aqueous silver nitrate in ethanol?',opts:['1-Iodobutane','1-Chlorobutane','1-Bromobutane','1-Fluorobutane'],why:'The C–I bond is the weakest, so it breaks most easily, and yellow AgI forms quickest.'},
+  {prompt:'What is the rate equation for the SN1 hydrolysis of 2-bromo-2-methylpropane?',opts:['rate = k[RBr]','rate = k[RBr][OH⁻]','rate = k[OH⁻]','rate = k[RBr]²'],why:'The slow step is the ionisation of RBr to the carbocation, which involves only RBr.'},
+  {prompt:'Why do tertiary halogenoalkanes react by SN1?',opts:['Their carbocations are stabilised by three alkyl groups, and backside attack is hindered','They have the strongest C–X bonds','They contain no hydrogen atoms','They are the most polar'],why:'Electron-donating alkyl groups stabilise the carbocation; their bulk also blocks the SN2 pathway.'},
+  {prompt:'Why is chlorobenzene much less reactive than chloroethane towards nucleophiles?',opts:['A Cl lone pair is delocalised into the ring, strengthening the C–Cl bond','Chlorine is more electronegative in chlorobenzene','Chlorobenzene is a gas','The C–Cl bond in chlorobenzene is more polar'],why:'The partial double-bond character makes C–Cl shorter and stronger, and the π cloud repels nucleophiles.'},
+  {prompt:'What is the colour of the precipitate formed from a chloroalkane and silver nitrate?',opts:['White','Cream','Yellow','Brown'],why:'AgCl is white, AgBr cream and AgI yellow.'},
+  {prompt:'Which product forms when a Grignard reagent reacts with a ketone, followed by dilute acid?',opts:['A tertiary alcohol','A primary alcohol','A carboxylic acid','An aldehyde'],why:'The carbon nucleophile adds to the C=O carbon, which already carries two R groups, giving R₃C–OH.',only:'s'},
+  {prompt:'How do CFCs damage the ozone layer?',opts:['UV light releases Cl• radicals that catalyse ozone breakdown','They react with ozone directly at ground level','They absorb UV light themselves','They release fluoride ions'],why:'Cl• + O₃ → ClO• + O₂, then ClO• + O → Cl• + O₂: the Cl• is regenerated, so one radical destroys many ozone molecules.',only:'s'}]},
+/* ======== Organic: oxygen and nitrogen compounds ======== */
+{id:'pu-oh',title:'Alcohols',lede:'Classifying alcohols, oxidising them, dehydrating them, turning them into esters and halogenoalkanes, and the tri-iodomethane test.',
+ ref:{a:'AS 16.1, A Level 32.1',s:'Third term, topic 17.1–17.2'},
+ syl:{a:['16.1 Making alcohols: steam on alkenes; cold dilute KMnO₄ on alkenes (diols); NaOH(aq) on halogenoalkanes; reducing aldehydes and ketones (NaBH₄ or LiAlH₄); reducing carboxylic acids (LiAlH₄); hydrolysing esters','16.1 Reactions: combustion; to halogenoalkanes; with Na; oxidation with acidified K₂Cr₂O₇ or KMnO₄; dehydration; esterification','16.1 Classifying primary, secondary and tertiary alcohols, and distinguishing them with acidified dichromate','16.1 Tri-iodomethane test for CH₃CH(OH)– groups','16.1 Acidity of alcohols compared with water','32.1 Esters from alcohols and acyl chlorides'],
+      s:['Classification of 1°, 2° and 3° alcohols','Reactions breaking O–H: sodium (alkoxides), esterification, acylation, oxidation','Reactions breaking C–O: halogenoalkane formation, dehydration to alkenes and ethers','Oxidation of 1°, 2° and 3° alcohols by acidified KMnO₄ or K₂Cr₂O₇','Iodoform test for CH₃CH(OH)– groups','Industrial ethanol: hydration of ethene and fermentation; uses of alcohols']},
+ sections:[
+  {h:'Classes and physical properties',html:`<p>An alcohol is <b>primary</b>, <b>secondary</b> or <b>tertiary</b> according to how many carbons are joined to the carbon carrying –OH.</p>
+   ${coG(stS('CCCO','Propan-1-ol: primary'),stS('CC(C)O','Propan-2-ol: secondary'),stS('CC(C)(C)O','2-Methylpropan-2-ol: tertiary'))}
+   <p>Alcohols hydrogen bond, so they boil much higher than alkanes of similar mass, and small ones mix with water. Solubility falls as the hydrocarbon chain gets longer.</p>`},
+  {h:'Reactions of alcohols',html:`${stT([['Na(s), room temperature','sodium alkoxide + H₂','2CH₃CH₂OH + 2Na → 2CH₃CH₂O⁻Na⁺ + H₂ (slower than water)'],['HBr (KBr + conc. H₂SO₄), or HCl / KCl + conc. H₂SO₄','halogenoalkane','CH₃CH₂OH + HBr → CH₃CH₂Br + H₂O'],['PCl₅, room temperature','chloroalkane + POCl₃ + HCl','steamy HCl fumes: a test for –OH'],['PCl₃ and heat, or SOCl₂','chloroalkane','SOCl₂ gives gaseous by-products SO₂ and HCl'],['heated Al₂O₃, or conc. H₂SO₄ / H₃PO₄ at about 170 °C','alkene (dehydration)','CH₃CH₂OH → CH₂=CH₂ + H₂O'],['excess ethanol with conc. H₂SO₄ at about 140 °C','ether','2CH₃CH₂OH → CH₃CH₂OCH₂CH₃ + H₂O'],['carboxylic acid + conc. H₂SO₄ catalyst, heat','ester + water (reversible)','see the Carboxylic acids unit'],['acyl chloride, room temperature','ester + HCl','fast and complete']],['Reagent and conditions','Product','Notes'])}
+   <p>Alcohols are slightly <b>less acidic than water</b>: the alkyl group pushes electron density onto the O of the alkoxide ion (positive inductive effect), making it a stronger base than OH⁻. So sodium reacts more gently with ethanol than with water.</p>`},
+  {h:'Oxidation',html:`<p>Use acidified potassium dichromate(VI), K₂Cr₂O₇/H₂SO₄ (orange Cr₂O₇²⁻ → green Cr³⁺), or acidified KMnO₄ (purple → colourless).</p>
+   ${stT([['primary','aldehyde if distilled off as it forms; carboxylic acid if heated under reflux with excess oxidant','CH₃CH₂OH + [O] → CH₃CHO + H₂O; CH₃CHO + [O] → CH₃COOH'],['secondary','ketone','CH₃CH(OH)CH₃ + [O] → CH₃COCH₃ + H₂O'],['tertiary','no reaction: no H on the C–OH carbon','dichromate stays orange']],['Alcohol','Product','Example'])}
+   ${coNote('Telling them apart:','warm with acidified K₂Cr₂O₇. Primary and secondary alcohols turn it green; tertiary alcohols leave it orange. Then test the distilled product with Tollens’ or Fehling’s: an aldehyde (from a primary alcohol) reacts, a ketone (from a secondary alcohol) does not.')}`},
+  {h:'The tri-iodomethane (iodoform) test',html:`<p>Warm the compound with iodine in aqueous sodium hydroxide (alkaline I₂). A <b>pale yellow precipitate of CHI₃</b>, with an antiseptic smell, forms if the molecule contains <b>CH₃CH(OH)–</b> (or CH₃CO–). The alkaline iodine first oxidises CH₃CH(OH)R to CH₃COR, which is then cleaved.</p>
+   ${stT([['ethanol, CH₃CH₂OH','positive (the only primary alcohol that is)'],['propan-2-ol, CH₃CH(OH)CH₃','positive'],['butan-2-ol','positive'],['propan-1-ol','negative'],['pentan-3-ol','negative: no CH₃ next to C–OH'],['methanol','negative']],['Alcohol','Tri-iodomethane test'])}`},
+  {h:'Ethanol in industry',only:'s',html:`<ul><li><b>Hydration of ethene:</b> steam with H₃PO₄ catalyst at about 300 °C and 60–70 atm. Fast, continuous, pure product, but uses crude oil.</li><li><b>Fermentation:</b> glucose → 2C₂H₅OH + 2CO₂, with yeast enzymes at about 35 °C, no air. Renewable, but slow, batch process, and the ethanol (about 15%) must be distilled.</li></ul>
+   <p>Uses: solvents, antiseptics (70% ethanol), fuels and fuel additives, and making other chemicals.</p>`}],
+ tools:[['mech','e1','Acid-catalysed dehydration','Alcohol to alkene'],['mech','fischer','Fischer esterification','Acid + alcohol, step by step'],['mode','naming','IUPAC naming practice','Name alcohols and their products']],
+ prob:{title:'Three alcohols of formula C₄H₁₀O',stem:'Butan-1-ol, butan-2-ol and 2-methylpropan-2-ol are isomers of C₄H₁₀O.',parts:[
+  ['Classify each alcohol.','Butan-1-ol: primary. Butan-2-ol: secondary. 2-Methylpropan-2-ol: tertiary.'],
+  ['Describe how acidified potassium dichromate(VI) distinguishes the tertiary alcohol from the others.','Warm each with acidified K₂Cr₂O₇. The primary and secondary alcohols turn it from orange to green; the tertiary alcohol leaves it orange because it has no H on the carbon carrying –OH.'],
+  ['Which alcohol gives a positive tri-iodomethane test? Explain.','Butan-2-ol only: it contains CH₃CH(OH)–. Butan-1-ol and 2-methylpropan-2-ol do not.'],
+  ['Give the organic product when butan-1-ol is heated under reflux with excess acidified K₂Cr₂O₇.','Butanoic acid, CH₃CH₂CH₂COOH. Under reflux the aldehyde formed first cannot escape and is oxidised further.'],
+  ['Butan-2-ol is heated with concentrated H₂SO₄. Name the possible alkene products.','But-1-ene, and cis- and trans-but-2-ene. H can be lost from either carbon next to the C–OH.']]},
+ qs:[
+  {prompt:'What is formed when propan-2-ol is oxidised by acidified K₂Cr₂O₇?',fig:{k:'smi',s:'CC(C)O'},opts:['Propanone','Propanal','Propanoic acid','No reaction'],why:'Propan-2-ol is a secondary alcohol, so it is oxidised to a ketone.'},
+  {prompt:'How do you get an aldehyde rather than a carboxylic acid when oxidising a primary alcohol?',opts:['Distil the aldehyde off as it forms','Heat under reflux with excess oxidant','Use a tertiary alcohol','Add NaOH'],why:'Removing the aldehyde immediately stops it being oxidised further.'},
+  {prompt:'What colour change shows that acidified K₂Cr₂O₇ has oxidised an alcohol?',opts:['Orange to green','Green to orange','Purple to colourless','Colourless to yellow'],why:'Orange Cr₂O₇²⁻ is reduced to green Cr³⁺.'},
+  {prompt:'Which alcohol gives a yellow precipitate with alkaline iodine?',opts:['Ethanol','Methanol','Propan-1-ol','2-Methylpropan-2-ol'],why:'Ethanol contains CH₃CH(OH)–. It is the only primary alcohol to give the tri-iodomethane test.'},
+  {prompt:'Which reagent converts ethanol into chloroethane, producing steamy fumes of HCl?',opts:['PCl₅','NaOH','K₂Cr₂O₇','Na'],why:'CH₃CH₂OH + PCl₅ → CH₃CH₂Cl + POCl₃ + HCl. The HCl fumes are a test for –OH.'},
+  {prompt:'What is produced when ethanol vapour is passed over heated aluminium oxide?',opts:['Ethene','Ethanal','Ethoxyethane','Ethanoic acid'],why:'Al₂O₃ catalyses dehydration: CH₃CH₂OH → CH₂=CH₂ + H₂O.'},
+  {prompt:'Why does sodium react more slowly with ethanol than with water?',opts:['Ethanol is a weaker acid than water','Ethanol is more acidic than water','Sodium is insoluble in ethanol','Ethanol has no O–H bond'],why:'The ethyl group pushes electrons onto oxygen, destabilising the ethoxide ion, so ethanol gives up H⁺ less readily.'},
+  {prompt:'Which alcohol is not oxidised by acidified K₂Cr₂O₇?',opts:['2-Methylpropan-2-ol','Butan-2-ol','Butan-1-ol','Ethanol'],why:'It is tertiary: no H atom on the carbon carrying –OH.'},
+  {prompt:'What forms when excess ethanol is heated with concentrated H₂SO₄ at about 140 °C?',opts:['Ethoxyethane','Ethene','Ethyl hydrogensulfate only','Ethanoic acid'],why:'At the lower temperature, with excess alcohol, two molecules lose one water molecule between them to form an ether. At about 170 °C, ethene forms.',only:'s'}]},
+
+{id:'pu-phenol',title:'Phenol',lede:'Why phenol is more acidic than ethanol, why its ring reacts so easily, and the tests and reactions to know.',
+ ref:{a:'A Level 32.2',s:'Third term, topic 17.3'},
+ syl:{a:['32.2 Making phenol: diazotise phenylamine (HNO₂ or NaNO₂ with dilute acid below 10 °C), then warm with water','32.2 Reactions with NaOH(aq), Na, diazonium salts (azo compounds), dilute HNO₃ (2- and 4-nitrophenol) and Br₂(aq) (2,4,6-tribromophenol)','32.2 Acidity of phenol compared with water and ethanol','32.2 Why phenol nitrates and brominates under milder conditions than benzene','32.2 –OH directs to the 2-, 4- and 6-positions; apply this to compounds such as naphthol'],
+      s:['Acidity of water, phenol and ethanol','Reactions with NaOH, Na and acyl chlorides; electrophilic substitution on the ring','Tests: bromine water and aqueous FeCl₃','The cumene process','From phenol to cyclohexanol and nylon-6,6']},
+ sections:[
+  {h:'Acidity',html:`<p>Phenol is a weak acid: C₆H₅OH ⇌ C₆H₅O⁻ + H⁺ (pKa ≈ 10). A lone pair on the oxygen of the phenoxide ion is <b>delocalised into the ring</b>, spreading the negative charge and stabilising the ion. In ethoxide, the charge stays on O and the ethyl group pushes even more electron density onto it.</p>
+   ${coEq('acid strength: ethanol &lt; water &lt; phenol &lt; carbonic acid &lt; ethanoic acid')}
+   ${stT([['Na','✓ (H₂)','✓ (H₂)','✓ (H₂)'],['NaOH(aq)','✗','✓ sodium phenoxide (dissolves)','✓'],['Na₂CO₃ or NaHCO₃','✗','✗ (no CO₂)','✓ CO₂ fizzes']],['Reagent','Ethanol','Phenol','Ethanoic acid'])}
+   <p>So phenol dissolves in NaOH(aq) but does not fizz with carbonates: this distinguishes it from carboxylic acids.</p>`},
+  {h:'A very reactive ring',html:`<p>The O lone pair also feeds electron density into the ring, especially at positions 2, 4 and 6. Phenol therefore reacts with electrophiles far more easily than benzene:</p>
+   ${stT([['bromine water, room temperature','2,4,6-tribromophenol: white precipitate, bromine decolourised','benzene needs pure Br₂ and FeBr₃'],['dilute HNO₃, room temperature','2-nitrophenol and 4-nitrophenol','benzene needs conc. HNO₃ and H₂SO₄ at 55 °C'],['benzenediazonium chloride in NaOH(aq), below 10 °C','yellow-orange azo dye (coupling at position 4)','see the Amines unit']],['Reagent','Product','Compared with benzene'])}
+   ${coR('Oc1ccccc1','3Br₂(aq)','Oc1c(Br)cc(Br)cc1Br','A white precipitate forms at once.')}
+   <p>The same rule applies to naphthol: the –OH directs incoming groups to the positions ortho and para to it.</p>`},
+  {h:'Tests and other reactions',html:`<ul><li><b>Bromine water:</b> decolourised, with a white precipitate.</li><li><b>Neutral iron(III) chloride, FeCl₃(aq):</b> a violet (purple) colour.</li><li><b>Acyl chlorides:</b> phenol reacts with an acyl chloride at room temperature (best in NaOH, as phenoxide) to give an ester such as phenyl benzoate. Phenol does not esterify usefully with carboxylic acids.</li></ul>`},
+  {h:'Making phenol',only:'a',html:`<p><b>From phenylamine:</b> diazotise with NaNO₂ and dilute HCl below 10 °C, then warm the diazonium solution: C₆H₅N₂⁺ + H₂O → C₆H₅OH + N₂ + H⁺.</p>`},
+  {h:'Industry: cumene, cyclohexanol and nylon',only:'s',html:`<p>The <b>cumene process</b> makes phenol and propanone together: benzene + propene (acid catalyst) → cumene (isopropylbenzene); air oxidation → cumene hydroperoxide; dilute acid → phenol + propanone.</p>
+   <p><b>Phenol to nylon-6,6:</b> hydrogenating phenol (H₂, Ni) gives cyclohexanol; oxidation (for example with concentrated HNO₃) gives hexanedioic acid, one of the two monomers of nylon-6,6.</p>`}],
+ tools:[['mech','acidbase','Acid–base proton transfer','Compare conjugate base stability'],['mech','brbenzene','Bromination of benzene','Compare with phenol: no catalyst needed'],['view3d','Oc1ccccc1','Phenol in 3D','Planar ring and O–H']],
+ prob:{title:'Ethanol, phenol and ethanoic acid',stem:'Three colourless liquids (or solutions) are labelled P, Q and R. They are ethanol, phenol and ethanoic acid, in some order.',parts:[
+  ['Describe two chemical tests that identify all three.','(1) Add NaHCO₃ or Na₂CO₃: only ethanoic acid fizzes (CO₂). (2) Add bromine water to the other two: phenol decolourises it and gives a white precipitate; ethanol does not. (Alternatively, neutral FeCl₃ gives a violet colour with phenol.)'],
+  ['Explain why phenol is a stronger acid than ethanol.','The negative charge of the phenoxide ion is delocalised into the benzene ring, stabilising it. In ethoxide the charge is held on the oxygen, and the ethyl group pushes more electron density onto it, so ethoxide is less stable.'],
+  ['Write an equation for phenol with aqueous bromine and name the product.','C₆H₅OH + 3Br₂ → C₆H₂Br₃OH + 3HBr; 2,4,6-tribromophenol.'],
+  ['Why doesn’t benzene react with bromine water under the same conditions?','Benzene’s ring is less electron-rich; it needs a halogen carrier such as FeBr₃ to polarise Br₂. In phenol, delocalisation of the O lone pair raises the electron density of the ring, especially at C2, C4 and C6.']]},
+ qs:[
+  {prompt:'Arrange in order of increasing acidity: ethanol, phenol, water.',opts:['Ethanol < water < phenol','Phenol < water < ethanol','Water < ethanol < phenol','Ethanol < phenol < water'],why:'Phenoxide is stabilised by delocalisation; ethoxide is destabilised by the electron-donating ethyl group.'},
+  {prompt:'Which reagent reacts with phenol but not with ethanol?',opts:['NaOH(aq)','Na','PCl₅','O₂ (combustion)'],why:'Phenol is acidic enough to react with aqueous hydroxide, forming sodium phenoxide. Ethanol is not.'},
+  {prompt:'What is observed when bromine water is added to phenol?',opts:['Decolourised, with a white precipitate','A violet colour','Effervescence','A yellow precipitate'],why:'2,4,6-Tribromophenol precipitates as a white solid.'},
+  {prompt:'Why does phenol react with bromine water when benzene does not?',opts:['The O lone pair is delocalised into the ring, increasing its electron density','Phenol is more acidic','Phenol has fewer π electrons','Bromine water contains FeBr₃'],why:'The more electron-rich ring polarises and attacks Br₂ without a catalyst.'},
+  {prompt:'What are the products when phenol reacts with dilute nitric acid at room temperature?',opts:['2-Nitrophenol and 4-nitrophenol','3-Nitrophenol','2,4,6-Trinitrophenol only','Nitrobenzene'],why:'–OH directs to positions 2 and 4, and the activated ring reacts with dilute acid.'},
+  {prompt:'Which test gives a violet colour with phenol?',opts:['Neutral iron(III) chloride solution','Tollens’ reagent','2,4-DNPH','Acidified dichromate'],why:'Phenols form a violet complex with Fe³⁺(aq).'},
+  {prompt:'Why doesn’t phenol react with sodium carbonate solution to release CO₂?',opts:['Phenol is a weaker acid than carbonic acid','Phenol is insoluble','Phenol is a base','The ring blocks the reaction'],why:'Only acids stronger than H₂CO₃, such as carboxylic acids, release CO₂ from carbonates.'},
+  {prompt:'How is phenol made from phenylamine?',opts:['NaNO₂ and dilute HCl below 10 °C, then warm with water','Heat with NaOH(aq)','Hot KMnO₄','Concentrated H₂SO₄ at 170 °C'],why:'This forms the benzenediazonium ion, which loses N₂ when warmed in water.',only:'a'},
+  {prompt:'Which two products does the cumene process give?',opts:['Phenol and propanone','Phenol and propene','Benzene and propanone','Cyclohexanol and phenol'],why:'Oxidising cumene and then treating the hydroperoxide with acid gives both, which makes the process economical.',only:'s'}]},
+
+{id:'pu-carbonyl',title:'Aldehydes and ketones',lede:'Nucleophilic addition, reduction, the tests that tell aldehydes from ketones, and (for STPM) reducing sugars.',
+ ref:{a:'AS 17.1',s:'Third term, topic 18'},
+ syl:{a:['17.1 Making aldehydes and ketones by oxidising primary alcohols (distilling) and secondary alcohols','17.1 Reduction with NaBH₄ or LiAlH₄','17.1 HCN with a KCN catalyst gives hydroxynitriles; the nucleophilic addition mechanism','17.1 2,4-DNPH to detect C=O','17.1 Fehling’s and Tollens’ reagents to distinguish aldehydes from ketones','17.1 Tri-iodomethane test for CH₃CO– groups'],
+      s:['General formula, naming, isomerism and physical properties; aliphatic and aromatic aldehydes and ketones','Reduction by catalytic hydrogenation and by LiAlH₄','2,4-DNPH test for C=O','Nucleophilic addition of HCN and its mechanism','Oxidation of aldehydes; Fehling’s and Tollens’ reagents','Iodoform test for CH₃C=O','Glucose and sucrose; why glucose is a reducing sugar']},
+ sections:[
+  {h:'The carbonyl group',html:`<p>In C=O the oxygen is more electronegative, so the bond is polar: Cδ+=Oδ−. The δ+ carbon is attacked by <b>nucleophiles</b>, and because the π bond breaks easily, the typical reaction is <b>nucleophilic addition</b>. (Compare C=C, which is non-polar and attacked by electrophiles.)</p>
+   ${coG(stS('CC=O','Ethanal: an aldehyde (C=O at the end of the chain, with an H)'),stS('CC(C)=O','Propanone: a ketone (C=O between two carbons)'),stS('O=Cc1ccccc1','Benzaldehyde: an aromatic aldehyde'))}
+   <p>Aldehydes and ketones have permanent dipoles but cannot hydrogen bond with each other, so they boil lower than alcohols of similar mass but higher than alkanes. Small ones dissolve in water by hydrogen bonding to water molecules.</p>`},
+  {h:'Nucleophilic addition of HCN',html:`<p>HCN adds across C=O to give a <b>hydroxynitrile</b>. Use HCN with a little KCN (or KCN with dilute acid), warm. The KCN supplies CN⁻, the actual nucleophile.</p>
+   ${coR('CC=O','HCN, KCN catalyst','CC(O)C#N','Ethanal gives 2-hydroxypropanenitrile.')}
+   <p><b>Mechanism:</b> (1) CN⁻ attacks the δ+ carbon with its lone pair; the π bond breaks and its electrons move to oxygen, forming an alkoxide intermediate. (2) The O⁻ takes H⁺ from HCN (regenerating CN⁻) or from water.</p>
+   <p>The carbonyl carbon is planar, so CN⁻ attacks equally from both faces. With an aldehyde other than methanal, the product has a chiral centre and forms as a <b>racemic mixture</b>.</p>`},
+  {h:'Reduction and oxidation',html:`${stT([['NaBH₄ in water or methanol, or LiAlH₄ in dry ether','aldehyde → primary alcohol; ketone → secondary alcohol','the nucleophile is hydride, H⁻'],['H₂ with Ni or Pt catalyst','same products','C=C bonds would also be reduced'],['acidified K₂Cr₂O₇ or KMnO₄, heat','aldehyde → carboxylic acid; ketone → no reaction','ketones have no H on the C=O carbon']],['Reagent','Result','Notes'])}
+   ${coEq('CH₃COCH₃ + 2[H] → CH₃CH(OH)CH₃')}`},
+  {h:'Tests',html:`${stT([['2,4-dinitrophenylhydrazine (2,4-DNPH, Brady’s reagent)','orange/yellow precipitate','any C=O in an aldehyde or ketone'],['Tollens’ reagent (ammoniacal silver nitrate), warm','silver mirror','aldehydes only: Ag⁺ reduced to Ag'],['Fehling’s solution, warm','blue solution → brick-red precipitate of Cu₂O','aliphatic aldehydes: Cu²⁺ reduced to Cu⁺'],['alkaline iodine (I₂ + NaOH), warm','pale yellow precipitate of CHI₃','methyl ketones and ethanal (CH₃CO–)']],['Test','Positive result','Shows'])}
+   <p>The melting point of the purified 2,4-DNPH derivative can be compared with data tables to identify the exact aldehyde or ketone.</p>`},
+  {h:'Carbohydrates and reducing sugars',only:'s',html:`<p>Glucose, C₆H₁₂O₆, has several –OH groups and, in its open-chain form, an aldehyde group, so it reduces Tollens’ reagent and Fehling’s solution: it is a <b>reducing sugar</b>. In solution it exists mainly as a six-membered ring, in equilibrium with a little of the open chain. Fructose (a ketose) is also reducing in alkaline solution.</p>
+   <p><b>Sucrose</b>, a disaccharide of glucose and fructose, is <b>non-reducing</b>: the two units are joined through the carbons that would otherwise form the C=O groups. Boiling with dilute acid hydrolyses it to glucose and fructose, which then give positive tests.</p>`}],
+ tools:[['mech','cyanohydrin','Cyanohydrin formation','Nucleophilic addition of HCN'],['mech','nabh4','Reduction with NaBH₄','Hydride adds to C=O'],['sp','ir','IR spectroscopy','Spot C=O near 1700 cm⁻¹']],
+ prob:{title:'Identifying C₄H₈O',stem:'Compounds S and T are isomers of formula C₄H₈O. Both give an orange precipitate with 2,4-DNPH. S gives a silver mirror with Tollens’ reagent; T does not. T gives a yellow precipitate with alkaline iodine.',parts:[
+  ['What does the 2,4-DNPH result show?','Both contain a C=O group: they are aldehydes or ketones.'],
+  ['Identify T and explain.','T is a ketone (no reaction with Tollens’) containing CH₃CO–: butanone, CH₃COCH₂CH₃.'],
+  ['Suggest two possible structures for S.','S is an aldehyde: butanal, CH₃CH₂CH₂CHO, or 2-methylpropanal, (CH₃)₂CHCHO.'],
+  ['T is reduced with NaBH₄. Name the product and explain why it is obtained as a racemic mixture.','Butan-2-ol. C2 becomes a chiral centre. Hydride attacks the planar C=O carbon equally from either face, giving equal amounts of the two enantiomers.'],
+  ['Give the mechanism for T reacting with HCN.','CN⁻ (from KCN) attacks the δ+ carbon of C=O, the π electrons move onto O to give an alkoxide intermediate, and the O⁻ is protonated by HCN, giving 2-hydroxy-2-methylbutanenitrile and regenerating CN⁻.']]},
+ qs:[
+  {prompt:'What type of reaction occurs between propanone and HCN?',opts:['Nucleophilic addition','Electrophilic addition','Nucleophilic substitution','Condensation'],why:'CN⁻ attacks the δ+ carbonyl carbon and H adds to the oxygen: the C=O π bond is broken and nothing is lost.'},
+  {prompt:'Why is KCN added when HCN reacts with a carbonyl compound?',opts:['To supply CN⁻ ions, the nucleophile','To make the solution acidic','To oxidise the aldehyde','To act as a dehydrating agent'],why:'HCN is a weak acid and barely ionises; CN⁻ is the species that attacks the δ+ carbon.'},
+  {prompt:'What is the product of reducing propanal with NaBH₄?',opts:['Propan-1-ol','Propan-2-ol','Propanoic acid','Propane'],why:'Reducing an aldehyde gives a primary alcohol.'},
+  {prompt:'Which compound gives a silver mirror with Tollens’ reagent?',opts:['Ethanal','Propanone','Ethanol','Butanone'],why:'Tollens’ reagent oxidises aldehydes, and is reduced to silver. Ketones are not oxidised.'},
+  {prompt:'What is a positive result with Fehling’s solution?',opts:['A brick-red precipitate','A silver mirror','An orange precipitate','A violet colour'],why:'Aldehydes reduce blue Cu²⁺ to a brick-red precipitate of copper(I) oxide.'},
+  {prompt:'Which compound gives a positive tri-iodomethane test?',opts:['Propanone','Propanal','Pentan-3-one','Methanal'],why:'Propanone contains CH₃CO–. Propanal, pentan-3-one and methanal do not.'},
+  {prompt:'Which reagent gives an orange precipitate with both aldehydes and ketones?',opts:['2,4-DNPH','Tollens’ reagent','Fehling’s solution','Acidified dichromate'],why:'2,4-Dinitrophenylhydrazine reacts with any C=O group in aldehydes and ketones.'},
+  {prompt:'Why is the product of ethanal and HCN optically inactive?',opts:['CN⁻ attacks the planar carbonyl equally from both sides, giving a racemic mixture','The product has no chiral centre','HCN is a racemic reagent','Hydroxynitriles cannot be chiral'],why:'2-Hydroxypropanenitrile is chiral, but equal amounts of both enantiomers form.'},
+  {prompt:'Why is glucose a reducing sugar?',opts:['Its open-chain form contains an aldehyde group','It contains a ketone group','It contains a carboxylic acid group','It is a polymer'],why:'The aldehyde group can be oxidised, reducing Tollens’ or Fehling’s reagent.',only:'s'}]},
+
+{id:'pu-acid',title:'Carboxylic acids',lede:'How carboxylic acids are made, how they behave as acids, how substituents change their strength, and the odd chemistry of methanoic and ethanedioic acids.',
+ ref:{a:'AS 18.1, A Level 33.1',s:'Third term, topic 19.1'},
+ syl:{a:['18.1 Making carboxylic acids: oxidising primary alcohols and aldehydes (reflux), hydrolysing nitriles and esters','18.1 Reactions with reactive metals, alkalis and carbonates; esterification; reduction by LiAlH₄','33.1 Benzoic acid by oxidising methylbenzene','33.1 Acyl chlorides using PCl₃ and heat, PCl₅ or SOCl₂','33.1 Oxidation of methanoic acid and ethanedioic acid','33.1 Acidity of carboxylic acids, phenols and alcohols, and of chlorine-substituted acids'],
+      s:['General formula, naming (C₁ to C₆) and properties','Making acids from alcohols, aldehydes and nitriles','Acidity compared with mineral acids; reactions with metals and bases','Substitution of –OH by –OR (esters) and –Cl (acyl chlorides)','Reduction to primary alcohols','Oxidation and dehydration of methanoic and ethanedioic acids; uses of carboxylic acids']},
+ sections:[
+  {h:'Making carboxylic acids',html:`${stT([['primary alcohol or aldehyde','acidified K₂Cr₂O₇ (or KMnO₄), heat under reflux','CH₃CH₂OH + 2[O] → CH₃COOH + H₂O'],['nitrile','heat under reflux with dilute HCl (or with NaOH(aq), then acidify)','CH₃CN + 2H₂O + H⁺ → CH₃COOH + NH₄⁺'],['ester','heat with dilute acid, or with NaOH(aq) then acidify','CH₃COOC₂H₅ + H₂O → CH₃COOH + C₂H₅OH'],['alkylbenzene','hot KMnO₄, then dilute acid','C₆H₅CH₃ → C₆H₅COOH (benzoic acid)']],['From','Reagents and conditions','Example'])}`},
+  {h:'Acid reactions',html:`<p>Carboxylic acids are <b>weak acids</b> (ethanoic acid pKa 4.76): only a small fraction ionises in water. They are much weaker than HCl, HNO₃ and H₂SO₄, but stronger than carbonic acid, phenol, water and alcohols.</p>
+   ${stT([['reactive metal (Mg)','salt + H₂','2CH₃COOH + Mg → (CH₃COO)₂Mg + H₂'],['alkali (NaOH)','salt + water','CH₃COOH + NaOH → CH₃COONa + H₂O'],['carbonate or hydrogencarbonate','salt + water + CO₂ (fizzing)','the test that distinguishes carboxylic acids from phenols']],['Reacts with','Gives','Example'])}
+   <p><b>Why carboxylic acids are acidic:</b> in the carboxylate ion, –COO⁻, the negative charge is <b>delocalised</b> over two oxygen atoms; both C–O bonds are the same length. This stabilises the ion far more than the phenoxide or alkoxide ion is stabilised.</p>
+   ${coEq('acid strength: alcohols &lt; water &lt; phenols &lt; carboxylic acids')}
+   <p><b>Chlorine substituents</b> withdraw electrons inductively, further stabilising the carboxylate ion: ClCH₂COOH (pKa 2.86) is stronger than CH₃COOH, and Cl₃CCOOH (0.65) is stronger still. Alkyl groups have the opposite effect: methanoic acid (3.75) is stronger than ethanoic acid.</p>`},
+  {h:'Other reactions',html:`${stT([['alcohol + conc. H₂SO₄, heat under reflux','ester + water (reversible esterification)','CH₃COOH + CH₃CH₂OH ⇌ CH₃COOCH₂CH₃ + H₂O'],['PCl₅ (room temperature), PCl₃ (heat) or SOCl₂','acyl chloride','CH₃COOH + PCl₅ → CH₃COCl + POCl₃ + HCl'],['LiAlH₄ in dry ether, then dilute acid','primary alcohol','CH₃COOH + 4[H] → CH₃CH₂OH + H₂O (NaBH₄ is not strong enough)']],['Reagent','Product','Example'])}`},
+  {h:'Methanoic acid and ethanedioic acid',html:`<p><b>Methanoic acid, HCOOH,</b> contains an aldehyde-like H–C=O, so unlike other carboxylic acids it is oxidised further, to CO₂ and water, by Tollens’ reagent (silver mirror), Fehling’s solution, and acidified KMnO₄ or K₂Cr₂O₇.</p>
+   <p><b>Ethanedioic acid, HOOC–COOH</b> (oxalic acid), is oxidised by warm acidified KMnO₄ to CO₂: purple to colourless. This reaction is used in titrations.</p>${coEq('5H₂C₂O₄ + 2MnO₄⁻ + 6H⁺ → 10CO₂ + 2Mn²⁺ + 8H₂O')}
+   <p>Concentrated H₂SO₄ <b>dehydrates</b> both: HCOOH → CO + H₂O; H₂C₂O₄ → CO + CO₂ + H₂O.</p>`},
+  {h:'Uses',only:'s',html:`<p>Ethanoic acid (vinegar, making ethenyl ethanoate for PVA adhesives, cellulose ethanoate); benzoic acid and its salts (food preservatives); long-chain acids (soaps, as their sodium salts); hexanedioic and benzene-1,4-dicarboxylic acids (nylon-6,6 and polyesters).</p>`}],
+ tools:[['mech','fischer','Fischer esterification','Why the reaction is reversible'],['mech','acidbase','Acid–base proton transfer','Compare carboxylate and phenoxide'],['sp','ir','IR spectroscopy','Broad O–H plus C=O']],
+ prob:{title:'Two routes to propanoic acid',stem:'Propanoic acid, CH₃CH₂COOH, can be made from propan-1-ol or from bromoethane.',parts:[
+  ['Give the reagents and conditions to make it from propan-1-ol.','Excess acidified potassium dichromate(VI), heated under reflux.'],
+  ['Describe a two-step route from bromoethane.','(1) Heat under reflux with KCN in ethanol, giving propanenitrile, CH₃CH₂CN. (2) Heat under reflux with dilute HCl (or NaOH(aq), then acidify), hydrolysing the nitrile to propanoic acid.'],
+  ['Write an equation for propanoic acid with sodium carbonate.','2CH₃CH₂COOH + Na₂CO₃ → 2CH₃CH₂COONa + H₂O + CO₂'],
+  ['Explain why 2-chloropropanoic acid is a stronger acid than propanoic acid.','The electronegative Cl withdraws electron density from the carboxylate group by the inductive effect, spreading the negative charge and stabilising the anion, so the acid ionises more.'],
+  ['Which reagent reduces propanoic acid to propan-1-ol?','LiAlH₄ in dry ether, followed by dilute acid. NaBH₄ does not reduce carboxylic acids.']]},
+ qs:[
+  {prompt:'Which reaction distinguishes ethanoic acid from phenol?',opts:['Sodium carbonate: only ethanoic acid gives CO₂','Sodium: only ethanoic acid gives H₂','NaOH(aq): only ethanoic acid reacts','Universal indicator: only phenol turns red'],why:'Carboxylic acids are stronger than carbonic acid, so they release CO₂; phenol is not.'},
+  {prompt:'Why are carboxylic acids more acidic than alcohols?',opts:['The charge in the carboxylate ion is delocalised over two oxygens','Carboxylic acids have more hydrogen atoms','The C=O group donates electrons','Alcohols are bases'],why:'Delocalisation stabilises –COO⁻; an alkoxide ion keeps its charge on one oxygen.'},
+  {prompt:'Which is the strongest acid?',opts:['Trichloroethanoic acid','Chloroethanoic acid','Ethanoic acid','Propanoic acid'],why:'Three electron-withdrawing Cl atoms stabilise the carboxylate ion the most.'},
+  {prompt:'Which reagent reduces a carboxylic acid to a primary alcohol?',opts:['LiAlH₄','NaBH₄','H₂ with Ni at room temperature','Acidified K₂Cr₂O₇'],why:'Carboxylic acids need the stronger reducing agent LiAlH₄.'},
+  {prompt:'Which carboxylic acid gives a silver mirror with Tollens’ reagent?',opts:['Methanoic acid','Ethanoic acid','Benzoic acid','Propanoic acid'],why:'HCOOH contains an H–C=O group and is oxidised to CO₂ and water.'},
+  {prompt:'What is formed when ethanoic acid reacts with PCl₅?',opts:['Ethanoyl chloride','Chloroethanoic acid','Chloroethane','Ethyl chloride and phosphoric acid'],why:'PCl₅ replaces –OH with –Cl: CH₃COOH + PCl₅ → CH₃COCl + POCl₃ + HCl.'},
+  {prompt:'Hydrolysing propanenitrile with dilute acid gives:',opts:['Propanoic acid','Propan-1-ol','Propylamine','Propanamide only'],why:'The –C≡N carbon becomes –COOH (with an amide as intermediate) and NH₄⁺ forms.'},
+  {prompt:'What is observed when warm acidified KMnO₄ is added to ethanedioic acid?',opts:['Purple to colourless, with fizzing (CO₂)','Orange to green','A white precipitate','A silver mirror'],why:'Ethanedioic acid reduces MnO₄⁻ to colourless Mn²⁺ and is oxidised to CO₂.'}]},
+
+{id:'pu-deriv',title:'Acyl chlorides, esters and amides',lede:'Addition–elimination, why acyl chlorides are so reactive, how esters are made and hydrolysed, and the chemistry of amides.',
+ ref:{a:'AS 18.2, A Level 33.2–33.3, 34.3',s:'Third term, topic 19.2–19.4'},
+ syl:{a:['18.2 Esters from alcohols and carboxylic acids (conc. H₂SO₄); hydrolysis with dilute acid and with dilute alkali','33.2 Esters from alcohols or phenols and acyl chlorides (ethyl ethanoate, phenyl benzoate)','33.3 Acyl chlorides: hydrolysis, and reactions with alcohols, phenols, ammonia and amines, all at room temperature','33.3 The addition–elimination mechanism','33.3 Ease of hydrolysis: acyl chlorides, alkyl chlorides and halogenoarenes','34.3 Amides: from acyl chlorides; hydrolysis with acid or alkali; reduction with LiAlH₄; why amides are very weak bases'],
+      s:['Acyl chlorides: naming and properties; why they hydrolyse more readily than chloroalkanes; reactions with alcohols, phenols and primary amines','Esters: from acyl chlorides with alcohols or phenols; acid and base hydrolysis; reduction to primary alcohols; uses as flavourings, preservatives and solvents','Fats and oils as esters of glycerol','Amides: from acyl chlorides and primary amines; acid and base hydrolysis']},
+ sections:[
+  {h:'Acyl chlorides',html:`<p>In an acyl chloride, R–COCl, the carbonyl carbon is bonded to two electronegative atoms (O and Cl), so it is very δ+. All its reactions follow the same pattern, <b>addition–elimination</b>, and all happen at <b>room temperature</b>, releasing steamy fumes of HCl.</p>
+   ${stT([['water','carboxylic acid','CH₃COCl + H₂O → CH₃COOH + HCl'],['alcohol','ester','CH₃COCl + C₂H₅OH → CH₃COOC₂H₅ + HCl'],['phenol (or phenoxide)','ester','C₆H₅COCl + C₆H₅OH → C₆H₅COOC₆H₅ + HCl'],['ammonia','primary amide','CH₃COCl + 2NH₃ → CH₃CONH₂ + NH₄Cl'],['primary amine','secondary (N-substituted) amide','CH₃COCl + CH₃NH₂ → CH₃CONHCH₃ + HCl']],['Nucleophile','Product','Equation'])}
+   <p><b>Mechanism (addition–elimination):</b> (1) the nucleophile’s lone pair attacks the δ+ carbon and the C=O π electrons move onto O (addition, giving a tetrahedral intermediate). (2) The C=O reforms, Cl⁻ leaves (elimination), and H⁺ is lost from the nucleophile.</p>
+   ${coEq('ease of hydrolysis: acyl chloride (cold water, fast) &gt; alkyl chloride (heat with NaOH(aq)) &gt; chloroarene (no reaction)')}
+   <p>The acyl carbon is attacked so easily because it is attached to both O and Cl, and the planar C=O offers an open approach. Alkyl chlorides need a stronger nucleophile and heat; in chlorobenzene the C–Cl bond is strengthened by delocalisation.</p>`},
+  {h:'Esters',html:`<p><b>Making esters:</b> heat a carboxylic acid and an alcohol under reflux with a few drops of concentrated H₂SO₄ (catalyst). The reaction is slow and reversible. Acyl chlorides react faster and completely, and are needed for phenyl esters.</p>
+   ${coR('CC(=O)O','ethanol, conc. H₂SO₄, reflux','CC(=O)OCC','Ethanoic acid + ethanol ⇌ ethyl ethanoate + water.')}
+   <p>Name esters from the alcohol part first: CH₃COOCH₂CH₃ is ethyl ethanoate; HCOOCH₃ is methyl methanoate.</p>
+   ${stT([['dilute acid (HCl or H₂SO₄), heat under reflux','carboxylic acid + alcohol','reversible: does not go to completion'],['dilute NaOH(aq), heat under reflux','carboxylate salt + alcohol','goes to completion; acidify to get the acid'],['LiAlH₄','two primary alcohols','CH₃COOC₂H₅ → CH₃CH₂OH + C₂H₅OH']],['Hydrolysis or reduction','Products','Notes'])}
+   <p><b>Fats and oils</b> are esters of propane-1,2,3-triol (glycerol) with long-chain carboxylic acids. Boiling with NaOH(aq) (saponification) gives glycerol and sodium salts of the acids: soap. Many small esters smell fruity and are used as <b>flavourings</b> and perfumes, and as <b>solvents</b> (ethyl ethanoate in glues and nail varnish).</p>`},
+  {h:'Amides',html:`<p>Amides, R–CONH₂, form from acyl chlorides and ammonia or amines at room temperature. They are hydrolysed by heating with:</p>
+   ${stT([['dilute acid (HCl), reflux','carboxylic acid + ammonium salt','CH₃CONH₂ + H₂O + HCl → CH₃COOH + NH₄Cl'],['NaOH(aq), reflux','carboxylate salt + ammonia (alkaline gas, turns damp red litmus blue)','CH₃CONH₂ + NaOH → CH₃COONa + NH₃']],['Hydrolysis with','Products','Equation'])}
+   <p><b>Amides are very weak bases</b>, unlike amines: the N lone pair is delocalised onto the C=O oxygen, so it is not available to accept a proton. The C–N bond has partial double-bond character.</p>
+   <p>LiAlH₄ in dry ether reduces the C=O of an amide to CH₂, giving an amine: CH₃CONH₂ + 4[H] → CH₃CH₂NH₂ + H₂O.</p>`}],
+ tools:[['mech','acylhydrolysis','Hydrolysis of an acyl chloride','Addition–elimination'],['mech','amide','Amide from an acyl chloride','Ammonia as the nucleophile'],['mech','saponification','Ester hydrolysis (saponification)','Why base hydrolysis goes to completion'],['guide','naming-esters-and-amides','Naming esters and amides','Worked examples']],
+ prob:{title:'Making and breaking an ester',stem:'Methyl benzoate, C₆H₅COOCH₃, is used in perfumes.',parts:[
+  ['Give two ways to make methyl benzoate, with reagents and conditions.','(1) Benzoic acid with methanol, a few drops of concentrated H₂SO₄, heat under reflux (reversible, slow). (2) Benzoyl chloride with methanol at room temperature (fast, complete, gives HCl).'],
+  ['Describe the mechanism of benzoyl chloride reacting with methanol.','The O lone pair of methanol attacks the δ+ carbonyl carbon and the C=O electrons move onto oxygen (addition). The C=O reforms, Cl⁻ is eliminated, and H⁺ is lost from the oxygen, giving the ester and HCl.'],
+  ['Methyl benzoate is boiled with NaOH(aq). Give the products, and how you would obtain benzoic acid.','Sodium benzoate and methanol. Acidify with dilute HCl: benzoic acid, which is not very soluble in cold water, precipitates.'],
+  ['Why is hydrolysis with NaOH preferred to hydrolysis with dilute acid?','With alkali the acid is converted into its carboxylate ion, which cannot react with the alcohol, so the reaction goes to completion. Acid hydrolysis is reversible.'],
+  ['Explain why ethanamide does not react with dilute HCl in the way ethylamine does.','The lone pair on the N of ethanamide is delocalised onto the C=O, so it is not available to accept a proton; ethanamide is a very weak base. Ethylamine’s lone pair is available, so it forms a salt.']]},
+ qs:[
+  {prompt:'What is the mechanism of the reaction between ethanoyl chloride and water?',opts:['Addition–elimination','Electrophilic addition','Free-radical substitution','SN1'],why:'Water adds to the C=O carbon, then Cl⁻ is eliminated as the C=O reforms.'},
+  {prompt:'What is observed when ethanoyl chloride is added to water?',opts:['Steamy fumes of HCl, with heat released','A white precipitate','No reaction until heated','Effervescence of CO₂'],why:'The vigorous reaction at room temperature releases HCl gas.'},
+  {prompt:'Arrange in order of decreasing ease of hydrolysis: chlorobenzene, chloroethane, ethanoyl chloride.',opts:['Ethanoyl chloride > chloroethane > chlorobenzene','Chloroethane > ethanoyl chloride > chlorobenzene','Chlorobenzene > chloroethane > ethanoyl chloride','Ethanoyl chloride > chlorobenzene > chloroethane'],why:'The acyl carbon is very δ+ and easily attacked; the C–Cl bond of chlorobenzene is strengthened by delocalisation.'},
+  {prompt:'What is the name of CH₃CH₂COOCH₃?',fig:{k:'smi',s:'CCC(=O)OC'},opts:['Methyl propanoate','Propyl methanoate','Ethyl ethanoate','Methyl butanoate'],why:'The alcohol part (methyl) comes first, then the acid part (propanoate).'},
+  {prompt:'Why does alkaline hydrolysis of an ester go to completion?',opts:['The carboxylic acid is converted to its carboxylate ion, which cannot react back','NaOH is a catalyst','The alcohol evaporates','Esters are bases'],why:'Removing the free acid prevents the reverse reaction.'},
+  {prompt:'Which product forms when ethanoyl chloride reacts with methylamine?',opts:['N-Methylethanamide','Ethanamide','Ethylamine','Methyl ethanoate'],why:'The amine attacks the acyl carbon; the product has the methyl group on nitrogen: CH₃CONHCH₃.'},
+  {prompt:'Which gas is given off when ethanamide is heated with NaOH(aq)?',opts:['Ammonia','Hydrogen chloride','Carbon dioxide','Nitrogen'],why:'Alkaline hydrolysis gives sodium ethanoate and NH₃, which turns damp red litmus blue.'},
+  {prompt:'Why is ethanamide a much weaker base than ethylamine?',opts:['The N lone pair is delocalised onto the C=O','Ethanamide has no lone pair','Ethanamide is ionic','The ethyl group withdraws electrons'],why:'Delocalisation makes the lone pair unavailable for accepting a proton.'},
+  {prompt:'Which reagent makes phenyl benzoate from phenol?',opts:['Benzoyl chloride','Benzoic acid with conc. H₂SO₄','Benzaldehyde','Benzyl alcohol'],why:'Phenols do not esterify usefully with carboxylic acids, so the more reactive acyl chloride is used.'}]},
+
+{id:'pu-amine',title:'Amines, nitriles and azo dyes',lede:'Making amines, why they are bases, why phenylamine is weaker, diazonium salts and the azo dyes made from them.',
+ ref:{a:'AS 19.1–19.2, A Level 34.1–34.2',s:'Third term, topic 20.1'},
+ syl:{a:['19.1 Primary amines from halogenoalkanes and NH₃ in ethanol (heat, pressure)','19.2 Nitriles from halogenoalkanes and KCN; hydroxynitriles from carbonyls and HCN; hydrolysis of nitriles to carboxylic acids','34.1 Primary and secondary amines: from halogenoalkanes, by reducing amides (LiAlH₄) and nitriles (LiAlH₄ or H₂/Ni); basicity of amines','34.2 Phenylamine: from nitrobenzene (hot Sn and conc. HCl, then NaOH); with Br₂(aq); diazotisation below 10 °C','34.2 Basicity of ammonia, ethylamine and phenylamine','34.2 Azo coupling of benzenediazonium chloride with phenol in NaOH(aq); azo dyes'],
+      s:['Classification of amines as 1°, 2° and 3°','Basicity of ammonia, ethanamine and phenylamine','Ethanamine by reducing a nitrile; phenylamine by reducing nitrobenzene','Salt formation with mineral acids','Distinguishing aliphatic and aromatic primary amines with nitrous acid and bromine water','Coupling of benzenediazonium chloride with phenol to make dyes']},
+ sections:[
+  {h:'Classes and basicity',html:`<p>Amines are derivatives of ammonia: <b>primary</b> R–NH₂, <b>secondary</b> R₂NH, <b>tertiary</b> R₃N. The lone pair on nitrogen accepts a proton, so amines are <b>bases</b>, and react with acids to form salts:</p>${coEq('CH₃CH₂NH₂ + HCl → CH₃CH₂NH₃⁺Cl⁻ (ethylammonium chloride)')}
+   ${coEq('base strength: phenylamine &lt; ammonia &lt; ethylamine')}
+   <ul><li><b>Ethylamine</b> is stronger than ammonia: the ethyl group pushes electron density onto N (positive inductive effect), making the lone pair more available.</li><li><b>Phenylamine</b> is much weaker: the N lone pair is delocalised into the benzene ring, so it is less available.</li></ul>
+   <p>Small amines dissolve in water to give alkaline solutions and smell fishy.</p>`},
+  {h:'Making amines',html:`${stT([['halogenoalkane + excess NH₃ in ethanol, heat in a sealed tube','primary amine (with some secondary, tertiary and quaternary salts as by-products)','CH₃CH₂Br + 2NH₃ → CH₃CH₂NH₂ + NH₄Br'],['halogenoalkane + primary amine in ethanol, sealed tube','secondary amine','CH₃CH₂Br + CH₃NH₂ → CH₃CH₂NHCH₃ + HBr'],['nitrile + LiAlH₄ in dry ether, or H₂ with Ni','primary amine (one more carbon than the halogenoalkane used)','CH₃CN + 4[H] → CH₃CH₂NH₂'],['amide + LiAlH₄','amine','CH₃CONH₂ + 4[H] → CH₃CH₂NH₂ + H₂O'],['nitrobenzene + Sn and conc. HCl, heat under reflux, then NaOH(aq)','phenylamine','C₆H₅NO₂ + 6[H] → C₆H₅NH₂ + 2H₂O']],['Method','Product','Example'])}
+   <p>The nitrile route gives a pure primary amine; the ammonia route gives a mixture because the amine product is itself a nucleophile and reacts further.</p>`},
+  {h:'Phenylamine: ring reactions and diazotisation',html:`<p>Like phenol, phenylamine has a very reactive ring: with <b>bromine water</b> at room temperature it gives a white precipitate of 2,4,6-tribromophenylamine.</p>
+   ${coR('Nc1ccccc1','NaNO₂, HCl, below 10 °C','N#[N+]c1ccccc1','Diazotisation: phenylamine to the benzenediazonium ion.')}
+   <p>Nitrous acid (made in the flask from NaNO₂ and dilute HCl) converts phenylamine into <b>benzenediazonium chloride</b>, C₆H₅N₂⁺Cl⁻. It must be kept below 10 °C: above that it decomposes, releasing N₂ and forming phenol.</p>
+   ${stT([['aliphatic primary amine (ethylamine)','N₂ bubbles off immediately, even when cold; an alcohol forms','no white precipitate'],['aromatic primary amine (phenylamine)','below 10 °C: a stable diazonium salt, no gas; N₂ only on warming','white precipitate']],['Amine','With HNO₂ (NaNO₂ + HCl), cold','With bromine water'])}`},
+  {h:'Azo dyes',html:`<p>A diazonium ion is a weak electrophile. In alkaline solution it attacks the very reactive ring of phenol (as phenoxide), usually at position 4, giving an <b>azo compound</b>, containing –N=N– between two benzene rings:</p>
+   ${coR('N#[N+]c1ccccc1','phenol, NaOH(aq), below 10 °C','Oc1ccc(cc1)/N=N/c1ccccc1','4-Hydroxyazobenzene, a yellow-orange dye.')}
+   <p>The –N=N– group links two delocalised systems into one large one, which absorbs visible light, so azo compounds are brightly coloured. They are used as dyes (and as indicators such as methyl orange). Coupling with other phenols or amines, such as naphthol, gives different colours.</p>`},
+  {h:'Nitriles and hydroxynitriles',only:'a',html:`${stT([['halogenoalkane + KCN in ethanol, heat','nitrile','CH₃CH₂Br → CH₃CH₂CN'],['aldehyde or ketone + HCN, KCN catalyst','hydroxynitrile','CH₃CHO → CH₃CH(OH)CN'],['nitrile + dilute HCl, reflux (or NaOH(aq), then acidify)','carboxylic acid','CH₃CH₂CN → CH₃CH₂COOH'],['nitrile + LiAlH₄ or H₂/Ni','primary amine','CH₃CH₂CN → CH₃CH₂CH₂NH₂']],['Reaction','Product','Example'])}`}],
+ tools:[['mech','acidbase','Acid–base proton transfer','Lone pairs accepting protons'],['mech','imine','Imine formation','Amines as nucleophiles'],['view3d','Nc1ccccc1','Phenylamine in 3D','The flattened N next to the ring']],
+ prob:{title:'From benzene to a dye',stem:'An azo dye can be made from benzene in four steps.',parts:[
+  ['Give the reagents and conditions to make phenylamine from benzene (two steps).','(1) Nitration: concentrated HNO₃ and concentrated H₂SO₄ at 55 °C, giving nitrobenzene. (2) Reduction: tin and concentrated HCl, heat under reflux, then add NaOH(aq) to free the amine from its salt.'],
+  ['Give the reagents and conditions to convert phenylamine into benzenediazonium chloride, and explain the temperature.','NaNO₂ and dilute HCl (making HNO₂), below 10 °C. Above 10 °C the diazonium ion decomposes, giving phenol and N₂.'],
+  ['Write the structure of the product when benzenediazonium chloride is added to an alkaline solution of phenol.','4-Hydroxyazobenzene: HO–C₆H₄–N=N–C₆H₅, with the azo group para to the OH.'],
+  ['Explain why the product is coloured.','The –N=N– link joins the delocalised π systems of both rings into one extended system, which absorbs light in the visible region.'],
+  ['Arrange ammonia, ethylamine and phenylamine in order of increasing base strength, explaining your answer.','Phenylamine < ammonia < ethylamine. In phenylamine the N lone pair is delocalised into the ring and less available. In ethylamine the ethyl group donates electrons to N, making the lone pair more available than in ammonia.']]},
+ qs:[
+  {prompt:'Arrange in order of increasing base strength: ammonia, ethylamine, phenylamine.',opts:['Phenylamine < ammonia < ethylamine','Ethylamine < ammonia < phenylamine','Ammonia < phenylamine < ethylamine','Phenylamine < ethylamine < ammonia'],why:'Delocalisation weakens phenylamine; the electron-donating ethyl group strengthens ethylamine.'},
+  {prompt:'Which reagents convert nitrobenzene into phenylamine?',opts:['Tin and concentrated HCl, then NaOH(aq)','NaNO₂ and HCl below 10 °C','Concentrated H₂SO₄ at 170 °C','Bromine water'],why:'Sn and HCl reduce –NO₂ to –NH₃⁺; NaOH releases the free amine.'},
+  {prompt:'Why must diazotisation be carried out below 10 °C?',opts:['The diazonium ion decomposes at higher temperature','Nitrous acid boils at 10 °C','Phenylamine freezes above 10 °C','To make the product optically active'],why:'Above about 10 °C, C₆H₅N₂⁺ reacts with water to give phenol and nitrogen gas.'},
+  {prompt:'Which functional group is present in all azo dyes?',opts:['–N=N–','–NH₂','–NO₂','–C≡N'],why:'The azo group links two aromatic rings.'},
+  {prompt:'Why does the reaction of a halogenoalkane with ammonia give a mixture of products?',opts:['The amine formed is also a nucleophile and reacts further','Ammonia is a weak base','The halogenoalkane decomposes','Ammonia oxidises the product'],why:'Primary amines react with more halogenoalkane, giving secondary and tertiary amines and quaternary salts. Excess ammonia reduces this.'},
+  {prompt:'Which reagent reduces ethanenitrile to ethylamine?',opts:['LiAlH₄','NaBH₄','Acidified K₂Cr₂O₇','Dilute HCl'],why:'LiAlH₄ (or H₂ with Ni) reduces –C≡N to –CH₂NH₂.'},
+  {prompt:'What happens when cold nitrous acid is added to ethylamine?',opts:['Nitrogen gas is given off immediately','A stable diazonium salt forms','A yellow dye forms','A white precipitate forms'],why:'Aliphatic diazonium ions are very unstable and decompose at once. This distinguishes aliphatic from aromatic primary amines.'},
+  {prompt:'What is formed when phenylamine reacts with bromine water?',opts:['A white precipitate of 2,4,6-tribromophenylamine','Bromobenzene','A diazonium salt','No reaction'],why:'The N lone pair activates the ring, especially at positions 2, 4 and 6, so substitution happens without a catalyst.'}]},
+/* ======== Organic: amino acids, polymers, synthesis, analysis ======== */
+{id:'pu-amino',title:'Amino acids and proteins',lede:'Zwitterions, isoelectric points, peptide bonds, how proteins are hydrolysed, and (for A Level) separating amino acids by electrophoresis.',
+ ref:{a:'A Level 34.3–34.4',s:'Third term, topic 20.2–20.3'},
+ syl:{a:['34.4 General formula of α-amino acids; acid–base properties and zwitterions; isoelectric point','34.4 Forming and naming dipeptides and tripeptides; the amide (peptide) bond','34.4 Hydrolysis of peptides and proteins','34.4 Electrophoresis: separating amino acids and peptides at a given pH; interpreting the results'],
+      s:['Structure of α-amino acids; glycine, alanine and others','Optical isomerism in α-amino acids (all except glycine)','Acid–base properties: zwitterions and isoelectric points','Peptide bonds; the dipeptides glycylalanine and alanylglycine','Proteins: primary structure, hydrolysis and biological importance']},
+ sections:[
+  {h:'α-Amino acids',html:`<p>An α-amino acid has –NH₂ and –COOH on the same carbon (the α-carbon), with a side chain R: <b>H₂N–CHR–COOH</b>. About 20 occur in proteins.</p>
+   ${coG(stS('NCC(=O)O','Glycine (R = H)'),stS('C[C@H](N)C(=O)O','Alanine (R = CH₃)'),stS('N[C@@H](Cc1ccccc1)C(=O)O','Phenylalanine (R = CH₂C₆H₅)'))}
+   <p>Except glycine, every α-amino acid has four different groups on the α-carbon, so it is <b>chiral</b> and shows <b>optical isomerism</b>. Natural amino acids are almost all one enantiomer (the L form).</p>`},
+  {h:'Zwitterions and the isoelectric point',html:`<p>In the solid and in neutral solution, the acidic –COOH passes its proton to the basic –NH₂, giving a <b>zwitterion</b>: ⁺H₃N–CHR–COO⁻. This explains why amino acids are crystalline solids with high melting points that dissolve in water but not in non-polar solvents.</p>
+   ${stT([['low pH (acid added)','⁺H₃N–CHR–COOH','positive: moves to the cathode (−)'],['isoelectric point','⁺H₃N–CHR–COO⁻','no overall charge: does not move'],['high pH (alkali added)','H₂N–CHR–COO⁻','negative: moves to the anode (+)']],['Conditions','Main form','Charge'])}
+   <p>The <b>isoelectric point</b> is the pH at which the amino acid is mainly zwitterion, with no net charge. Amino acids act as <b>buffers</b>: the zwitterion reacts with both added H⁺ and added OH⁻.</p>`},
+  {h:'Peptides and proteins',html:`<p>The –COOH of one amino acid condenses with the –NH₂ of another, losing water and forming an <b>amide (peptide) bond</b>, –CO–NH–.</p>
+   ${coR('NCC(=O)O','+ alanine, − H₂O','NCC(=O)N[C@@H](C)C(=O)O','Glycine + alanine → glycylalanine (Gly-Ala). The new peptide bond is –CO–NH–.')}
+   <p>Two different amino acids can join in two ways: <b>glycylalanine</b> (Gly–Ala, free –NH₂ on glycine) and <b>alanylglycine</b> (Ala–Gly, free –NH₂ on alanine). With three different amino acids there are six possible tripeptides (using each once).</p>
+   <p>A <b>protein</b> is a long polypeptide chain. Its <b>primary structure</b> is the sequence of amino acids. <b>Hydrolysis</b> (heat under reflux with 6 mol dm⁻³ HCl, or enzymes) breaks the peptide bonds back into amino acids (as their salts in acid).</p>`},
+  {h:'Why proteins matter',only:'s',html:`<p>Proteins act as enzymes (biological catalysts), structural materials (collagen, keratin), transport molecules (haemoglobin), hormones (insulin) and antibodies. Their function depends on their shape, which ultimately depends on the primary structure.</p>`},
+  {h:'Electrophoresis',only:'a',html:`<p>A mixture of amino acids is placed on a gel or paper soaked in a <b>buffer of known pH</b>, and a voltage is applied. At that pH each amino acid has a particular charge:</p>
+   <ul><li>positive ions move towards the <b>cathode (−)</b>, negative ions towards the <b>anode (+)</b>, and species at their isoelectric point stay put;</li><li>ions with a <b>larger charge</b> and <b>smaller mass</b> move further.</li></ul>
+   <p>The spots are made visible (for example with ninhydrin) and compared with known samples. For example at pH 6, lysine (extra –NH₂ in R) is positive, aspartic acid (extra –COOH) is negative, and glycine is close to neutral.</p>`}],
+ tools:[['mech','amide','Amide formation','The basis of the peptide bond'],['mech','acidbase','Acid–base proton transfer','How a zwitterion forms'],['view3d','C[C@H](N)C(=O)O','Alanine in 3D','Rotate to see the chiral centre'],['st','rs','R and S','Assign the chiral centre in amino acids']],
+ prob:{title:'A dipeptide from alanine and serine',stem:'Alanine is H₂NCH(CH₃)COOH. Serine is H₂NCH(CH₂OH)COOH.',parts:[
+  ['Draw the zwitterion of alanine.','⁺H₃N–CH(CH₃)–COO⁻'],
+  ['Give the structure of alanine in a solution at pH 1, and at pH 13.','pH 1: ⁺H₃N–CH(CH₃)–COOH. pH 13: H₂N–CH(CH₃)–COO⁻.'],
+  ['Draw the two dipeptides that form from alanine and serine, and circle the peptide bond.','Ala–Ser: H₂NCH(CH₃)CO–NH–CH(CH₂OH)COOH. Ser–Ala: H₂NCH(CH₂OH)CO–NH–CH(CH₃)COOH. The peptide bond is –CO–NH–.'],
+  ['State the conditions to hydrolyse the dipeptide back to amino acids.','Heat under reflux with 6 mol dm⁻³ HCl for several hours (or use a protease enzyme).'],
+  ['Explain why alanine shows optical isomerism but glycine does not.','In alanine the α-carbon has four different groups: H, CH₃, NH₂ and COOH. In glycine the α-carbon carries two H atoms, so it is not chiral.']]},
+ qs:[
+  {prompt:'What is a zwitterion?',opts:['An ion with both positive and negative charges but no overall charge','An ion with two positive charges','A neutral molecule with no charges','An amino acid in strong acid'],why:'In ⁺H₃N–CHR–COO⁻ the charges cancel overall.'},
+  {prompt:'Which amino acid is not optically active?',opts:['Glycine','Alanine','Serine','Phenylalanine'],why:'Glycine’s α-carbon carries two H atoms, so it is not a chiral centre.'},
+  {prompt:'What form does alanine take in strongly acidic solution?',opts:['⁺H₃N–CH(CH₃)–COOH','H₂N–CH(CH₃)–COO⁻','⁺H₃N–CH(CH₃)–COO⁻','H₂N–CH(CH₃)–COOH'],why:'Excess H⁺ protonates the carboxylate group, giving a cation.'},
+  {prompt:'What is the isoelectric point of an amino acid?',opts:['The pH at which it has no overall charge','The pH at which it is fully protonated','Its melting point','The pH of pure water'],why:'At the isoelectric point the zwitterion dominates and the molecule does not move in an electric field.'},
+  {prompt:'Which bond joins amino acids in a protein?',opts:['Amide (peptide) bond, –CO–NH–','Ester bond, –CO–O–','Glycosidic bond','Hydrogen bond'],why:'The peptide bond forms by condensation of –COOH and –NH₂.'},
+  {prompt:'How many dipeptides can form from one glycine and one alanine?',opts:['Two','One','Three','Four'],why:'Gly–Ala and Ala–Gly: the free –NH₂ end can be on either amino acid.'},
+  {prompt:'Why do amino acids have high melting points?',opts:['They exist as zwitterions held by strong ionic attractions','They have large molecular masses','They contain benzene rings','They are polymers'],why:'The solid is a lattice of ⁺H₃N–CHR–COO⁻ ions.'},
+  {prompt:'In electrophoresis at pH 6, which amino acid moves towards the anode (+)?',opts:['Aspartic acid (an extra –COOH in its side chain)','Lysine (an extra –NH₂ in its side chain)','Glycine','None of them'],why:'At pH 6 aspartic acid carries an extra negative charge, so it moves towards the positive electrode.',only:'a'},
+  {prompt:'What is the primary structure of a protein?',opts:['Its sequence of amino acids','Its helix and sheet regions','Its overall 3D shape','Its number of chains'],why:'The primary structure is the order of amino acids along the chain.',only:'s'}]},
+
+{id:'pu-poly',title:'Polymers',lede:'Addition and condensation polymerisation, how to work out the monomer from a polymer and back again, and what to do with plastic waste.',
+ ref:{a:'AS 20.1, A Level 35.1–35.3',s:'Third term, topic 21'},
+ syl:{a:['20.1 Addition polymerisation: poly(ethene) and poly(chloroethene) (PVC); deducing repeat units and monomers','20.1 Difficulties of disposing of polyalkenes: non-biodegradable; toxic combustion products','35.1 Condensation polymerisation: polyesters from diols and dicarboxylic acids or dioyl chlorides, or from hydroxycarboxylic acids; polyamides from diamines and dicarboxylic acids or dioyl chlorides, or from amino acids','35.2 Predicting the type of polymerisation from the monomers; deducing repeat units and monomers','35.3 Degradable polymers: polyesters and polyamides are biodegradable by hydrolysis; some polymers are photodegradable'],
+      s:['Natural and synthetic polymers; monomers, homopolymers and copolymers','Addition polymerisation: poly(ethene), polystyrene, PVC; Ziegler–Natta catalysts','Condensation polymerisation: Terylene (a polyester) and nylon-6,6 (a polyamide)','Properties and uses; thermoplastics, thermosets and elastomers','Natural rubber (cis-polyisoprene) and gutta-percha (trans)','Disposal of polymers']},
+ sections:[
+  {h:'Addition polymers',html:`<p>Alkene monomers join when their C=C π bonds open up; no other product forms. The polymer has the <b>same empirical formula</b> as the monomer.</p>
+   ${stT([['ethene, CH₂=CH₂','poly(ethene), –CH₂–CH₂–','bags, film (LDPE); bottles, pipes (HDPE)'],['chloroethene, CH₂=CHCl','poly(chloroethene), PVC, –CH₂–CHCl–','window frames, pipes, cable insulation'],['phenylethene, CH₂=CHC₆H₅','poly(phenylethene), polystyrene, –CH₂–CH(C₆H₅)–','packaging foam, disposable cups'],['propene, CH₂=CHCH₃','poly(propene), –CH₂–CH(CH₃)–','ropes, crates, food tubs']],['Monomer','Polymer and repeat unit','Uses'])}
+   <p><b>Repeat unit:</b> take the two alkene carbons, make the C=C single, and draw bonds sticking out at each end. <b>From a polymer:</b> find two carbons of the main chain that form the repeat unit, and put the C=C back.</p>
+   ${coR('C=CCl','polymerisation','CC(Cl)CC(Cl)CC(Cl)C','Chloroethene → PVC. A short section of the chain: the repeat unit is –CH₂–CHCl–.')}`},
+  {h:'Condensation polymers',html:`<p>Monomers with <b>two functional groups</b> join, losing a small molecule (H₂O or HCl) at each link.</p>
+   ${stT([['polyester','diol + dicarboxylic acid (or dioyl chloride); or a hydroxycarboxylic acid','–O–CO– (ester)','Terylene (PET): ethane-1,2-diol + benzene-1,4-dicarboxylic acid'],['polyamide','diamine + dicarboxylic acid (or dioyl chloride); or an amino acid','–NH–CO– (amide)','nylon-6,6: 1,6-diaminohexane + hexanedioic acid']],['Type','Monomers','Link','Example'])}
+   <p><b>Nylon-6,6</b> repeat unit: –NH–(CH₂)₆–NH–CO–(CH₂)₄–CO–. The “6,6” means 6 carbons in each monomer. <b>Terylene</b> repeat unit: –O–CH₂CH₂–O–CO–C₆H₄–CO–.</p>
+   ${coNote('Spotting the type:','monomers with C=C → addition. Monomers with two reactive groups (–OH, –COOH, –COCl, –NH₂) → condensation; check what is eliminated. From a polymer, an ester or amide link in the main chain means condensation: split it and add back H and OH (or Cl).')}
+   <p>Proteins are natural polyamides, made from amino acids; with acid, alkali or enzymes they hydrolyse back to their monomers, as polyesters and nylons do.</p>`},
+  {h:'Disposal and degradable polymers',html:`<ul><li><b>Polyalkenes are non-biodegradable:</b> their C–C and C–H bonds are strong and non-polar, so microorganisms cannot break them down. They persist in landfill and the sea.</li><li><b>Burning</b> recovers energy but can release toxic gases: PVC gives HCl (and possibly dioxins); incomplete combustion gives CO.</li><li><b>Recycling</b> requires sorting by type.</li><li><b>Polyesters and polyamides</b> are <b>biodegradable</b> to some extent: their polar ester and amide links can be hydrolysed.</li><li><b>Photodegradable</b> polymers contain groups such as C=O that absorb UV light, causing bonds to break.</li></ul>`},
+  {h:'Classifying polymers',only:'s',html:`${stT([['thermoplastic','softens on heating, can be remoulded: chains held by intermolecular forces','poly(ethene), PVC, polystyrene, nylon'],['thermoset','does not soften; chars on strong heating: chains cross-linked by covalent bonds','Bakelite, melamine, epoxy resins'],['elastomer','stretches and returns to shape: flexible chains with a few cross-links','vulcanised rubber']],['Type','Behaviour and reason','Examples'])}
+   <p>A <b>homopolymer</b> is made from one monomer (poly(ethene)); a <b>copolymer</b> from two or more (nylon-6,6, Terylene). <b>Ziegler–Natta catalysts</b> (TiCl₄ with Al(C₂H₅)₃) polymerise ethene at low pressure, giving straight-chain, high-density poly(ethene), and give poly(propene) with a regular arrangement of side groups.</p>
+   <p><b>Natural rubber</b> is poly(2-methylbuta-1,3-diene) (polyisoprene) with <b>cis</b> double bonds: chains coil and are elastic. <b>Gutta-percha</b> is the <b>trans</b> isomer: chains pack more regularly, making a hard, inelastic material. Vulcanisation (heating with sulfur) adds S–S cross-links to make rubber stronger.</p>`}],
+ tools:[['mech','amide','Amide formation','The link in nylon'],['mech','fischer','Esterification','The link in Terylene'],['guide','organic-functional-groups','Functional groups','Spot the linking groups']],
+ prob:{title:'Nylon and PVC',stem:'Nylon-6,6 is made from hexanedioic acid, HOOC(CH₂)₄COOH, and another monomer. PVC is made from chloroethene.',parts:[
+  ['Name and give the structure of the other monomer for nylon-6,6.','1,6-Diaminohexane, H₂N(CH₂)₆NH₂.'],
+  ['Draw the repeat unit of nylon-6,6 and name the linking group.','–NH(CH₂)₆NH–CO(CH₂)₄CO–; the amide (peptide) link.'],
+  ['In the laboratory, hexanedioyl dichloride is often used instead of hexanedioic acid. Why?','The acyl chloride reacts quickly at room temperature, without the high temperatures the acid needs. HCl is eliminated instead of water.'],
+  ['Explain the type of polymerisation for each polymer.','PVC: addition. The C=C of chloroethene opens and nothing is lost. Nylon-6,6: condensation. Each amide link forms with the loss of H₂O (or HCl).'],
+  ['Explain why nylon is more biodegradable than PVC, and why burning PVC is a problem.','The polar amide links in nylon can be hydrolysed. PVC has a C–C backbone with strong non-polar bonds that are not attacked. Burning PVC releases toxic HCl gas.']]},
+ qs:[
+  {prompt:'Which monomer makes PVC?',opts:['Chloroethene','Ethene','Phenylethene','1,2-Dichloroethane'],why:'PVC is poly(chloroethene): monomer CH₂=CHCl.'},
+  {prompt:'What is eliminated when nylon-6,6 forms from a diamine and a dicarboxylic acid?',opts:['Water','Hydrogen chloride','Nothing','Ammonia'],why:'Each amide link forms with loss of H₂O. With a dioyl chloride, HCl is lost instead.'},
+  {prompt:'Which pair of monomers forms a polyester?',opts:['Ethane-1,2-diol and benzene-1,4-dicarboxylic acid','Ethene and propene','1,6-Diaminohexane and hexanedioic acid','Two molecules of glycine'],why:'A diol and a dicarboxylic acid form ester links: this is Terylene.'},
+  {prompt:'Why are polyalkenes not biodegradable?',opts:['Their C–C and C–H bonds are strong and non-polar','They contain ester links','They dissolve in water','They are made from natural monomers'],why:'Microorganisms and hydrolysis cannot attack their non-polar backbone.'},
+  {prompt:'What is the repeat unit of poly(propene)?',opts:['–CH₂–CH(CH₃)–','–CH₂–CH₂–CH₂–','–CH=CH–CH₃–','–CH(CH₃)–CH(CH₃)–'],why:'The C=C carbons of propene form the main chain; CH₃ is a side group.'},
+  {prompt:'Which is a condensation polymer?',opts:['Nylon-6,6','Poly(ethene)','Polystyrene','PVC'],why:'Nylon forms with loss of water; the others are addition polymers of alkenes.'},
+  {prompt:'Which toxic gas is released when PVC burns?',opts:['Hydrogen chloride','Sulfur dioxide','Nitrogen dioxide','Ammonia'],why:'The chlorine in PVC forms HCl.'},
+  {prompt:'What is the difference between natural rubber and gutta-percha?',opts:['Rubber is cis-polyisoprene; gutta-percha is trans','Rubber is a polyester','Gutta-percha is a condensation polymer','They have different monomers'],why:'Both are polyisoprene; the cis chains coil (elastic), the trans chains pack regularly (hard).',only:'s'},
+  {prompt:'Why does a thermoset not soften on heating?',opts:['Its chains are cross-linked by covalent bonds','It has weak intermolecular forces','It is a single small molecule','It is an addition polymer'],why:'Covalent cross-links stop the chains sliding past each other.',only:'s'}]},
+
+{id:'pu-synth',title:'Organic synthesis',lede:'Putting the reactions together: functional-group maps, extending the carbon chain, and planning multi-step routes.',
+ ref:{a:'A Level 36.1',s:'Third term, topics 15–21 combined'},
+ syl:{a:['36.1 Identifying functional groups and predicting the properties and reactions of an unfamiliar molecule','36.1 Devising multi-step synthetic routes (up to about five steps) using reactions in the syllabus','36.1 Analysing a given route: the type of each reaction, reagents and conditions, possible by-products','36.1 Chirality in drug synthesis: why a single optical isomer may be needed'],
+      s:['Linking the reactions of hydrocarbons, halogen derivatives, hydroxy compounds, carbonyls, acids and derivatives, and amines','Planning two- and three-step conversions with reagents and conditions','Increasing the carbon chain using cyanide']},
+ sections:[
+  {h:'The aliphatic map',html:`${stT([['alkene → halogenoalkane','HBr, room temperature'],['alkene → alcohol','steam, H₃PO₄, 300 °C, 60 atm'],['halogenoalkane → alcohol','NaOH(aq), heat under reflux'],['halogenoalkane → alkene','NaOH in ethanol, heat'],['halogenoalkane → nitrile (+1 C)','KCN in ethanol, heat under reflux'],['halogenoalkane → amine','excess NH₃ in ethanol, heat in sealed tube'],['alcohol → halogenoalkane','PCl₅; or KBr + conc. H₂SO₄'],['primary alcohol → aldehyde','K₂Cr₂O₇/H⁺, distil'],['primary alcohol → carboxylic acid','K₂Cr₂O₇/H⁺, reflux'],['secondary alcohol → ketone','K₂Cr₂O₇/H⁺, heat'],['aldehyde or ketone → alcohol','NaBH₄ (or LiAlH₄)'],['aldehyde or ketone → hydroxynitrile (+1 C)','HCN, KCN catalyst'],['nitrile → carboxylic acid','dilute HCl, reflux'],['nitrile → amine','LiAlH₄, or H₂ and Ni'],['carboxylic acid → acyl chloride','PCl₅, or SOCl₂'],['carboxylic acid → ester','alcohol, conc. H₂SO₄, reflux'],['acyl chloride → ester, amide or acid','alcohol, NH₃/amine, or water, room temperature']],['Conversion','Reagents and conditions'])}`},
+  {h:'The aromatic map',html:`${stT([['benzene → nitrobenzene','conc. HNO₃ + conc. H₂SO₄, 55 °C'],['nitrobenzene → phenylamine','Sn + conc. HCl, reflux; then NaOH(aq)'],['phenylamine → benzenediazonium','NaNO₂ + HCl, below 10 °C'],['benzenediazonium → phenol','warm with water'],['benzenediazonium → azo dye','phenol in NaOH(aq), below 10 °C'],['benzene → bromobenzene','Br₂, FeBr₃'],['benzene → alkylbenzene','RCl, AlCl₃ (Friedel–Crafts alkylation)'],['benzene → phenyl ketone','RCOCl, AlCl₃ (Friedel–Crafts acylation)'],['alkylbenzene → benzoic acid','hot alkaline KMnO₄, then acidify']],['Conversion','Reagents and conditions'])}`},
+  {h:'Planning a route',html:`<ol><li><b>Compare the carbon skeletons.</b> Same number of carbons? Use functional-group interconversions only. One more carbon? You need CN⁻: halogenoalkane + KCN, or carbonyl + HCN.</li><li><b>Work backwards</b> from the target: what single reaction makes it? What makes that?</li><li><b>Give full reagents and conditions</b> for every step (for example “acidified K₂Cr₂O₇, heat under reflux”, not just “oxidise”).</li><li><b>Check side reactions:</b> will a reagent attack another group? NaBH₄ leaves C=C alone; H₂/Ni does not.</li></ol>
+   ${coNote('Worked example: ethanol → propanoic acid (one extra carbon).','Ethanol → bromoethane (KBr + conc. H₂SO₄) → propanenitrile (KCN in ethanol, reflux) → propanoic acid (dilute HCl, reflux).')}
+   ${coNote('Worked example: ethanal → 2-hydroxypropanoic acid (lactic acid).','Ethanal + HCN/KCN → 2-hydroxypropanenitrile; then hydrolyse with dilute HCl under reflux. The product is racemic.')}`},
+  {h:'Chirality and drugs',only:'a',html:`<p>Enantiomers have the same chemical properties with ordinary reagents but can fit biological receptors very differently, so often only one is active and the other may be inactive or harmful. Making a single enantiomer avoids wasting half the product, reduces side effects and the dose needed, but requires chiral catalysts, enzymes or chiral starting materials, or separating the racemic mixture. (Thalidomide is the classic warning: one enantiomer caused birth defects, though the two interconvert in the body.)</p>`}],
+ tools:[['mode','synth','Synthesis practice','Plan routes step by step'],['guide','organic-reagents-cheat-sheet','Reagents cheat sheet','Every reagent in one place'],['mech','sn2','SN2 with cyanide','How the chain grows by one carbon']],
+ prob:{title:'Three short syntheses',stem:'Give reagents and conditions, and the intermediate, for each conversion.',parts:[
+  ['Propan-1-ol → propan-2-ol (two steps).','(1) Dehydrate: heated Al₂O₃, or conc. H₃PO₄, giving propene. (2) Steam with H₃PO₄ catalyst at 300 °C and 60 atm (Markovnikov addition), giving propan-2-ol. (Alternatively: HBr giving 2-bromopropane, then NaOH(aq) under reflux.)'],
+  ['Bromoethane → propylamine (two steps).','(1) KCN in ethanol, heat under reflux, giving propanenitrile. (2) Reduce with LiAlH₄ in dry ether (or H₂ with Ni), giving CH₃CH₂CH₂NH₂.'],
+  ['Ethanol → ethyl ethanoate using ethanol as the only organic starting material.','Oxidise some ethanol with excess acidified K₂Cr₂O₇ under reflux to ethanoic acid. Then heat the acid with more ethanol and a few drops of conc. H₂SO₄ under reflux.'],
+  ['Benzene → phenol (three steps).','(1) Conc. HNO₃ + conc. H₂SO₄ at 55 °C: nitrobenzene. (2) Sn + conc. HCl, reflux, then NaOH: phenylamine. (3) NaNO₂ + HCl below 10 °C, then warm the diazonium salt with water: phenol.']]},
+ qs:[
+  {prompt:'Which reagent increases the carbon chain length by one?',opts:['KCN in ethanol (with a halogenoalkane)','NaOH(aq)','PCl₅','Acidified K₂Cr₂O₇'],why:'CN⁻ adds a new carbon; the nitrile can then be hydrolysed or reduced.'},
+  {prompt:'What is the best two-step route from chloroethane to propanoic acid?',opts:['KCN in ethanol, then reflux with dilute HCl','NaOH(aq), then acidified K₂Cr₂O₇','NH₃, then HNO₂','KOH in ethanol, then steam'],why:'Nitrile formation adds a carbon; hydrolysis converts –CN to –COOH.'},
+  {prompt:'Which reagent reduces a C=O group but leaves a C=C group unchanged?',opts:['NaBH₄','H₂ with Ni','Br₂(aq)','Acidified KMnO₄'],why:'NaBH₄ supplies H⁻, which attacks the polar C=O but not the non-polar C=C.'},
+  {prompt:'What is the intermediate in converting propan-2-ol into 2-methylpropanoic acid?',opts:['2-Bromopropane, then 2-methylpropanenitrile','Propanone','Propene','Propanal'],why:'Convert –OH to –Br, substitute with CN⁻ (+1 C), then hydrolyse.'},
+  {prompt:'Which reaction makes benzoic acid from methylbenzene?',opts:['Hot alkaline KMnO₄, then acidify','Conc. HNO₃ and H₂SO₄','Br₂ with FeBr₃','NaBH₄'],why:'Side chains on benzene are oxidised to –COOH.'},
+  {prompt:'Why might a drug be made as a single enantiomer?',opts:['The other enantiomer may be inactive or have harmful effects','Single enantiomers are always cheaper','Racemic mixtures are unstable','Enantiomers have different boiling points'],why:'Biological receptors are chiral, so enantiomers can act very differently.',only:'a'}]},
+
+{id:'pu-spec',title:'Analysis and spectroscopy',lede:'Mass spectra, infrared, chromatography and NMR: how to read each one and combine them to identify an unknown.',
+ ref:{a:'AS 22.1–22.2, A Level 37.1–37.4',s:''},
+ syl:{a:['22.1 IR: identify bonds from characteristic absorptions using data provided','22.2 Mass spectra: M⁺ peak, fragments, the M+1 peak (number of carbons) and M+2 peaks (Cl and Br)','37.1 Thin-layer chromatography: stationary and mobile phases, Rf values','37.2 Gas chromatography: retention times and relative amounts from peak areas','37.3 Carbon-13 NMR: number of carbon environments and their chemical shifts','37.4 Proton NMR: environments, chemical shifts, integration, n+1 splitting; TMS standard; CDCl₃ solvent; D₂O to identify O–H and N–H protons'],s:[]},
+ sections:[
+  {h:'Mass spectrometry',html:`<ul><li>The <b>molecular ion peak</b> M⁺ (furthest right, ignoring small isotope peaks) gives the relative molecular mass.</li><li><b>Fragments</b> show parts of the molecule: m/z 15 CH₃⁺, 29 C₂H₅⁺ or CHO⁺, 43 C₃H₇⁺ or CH₃CO⁺, 77 C₆H₅⁺.</li><li>The <b>M+1 peak</b> comes from ¹³C (1.1% of carbon atoms). Number of carbons:</li></ul>
+   ${coEq('n = 100 × (height of M+1) ÷ (1.1 × height of M⁺)')}
+   <ul><li><b>M+2 peaks</b> show halogens: one Cl gives M and M+2 in ratio 3 : 1; one Br gives M and M+2 in ratio 1 : 1.</li></ul>`},
+  {h:'Infrared spectroscopy',html:`${stT([['O–H (alcohol)','3200–3600, broad'],['O–H (carboxylic acid)','2500–3000, very broad'],['N–H (amine, amide)','3300–3500'],['C–H','2850–3100'],['C≡N','2200–2250'],['C=O (aldehyde, ketone, acid, ester, amide)','1640–1750, strong and sharp'],['C=C','1610–1680'],['C–O (alcohol, ester, acid)','1000–1300']],['Bond','Absorption range / cm⁻¹'])}
+   <p>Use IR to find functional groups; below about 1500 cm⁻¹ (the fingerprint region) the pattern is unique to the compound and can be matched with a database. Examples: ethanoic acid shows a very broad O–H plus C=O; an ester shows C=O and C–O but no O–H.</p>`},
+  {h:'Chromatography',html:`<p>All chromatography separates components between a <b>stationary phase</b> and a <b>mobile phase</b>, according to how strongly each is adsorbed or how soluble it is in each phase.</p>
+   <ul><li><b>Thin-layer chromatography (TLC):</b> stationary phase silica or alumina on a plate; mobile phase a solvent. <b>Rf = distance moved by the spot ÷ distance moved by the solvent front.</b> Compare Rf values with known compounds run under the same conditions. Colourless spots are shown with UV light or iodine (or ninhydrin for amino acids).</li><li><b>Gas chromatography (GC):</b> stationary phase a liquid on a solid support in a long column; mobile phase an unreactive carrier gas. Each component has a <b>retention time</b>; the <b>peak area</b> is proportional to the amount, so relative peak areas give the composition of a mixture.</li></ul>`},
+  {h:'Carbon-13 NMR',html:`<p>Each peak is a different carbon <b>environment</b>; the chemical shift δ (ppm, relative to TMS) shows what kind. Symmetry reduces the number of peaks: propanone has two peaks, pentan-3-one three, benzene one.</p>
+   ${stT([['C–C (alkyl)','5–40'],['C–Cl, C–Br, C–N','10–70'],['C–O (alcohol, ether, ester)','50–90'],['C=C and aromatic C','110–160'],['C=O in acids and esters','160–185'],['C=O in aldehydes and ketones','190–220']],['Carbon','δ / ppm'])}`},
+  {h:'Proton (¹H) NMR',html:`<ul><li><b>Number of peaks</b> = number of proton environments.</li><li><b>Chemical shift</b> (δ) shows the environment: R–CH₃ 0.9; CH₃–C=O 2.1; C–H next to O 3.3–4.3; aromatic H 6.5–8.0; aldehyde H 9–10; COOH 9–12.</li><li><b>Integration</b> (relative peak area) gives the ratio of H atoms in each environment.</li><li><b>Splitting (n+1 rule):</b> a signal from H atoms with <i>n</i> H atoms on <b>adjacent</b> carbons is split into <i>n</i>+1 peaks: singlet, doublet, triplet, quartet.</li></ul>
+   ${coNote('Ethanol, CH₃CH₂OH:','three peaks: CH₃ at about 1.2 (triplet, 3H), CH₂ at about 3.7 (quartet, 2H), OH (singlet, 1H). An ethyl group always appears as a triplet + quartet pair.')}
+   <p><b>TMS</b>, Si(CH₃)₄, is the reference (δ = 0): it gives one strong peak upfield of almost everything, and is inert and volatile. Samples are dissolved in <b>CDCl₃</b>, which has no ¹H to give a signal. <b>O–H and N–H</b> protons usually appear as broad singlets that do not split neighbours; shaking with <b>D₂O</b> replaces them with D, so their peak disappears, identifying them.</p>`}],
+ tools:[['sp','ms','Mass spectrometry','Molecular ion, fragments, M+1 and M+2'],['sp','ir','Infrared','Match peaks to bonds'],['sp','cnmr','¹³C NMR','Count environments'],['sp','hnmr','¹H NMR','Shift, integration and splitting'],['sp','combo','Combined problems','Solve unknowns from all four'],['guide','nmr-splitting-n-plus-1-rule','The n+1 rule','Worked splitting patterns']],
+ prob:{title:'Identify compound X',stem:'Compound X contains C, H and O only. Its mass spectrum shows M⁺ at m/z 88 (relative height 24.0) and M+1 (relative height 1.06). The IR spectrum has a strong absorption at 1740 cm⁻¹ and none at 2500–3600 cm⁻¹. The ¹H NMR spectrum shows: δ 1.3 (triplet, 3H), δ 2.0 (singlet, 3H), δ 4.1 (quartet, 2H).',parts:[
+  ['Use the M+1 peak to find the number of carbons.','n = 100 × 1.06 ÷ (1.1 × 24.0) = 4.0, so 4 carbon atoms.'],
+  ['Find the molecular formula.','C₄ = 48; 88 − 48 = 40. Two O atoms (32) plus 8 H gives C₄H₈O₂ (Mr = 88).'],
+  ['What does the IR spectrum show?','C=O at 1740 cm⁻¹ and no O–H, so X is an ester (not a carboxylic acid).'],
+  ['Use the NMR spectrum to identify X.','The triplet (3H) and quartet (2H) are an ethyl group; the quartet at 4.1 means CH₂ is attached to O. The singlet (3H) at 2.0 is a CH₃ next to C=O with no neighbouring H. X is ethyl ethanoate, CH₃COOCH₂CH₃.'],
+  ['How many peaks would the ¹³C NMR spectrum of X show?','Four: CH₃–C=O, C=O, O–CH₂ and CH₂–CH₃ are all different environments.']]},
+ qs:[
+  {prompt:'In a ¹H NMR spectrum, a CH₂ group next to a CH₃ group appears as:',opts:['A quartet','A triplet','A doublet','A singlet'],why:'Three H atoms on the adjacent carbon: n+1 = 4 peaks.'},
+  {prompt:'Why is TMS used in NMR?',opts:['It is the reference, giving one peak at δ = 0','It dissolves the sample','It removes O–H peaks','It splits the signals'],why:'TMS has 12 equivalent H atoms, giving one strong peak used as the zero point.'},
+  {prompt:'What happens to an O–H peak when D₂O is added?',opts:['It disappears','It moves to δ = 0','It splits into a doublet','It doubles in size'],why:'The O–H proton exchanges for deuterium, which does not show in ¹H NMR.'},
+  {prompt:'A mass spectrum shows M⁺ and M+2 peaks of equal height. What does this indicate?',opts:['One bromine atom','One chlorine atom','Four carbon atoms','A nitrogen atom'],why:'⁷⁹Br and ⁸¹Br are about equally abundant.'},
+  {prompt:'The M⁺ peak has height 40 and M+1 has height 2.2. How many carbon atoms are there?',opts:['5','2','4','6'],why:'n = 100 × 2.2 ÷ (1.1 × 40) = 5.'},
+  {prompt:'Which IR absorption indicates a carboxylic acid rather than an alcohol?',opts:['A very broad O–H at 2500–3000 cm⁻¹ plus C=O near 1700 cm⁻¹','A sharp peak at 2200 cm⁻¹','A peak at 1650 cm⁻¹ only','Peaks at 2850–2950 cm⁻¹'],why:'Carboxylic acids show both the very broad, hydrogen-bonded O–H and a strong C=O.'},
+  {prompt:'How many peaks are in the ¹³C NMR spectrum of propanone?',fig:{k:'smi',s:'CC(C)=O'},opts:['2','3','1','4'],why:'The two CH₃ carbons are equivalent; the C=O carbon is different.'},
+  {prompt:'In TLC, a spot moves 3.0 cm while the solvent front moves 7.5 cm. What is the Rf value?',opts:['0.40','2.5','0.25','4.5'],why:'Rf = 3.0 ÷ 7.5 = 0.40.'},
+  {prompt:'In gas chromatography, what does the area of a peak show?',opts:['The relative amount of that component','Its molecular mass','Its boiling point','Its functional group'],why:'Peak area is proportional to the quantity of the component.'}]},
+/* ======== v24: units used only by the JEE and NEET courses ======== */
+{id:'pu-purify',title:'Purifying and analysing organic compounds',lede:'Separation methods, Lassaigne’s test for N, S and halogens, and the Dumas, Kjeldahl and Carius calculations.',
+ ref:{j:'Purification and characterisation of organic compounds (Class 11)'},
+ syl:{j:['Purification: crystallisation, sublimation, distillation, differential extraction and chromatography (principles and applications)','Qualitative analysis: detection of nitrogen, sulfur, phosphorus and halogens','Quantitative analysis (basic principles only): estimation of carbon, hydrogen, nitrogen, halogens, sulfur and phosphorus','Calculation of empirical and molecular formulae; numerical problems in organic quantitative analysis','Practical chemistry: tests for alcoholic and phenolic –OH, carbonyl, carboxyl and amino groups']},
+ sections:[
+  {h:'Separating and purifying',html:`${stT([['crystallisation','a solid with impurities of different solubility','dissolve in the minimum of hot solvent, filter hot, cool; the pure compound crystallises'],['sublimation','a solid that turns straight to vapour (camphor, naphthalene, benzoic acid)','heat; the vapour condenses on a cool surface'],['simple distillation','liquids whose boiling points differ a lot (by roughly 30 °C or more)','chloroform (334 K) and aniline (457 K)'],['fractional distillation','liquids with close boiling points','fractionating column; crude oil, acetone and methanol'],['distillation under reduced pressure','liquids that decompose at their boiling point','glycerol; separating sugar-cane juice in industry'],['steam distillation','steam-volatile liquids that don’t mix with water','aniline from an aqueous mixture; essential oils'],['differential extraction','a compound more soluble in an organic solvent than in water','shake with ether in a separating funnel'],['chromatography','components with different adsorption or partition','column, thin-layer (TLC) and paper chromatography']],['Method','Use it for','How or example'])}
+   <p>Steam distillation works because the mixture boils when the <b>sum</b> of the vapour pressures of water and the organic liquid equals atmospheric pressure, so it boils below 373 K. In TLC, the <b>retardation factor</b> R<sub>f</sub> = distance moved by the substance ÷ distance moved by the solvent front.</p>`},
+  {h:'Lassaigne’s test (sodium fusion)',html:`<p>The compound is fused with sodium metal. Covalent N, S and halogen atoms become ionic: NaCN, Na₂S and NaX. The fused mass is boiled with water to give the <b>sodium fusion extract</b>.</p>
+   ${stT([['nitrogen','boil with FeSO₄, then add conc. H₂SO₄ (with Fe³⁺ formed by air oxidation)','Prussian blue: Fe₄[Fe(CN)₆]₃'],['sulfur','sodium nitroprusside','violet colour'],['sulfur','acidify with ethanoic acid, add lead ethanoate','black precipitate of PbS'],['nitrogen and sulfur together','NaSCN forms; add Fe³⁺','blood-red colour, Fe(SCN)²⁺'],['halogens','boil with conc. HNO₃ (removes CN⁻ and S²⁻), then add AgNO₃','white AgCl (soluble in NH₃), pale yellow AgBr (sparingly soluble), yellow AgI (insoluble)'],['phosphorus','oxidise to phosphate; add ammonium molybdate with HNO₃','yellow precipitate']],['Element','Test','Positive result'])}`},
+  {h:'Estimating the elements',html:`${stT([['carbon and hydrogen','burn in excess CuO/O₂; CO₂ absorbed by KOH, water by anhydrous CaCl₂','%C = (12 × m<sub>CO₂</sub> × 100) ÷ (44 × m); %H = (2 × m<sub>H₂O</sub> × 100) ÷ (18 × m)'],['nitrogen (Dumas)','heat with CuO; measure the volume of N₂ collected','%N = (28 × V<sub>N₂</sub> at STP in mL × 100) ÷ (22 400 × m)'],['nitrogen (Kjeldahl)','heat with conc. H₂SO₄ to give (NH₄)₂SO₄; release NH₃ with NaOH; absorb in a known amount of standard acid','%N = (1.4 × normality of acid × volume of acid used in mL) ÷ m'],['halogen (Carius)','heat with fuming HNO₃ and AgNO₃ in a sealed tube; weigh AgX','%X = (atomic mass of X × m<sub>AgX</sub> × 100) ÷ (molar mass of AgX × m)'],['sulfur (Carius)','heat with fuming HNO₃; precipitate BaSO₄ with BaCl₂','%S = (32 × m<sub>BaSO₄</sub> × 100) ÷ (233 × m)'],['oxygen','usually found by difference','%O = 100 − (sum of the other percentages)']],['Element','Method','Formula (m = mass of sample)'])}
+   ${coNote('Kjeldahl has limits:','it does not work for nitro and azo compounds or for nitrogen in a ring (pyridine), because that nitrogen is not converted into ammonium sulfate.')}`},
+  {h:'Tests for functional groups',html:`${stT([['alcoholic –OH','ceric ammonium nitrate','red colour'],['phenolic –OH','neutral FeCl₃','violet colour'],['aldehyde','Tollens’ reagent; Fehling’s solution','silver mirror; red precipitate of Cu₂O'],['aldehyde or ketone','2,4-dinitrophenylhydrazine','yellow-orange precipitate'],['–COOH','NaHCO₃ solution','brisk effervescence of CO₂'],['primary amine','carbylamine test: CHCl₃ + alcoholic KOH, warm','foul-smelling isocyanide'],['aromatic primary amine','NaNO₂ + HCl at 0–5 °C, then alkaline 2-naphthol','orange-red azo dye']],['Group','Reagent','Positive result'])}`}],
+ tools:[['sp','ms','Mass spectrometry','Another way to find the formula'],['guide','organic-functional-groups','Functional groups guide','Know what you’re testing for']],
+ prob:{title:'Kjeldahl and Carius',stem:'0.50 g of an organic compound was analysed for nitrogen by Kjeldahl’s method. The ammonia evolved was absorbed in 50.0 mL of 0.50 M H₂SO₄. The excess acid needed 60.0 mL of 0.50 M NaOH to neutralise it.',parts:[
+  ['How many moles of H₂SO₄ were taken, and how many were left over?','Taken: 0.0500 L × 0.50 = 0.0250 mol. Excess: NaOH used = 0.0300 mol, which reacts with 0.0150 mol H₂SO₄ (2NaOH + H₂SO₄).'],
+  ['How many moles of NH₃ were absorbed?','H₂SO₄ used by ammonia = 0.0250 − 0.0150 = 0.0100 mol. Each H₂SO₄ takes 2NH₃, so NH₃ = 0.0200 mol.'],
+  ['Calculate the percentage of nitrogen.','Mass of N = 0.0200 × 14 = 0.280 g. %N = 0.280 ÷ 0.50 × 100 = <b>56%</b>. (With the formula: acid used = 20.0 mL of 1.0 N H₂SO₄; 1.4 × 1.0 × 20.0 ÷ 0.50 = 56%.)'],
+  ['In a Carius determination, 0.189 g of a compound gave 0.376 g of AgBr. Find the percentage of bromine.','%Br = (80 × 0.376 × 100) ÷ (188 × 0.189) = <b>84.7%</b>.']]},
+ qs:[
+  {prompt:'In Lassaigne’s test, what is the Prussian blue colour due to?',opts:['Fe₄[Fe(CN)₆]₃','Fe(SCN)²⁺','Na₄[Fe(CN)₅NOS]','PbS'],why:'Cyanide from the fusion forms ferrocyanide, which reacts with Fe³⁺ to give iron(III) hexacyanidoferrate(II), Prussian blue.'},
+  {prompt:'Why is the sodium fusion extract boiled with conc. HNO₃ before testing for halogens with AgNO₃?',opts:['To decompose NaCN and Na₂S, which would interfere','To oxidise the halide ions','To make the solution alkaline','To dissolve the silver halide'],why:'CN⁻ and S²⁻ would otherwise precipitate with Ag⁺ as AgCN and Ag₂S.'},
+  {prompt:'Which method separates a mixture of chloroform (bp 334 K) and aniline (bp 457 K)?',opts:['Simple distillation','Sublimation','Crystallisation','Steam distillation of chloroform'],why:'The boiling points are far apart, so simple distillation is enough.'},
+  {prompt:'For which compound does the Kjeldahl method fail?',opts:['Nitrobenzene','Aniline','Urea','Acetamide'],why:'Nitrogen in nitro and azo groups, and in rings, is not converted into ammonium sulfate.'},
+  {prompt:'A compound containing both N and S gives a blood-red colour with Fe³⁺. Which ion causes it?',opts:['SCN⁻','CN⁻','S²⁻','NO₃⁻'],why:'With too little sodium, NaSCN forms; it gives Fe(SCN)²⁺ with Fe³⁺, which is blood red.'},
+  {prompt:'In TLC a spot moves 4.2 cm while the solvent front moves 7.0 cm. What is R<sub>f</sub>?',opts:['0.60','1.67','0.42','2.8'],why:'R<sub>f</sub> = 4.2 ÷ 7.0 = 0.60.'},
+  {prompt:'Which test distinguishes phenol from ethanol?',opts:['Neutral FeCl₃ gives a violet colour with phenol','Na gives H₂ only with ethanol','Ceric ammonium nitrate gives a red colour only with phenol','2,4-DNP gives a precipitate with phenol'],why:'Phenols form a violet complex with Fe³⁺; alcohols do not.'},
+  {prompt:'0.30 g of an organic compound gave 0.44 g of CO₂ on combustion. What is the percentage of carbon?',opts:['40%','12%','44%','80%'],why:'%C = (12 × 0.44 × 100) ÷ (44 × 0.30) = 40%.'},
+  {prompt:'Which compound is purified by steam distillation?',opts:['Aniline','Glucose','Sodium chloride','Glycerol'],why:'Aniline is steam-volatile and immiscible with water. Glycerol is purified by distillation under reduced pressure.'}]},
+
+{id:'pu-bio',title:'Biomolecules',lede:'Carbohydrates, proteins, enzymes, vitamins and nucleic acids: their structures, the tests that reveal them, and what they do.',
+ ref:{j:'Biomolecules (Class 12)'},
+ syl:{j:['Carbohydrates: classification (aldoses and ketoses); monosaccharides glucose and fructose; constituent monosaccharides of sucrose, lactose and maltose','Proteins: α-amino acids, peptide bond, polypeptides; native protein and denaturation; enzymes','Vitamins: classification and functions','Nucleic acids: chemical constitution of DNA and RNA; biological functions','Hormones (general introduction)']},
+ sections:[
+  {h:'Carbohydrates',html:`<p>Carbohydrates are polyhydroxy aldehydes or ketones, or compounds that hydrolyse to give them. <b>Monosaccharides</b> (glucose, fructose) cannot be hydrolysed further; <b>oligosaccharides</b> give 2–10 monosaccharide units (disaccharides such as sucrose); <b>polysaccharides</b> give many (starch, cellulose, glycogen). Sugars that reduce Tollens’ reagent and Fehling’s solution are <b>reducing sugars</b>: all monosaccharides, and disaccharides with a free aldehyde or ketone group.</p>
+   ${stT([['glucose, C₆H₁₂O₆','aldohexose','reducing'],['fructose, C₆H₁₂O₆','ketohexose','reducing'],['sucrose','α-D-glucose (C1) + β-D-fructose (C2)','non-reducing: both reducing groups are used in the glycosidic link'],['maltose','two α-D-glucose (C1–C4)','reducing'],['lactose (milk sugar)','β-D-galactose (C1) + β-D-glucose (C4)','reducing'],['starch','amylose (15–20%, unbranched, C1–C4) + amylopectin (80–85%, branched with C1–C6 links)','α-glucose polymer; blue-black with iodine'],['cellulose','unbranched chains of β-D-glucose (C1–C4)','main material of plant cell walls'],['glycogen','highly branched, like amylopectin','“animal starch”, stored in liver and muscle']],['Carbohydrate','Made of','Notes'])}`},
+  {h:'The structure of glucose',html:`<p>Evidence for the open-chain structure: with HI it gives hexane (six carbons in a straight chain); it forms an oxime with hydroxylamine and adds HCN (a C=O group); bromine water oxidises it to gluconic acid (the C=O is an aldehyde); acetylation gives a pentaacetate (five –OH groups); nitric acid oxidises it to saccharic acid (one end is a primary alcohol).</p>
+   <p>But glucose does not give Schiff’s test or react with NaHSO₃, and its pentaacetate does not react with hydroxylamine. So it exists mainly as a six-membered ring (a <b>pyranose</b>), formed when the C5 –OH adds to the aldehyde. This makes C1 a new stereocentre, giving two <b>anomers</b>, α- and β-D-glucose. Fructose forms a five-membered ring (a <b>furanose</b>).</p>
+   <p>Sucrose is dextrorotatory, but hydrolysis gives an equimolar mixture of D-(+)-glucose and D-(−)-fructose that is laevorotatory overall, because fructose rotates the light more strongly. So hydrolysed sucrose is called <b>invert sugar</b>.</p>`},
+  {h:'Proteins and enzymes',html:`<p>Proteins are polymers of α-amino acids joined by peptide bonds, –CO–NH–. Amino acids the body cannot make, and must come from the diet, are <b>essential amino acids</b> (such as valine, leucine and lysine). In water an amino acid exists as a <b>zwitterion</b>, ⁺H₃N–CHR–COO⁻.</p>
+   ${stT([['primary','the sequence of amino acids'],['secondary','α-helix or β-pleated sheet, held by hydrogen bonds between C=O and N–H groups of the backbone'],['tertiary','overall folding of the chain: hydrogen bonds, disulfide bridges, van der Waals and ionic attractions'],['quaternary','arrangement of two or more chains (subunits), as in haemoglobin']],['Structure','Meaning'])}
+   <p><b>Fibrous proteins</b> (keratin, myosin) are long and insoluble; <b>globular proteins</b> (insulin, albumins) are folded and soluble. <b>Denaturation</b> by heat or a change in pH destroys the secondary and tertiary structure but leaves the primary structure intact: an egg white coagulating on boiling, or milk curdling. <b>Enzymes</b> are biological catalysts, mostly globular proteins, that are highly specific for their substrate.</p>`},
+  {h:'Vitamins',html:`<p><b>Fat-soluble</b> vitamins (A, D, E, K) are stored in the liver and fatty tissue. <b>Water-soluble</b> vitamins (B group and C) are excreted in urine and must be supplied regularly; vitamin B₁₂ is the exception that can be stored.</p>
+   ${stT([['A','xerophthalmia (hardening of the cornea), night blindness'],['B₁ (thiamine)','beriberi'],['B₂ (riboflavin)','cheilosis, digestive disorders'],['B₆ (pyridoxine)','convulsions'],['B₁₂','pernicious anaemia'],['C (ascorbic acid)','scurvy (bleeding gums)'],['D','rickets in children, osteomalacia in adults'],['E','fragile red blood cells, muscular weakness'],['K','blood takes longer to clot']],['Vitamin','Deficiency disease'])}`},
+  {h:'Nucleic acids and hormones',html:`<p>Nucleic acids are polymers of <b>nucleotides</b>. A <b>nucleoside</b> is a base joined to a sugar at C1′; adding phosphate (at C5′) makes a nucleotide. Nucleotides are joined by phosphodiester links.</p>
+   ${stT([['sugar','β-D-2-deoxyribose','β-D-ribose'],['bases','adenine, guanine, cytosine, thymine','adenine, guanine, cytosine, uracil'],['structure','double helix; A pairs with T, G pairs with C, by hydrogen bonds','usually single-stranded; messenger, ribosomal and transfer RNA'],['job','stores genetic information; replicates','protein synthesis']],['','DNA','RNA'])}
+   <p><b>Hormones</b> are chemical messengers made by endocrine glands and carried in the blood. Some are steroids (oestrogens, androgens), some polypeptides (insulin, endorphins) and some amino acid derivatives (adrenaline, thyroxine).</p>`}],
+ tools:[['view3d','C[C@H](N)C(=O)O','Alanine in 3D','A chiral α-amino acid'],['view3d','C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O1)O)O)O)O)O','Glucose ring in 3D','The pyranose ring']],
+ prob:{title:'Sugars and their tests',stem:'Samples P, Q and R are glucose, sucrose and starch (in some order). P gives a blue-black colour with iodine. Q reduces Fehling’s solution. R does not reduce Fehling’s solution until it has been boiled with dilute acid.',parts:[
+  ['Identify P, Q and R.','P is starch (blue-black with iodine, from amylose). Q is glucose (a reducing sugar). R is sucrose: non-reducing, but acid hydrolyses it to glucose and fructose, which are reducing.'],
+  ['Why is sucrose a non-reducing sugar?','The glycosidic bond joins C1 of glucose to C2 of fructose: the two carbons that would otherwise form the aldehyde and ketone groups, so neither ring can open.'],
+  ['Why is the hydrolysis product of sucrose called invert sugar?','Sucrose is dextrorotatory. The mixture of glucose (+) and fructose (−) formed is laevorotatory overall, so the sign of rotation inverts.'],
+  ['Name two pieces of evidence that glucose exists as a ring.','It does not give Schiff’s test or form a hydrogensulfite compound with NaHSO₃, and its pentaacetate does not react with hydroxylamine; it also exists as two anomers (α and β) with different specific rotations.']]},
+ qs:[
+  {prompt:'Which sugar is non-reducing?',opts:['Sucrose','Maltose','Lactose','Glucose'],why:'In sucrose the glycosidic link uses both reducing groups (glucose C1 and fructose C2).'},
+  {prompt:'Lactose is made of which two monosaccharides?',opts:['β-D-galactose and β-D-glucose','α-D-glucose and β-D-fructose','Two α-D-glucose units','Glucose and ribose'],why:'Lactose, milk sugar, links C1 of galactose to C4 of glucose.'},
+  {prompt:'Which is a deficiency disease of vitamin C?',opts:['Scurvy','Rickets','Beriberi','Night blindness'],why:'Vitamin C (ascorbic acid) deficiency causes scurvy. Rickets is vitamin D, beriberi B₁, night blindness A.'},
+  {prompt:'Which base is found in RNA but not DNA?',opts:['Uracil','Thymine','Adenine','Cytosine'],why:'RNA uses uracil in place of thymine.'},
+  {prompt:'What happens to a protein when it is denatured?',opts:['Its secondary and tertiary structure is lost, but the primary structure stays','Its peptide bonds are hydrolysed','It becomes a polysaccharide','Its amino acid sequence changes'],why:'Heat or pH change disrupts hydrogen bonds and other interactions, not the covalent peptide bonds.'},
+  {prompt:'What does the reaction of glucose with HI to give hexane show?',opts:['The six carbons are in a straight chain','Glucose has an aldehyde group','Glucose has five –OH groups','Glucose is a ring'],why:'Complete reduction gives n-hexane, so the carbon skeleton is unbranched.'},
+  {prompt:'Which vitamin can be stored in the body even though it is water-soluble?',opts:['B₁₂','C','B₁','B₆'],why:'Vitamin B₁₂ is stored in the liver; other water-soluble vitamins are excreted and must be eaten regularly.'},
+  {prompt:'Amylopectin differs from amylose because it:',opts:['is branched, with C1–C6 links','is made of β-glucose','is water-insoluble cellulose','contains fructose'],why:'Amylose is an unbranched chain of α-glucose (C1–C4); amylopectin also has C1–C6 branch points.'},
+  {prompt:'In DNA, guanine pairs with:',opts:['Cytosine','Adenine','Thymine','Uracil'],why:'G pairs with C (three hydrogen bonds); A pairs with T (two).'}]},
+
+{id:'pu-named',title:'Named reactions',lede:'Every named reaction in the JEE and NEET organic syllabus in one place, grouped by what they make, with the conditions that examiners love to change.',
+ ref:{j:'Organic chemistry, Classes 11 and 12'},
+ syl:{j:['Alkanes and arenes: Wurtz, Wurtz–Fittig, Fittig, Friedel–Crafts, Kolbe electrolysis, decarboxylation','Halogen compounds: Finkelstein, Swarts, Sandmeyer, Gattermann, Balz–Schiemann','Alcohols, phenols and ethers: Williamson synthesis, Reimer–Tiemann, Kolbe (Kolbe–Schmitt), hydroboration–oxidation','Carbonyl compounds: Rosenmund, Stephen, Etard, Gattermann–Koch, Clemmensen, Wolff–Kishner, aldol, cross aldol, Cannizzaro, haloform','Carboxylic acids: Hell–Volhard–Zelinsky (HVZ)','Nitrogen compounds: Gabriel phthalimide, Hofmann bromamide, carbylamine, Hinsberg test, diazotisation and coupling']},
+ sections:[
+  {h:'Making C–C bonds and alkanes',html:`${stT([['Wurtz','2RX + 2Na, dry ether','R–R (alkane with double the carbons; best for symmetrical alkanes)'],['Wurtz–Fittig','ArX + RX + 2Na, dry ether','Ar–R (an alkylbenzene)'],['Fittig','2ArX + 2Na, dry ether','Ar–Ar (biphenyl)'],['Kolbe electrolysis','electrolysis of aqueous RCOONa','R–R + 2CO₂ (at the anode) + H₂ (at the cathode)'],['decarboxylation','RCOONa + NaOH with CaO (soda lime), heat','R–H (one carbon fewer)'],['Friedel–Crafts alkylation and acylation','RCl or RCOCl with anhydrous AlCl₃','alkylbenzene; aryl ketone']],['Name','Reagents','Product'])}`},
+  {h:'Halogen compounds',html:`${stT([['Finkelstein','RCl or RBr + NaI in dry acetone','RI (NaCl and NaBr precipitate, driving the reaction)'],['Swarts','RCl or RBr + AgF, Hg₂F₂, CoF₂ or SbF₃','RF'],['Sandmeyer','ArN₂⁺ + CuCl/HCl, CuBr/HBr or CuCN/KCN','ArCl, ArBr, ArCN'],['Gattermann','ArN₂⁺ + Cu powder with HCl or HBr','ArCl or ArBr'],['Balz–Schiemann','ArN₂⁺ + HBF₄, then heat','ArF'],['(no name)','ArN₂⁺ + KI','ArI']],['Name','Reagents','Product'])}`},
+  {h:'Alcohols, phenols and ethers',html:`${stT([['Williamson synthesis','RO⁻Na⁺ + R′X (R′ primary)','R–O–R′ (SN2)'],['Reimer–Tiemann','phenol + CHCl₃ + aq. NaOH, then acid','2-hydroxybenzaldehyde (salicylaldehyde), via dichlorocarbene'],['Kolbe (Kolbe–Schmitt)','sodium phenoxide + CO₂ at about 400 K and 4–7 atm, then acid','2-hydroxybenzoic acid (salicylic acid)'],['hydroboration–oxidation','B₂H₆, then H₂O₂/OH⁻','alcohol, anti-Markovnikov: propene → propan-1-ol']],['Name','Reagents','Product'])}`},
+  {h:'Aldehydes and ketones',html:`${stT([['Rosenmund reduction','RCOCl + H₂, Pd on BaSO₄ (poisoned with S or quinoline)','RCHO'],['Stephen reaction','RCN + SnCl₂/HCl, then H₃O⁺','RCHO (via the imine)'],['Etard reaction','methylbenzene + CrO₂Cl₂ (chromyl chloride) in CS₂, then H₃O⁺','benzaldehyde'],['Gattermann–Koch','benzene + CO + HCl, anhydrous AlCl₃ (or CuCl)','benzaldehyde'],['Clemmensen reduction','C=O + Zn–Hg, conc. HCl','CH₂ (acid conditions)'],['Wolff–Kishner reduction','C=O + NH₂NH₂, then KOH in ethylene glycol, heat','CH₂ (basic conditions)'],['aldol','aldehyde or ketone with α-H + dilute NaOH','β-hydroxy aldehyde or ketone; heating gives the α,β-unsaturated product'],['Cannizzaro','aldehyde with no α-H (HCHO, C₆H₅CHO) + conc. NaOH','alcohol + carboxylate salt (one molecule reduced, one oxidised)'],['haloform','CH₃CO– or CH₃CH(OH)– + X₂/NaOH','CHX₃ + carboxylate with one carbon fewer']],['Name','Reagents','Product'])}
+   ${coNote('Watch the α-hydrogen.','With dilute alkali, aldehydes with α-H do aldol; with concentrated alkali, aldehydes without α-H do Cannizzaro. Ethanal + methanal with NaOH gives a crossed aldol, not Cannizzaro.')}`},
+  {h:'Acids and nitrogen compounds',html:`${stT([['Hell–Volhard–Zelinsky (HVZ)','RCH₂COOH + X₂ (Cl₂ or Br₂), red P, then H₂O','α-halo acid, RCHXCOOH'],['Gabriel phthalimide synthesis','phthalimide + KOH, then RX, then NaOH(aq) hydrolysis','pure primary aliphatic amine (aromatic amines can’t be made this way)'],['Hofmann bromamide degradation','RCONH₂ + Br₂ + 4NaOH','RNH₂, with one carbon fewer'],['carbylamine (isocyanide) test','primary amine + CHCl₃ + alcoholic KOH, warm','RNC, foul smell: a test for 1° amines only'],['Hinsberg test','benzenesulfonyl chloride','1°: sulfonamide soluble in alkali; 2°: sulfonamide insoluble in alkali; 3°: no reaction'],['diazotisation and coupling','ArNH₂ + NaNO₂/HCl at 273–278 K; then phenol (alkaline) or aniline (weakly acidic)','ArN₂⁺Cl⁻; azo dyes such as p-hydroxyazobenzene (orange) and aniline yellow']],['Name','Reagents','Product'])}`}],
+ tools:[['mech','aldol','Aldol addition','Enolate attacks C=O'],['mech','cannizzaro','Cannizzaro reaction','Hydride transfer step by step'],['mech','williamson','Williamson ether synthesis','SN2 with an alkoxide'],['mech','diazocoupling','Azo coupling','Diazonium ion as electrophile'],['mode','synth','Synthesis practice','Chain the reactions together']],
+ prob:{title:'Name that reaction',stem:'Identify the named reaction and the product in each case.',parts:[
+  ['Benzoyl chloride is treated with H₂ over Pd/BaSO₄.','Rosenmund reduction: benzaldehyde, C₆H₅CHO. The poisoned catalyst stops reduction at the aldehyde.'],
+  ['Benzaldehyde is heated with concentrated NaOH.','Cannizzaro reaction: benzyl alcohol and sodium benzoate. Benzaldehyde has no α-H, so it cannot do aldol.'],
+  ['Propanamide is warmed with Br₂ and NaOH.','Hofmann bromamide degradation: ethylamine, CH₃CH₂NH₂ (one carbon fewer).'],
+  ['Phenol is refluxed with chloroform and aqueous NaOH, then acidified.','Reimer–Tiemann reaction: 2-hydroxybenzaldehyde (salicylaldehyde).'],
+  ['Ethanoic acid is treated with Cl₂ and red phosphorus.','HVZ reaction: chloroethanoic acid, ClCH₂COOH (further chlorination gives di- and trichloroethanoic acid).']]},
+ qs:[
+  {prompt:'Which reaction converts an acyl chloride into an aldehyde?',opts:['Rosenmund reduction','Clemmensen reduction','Cannizzaro reaction','Stephen reaction'],why:'H₂ over Pd/BaSO₄ reduces RCOCl to RCHO. The Stephen reaction starts from a nitrile.'},
+  {prompt:'Which aldehyde undergoes the Cannizzaro reaction?',opts:['Benzaldehyde','Ethanal','Propanal','Phenylethanal'],why:'Cannizzaro needs an aldehyde with no α-hydrogen.'},
+  {prompt:'Hofmann bromamide degradation of benzamide gives:',opts:['Aniline','Benzylamine','Benzoic acid','Benzonitrile'],why:'The carbonyl carbon is lost as carbonate, so C₆H₅CONH₂ gives C₆H₅NH₂.'},
+  {prompt:'The carbylamine test is given by:',opts:['Primary amines only','Secondary amines only','Tertiary amines','All amines'],why:'Only R–NH₂ can lose two H atoms to form the isocyanide R–N≡C.'},
+  {prompt:'Phenol + CHCl₃ + NaOH gives salicylaldehyde. What is this reaction called?',opts:['Reimer–Tiemann reaction','Kolbe reaction','Gattermann–Koch reaction','Etard reaction'],why:'The electrophile is dichlorocarbene, :CCl₂, which attacks the ortho position of phenoxide.'},
+  {prompt:'Which reagent converts a ketone to an alkane in basic conditions?',opts:['NH₂NH₂, then KOH in ethylene glycol (Wolff–Kishner)','Zn–Hg and conc. HCl (Clemmensen)','LiAlH₄','NaBH₄'],why:'Wolff–Kishner works under basic conditions; Clemmensen under acidic conditions.'},
+  {prompt:'Which product forms when ethyl bromide is heated with sodium in dry ether?',opts:['Butane','Ethane','Ethene','Ethanol'],why:'Wurtz reaction: 2C₂H₅Br + 2Na → C₄H₁₀ + 2NaBr.'},
+  {prompt:'In the HVZ reaction, where does the halogen go?',opts:['On the α-carbon of the carboxylic acid','On the oxygen of –OH','On the carbonyl carbon','On the β-carbon'],why:'Red phosphorus forms the acyl halide, whose enol is halogenated at the α-carbon.'},
+  {prompt:'Gabriel phthalimide synthesis cannot make aniline because:',opts:['Aryl halides don’t undergo nucleophilic substitution with the phthalimide anion','Aniline is too basic','Phthalimide reacts with benzene','Aniline is a secondary amine'],why:'The key step is SN2 on an alkyl halide; aryl halides don’t react this way.'},
+  {prompt:'Which converts benzenediazonium chloride into chlorobenzene using Cu powder and HCl?',opts:['Gattermann reaction','Sandmeyer reaction','Balz–Schiemann reaction','Finkelstein reaction'],why:'Sandmeyer uses CuCl/HCl; Gattermann uses copper powder with HCl.'},
+  {prompt:'Toluene → benzaldehyde with chromyl chloride is the:',opts:['Etard reaction','Rosenmund reaction','Stephen reaction','Cannizzaro reaction'],why:'CrO₂Cl₂ forms a chromium complex with the methyl group, which hydrolyses to benzaldehyde.'},
+  {prompt:'Sodium propanoate heated with soda lime gives:',opts:['Ethane','Propane','Butane','Ethene'],why:'Decarboxylation removes CO₂, leaving an alkane with one carbon fewer.'}]},
+];
+/* v24: extra syllabus maps, lessons and questions for the AP (p), IB (i), JEE (j) and NEET (n) courses.
+   only:'sjn' means the item appears in the STPM, JEE and NEET courses. NEET uses the JEE syllabus points (both follow NCERT).
+   New questions are ADDED at the end of each unit's list, so existing question ids never change. */
+const PU_EXT={
+'pu-atom':{ref:{p:'Unit 1: 1.2, 1.5, 1.7',i:'Structure 1.2, 3.1',j:'Atomic structure; periodicity (Class 11)'},
+ syl:{p:['1.2 Mass spectra of elements: isotopes and average atomic mass','1.5 Protons, neutrons and electrons; the nuclear model','1.7 Periodic trends in atomic and ionic radius','1.8 Valence electrons and the formulas of ionic compounds'],
+  i:['S1.2 The nuclear atom: protons, neutrons and electrons','S1.2 Isotopes and relative atomic mass','S1.2 (HL) Mass spectra to find relative atomic mass','S3.1 Periodicity in atomic and ionic radius'],
+  j:['Subatomic particles; atomic number, mass number and isotopes','Atomic mass from isotopic abundance','Atomic and ionic radii (classification of elements and periodicity)']}},
+
+'pu-orb':{ref:{p:'Unit 1: 1.5; Unit 3: 3.11–3.12',i:'Structure 1.3',j:'Atomic structure (Class 11)'},
+ syl:{p:['1.5 Electron configurations and the Aufbau principle','1.5 Coulomb’s law and the energy of electrons in shells','3.11 The electromagnetic spectrum: what each region does to molecules','3.12 Photons: E = hν and c = λν; the photoelectric effect'],
+  i:['S1.3 Emission spectra; the line spectrum of hydrogen and energy levels','S1.3 Main energy levels, sublevels and orbitals; shapes of s and p orbitals','S1.3 Electron configurations: Aufbau, Hund and Pauli; Cr and Cu','S1.3 (HL) Convergence limit and the ionisation energy of hydrogen'],
+  j:['Electromagnetic radiation and the photoelectric effect','Spectrum of the hydrogen atom; Bohr model: postulates, radii, energies and limitations','Dual nature of matter: de Broglie relationship; Heisenberg uncertainty principle','Quantum numbers; shapes of s, p and d orbitals; nodes','Aufbau, Pauli and Hund; electronic configurations; stability of half-filled and filled orbitals']},
+ tag:{'The hydrogen emission spectrum':'sijn'},qtag:{8:'sijn',9:'sijn'},
+ sec:[['Blocks of the Periodic Table',{h:'Light, photons and the photoelectric effect',only:'pjn',html:`<p>Light behaves as a wave and as a stream of particles (<b>photons</b>). Its speed, wavelength and frequency are linked, and the energy of one photon depends on its frequency:</p>${coEq('c = λν &nbsp;&nbsp;·&nbsp;&nbsp; E = hν = hc ÷ λ &nbsp;&nbsp; (h = 6.626 × 10⁻³⁴ J s, c = 3.00 × 10⁸ m s⁻¹)')}
+   ${stT([['microwave','molecules rotate'],['infrared','bonds vibrate'],['visible and ultraviolet','electrons jump to higher energy levels']],['Region (increasing energy)','What absorbing it does'])}
+   <p>In the <b>photoelectric effect</b>, light ejects electrons from a metal surface only if its frequency is above a <b>threshold frequency</b> ν₀, however bright it is. Above ν₀, the electrons leave with kinetic energy ½mv² = hν − hν₀, where hν₀ is the <b>work function</b>. Brighter light ejects more electrons but not faster ones. This only makes sense if light comes in packets of energy hν.</p>`}],
+  ['Light, photons and the photoelectric effect',{h:'The Bohr model, dual nature and quantum numbers',only:'jn',html:`<p><b>Bohr’s model</b> (for one-electron species such as H, He⁺ and Li²⁺): the electron moves in fixed circular orbits without radiating, and absorbs or emits energy only when it jumps between them.</p>
+   ${coEq('r<sub>n</sub> = 52.9 n² ÷ Z pm &nbsp;&nbsp;·&nbsp;&nbsp; E<sub>n</sub> = −2.18 × 10⁻¹⁸ (Z² ÷ n²) J = −13.6 Z² ÷ n² eV')}
+   ${coEq('1/λ = R<sub>H</sub> Z² (1/n₁² − 1/n₂²), &nbsp; R<sub>H</sub> = 109 677 cm⁻¹')}
+   <p>An electron falling from level n to the ground state can give at most n(n − 1) ÷ 2 different lines. Bohr’s model fails for atoms with more than one electron, and cannot explain the splitting of lines in a magnetic field (Zeeman effect) or an electric field (Stark effect).</p>
+   <p><b>Dual nature:</b> moving particles have a wavelength, λ = h ÷ mv (de Broglie). <b>Heisenberg’s uncertainty principle:</b> position and momentum can’t both be known exactly, Δx · Δp ≥ h ÷ 4π, so fixed orbits are replaced by orbitals.</p>
+   ${stT([['principal, n','1, 2, 3 …','shell: size and energy'],['azimuthal, l','0 to n − 1 (s, p, d, f)','sub-shell: shape'],['magnetic, m<sub>l</sub>','−l to +l','orientation (2l + 1 orbitals)'],['spin, m<sub>s</sub>','+½ or −½','spin of the electron']],['Quantum number','Allowed values','Describes'])}
+   <p><b>Nodes:</b> radial nodes = n − l − 1; angular nodes = l; total = n − 1. So 3p has one radial node and one angular node. The five d orbitals: d<sub>xy</sub>, d<sub>yz</sub> and d<sub>xz</sub> point between the axes; d<sub>x²−y²</sub> points along the x and y axes; d<sub>z²</sub> is a dumbbell along z with a ring around it. Sub-shells fill in order of increasing (n + l); for equal values, the lower n fills first.</p>`}]],
+ qs:[
+  {prompt:'What is the energy of one photon of light with wavelength 500 nm?',opts:['3.98 × 10⁻¹⁹ J','3.98 × 10⁻²⁸ J','1.99 × 10⁻²⁵ J','6.00 × 10¹⁴ J'],why:'E = hc ÷ λ = (6.626 × 10⁻³⁴ × 3.00 × 10⁸) ÷ (500 × 10⁻⁹) = 3.98 × 10⁻¹⁹ J.',only:'pjn'},
+  {prompt:'Light above the threshold frequency shines on a metal. What happens if its intensity is doubled?',opts:['Twice as many electrons are emitted, with the same maximum kinetic energy','The electrons leave with twice the kinetic energy','No electrons are emitted','The threshold frequency halves'],why:'Intensity is the number of photons; the energy of each photon (and so of each electron) depends only on frequency.',only:'pjn'},
+  {prompt:'What does absorbing infrared radiation do to a molecule?',opts:['Makes its bonds vibrate','Makes it rotate','Promotes an electron to a higher level','Ionises it'],why:'IR matches vibrational energy changes. Microwaves cause rotation; UV and visible light excite electrons.',only:'p'},
+  {prompt:'How many radial nodes does a 3p orbital have?',opts:['1','0','2','3'],why:'Radial nodes = n − l − 1 = 3 − 1 − 1 = 1.',only:'jn'},
+  {prompt:'Which set of quantum numbers is not allowed?',opts:['n = 2, l = 2, m<sub>l</sub> = 0','n = 3, l = 2, m<sub>l</sub> = −2','n = 2, l = 1, m<sub>l</sub> = 1','n = 4, l = 0, m<sub>l</sub> = 0'],why:'l can only go up to n − 1, so for n = 2, l can be 0 or 1.',only:'jn'},
+  {prompt:'What is the energy of the electron in the second Bohr orbit of a hydrogen atom?',opts:['−3.4 eV','−13.6 eV','−6.8 eV','−1.51 eV'],why:'E = −13.6 ÷ n² = −13.6 ÷ 4 = −3.4 eV.',only:'jn'},
+  {prompt:'An electron falls from n = 5 to n = 1 in a sample of hydrogen atoms. What is the maximum number of spectral lines?',opts:['10','4','5','15'],why:'n(n − 1) ÷ 2 = 5 × 4 ÷ 2 = 10.',only:'jn'},
+  {prompt:'What is the radius of the second Bohr orbit of He⁺?',opts:['105.8 pm','52.9 pm','211.6 pm','26.5 pm'],why:'r = 52.9 n² ÷ Z = 52.9 × 4 ÷ 2 = 105.8 pm.',only:'jn'},
+  {prompt:'The de Broglie wavelength of a particle is:',opts:['inversely proportional to its momentum','directly proportional to its mass','independent of its speed','equal to h × mv'],why:'λ = h ÷ mv = h ÷ p.',only:'jn'}]},
+
+'pu-ie':{ref:{p:'Unit 1: 1.6–1.7',i:'Structure 1.3, 3.1',j:'Classification of elements and periodicity (Class 11)'},
+ syl:{p:['1.6 Photoelectron spectroscopy: binding energies and numbers of electrons','1.7 Periodic trends in ionisation energy, electronegativity and electron affinity','1.7 Explaining trends with Coulomb’s law, shielding and distance'],
+  i:['S1.3 First ionisation energy and its trends','S1.3 (HL) Successive ionisation energies and electron configuration','S3.1 Periodicity in ionisation energy, electron affinity and electronegativity'],
+  j:['Modern periodic law and the long form of the periodic table; s, p, d and f blocks','Periodic trends: atomic and ionic radii, ionisation enthalpy, electron gain enthalpy, valence and electronegativity']},
+ sec:[['Successive ionisation energies',{h:'Electron affinity and electron gain enthalpy',only:'pijn',html:`<p>The <b>first electron affinity</b> is the energy change when one mole of gaseous atoms each gain an electron: Cl(g) + e⁻ → Cl⁻(g), −349 kJ mol⁻¹. NCERT calls this the <b>electron gain enthalpy</b>, Δ<sub>eg</sub>H, which is negative when energy is released.</p>
+   <ul><li>It becomes <b>more negative across a period</b> (more nuclear charge, smaller atom) and generally <b>less negative down a group</b>.</li><li><b>Chlorine, not fluorine, has the most negative value</b> (Cl −349, F −328 kJ mol⁻¹): fluorine’s small, crowded 2p sub-shell repels the incoming electron.</li><li>Noble gases have positive values (the electron must enter a new shell), and Be, Mg and N have small or positive values (full or half-full sub-shells).</li><li>A <b>second</b> electron affinity is always <b>endothermic</b>: the electron is added to a negative ion. For O⁻(g) + e⁻ → O²⁻(g) it is about +800 kJ mol⁻¹.</li></ul>`}],
+  ['Electron affinity and electron gain enthalpy',{h:'Photoelectron spectroscopy and Coulomb’s law',only:'p',html:`<p><b>Coulomb’s law:</b> the force between two charges is proportional to q₁q₂ ÷ r². An electron is held more strongly when the nucleus has more protons (larger effective charge) and when it is closer (smaller r). Inner electrons shield outer ones, reducing the effective nuclear charge.</p>
+   <p>In <b>photoelectron spectroscopy (PES)</b>, high-energy photons knock out electrons from every sub-shell. The spectrum shows a peak for each sub-shell: its position gives the <b>binding energy</b> and its relative height gives the <b>number of electrons</b> in it.</p>
+   ${stT([['1s','84.0','2'],['2s','4.68','2'],['2p','2.08','6']],['Neon peak','Binding energy / MJ mol⁻¹','Relative height (electrons)'])}
+   <p>Reading a PES: count the peaks to find the sub-shells, use heights to get the configuration, and compare positions between elements. The 1s peak of sodium is further to the high-energy side than that of neon: Na has 11 protons pulling on its 1s electrons, Ne only 10.</p>`}]],
+ qs:[
+  {prompt:'Which element has the most negative electron gain enthalpy (largest first electron affinity)?',opts:['Chlorine','Fluorine','Oxygen','Bromine'],why:'Cl (−349 kJ mol⁻¹) is more negative than F (−328), because the incoming electron is repelled by fluorine’s compact 2p electrons.',only:'pijn'},
+  {prompt:'Why is the second electron affinity of oxygen endothermic?',opts:['The electron is added to a negative ion, which repels it','Oxygen has a full outer shell','The second electron enters a new shell','Oxygen is a metal'],why:'Energy must be supplied to push an electron onto the already negative O⁻ ion.',only:'pijn'},
+  {prompt:'A PES of an element shows three peaks with relative heights 2 : 2 : 5. Which element is it?',opts:['Fluorine','Neon','Nitrogen','Sodium'],why:'1s² 2s² 2p⁵ is fluorine.',only:'p'},
+  {prompt:'Why does the 1s peak of sodium appear at a higher binding energy than the 1s peak of neon?',opts:['Sodium has more protons attracting its 1s electrons','Sodium’s 1s electrons are further from the nucleus','Sodium has more shielding of its 1s electrons','Sodium has a 3s electron'],why:'By Coulomb’s law, 11 protons attract the 1s electrons more strongly than 10 do; nothing shields the 1s electrons.',only:'p'},
+  {prompt:'In the PES of silicon (1s² 2s² 2p⁶ 3s² 3p²), which peak is tallest?',opts:['2p','1s','3s','3p'],why:'Height is proportional to the number of electrons: the 2p sub-shell holds 6.',only:'p'}]},
+
+'pu-bond':{ref:{p:'Unit 2: 2.1–2.6',i:'Structure 2.1–2.4',j:'Chemical bonding and molecular structure (Class 11)'},
+ syl:{p:['2.1 Types of chemical bond from electronegativity differences','2.2 Potential energy and bond length','2.3 Structure of ionic solids','2.4 Structure of metals and alloys','2.5 Lewis diagrams','2.6 Resonance and formal charge'],
+  i:['S2.1 Ionic bonding, lattices and lattice enthalpy','S2.2 Covalent bonds, Lewis formulas, coordination bonds and octet exceptions','S2.2 Bond length and bond strength','S2.3 Metallic bonding','S2.4 The bonding triangle and alloys','S2.2 (HL) Formal charge and resonance'],
+  j:['Kossel–Lewis approach; ionic bond and lattice enthalpy','Covalent bond; electronegativity; Fajans’ rules; dipole moment','Resonance; bond parameters: length, angle, enthalpy and order','Valence bond theory; metallic bonding']},
+ tag:{'Lewis structures of ions':'spijn'},qtag:{8:'spijn'},
+ sec:[['Lewis structures of ions',{h:'Formal charge and resonance',only:'pijn',html:`${coEq('formal charge = valence electrons − non-bonding electrons − ½ × bonding electrons')}
+   <p>When several Lewis structures are possible, the best one has formal charges <b>as close to zero</b> as possible, with any negative formal charge on the <b>more electronegative</b> atom.</p>
+   ${stT([['O₃','central O +1; single-bonded O −1; double-bonded O 0','two equal resonance structures: both O–O bonds are the same length'],['CO₃²⁻','each single-bonded O −1; C and the double-bonded O 0','three resonance structures; each C–O has bond order 4/3'],['NH₄⁺','N +1; every H 0','the charge sits on N'],['CN⁻','C −1, N 0','[:C≡N:]⁻'],['CO₂','all 0 in O=C=O','better than O≡C–O, which has charges +1 and −1']],['Species','Formal charges','Notes'])}
+   <p><b>Resonance</b> structures differ only in where the electrons are, not the atoms. The real molecule is a <b>resonance hybrid</b>, lower in energy than any single structure, with bond lengths in between single and double. Benzene, ozone, carbonate, nitrate and carboxylate ions are classic examples.</p>`}],
+  ['Bond length and bond energy',{h:'Ionic lattices, alloys and the energy–distance curve',only:'pi',html:`<p><b>Lattice enthalpy</b> is the energy needed to separate one mole of an ionic solid into gaseous ions. By Coulomb’s law it is larger for <b>smaller</b> and <b>more highly charged</b> ions: MgO (about 3800 kJ mol⁻¹) far exceeds NaCl (787 kJ mol⁻¹). Ionic solids have high melting points, are brittle, and conduct only when molten or dissolved.</p>
+   <p><b>Alloys:</b> in a <b>substitutional</b> alloy, atoms of similar size replace each other (brass: Cu and Zn). In an <b>interstitial</b> alloy, small atoms fill the gaps between larger ones (steel: C in Fe), which makes it harder and less malleable, because layers slide less easily.</p>
+   <p><b>Energy against distance:</b> as two atoms approach, attraction lowers the energy until the nuclei start to repel. The distance at the energy minimum is the <b>bond length</b>; the depth of the well is the <b>bond energy</b>. Atoms with smaller radii give shorter, usually stronger bonds.</p>`}]],
+ qs:[
+  {prompt:'What is the formal charge on the central oxygen atom in ozone, O₃?',opts:['+1','0','−1','+2'],why:'It has 6 valence electrons, 2 non-bonding and 6 bonding: 6 − 2 − 3 = +1.',only:'pijn'},
+  {prompt:'What is the C–O bond order in the carbonate ion?',opts:['4/3','1','2','3/2'],why:'Four bonding pairs are shared over three C–O links in the resonance hybrid.',only:'pijn'},
+  {prompt:'Which statement about resonance structures is true?',opts:['They differ only in the positions of electrons','They are isomers that interconvert rapidly','The molecule flips between them','They have different arrangements of atoms'],why:'The real structure is a single hybrid; the drawn structures are limits of it.',only:'pijn'},
+  {prompt:'Why does MgO have a much larger lattice enthalpy than NaCl?',opts:['Mg²⁺ and O²⁻ have higher charges and smaller radii','MgO is covalent','Na⁺ is smaller than Mg²⁺','NaCl has more ions per formula unit'],why:'Attraction is proportional to the product of the charges divided by the distance between the ions.',only:'pi'},
+  {prompt:'Steel is an example of which kind of alloy?',opts:['Interstitial','Substitutional','Ionic','Network covalent'],why:'Small carbon atoms sit in the holes between the larger iron atoms.',only:'pi'},
+  {prompt:'On a graph of potential energy against internuclear distance for H₂, what does the minimum show?',opts:['The bond length and bond energy','The ionisation energy','Where the atoms repel most','The atomic radius of H'],why:'The distance at the minimum is the bond length; the depth of the well is the bond energy.',only:'p'}]},
+
+'pu-shape':{ref:{p:'Unit 2: 2.7',i:'Structure 2.2',j:'Chemical bonding and molecular structure (Class 11)'},
+ syl:{p:['2.7 VSEPR: molecular geometry and bond angles','2.7 Hybridisation (sp, sp², sp³); σ and π bonds','2.7 Molecular polarity'],
+  i:['S2.2 VSEPR shapes for up to four electron domains','S2.2 Bond polarity and molecular polarity','S2.2 (HL) Shapes with five and six electron domains','S2.2 (HL) σ and π bonds; sp, sp² and sp³ hybridisation'],
+  j:['VSEPR theory and shapes of simple molecules','Hybridisation involving s, p and d orbitals','Molecular orbital theory: LCAO; bonding and antibonding orbitals; σ and π molecular orbitals','MO configurations of homonuclear diatomics; bond order, bond length, bond energy and magnetism','Dipole moment']},
+ sec:[[null,{h:'Molecular orbital theory',only:'jn',html:`<p>When atomic orbitals combine (LCAO), they form the same number of molecular orbitals: a lower-energy <b>bonding</b> orbital and a higher-energy <b>antibonding</b> orbital (marked *).</p>
+   ${coEq('bond order = ½ (electrons in bonding orbitals − electrons in antibonding orbitals)')}
+   <p>Energy order for Li₂ to N₂: σ1s &lt; σ*1s &lt; σ2s &lt; σ*2s &lt; (π2p<sub>x</sub> = π2p<sub>y</sub>) &lt; σ2p<sub>z</sub> &lt; (π*2p<sub>x</sub> = π*2p<sub>y</sub>) &lt; σ*2p<sub>z</sub>. For O₂ and F₂, σ2p<sub>z</sub> lies <b>below</b> the π2p pair.</p>
+   ${stT([['H₂','1','diamagnetic'],['He₂','0','does not exist'],['B₂','1','paramagnetic (2 unpaired)'],['C₂','2','diamagnetic'],['N₂','3','diamagnetic'],['O₂','2','paramagnetic (2 unpaired π* electrons)'],['F₂','1','diamagnetic'],['O₂⁺','2.5','paramagnetic'],['O₂⁻ (superoxide)','1.5','paramagnetic'],['O₂²⁻ (peroxide)','1','diamagnetic']],['Species','Bond order','Magnetism'])}
+   <p>Higher bond order means a shorter, stronger bond: stability O₂⁺ &gt; O₂ &gt; O₂⁻ &gt; O₂²⁻. MO theory explains why O₂ is attracted to a magnet, which a Lewis structure with all electrons paired cannot.</p>`}],
+  [null,{h:'Hybridisation with d orbitals, and dipole moments',only:'jn',html:`${stT([['sp³d','trigonal bipyramidal','PCl₅ (the two axial P–Cl bonds are longer and weaker than the three equatorial ones)'],['sp³d²','octahedral','SF₆'],['dsp²','square planar','[Ni(CN)₄]²⁻']],['Hybridisation','Shape','Example'])}
+   <p><b>Dipole moment</b> μ = charge × distance, measured in debye (D). Symmetrical molecules (CO₂, BF₃, CH₄, CCl₄) have μ = 0. NH₃ (1.47 D) has a much larger dipole moment than NF₃ (0.23 D): in NH₃ the lone pair’s moment points the same way as the N–H bond moments, while in NF₃ it opposes the N–F bond moments.</p>`}]],
+ qs:[
+  {prompt:'What is the bond order of the superoxide ion, O₂⁻?',opts:['1.5','2','2.5','1'],why:'Counting every electron, O₂⁻ (17 electrons) has 10 in bonding and 7 in antibonding orbitals (three of them in π*2p): ½(10 − 7) = 1.5.',only:'jn'},
+  {prompt:'Which molecule is paramagnetic?',opts:['O₂','N₂','F₂','C₂'],why:'O₂ has two unpaired electrons in its π*2p orbitals.',only:'jn'},
+  {prompt:'Which has the highest bond order?',opts:['N₂','O₂','O₂⁺','N₂⁺'],why:'N₂ has bond order 3; N₂⁺ and O₂⁺ are 2.5; O₂ is 2.',only:'jn'},
+  {prompt:'What is the hybridisation of phosphorus in PCl₅?',opts:['sp³d','sp³','sp³d²','dsp²'],why:'Five bonding pairs need five hybrid orbitals: one s, three p and one d.',only:'jn'},
+  {prompt:'Why is the dipole moment of NH₃ larger than that of NF₃?',opts:['In NH₃ the lone pair moment adds to the bond moments; in NF₃ it opposes them','N–F bonds are non-polar','NF₃ is planar','NH₃ has no lone pair'],why:'The direction of the bond dipoles relative to the lone pair decides whether they reinforce or cancel.',only:'jn'},
+  {prompt:'Why does He₂ not exist?',opts:['Its bond order is zero','Helium has no electrons in 1s','The bond is too polar','Helium atoms are too large'],why:'Two electrons in σ1s and two in σ*1s: ½(2 − 2) = 0.',only:'jn'}]},
+
+'pu-imf':{ref:{p:'Unit 3: 3.1–3.2',i:'Structure 2.2',j:'Chemical bonding and molecular structure (Class 11)'},
+ syl:{p:['3.1 Intermolecular forces: dispersion, dipole–dipole, dipole–induced dipole, hydrogen bonding and ion–dipole','3.1 Using intermolecular forces to explain boiling points and vapour pressure','3.2 Properties of solids: ionic, molecular, covalent network and metallic'],
+  i:['S2.2 London (dispersion), dipole–induced dipole and dipole–dipole forces, and hydrogen bonding','S2.2 Effect of intermolecular forces on volatility, boiling point and solubility','S2.2 Covalent network structures: diamond, graphite, graphene, SiO₂'],
+  j:['Hydrogen bonding: intermolecular and intramolecular, and its applications','Effect of intermolecular forces on physical properties']},
+ tag:{'Intramolecular hydrogen bonds':'sjn'},qtag:{7:'sjn'},
+ sec:[[null,{h:'Four kinds of solid',only:'pi',html:`${stT([['ionic','ions held by ionic bonds','NaCl, MgO','high melting point; brittle; conducts only when molten or dissolved'],['molecular','molecules held by intermolecular forces','I₂, ice, CO₂ (dry ice)','low melting point; soft; does not conduct'],['covalent network','atoms held by covalent bonds throughout','diamond, graphite, SiO₂','very high melting point; hard (graphite is the soft, conducting exception)'],['metallic','cations in a sea of delocalised electrons','Cu, Fe','conducts as a solid; malleable and ductile']],['Solid','Particles and forces','Examples','Properties'])}`}]],
+ qs:[
+  {prompt:'Which solid has the highest melting point?',opts:['SiO₂','CO₂','I₂','H₂O'],why:'Silicon dioxide is a covalent network: melting it breaks strong covalent bonds. The others are molecular solids.',only:'pi'},
+  {prompt:'Which solid conducts electricity in the solid state?',opts:['Copper','Sodium chloride','Ice','Diamond'],why:'Metals have delocalised electrons that can move. Ionic solids conduct only when the ions can move (molten or dissolved).',only:'pi'}]},
+
+'pu-org':{ref:{i:'Structure 3.2',j:'Some basic principles of organic chemistry (Class 11)'},
+ syl:{i:['S3.2 Molecular, empirical, structural and skeletal formulas','S3.2 Functional groups and homologous series','S3.2 IUPAC naming of compounds with up to six carbons in the main chain','R3.3 Homolytic fission and radicals; R3.4 nucleophiles and electrophiles'],
+  j:['Tetravalency of carbon; shapes of simple molecules','Classification; functional groups; homologous series; IUPAC and common names','Homolytic and heterolytic fission; free radicals, carbocations and carbanions and their stability','Electrophiles and nucleophiles','Electronic displacement: inductive, electromeric and resonance effects; hyperconjugation','Types of reaction: substitution, addition, elimination and rearrangement']},
+ sec:[[null,{h:'Reaction intermediates and electronic effects',only:'jn',html:`${stT([['carbocation','sp², planar; 6 electrons around C','3° &gt; 2° &gt; 1° &gt; CH₃⁺; allylic and benzylic cations are extra stable by resonance'],['carbanion','sp³, pyramidal; 8 electrons (one lone pair)','CH₃⁻ &gt; 1° &gt; 2° &gt; 3°: alkyl groups destabilise it; electron-withdrawing groups and resonance stabilise it'],['free radical','roughly planar; 7 electrons','3° &gt; 2° &gt; 1° &gt; CH₃•']],['Intermediate','Structure','Stability'])}
+   <ul><li><b>Inductive effect (I):</b> permanent polarisation along σ bonds. −I: –NO₂, –CN, –COOH, –F, –Cl. +I: alkyl groups.</li><li><b>Electromeric effect (E):</b> a <b>temporary</b>, complete shift of π electrons towards one atom, only when an attacking reagent is present.</li><li><b>Resonance (mesomeric) effect (R or M):</b> delocalisation of π electrons or lone pairs through a conjugated system. +R: –OH, –OR, –NH₂, –X (push electrons into the system). −R: –NO₂, –CHO, –COOH, –CN (pull them out).</li><li><b>Hyperconjugation</b> (“no-bond resonance”): σ electrons of a C–H bond on the carbon next to a carbocation or C=C (an α-H) delocalise into the empty p orbital or π system. More α-hydrogens means more stabilisation: (CH₃)₃C⁺ has 9 α-H, which helps explain why tertiary carbocations and more substituted alkenes are more stable.</li></ul>`}]],
+ qs:[
+  {prompt:'What is the hybridisation of the carbon in a carbanion such as CH₃⁻?',opts:['sp³','sp²','sp','sp³d'],why:'Three bonds and a lone pair: four electron pairs, so sp³ and pyramidal.',only:'jn'},
+  {prompt:'Which carbanion is the most stable?',opts:['CH₃⁻','(CH₃)₃C⁻','(CH₃)₂CH⁻','CH₃CH₂⁻'],why:'Electron-donating alkyl groups intensify the negative charge, so the order is the reverse of carbocations.',only:'jn'},
+  {prompt:'How many α-hydrogens are available for hyperconjugation in the tert-butyl cation, (CH₃)₃C⁺?',opts:['9','3','6','0'],why:'Each of the three CH₃ groups has three C–H bonds next to the positive carbon.',only:'jn'},
+  {prompt:'The electromeric effect is:',opts:['a temporary shift of π electrons in the presence of a reagent','a permanent polarisation of σ bonds','delocalisation of σ electrons into a p orbital','the effect of a lone pair on acidity'],why:'It appears only when an attacking reagent demands electrons, and disappears when it is removed.',only:'jn'},
+  {prompt:'Which group has a −R (electron-withdrawing resonance) effect?',opts:['–NO₂','–OH','–NH₂','–OCH₃'],why:'–NO₂ pulls π electrons out of a conjugated system; the others donate lone pairs.',only:'jn'}]},
+
+'pu-iso':{ref:{i:'Structure 3.2',j:'Some basic principles of organic chemistry (Class 11); Haloalkanes (Class 12)'},
+ syl:{i:['S3.2 Structural isomers','S3.2 (HL) cis-trans isomerism','S3.2 (HL) Optical isomers: chiral centres, enantiomers, racemic mixtures and polarimetry'],
+  j:['Structural isomerism','Stereoisomerism: geometrical (cis-trans) and optical isomerism','Optical activity, chirality, enantiomers and racemic mixtures; retention and inversion of configuration']}},
+
+'pu-alkane':{ref:{i:'Reactivity 1.3, 3.3',j:'Hydrocarbons (Class 11)'},
+ syl:{i:['R1.3 Complete and incomplete combustion of hydrocarbons','R3.3 Radicals formed by homolytic fission in UV light','R3.3 Radical substitution in alkanes: initiation, propagation and termination'],
+  j:['Alkanes: nomenclature, isomerism, preparation, properties and reactions','Conformations: Sawhorse and Newman projections of ethane','Mechanism of halogenation of alkanes']},
+ sec:[[null,{h:'Making alkanes, and the conformations of ethane',only:'jn',html:`${stT([['hydrogenation','alkene or alkyne + H₂, Pt, Pd or Ni','same carbon skeleton'],['reduction of an alkyl halide','Zn and dilute HCl','R–X → R–H'],['Wurtz reaction','2RX + 2Na, dry ether','R–R: doubles the chain; methane can’t be made this way'],['decarboxylation','RCOONa + NaOH and CaO (soda lime), heat','R–H: one carbon fewer'],['Kolbe electrolysis','electrolysis of aqueous RCOONa','R–R at the anode, with CO₂']],['Method','Reagents','Result'])}
+   <p><b>Conformations</b> are arrangements that interconvert by rotation about a C–C σ bond. In ethane, the <b>staggered</b> form is the most stable and the <b>eclipsed</b> form the least, because of torsional strain (electron repulsion between the C–H bonds). The difference is only about 12.5 kJ mol⁻¹, so rotation is almost free at room temperature and the conformations can’t be separated. Draw them as <b>Newman</b> projections (looking along the C–C bond) or <b>Sawhorse</b> projections.</p>
+   <p>Other alkane reactions in NCERT: <b>isomerisation</b> (AlCl₃/HCl), <b>aromatisation</b> (hexane → benzene over Cr₂O₃ or V₂O₅ at 773 K, 10–20 atm) and <b>pyrolysis</b> (cracking).</p>`}]],
+ qs:[
+  {prompt:'Which alkane cannot be prepared by the Wurtz reaction?',opts:['Methane','Ethane','Butane','Hexane'],why:'Wurtz joins two alkyl groups, so the product always has at least two carbons.',only:'jn'},
+  {prompt:'Which conformation of ethane is the most stable?',opts:['Staggered','Eclipsed','Skew','Chair'],why:'In the staggered form the C–H bonds on adjacent carbons are as far apart as possible, minimising torsional strain.',only:'jn'},
+  {prompt:'Sodium ethanoate is heated with soda lime. What is the organic product?',opts:['Methane','Ethane','Ethene','Propane'],why:'Decarboxylation removes CO₂: CH₃COONa + NaOH → CH₄ + Na₂CO₃.',only:'jn'},
+  {prompt:'What gas forms at the anode in the Kolbe electrolysis of sodium propanoate, besides CO₂?',opts:['Butane','Ethane','Propane','Hydrogen'],why:'Two ethyl radicals combine: 2CH₃CH₂COO⁻ → C₄H₁₀ + 2CO₂ + 2e⁻. Hydrogen forms at the cathode.',only:'jn'}]},
+
+'pu-alkene':{ref:{i:'Reactivity 3.4',j:'Hydrocarbons (Class 11)'},
+ syl:{i:['R3.4 Electrophilic addition of halogens, hydrogen halides and water to alkenes','R3.2 Reduction of alkenes with hydrogen','S2.4 Addition polymers','S3.2 Bromine water as a test for C=C','(HL) The electrophilic addition mechanism; Markovnikov’s rule from carbocation stability'],
+  j:['Alkenes: geometrical isomerism; electrophilic addition of hydrogen, halogens, water and hydrogen halides','Markovnikov’s rule and the peroxide effect','Ozonolysis and polymerisation','Alkynes: acidic character; addition of hydrogen, halogens, water and hydrogen halides; polymerisation']},
+ tag:{'More STPM reactions of ethene':'sjn'},rename:{'More STPM reactions of ethene':'More reactions of ethene, and ozonolysis'},
+ sec:[['The mechanism and Markovnikov’s rule',{h:'The peroxide effect',only:'jn',html:`<p>With an organic peroxide present, <b>HBr</b> adds the <b>anti-Markovnikov</b> way: propene gives 1-bromopropane. This is the <b>Kharasch (peroxide) effect</b>. The peroxide makes Br• radicals; Br• adds to the CH₂ end to form the more stable secondary <b>radical</b>, which then takes H from HBr.</p>
+   ${coR('C=CC','HBr, peroxide','BrCCC','Anti-Markovnikov: 1-bromopropane.')}
+   <p>HCl and HI don’t show the effect: the H–Cl bond is too strong to be broken by the radicals, and I• radicals combine with each other rather than add to the alkene.</p>`}],
+  [null,{h:'Alkynes',only:'jn',html:`<p><b>Making ethyne:</b> CaC₂ + 2H₂O → C₂H₂ + Ca(OH)₂; or from a vicinal dihalide with alcoholic KOH, then NaNH₂.</p>
+   <p><b>Acidity:</b> the H on a triple-bonded carbon is weakly acidic because the sp carbon has 50% s-character and holds the electron pair close: ethyne &gt; ethene &gt; ethane. Terminal alkynes react with Na or NaNH₂ to give acetylides, and with ammoniacal AgNO₃ (white precipitate) or ammoniacal Cu₂Cl₂ (red precipitate). Internal alkynes such as but-2-yne don’t.</p>
+   ${stT([['H₂, Pt/Pd/Ni','alkane'],['H₂, Lindlar catalyst (Pd on CaCO₃, poisoned)','cis-alkene'],['Na in liquid NH₃','trans-alkene'],['Br₂ (two moles)','1,1,2,2-tetrabromoalkane: the orange colour disappears'],['HX (two moles), Markovnikov','geminal dihalide, CH₃CX₂R'],['H₂O, HgSO₄ and dilute H₂SO₄, 333 K','carbonyl compound via an enol: ethyne → ethanal, propyne → propanone'],['red-hot iron tube, 873 K (cyclic polymerisation)','3 ethyne → benzene']],['Reagent','Product'])}`}]],
+ qs:[
+  {prompt:'Propene reacts with HBr in the presence of benzoyl peroxide. What is the major product?',opts:['1-Bromopropane','2-Bromopropane','1,2-Dibromopropane','Propan-1-ol'],why:'The peroxide effect: a radical mechanism gives the anti-Markovnikov product.',only:'jn'},
+  {prompt:'Why is the peroxide effect seen with HBr but not with HCl?',opts:['The H–Cl bond is too strong for the radical chain to break','Cl• radicals do not form','HCl is not an acid','HCl adds anti-Markovnikov anyway'],why:'The propagation step Cl–H + C• is too endothermic, so the radical chain does not run.',only:'jn'},
+  {prompt:'What does ethyne give with water, HgSO₄ and dilute H₂SO₄?',opts:['Ethanal','Ethanol','Ethanoic acid','Ethane-1,2-diol'],why:'Water adds to give an enol, CH₂=CHOH, which tautomerises to ethanal.',only:'jn'},
+  {prompt:'Which compound gives a white precipitate with ammoniacal silver nitrate?',opts:['But-1-yne','But-2-yne','But-1-ene','Butane'],why:'Only terminal alkynes have an acidic ≡C–H that forms a silver acetylide.',only:'jn'},
+  {prompt:'Which reagent reduces an alkyne to a cis-alkene?',opts:['H₂ with Lindlar catalyst','Na in liquid NH₃','H₂ with Ni','LiAlH₄'],why:'The poisoned catalyst stops at the alkene and adds both H atoms to the same face. Na/NH₃ gives the trans-alkene.',only:'jn'},
+  {prompt:'Arrange in order of increasing acidity: ethane, ethene, ethyne.',opts:['Ethane < ethene < ethyne','Ethyne < ethene < ethane','Ethene < ethane < ethyne','All equal'],why:'More s-character in the C–H carbon (sp³ 25%, sp² 33%, sp 50%) holds the electron pair of the conjugate base closer.',only:'jn'}]},
+
+'pu-arene':{ref:{i:'Structure 2.2 (HL); Reactivity 3.4 (HL)',j:'Hydrocarbons (Class 11)'},
+ syl:{i:['S2.2 (HL) Benzene: delocalisation, resonance and evidence for its structure','R3.4 (HL) Electrophilic substitution of benzene: nitration and its mechanism'],
+  j:['Benzene: structure, resonance and aromaticity','Electrophilic substitution: halogenation, nitration, Friedel–Crafts alkylation and acylation','Directive influence of a functional group in monosubstituted benzene','Carcinogenicity and toxicity']},
+ tag:{'Uses and hazards':'sjn'},
+ sec:[['The structure of benzene',{h:'Aromaticity and Hückel’s rule',only:'jn',html:`<p>A compound is <b>aromatic</b> if it is cyclic, planar and fully conjugated, with <b>(4n + 2) π electrons</b> (2, 6, 10 …). Cyclic, planar, conjugated systems with 4n π electrons are <b>antiaromatic</b> and unstable.</p>
+   ${stT([['benzene','6','aromatic'],['naphthalene','10','aromatic'],['cyclopentadienyl anion, C₅H₅⁻','6','aromatic'],['cycloheptatrienyl (tropylium) cation, C₇H₇⁺','6','aromatic'],['pyridine, pyrrole, furan','6','aromatic'],['cyclobutadiene','4','antiaromatic'],['cyclooctatetraene','8','non-aromatic: the ring is tub-shaped, not planar']],['Species','π electrons','Verdict'])}
+   <p><b>Making benzene:</b> pass ethyne through a red-hot iron tube at 873 K; heat sodium benzoate with soda lime (decarboxylation); or distil phenol with zinc dust.</p>`}]],
+ qs:[
+  {prompt:'Which species is aromatic?',opts:['Cyclopentadienyl anion','Cyclopentadienyl cation','Cyclobutadiene','Cyclooctatetraene'],why:'C₅H₅⁻ is planar and conjugated with 6 π electrons (4n + 2, n = 1).',only:'jn'},
+  {prompt:'How many π electrons does naphthalene have?',opts:['10','6','12','8'],why:'Five double bonds in the two fused rings: 10 π electrons, so it is aromatic (n = 2).',only:'jn'},
+  {prompt:'How is benzene made from ethyne?',opts:['Passing it through a red-hot iron tube at 873 K','Heating it with soda lime','Ozonolysis','Treating it with HgSO₄ and H₂SO₄'],why:'Three ethyne molecules join in a cyclic polymerisation.',only:'jn'}]},
+
+'pu-halo':{ref:{i:'Reactivity 3.4',j:'Haloalkanes and haloarenes (Class 12)'},
+ syl:{i:['R3.4 Nucleophiles and nucleophilic substitution of halogenoalkanes','R3.4 (HL) SN1 and SN2 mechanisms and how the class of halogenoalkane decides between them','R3.4 (HL) Effect of the leaving group and the solvent on the rate','R3.4 (HL) Stereospecific SN2: inversion of configuration'],
+  j:['General methods of preparation, properties and reactions; nature of the C–X bond','Mechanisms of substitution reactions (SN1, SN2); stereochemistry','Uses and environmental effects of chloroform, iodoform, freons and DDT']},
+ tag:{'Grignard reagents':'sjn','CFCs, DDT and the ozone layer':'sjn'},qtag:{8:'sjn',9:'sjn'},
+ sec:[['Why chlorobenzene is unreactive',{h:'More halogen chemistry (NCERT)',only:'jn',html:`${stT([['from alcohols','HCl with anhydrous ZnCl₂ (Groove’s process); PCl₃; PCl₅; SOCl₂ (best: SO₂ and HCl leave as gases)'],['halogen exchange','Finkelstein: RCl or RBr + NaI in dry acetone → RI. Swarts: RCl or RBr + AgF, Hg₂F₂, CoF₂ or SbF₃ → RF'],['haloarenes','Cl₂ or Br₂ with Fe or FeCl₃ (o- and p-products from toluene); or Sandmeyer from a diazonium salt']],['Preparation','Reagents'])}
+   <p><b>Ambident nucleophiles:</b> KCN (ionic) gives a nitrile R–C≡N, but AgCN (mainly covalent) gives an isocyanide R–N≡C. KNO₂ gives an alkyl nitrite R–O–N=O, but AgNO₂ gives a nitroalkane R–NO₂.</p>
+   <p><b>Stereochemistry:</b> SN2 inverts the configuration (Walden inversion); SN1 through a planar carbocation gives racemisation.</p>
+   <p><b>Haloarenes:</b> chlorobenzene gives phenol only with NaOH at 623 K and 300 atm. Nitro groups at the ortho and para positions make substitution much easier: 4-nitrochlorobenzene reacts at 443 K, and 2,4,6-trinitrochlorobenzene with warm water. With sodium, haloarenes undergo the Fittig and Wurtz–Fittig reactions.</p>
+   <p><b>Chloroform</b> is oxidised by air in light to poisonous phosgene, COCl₂, so it is stored in dark bottles filled to the brim. <b>Iodoform</b> was used as an antiseptic because of the iodine it releases.</p>`}]],
+ qs:[
+  {prompt:'Bromoethane is heated with AgCN. What is the main organic product?',opts:['Ethyl isocyanide, C₂H₅NC','Propanenitrile, C₂H₅CN','Ethanol','Ethylamine'],why:'AgCN is largely covalent, so the nitrogen lone pair attacks: an isocyanide forms. KCN gives the nitrile.',only:'jn'},
+  {prompt:'Which compound is hydrolysed most easily by aqueous NaOH?',opts:['2,4,6-Trinitrochlorobenzene','Chlorobenzene','4-Nitrochlorobenzene','4-Methylchlorobenzene'],why:'Nitro groups at the ortho and para positions withdraw electrons and stabilise the intermediate anion.',only:'jn'},
+  {prompt:'Why is chloroform stored in dark bottles filled to the brim?',opts:['Air and light oxidise it to poisonous phosgene','It decomposes to chlorine gas in the dark','It is flammable in air','It absorbs water'],why:'2CHCl₃ + O₂ → 2COCl₂ + 2HCl in light.',only:'jn'},
+  {prompt:'Which reaction makes an alkyl fluoride from an alkyl bromide?',opts:['Swarts reaction','Finkelstein reaction','Sandmeyer reaction','Wurtz reaction'],why:'Swarts uses metal fluorides such as AgF, Hg₂F₂, CoF₂ or SbF₃.',only:'jn'},
+  {prompt:'An optically active halogenoalkane reacts by SN2. What happens to its configuration?',opts:['It is inverted','It is retained','It racemises','It is lost'],why:'The nucleophile attacks from the back, turning the molecule inside out like an umbrella.',only:'jn'}]},
+
+'pu-oh':{ref:{i:'Reactivity 3.2',j:'Alcohols, phenols and ethers (Class 12)'},
+ syl:{i:['S3.2 Primary, secondary and tertiary alcohols','R3.2 Oxidation of alcohols: primary to aldehyde (distil) or acid (reflux); secondary to ketone','R3.2 Reduction of aldehydes and ketones back to alcohols','R1.3 Combustion of alcohols'],
+  j:['Alcohols: preparation, properties and reactions','Identifying primary, secondary and tertiary alcohols','Mechanism of dehydration','Ethers: structure, preparation and reactions']},
+ tag:{'Ethanol in industry':'sjn'},qtag:{8:'sjn'},
+ sec:[['The tri-iodomethane (iodoform) test',{h:'The Lucas test, and more ways to make alcohols',only:'jn',html:`<p><b>Lucas test:</b> shake the alcohol with Lucas reagent (concentrated HCl with anhydrous ZnCl₂). The insoluble chloroalkane makes the mixture cloudy: <b>tertiary</b> alcohols at once, <b>secondary</b> within about five minutes, <b>primary</b> not at room temperature.</p>
+   ${stT([['acid-catalysed hydration of an alkene','Markovnikov: propene → propan-2-ol'],['hydroboration–oxidation (B₂H₆, then H₂O₂/OH⁻)','anti-Markovnikov: propene → propan-1-ol'],['reducing aldehydes, ketones, acids and esters','H₂/Pd, NaBH₄ or LiAlH₄'],['Grignard reagent + methanal / other aldehyde / ketone, then H₃O⁺','primary / secondary / tertiary alcohol']],['Method','Product'])}
+   <p><b>Dehydration</b> gets easier from 1° to 3° (the carbocation is more stable): ethanol needs conc. H₂SO₄ at 443 K; a tertiary alcohol needs only 20% H₃PO₄ at 358 K. <b>Copper at 573 K</b> dehydrogenates 1° alcohols to aldehydes and 2° alcohols to ketones, but dehydrates 3° alcohols to alkenes.</p>`}],
+  [null,{h:'Ethers',only:'jn',html:`<p><b>Williamson synthesis:</b> an alkoxide does SN2 on a <b>primary</b> alkyl halide: RO⁻Na⁺ + R′X → R–O–R′. With a tertiary halide, elimination wins, so to make tert-butyl methyl ether use sodium tert-butoxide with CH₃Br, not sodium methoxide with tert-butyl bromide. Primary alcohols also give symmetrical ethers with conc. H₂SO₄ at 413 K.</p>
+   <p><b>Cleavage by HI:</b> R–O–CH₃ + HI → R–OH + CH₃I (iodide attacks the less hindered methyl carbon by SN2). If one group is tertiary, the tertiary halide forms instead (SN1). Anisole + HI gives <b>phenol and iodomethane</b>, because the aryl C–O bond has partial double-bond character.</p>
+   <p>The –OCH₃ group of <b>anisole</b> activates the ring and directs to ortho and para: bromination in ethanoic acid gives mainly 4-bromoanisole; Friedel–Crafts and nitration also go o/p.</p>`}]],
+ qs:[
+  {prompt:'Which alcohol turns Lucas reagent cloudy immediately at room temperature?',opts:['2-Methylpropan-2-ol','Butan-2-ol','Butan-1-ol','Methanol'],why:'Tertiary alcohols form a carbocation quickly, so the insoluble chloride forms at once.',only:'jn'},
+  {prompt:'Propene undergoes hydroboration–oxidation. What is the product?',opts:['Propan-1-ol','Propan-2-ol','Propane-1,2-diol','Propanal'],why:'Boron adds to the less substituted carbon, so OH ends up there: anti-Markovnikov.',only:'jn'},
+  {prompt:'Which pair of reagents is best for making tert-butyl methyl ether?',opts:['(CH₃)₃CO⁻Na⁺ and CH₃Br','CH₃O⁻Na⁺ and (CH₃)₃CBr','(CH₃)₃COH and CH₃OH with conc. H₂SO₄','CH₃ONa and (CH₃)₃CCl'],why:'The halide must be primary (or methyl) for SN2. A tertiary halide with a strong base gives an alkene.',only:'jn'},
+  {prompt:'What are the products when anisole is heated with HI?',opts:['Phenol and iodomethane','Iodobenzene and methanol','Iodobenzene and iodomethane','Benzene and methanol'],why:'The aryl C–O bond is strengthened by resonance, so iodide attacks the methyl carbon.',only:'jn'},
+  {prompt:'2-Methylpropan-2-ol vapour is passed over copper at 573 K. What forms?',opts:['2-Methylpropene','2-Methylpropanal','Propanone','No reaction'],why:'Tertiary alcohols have no H on the carbinol carbon to lose, so they are dehydrated instead of dehydrogenated.',only:'jn'},
+  {prompt:'A Grignard reagent reacts with methanal, then dilute acid. What class of alcohol forms?',opts:['Primary','Secondary','Tertiary','Phenol'],why:'HCHO gives RCH₂OH. Other aldehydes give secondary alcohols and ketones give tertiary.',only:'jn'}]},
+
+'pu-phenol':{ref:{j:'Alcohols, phenols and ethers (Class 12)'},
+ syl:{j:['Phenols: acidic nature and the effect of substituents','Electrophilic substitution: halogenation, nitration and sulfonation','Reimer–Tiemann and Kolbe reactions','Preparation of phenol: from haloarenes, benzenesulfonic acid, diazonium salts and cumene']},
+ tag:{'Industry: cumene, cyclohexanol and nylon':'sjn','Making phenol':'ajn'},qtag:{7:'ajn',8:'sjn'},
+ sec:[[null,{h:'More phenol chemistry (NCERT)',only:'jn',html:`<p><b>Making phenol:</b> chlorobenzene with NaOH at 623 K and 300 atm, then acid; fusing sodium benzenesulfonate with NaOH; warming a diazonium salt with water; or the cumene process.</p>
+   <p><b>Substituents and acidity:</b> electron-withdrawing groups at ortho and para positions stabilise the phenoxide ion: 4-nitrophenol (pKa 7.1) and 2-nitrophenol (7.2) are much stronger acids than phenol (10.0), and 2,4,6-trinitrophenol (picric acid, 0.71) is about as strong as a mineral acid. Electron-donating groups weaken it: the cresols (methylphenols) are weaker acids than phenol.</p>
+   ${stT([['dilute HNO₃, 298 K','2-nitrophenol and 4-nitrophenol: separate by steam distillation (2-nitrophenol is steam-volatile because of its intramolecular hydrogen bond)'],['conc. HNO₃','2,4,6-trinitrophenol (picric acid)'],['Br₂ in CS₂ or CHCl₃, 273 K','monobromophenols, mainly 4-bromophenol'],['bromine water','2,4,6-tribromophenol, white precipitate'],['CHCl₃ + aq. NaOH, then H⁺ (Reimer–Tiemann)','2-hydroxybenzaldehyde (salicylaldehyde)'],['NaOH, then CO₂ at 400 K and 4–7 atm, then H⁺ (Kolbe)','2-hydroxybenzoic acid (salicylic acid)'],['zinc dust, heat','benzene'],['Na₂Cr₂O₇ and H₂SO₄','benzo-1,4-quinone']],['Reagent','Product'])}`}]],
+ qs:[
+  {prompt:'Sodium phenoxide is heated with CO₂ under pressure, then acidified. What is formed?',opts:['Salicylic acid (2-hydroxybenzoic acid)','Salicylaldehyde','Benzoic acid','Phenyl methanoate'],why:'This is the Kolbe reaction: phenoxide attacks CO₂ at the ortho position.',only:'jn'},
+  {prompt:'Which is the strongest acid?',opts:['4-Nitrophenol','Phenol','4-Methylphenol','Ethanol'],why:'The nitro group delocalises the negative charge of the phenoxide ion; the methyl group destabilises it.',only:'jn'},
+  {prompt:'Why can 2-nitrophenol be separated from 4-nitrophenol by steam distillation?',opts:['2-Nitrophenol has an intramolecular hydrogen bond, so it is more volatile','4-Nitrophenol is a gas','2-Nitrophenol is ionic','They have different molecular formulas'],why:'4-Nitrophenol hydrogen bonds between molecules, so it is far less volatile.',only:'jn'},
+  {prompt:'What is formed when phenol is distilled with zinc dust?',opts:['Benzene','Cyclohexanol','Benzoquinone','Biphenyl'],why:'Zinc removes the oxygen: C₆H₅OH + Zn → C₆H₆ + ZnO.',only:'jn'},
+  {prompt:'Phenol reacts with bromine in CS₂ at 273 K. What is the main product?',opts:['4-Bromophenol','2,4,6-Tribromophenol','Bromobenzene','3-Bromophenol'],why:'In a non-polar solvent, phenol is less ionised and reacts more slowly, so monobromination (mainly para) occurs.',only:'jn'}]},
+
+'pu-carbonyl':{ref:{i:'Reactivity 3.2',j:'Aldehydes, ketones and carboxylic acids (Class 12)'},
+ syl:{i:['S3.2 Aldehydes and ketones as functional groups; naming','R3.2 Oxidation of aldehydes to carboxylic acids','R3.2 Reduction of aldehydes and ketones with NaBH₄ or LiAlH₄'],
+  j:['Nature of the carbonyl group; nucleophilic addition; relative reactivity of aldehydes and ketones','Addition of HCN, ammonia and its derivatives; Grignard reagents','Oxidation; reduction (Wolff–Kishner and Clemmensen)','Acidity of α-hydrogen; aldol condensation, Cannizzaro reaction, haloform reaction','Chemical tests to distinguish aldehydes and ketones']},
+ sec:[['Tests',{h:'Reactivity, and adding ammonia derivatives',only:'jn',html:`<p><b>Aldehydes are more reactive than ketones</b> in nucleophilic addition: a ketone’s two alkyl groups push electrons towards the carbonyl carbon (less δ+) and crowd it. Order: HCHO &gt; CH₃CHO &gt; CH₃COCH₃. Benzaldehyde is less reactive than aliphatic aldehydes because the ring donates electrons by resonance.</p>
+   ${stT([['hydroxylamine, NH₂OH','oxime, C=N–OH'],['hydrazine, NH₂NH₂','hydrazone, C=N–NH₂'],['phenylhydrazine','phenylhydrazone'],['2,4-dinitrophenylhydrazine','2,4-DNP derivative (orange solid)'],['semicarbazide, NH₂NHCONH₂','semicarbazone, C=N–NHCONH₂'],['NaHSO₃','crystalline addition product with aldehydes and methyl ketones; used to purify them'],['alcohol, dry HCl','hemiacetal, then acetal; ketones with ethane-1,2-diol give cyclic ketals']],['Reagent','Product'])}
+   <p>Reactions with ammonia derivatives (Z–NH₂) are addition–elimination and run best in weakly acidic solution (pH about 3.5): enough acid to activate C=O, but not so much that the nitrogen is protonated.</p>`}],
+  ['Reactivity, and adding ammonia derivatives',{h:'α-Hydrogens: aldol and Cannizzaro',only:'jn',html:`<p>A hydrogen on the carbon next to C=O (an <b>α-hydrogen</b>) is acidic, because the carbanion formed (an enolate) is stabilised by resonance.</p>
+   <ul><li><b>Aldol:</b> with dilute NaOH, two molecules with α-H join: 2CH₃CHO → CH₃CH(OH)CH₂CHO (3-hydroxybutanal, “aldol”); heating dehydrates it to but-2-enal. A <b>cross aldol</b> between two different compounds that both have α-H gives four products.</li><li><b>Cannizzaro:</b> aldehydes with <b>no</b> α-H (HCHO, C₆H₅CHO, (CH₃)₃CCHO) react with concentrated alkali: one molecule is reduced to an alcohol and another oxidised to a carboxylate. 2HCHO + conc. KOH → CH₃OH + HCOOK.</li><li><b>Clemmensen</b> (Zn–Hg, conc. HCl) and <b>Wolff–Kishner</b> (NH₂NH₂, then KOH in ethylene glycol) both reduce C=O to CH₂; choose by whether the molecule survives acid or base.</li></ul>
+   <p><b>Making carbonyl compounds (NCERT):</b> Rosenmund (RCOCl + H₂, Pd/BaSO₄), Stephen (RCN + SnCl₂/HCl, then H₃O⁺), Etard (toluene + CrO₂Cl₂), Gattermann–Koch (benzene + CO, HCl, AlCl₃), nitriles + Grignard reagents (ketones), ozonolysis, hydration of alkynes and Friedel–Crafts acylation.</p>`}]],
+ qs:[
+  {prompt:'Which is the most reactive towards nucleophilic addition?',opts:['Methanal','Ethanal','Propanone','Benzaldehyde'],why:'Methanal has no electron-donating or bulky groups on the carbonyl carbon.',only:'jn'},
+  {prompt:'What is the product of ethanal with dilute NaOH at room temperature?',opts:['3-Hydroxybutanal','But-2-enal','Ethanol and ethanoate','Ethanoic acid'],why:'Aldol addition joins two molecules; heating would then give but-2-enal.',only:'jn'},
+  {prompt:'What are the products of methanal with concentrated KOH?',opts:['Methanol and potassium methanoate','Ethanal','Methanol only','CO₂ and water'],why:'Cannizzaro: methanal has no α-H, so one molecule is reduced and one oxidised.',only:'jn'},
+  {prompt:'Which reagent converts a ketone into an oxime?',opts:['NH₂OH','NH₂NH₂','NaHSO₃','HCN'],why:'Hydroxylamine adds and water is lost, giving C=N–OH.',only:'jn'},
+  {prompt:'How many aldol products (ignoring stereoisomers) form from a mixture of ethanal and propanal with dilute NaOH?',opts:['4','2','3','1'],why:'Each compound can act as the enolate and as the carbonyl: two self-aldols and two crossed aldols.',only:'jn'},
+  {prompt:'A molecule containing a C=O group also has an acid-sensitive group. Which reduction should be used to make CH₂?',opts:['Wolff–Kishner','Clemmensen','NaBH₄','Tollens’ reagent'],why:'Wolff–Kishner works under basic conditions; Clemmensen needs concentrated HCl. NaBH₄ only gives the alcohol.',only:'jn'}]},
+
+'pu-acid':{ref:{i:'Reactivity 3.1, 3.2',j:'Aldehydes, ketones and carboxylic acids (Class 12)'},
+ syl:{i:['R3.1 Carboxylic acids as weak Brønsted–Lowry acids; conjugate bases','R3.1 Reactions with metals, bases and carbonates','R3.2 Reduction of carboxylic acids with LiAlH₄','(HL) pKa and the effect of substituents on acid strength'],
+  j:['Carboxylic acids: acidic strength and the factors affecting it','Preparation and reactions of carboxylic acids','HVZ reaction; decarboxylation; ring substitution']},
+ sec:[['Methanoic acid and ethanedioic acid',{h:'Acid strength and more reactions (NCERT)',only:'jn',html:`<p>Electron-withdrawing groups strengthen an acid; the effect is larger for more electronegative atoms, for more of them, and when they are closer to –COOH.</p>
+   ${stT([['FCH₂COOH','2.66'],['ClCH₂COOH','2.86'],['BrCH₂COOH','2.90'],['ICH₂COOH','3.18'],['HCOOH','3.75'],['4-nitrobenzoic acid','3.41'],['C₆H₅COOH','4.19'],['4-methylbenzoic acid','4.37'],['CH₃COOH','4.76']],['Acid','pKa'])}
+   ${stT([['P₂O₅ or conc. H₂SO₄, heat','acid anhydride'],['NH₃, then heat','ammonium salt, then amide'],['LiAlH₄ or B₂H₆','primary alcohol (diborane leaves esters, nitro and halo groups alone)'],['NaOH + CaO, heat','decarboxylation: alkane with one carbon fewer'],['X₂ and red P, then H₂O (HVZ)','α-halo acid'],['Grignard reagent + CO₂ (dry ice), then H₃O⁺','making a carboxylic acid with one more carbon']],['Reagent','Result'])}
+   <p>In benzoic acid, –COOH deactivates the ring and directs to the <b>meta</b> position. Benzoic acid does not undergo Friedel–Crafts reactions: the ring is deactivated, and the carboxyl group binds to AlCl₃.</p>`}]],
+ qs:[
+  {prompt:'Which is the strongest acid?',opts:['FCH₂COOH','ClCH₂COOH','BrCH₂COOH','CH₃COOH'],why:'Fluorine is the most electronegative, so its −I effect stabilises the carboxylate ion the most.',only:'jn'},
+  {prompt:'Why is methanoic acid stronger than ethanoic acid?',opts:['The methyl group in ethanoic acid donates electrons, destabilising its anion','Methanoic acid has two oxygens','Methanoic acid is an aldehyde','Ethanoic acid is not a carboxylic acid'],why:'The +I effect of CH₃ concentrates negative charge on the ethanoate ion.',only:'jn'},
+  {prompt:'Why doesn’t benzoic acid undergo Friedel–Crafts alkylation?',opts:['–COOH deactivates the ring and binds to AlCl₃','The ring is too electron-rich','Benzoic acid is a base','It reacts by SN2 instead'],why:'The catalyst is tied up and the ring is too deactivated to attack the electrophile.',only:'jn'},
+  {prompt:'Which reagent reduces a carboxylic acid but not an ester in the same molecule?',opts:['B₂H₆ (diborane)','LiAlH₄','NaBH₄','H₂/Pd'],why:'Diborane reduces –COOH readily but does not easily reduce esters, nitro or halo groups.',only:'jn'}]},
+
+'pu-amine':{ref:{j:'Organic compounds containing nitrogen (Class 12)'},
+ syl:{j:['Amines: nomenclature, classification, structure and basic character','Preparation: nitro reduction, ammonolysis, Gabriel phthalimide synthesis, Hofmann bromamide degradation','Identification of primary, secondary and tertiary amines','Diazonium salts: preparation and importance in synthetic organic chemistry']},
+ tag:{'Nitriles and hydroxynitriles':'ajn'},
+ sec:[[null,{h:'Basicity, preparation and tests (NCERT)',only:'jn',html:`<p>In <b>water</b>, basicity depends on the inductive effect, on how well the protonated amine is solvated (more N–H bonds, better hydrogen bonding) and on crowding:</p>
+   ${coEq('(C₂H₅)₂NH &gt; (C₂H₅)₃N &gt; C₂H₅NH₂ &gt; NH₃ &nbsp;&nbsp;·&nbsp;&nbsp; (CH₃)₂NH &gt; CH₃NH₂ &gt; (CH₃)₃N &gt; NH₃')}
+   <p>Aniline (pKb 9.4) is far weaker than all of these; electron-donating groups on the ring make it slightly stronger, and –NO₂ much weaker.</p>
+   ${stT([['reducing nitro compounds','Fe scrap and HCl (preferred: FeCl₂ hydrolyses to release more HCl, so little acid is needed), Sn/HCl or H₂/Pd'],['Gabriel phthalimide synthesis','phthalimide + KOH, then RX, then hydrolysis: pure primary aliphatic amines only'],['Hofmann bromamide degradation','RCONH₂ + Br₂ + 4NaOH → RNH₂: one carbon fewer'],['reducing nitriles and amides','LiAlH₄, or Na in ethanol'],['ammonolysis of alkyl halides','gives a mixture of 1°, 2°, 3° amines and a quaternary salt']],['Method','Details'])}
+   ${stT([['carbylamine test (CHCl₃ + alcoholic KOH)','foul-smelling isocyanide','no reaction','no reaction'],['Hinsberg reagent (C₆H₅SO₂Cl)','sulfonamide that dissolves in alkali','sulfonamide insoluble in alkali','no reaction'],['nitrous acid, cold','aliphatic: N₂ bubbles off and an alcohol forms; aromatic: a diazonium salt','yellow oily N-nitrosoamine','(soluble nitrite salt)']],['Test','Primary','Secondary','Tertiary'])}`}],
+  [null,{h:'Aniline and diazonium salts (NCERT)',only:'jn',html:`<ul><li><b>Bromine water</b> gives 2,4,6-tribromoaniline at once. To get a monosubstituted product, first <b>acetylate</b> the –NH₂ (ethanoic anhydride) to make acetanilide: the amide group is less activating, so bromination gives mainly 4-bromoacetanilide; hydrolysis then gives 4-bromoaniline.</li><li><b>Nitration</b> in strong acid gives a lot of the meta product (about 47%, with 51% para and 2% ortho), because much of the aniline is protonated to the anilinium ion, –NH₃⁺, which directs meta. Protecting it as acetanilide gives the para product.</li><li><b>No Friedel–Crafts:</b> aniline forms a salt with AlCl₃, and the positive nitrogen deactivates the ring.</li><li><b>Sulfonation</b> gives sulfanilic acid (4-aminobenzenesulfonic acid), which exists as a zwitterion.</li></ul>
+   <p>Benzenediazonium chloride is made from aniline, NaNO₂ and HCl at 273–278 K. It is more stable than aliphatic diazonium ions because of resonance with the ring.</p>
+   ${stT([['CuCl/HCl, CuBr/HBr, CuCN/KCN (Sandmeyer)','ArCl, ArBr, ArCN'],['Cu powder with HCl or HBr (Gattermann)','ArCl, ArBr'],['KI','ArI'],['HBF₄, then heat (Balz–Schiemann)','ArF'],['H₃PO₂, or ethanol','benzene'],['warm water','phenol'],['phenol in alkali (coupling)','4-hydroxyazobenzene (orange)'],['aniline in mild acid (coupling)','4-aminoazobenzene (aniline yellow)']],['Reagent','Product'])}`}]],
+ qs:[
+  {prompt:'Arrange in order of decreasing basicity in water: (CH₃)₃N, (CH₃)₂NH, CH₃NH₂.',opts:['(CH₃)₂NH > CH₃NH₂ > (CH₃)₃N','(CH₃)₃N > (CH₃)₂NH > CH₃NH₂','CH₃NH₂ > (CH₃)₂NH > (CH₃)₃N','(CH₃)₂NH > (CH₃)₃N > CH₃NH₂'],why:'For methylamines, the inductive effect, solvation of the ion and crowding balance to give 2° > 1° > 3°.',only:'jn'},
+  {prompt:'Why is aniline acetylated before bromination when a monobromo product is wanted?',opts:['The amide group is less activating, so only one Br adds','Acetylation makes the ring more reactive','Bromine reacts with the –NH₂ group itself','Acetanilide is a gas'],why:'The lone pair on N is partly delocalised onto the C=O of the acetyl group, so the ring is activated less.',only:'jn'},
+  {prompt:'Why does nitration of aniline give a large amount of the meta product?',opts:['In acid, aniline becomes the anilinium ion, which directs meta','The –NH₂ group directs meta','Nitric acid attacks nitrogen first','The ring is deactivated by the lone pair'],why:'–NH₃⁺ withdraws electrons and directs to the meta position.',only:'jn'},
+  {prompt:'A secondary amine reacts with Hinsberg’s reagent. The product is:',opts:['a sulfonamide insoluble in alkali','a sulfonamide soluble in alkali','an isocyanide','no reaction'],why:'The sulfonamide from a 2° amine has no N–H left, so it cannot be deprotonated by alkali.',only:'jn'},
+  {prompt:'What is formed when benzenediazonium chloride is treated with H₃PO₂?',opts:['Benzene','Phenol','Chlorobenzene','Aniline'],why:'Hypophosphorous acid replaces –N₂⁺ with H.',only:'jn'},
+  {prompt:'Why doesn’t aniline undergo Friedel–Crafts reactions?',opts:['It forms a salt with AlCl₃, which deactivates the ring','The ring is too electron-rich','AlCl₃ is reduced by aniline','The products are unstable'],why:'The nitrogen lone pair bonds to the Lewis acid, giving a positively charged, deactivating group.',only:'jn'}]},
+
+'pu-deriv':{ref:{i:'Structure 2.4, 3.2; Reactivity 3.4'},
+ syl:{i:['S3.2 Esters and amides as functional groups; naming','Condensation reactions that form esters and amides','Hydrolysis of esters and amides','S2.4 (HL) Condensation polymers: polyesters and polyamides']}},
+
+'pu-poly':{ref:{i:'Structure 2.4'},
+ syl:{i:['S2.4 Addition polymers: repeat units and monomers','S2.4 Properties of plastics, and the problems of disposing of them','S2.4 (HL) Condensation polymers: polyesters and polyamides','S2.4 (HL) Biodegradability: hydrolysis of ester and amide links']}},
+
+'pu-spec':{ref:{i:'Structure 3.2'},
+ syl:{i:['S3.2 Index of hydrogen deficiency (IHD)','S3.2 Mass spectrometry: molecular ion and fragmentation','S3.2 Infrared spectroscopy: bonds from absorption wavenumbers','S3.2 ¹H NMR: number of environments, chemical shift and integration','S3.2 ¹H NMR splitting patterns (n + 1) and TMS','S3.2 Combining techniques to identify a structure','Chromatography and Rf values']},
+ sec:[[null,{h:'Index of hydrogen deficiency',only:'i',html:`<p>The <b>index of hydrogen deficiency (IHD)</b> counts rings plus π bonds. For C<sub>c</sub>H<sub>h</sub>N<sub>n</sub>O<sub>o</sub>X<sub>x</sub>:</p>${coEq('IHD = (2c + 2 + n − h − x) ÷ 2')}
+   <p>Oxygen doesn’t change it. Each double bond or ring counts 1, a triple bond 2, and a benzene ring 4 (one ring and three π bonds). C₆H₆: (12 + 2 − 6) ÷ 2 = 4. C₄H₈O: (8 + 2 − 8) ÷ 2 = 1, so one C=O, C=C or ring.</p>`}]],
+ qs:[
+  {prompt:'What is the IHD of C₇H₈ (methylbenzene)?',opts:['4','3','7','1'],why:'(2 × 7 + 2 − 8) ÷ 2 = 4: one ring plus three π bonds.',only:'i'},
+  {prompt:'A compound C₃H₆O has IHD = 1 and an IR peak at 1715 cm⁻¹. Which could it be?',opts:['Propanone','Propan-1-ol','Prop-2-en-1-ol','Methoxyethane'],why:'IHD 1 and a strong C=O peak suggest an aldehyde or ketone; propanone fits.',only:'i'}]}
+};
+for(const[id,x]of Object.entries(PU_EXT)){const u=PU_UNITS.find(v=>v.id===id);if(!u)continue;
+  Object.assign(u.ref,x.ref||{});Object.assign(u.syl,x.syl||{});
+  if(x.tag)u.sections.forEach(s=>{if(x.tag[s.h]!=null)s.only=x.tag[s.h]});
+  if(x.rename)u.sections.forEach(s=>{if(x.rename[s.h])s.h=x.rename[s.h]});
+  if(x.qtag)for(const[k,v]of Object.entries(x.qtag))if(u.qs[k])u.qs[k].only=v;
+  (x.sec||[]).forEach(([after,s])=>{let i=after==null?u.sections.length:u.sections.findIndex(t=>t.h===after)+1;if(i<=0)i=u.sections.length;u.sections.splice(i,0,s)});
+  if(x.qs)u.qs.push(...x.qs)}
+PU_UNITS.forEach(u=>u.qs.forEach((q,k)=>{q.id=u.id+'-'+(k+1);q.t=u.id}));
+const PU_BANK=PU_UNITS.flatMap(u=>u.qs),PU_BY=Object.fromEntries(PU_BANK.map(q=>[q.id,q])),PU_UBY=Object.fromEntries(PU_UNITS.map(u=>[u.id,u]));
+const PU_TOPICS=PU_UNITS.map(u=>({id:u.id,title:u.title}));
+const coOnly=(x,t)=>!x.only||x.only.includes(t);
+function coTrack(t,ids,groups){
+  const t2=t==='n'?'j':t;const units=ids.map((id,i)=>{const b=PU_UBY[id];return{id,n:i+1,free:i<3,title:b.title,lede:b.lede,ref:b.ref[t]||b.ref[t2]||'',syl:b.syl[t]||b.syl[t2]||[],
+    sections:b.sections.filter(s=>coOnly(s,t)),tools:b.tools,prob:b.prob,qs:b.qs.filter(q=>coOnly(q,t))}});
+  return{units,groups:groups.map(([h,a,z])=>[h,u=>u.n>a&&u.n<=z])}}
+const PU_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-deriv','pu-amine','pu-amino','pu-poly','pu-synth','pu-spec'];
+const CIE_T=coTrack('a',PU_ORDER,[['Atoms, orbitals and bonding',0,6],['Organic chemistry',6,22]]);
+const STPM_T=coTrack('s',PU_ORDER.filter(id=>id!=='pu-spec'),[['First term: atoms and bonding',0,6],['Third term: organic chemistry',6,21]]);
+const AP_T=coTrack('p',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf'],[['Unit 1: atomic structure and properties',0,3],['Units 2 and 3: bonding and intermolecular forces',3,6]]);
+const IB_T=coTrack('i',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-carbonyl','pu-acid','pu-deriv','pu-poly','pu-spec'],[['Structure 1 and 2: atoms and bonding',0,6],['Structure 3 and Reactivity 3: organic chemistry',6,18]]);
+const JN_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-purify','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-amine','pu-bio','pu-named'];
+const JN_GROUPS=[['Atomic structure, bonding and periodicity',0,6],['Organic chemistry',6,20]];
+const JEE_T=coTrack('j',JN_ORDER,JN_GROUPS),NEET_T=coTrack('n',JN_ORDER,JN_GROUPS);
+const coMk=(o,T)=>Object.assign(o,{units:T.units,groups:T.groups,bank:T.units.flatMap(u=>u.qs),uby:Object.fromEntries(T.units.map(u=>[u.id,u]))});
+const COURSES={
+  icho:{id:'icho',short:'IChO',name:'IChO course',sub:'Organic and biological chemistry',h1:'IChO: organic and biological chemistry',
+    units:CO_UNITS,bank:CO_BANK,uby:CO_UBY,groups:[['Core',u=>u.lv==='core'],['Advanced',u=>u.lv!=='core']],
+    sylH:'IChO syllabus points',probK:'Olympiad-style problem',lastKey:'bondline.icho.last',sylKey:'bondline.icho.syl',kick:u=>coLv(u),
+    lede:n=>`${n} units that follow the International Chemistry Olympiad syllabus for organic chemistry and biochemistry. Each unit has the syllabus points, lessons, an olympiad-style problem with worked answers, and a quiz.`,
+    note:['How the IChO syllabus works.','Core topics (units 1–9) can appear in any IChO exam. Advanced topics (units 10–15) appear only if that year’s host country covers them in its preparatory problems, published early in the year, so check them to see which advanced units you need. A unit counts as complete when you have mastered 80% of its questions.'],
+    src:'Based on the IChO syllabus (2020 revision). Not affiliated with or endorsed by the International Chemistry Olympiad.'},
+  cie:coMk({id:'cie',short:'A Level',name:'Cambridge A Level',sub:'9701: atoms, bonding and organic',h1:'Cambridge A Level Chemistry (9701)',
+    sylH:'Syllabus points (9701)',probK:'Exam-style question',lastKey:'bondline.co.last.cie',sylKey:'bondline.co.syl.cie',kick:u=>u.ref,
+    lede:n=>`${n} units covering atomic structure, orbitals and bonding, and all of the organic chemistry in Cambridge International AS & A Level Chemistry, for exams in 2025 to 2027. Each unit has the syllabus points, lessons, an exam-style question with worked answers, and a quiz.`,
+    note:['How this course fits the syllabus.','Units 1–6 cover AS topics 1–3 (atomic structure, electrons in orbitals, ionisation energies, bonding, shapes and intermolecular forces). Units 7–22 cover every organic topic: AS 13–22 and A Level 29–37. Each unit shows its syllabus references, and lessons that are only in the A Level part say so. A unit counts as complete when you have mastered 80% of its questions. Physical and inorganic chemistry are coming in a later update.'],
+    src:'Based on the Cambridge International AS & A Level Chemistry 9701 syllabus for 2025–2027. Not affiliated with or endorsed by Cambridge University Press & Assessment.'},CIE_T),
+  stpm:coMk({id:'stpm',short:'STPM',name:'STPM Chemistry',sub:'962: atoms, bonding and organic',h1:'STPM Chemistry (962)',
+    sylH:'Syllabus points (STPM 962)',probK:'Exam-style question',lastKey:'bondline.co.last.stpm',sylKey:'bondline.co.syl.stpm',kick:u=>u.ref,
+    lede:n=>`${n} units covering the atoms and bonding part of the first term and all of the organic chemistry in the third term of STPM Chemistry. Each unit has the syllabus points, lessons, an exam-style question with worked answers, and a quiz.`,
+    note:['How this course fits the syllabus.','Units 1–6 cover first-term atomic structure, electronic configuration and chemical bonding. Units 7–21 cover the third term: hydrocarbons, haloalkanes, hydroxy compounds, carbonyls, carboxylic acids and their derivatives, amines, amino acids, proteins and polymers. A unit counts as complete when you have mastered 80% of its questions. The rest of the first and second terms (physical and inorganic chemistry) is coming in a later update.'],
+    src:'Based on the STPM Chemistry (962) syllabus from Majlis Peperiksaan Malaysia. Not affiliated with or endorsed by MPM.'},STPM_T),
+  ap:coMk({id:'ap',short:'AP',name:'AP Chemistry',sub:'Units 1–3: atoms, bonding, IMFs',h1:'AP Chemistry: atoms, bonding and intermolecular forces',
+    sylH:'Course and Exam Description topics',probK:'Free-response-style question',lastKey:'bondline.co.last.ap',sylKey:'bondline.co.syl.ap',kick:u=>u.ref,
+    lede:n=>`${n} units covering the start of AP Chemistry: atomic structure, electron configurations and photoelectron spectroscopy (Unit 1), bonding, Lewis structures, formal charge and VSEPR (Unit 2), and intermolecular forces and solids (the start of Unit 3). Each unit has the CED topics, lessons, a free-response-style question with worked answers, and a quiz.`,
+    note:['How this course fits the syllabus.','AP Chemistry is mostly general and physical chemistry, with almost no organic chemistry. These units cover Unit 1, Unit 2 and the first topics of Unit 3 of the College Board’s Course and Exam Description. Gases, solutions, reactions, kinetics, thermodynamics, equilibrium and acids and bases are coming in a later update. In free-response answers, justify trends with Coulomb’s law: charge, distance and shielding.'],
+    src:'Based on the AP Chemistry Course and Exam Description. AP is a trademark registered by the College Board, which is not affiliated with, and does not endorse, Bondline.'},AP_T),
+  ib:coMk({id:'ib',short:'IB',name:'IB Chemistry',sub:'Diploma Programme, SL and HL',h1:'IB Diploma Chemistry (first exams 2025)',
+    sylH:'Syllabus understandings (IB 2025)',probK:'Exam-style question',lastKey:'bondline.co.last.ib',sylKey:'bondline.co.syl.ib',kick:u=>u.ref,
+    lede:n=>`${n} units covering Structure 1 to 3 (atoms, bonding and the classification of organic compounds) and the organic parts of Reactivity 1 to 3, including spectroscopy, for SL and HL. Each unit has the syllabus understandings, lessons, an exam-style question with worked answers, and a quiz.`,
+    note:['How this course fits the syllabus.','Units 1–6 cover Structure 1 and 2: the nuclear atom, electron configurations, ionisation energies, and the ionic, covalent and metallic models. Units 7–18 cover the organic chemistry spread across Structure 2.4, Structure 3.2 and Reactivity 1.3, 3.1, 3.2, 3.3 and 3.4. Points marked (HL) are for Higher Level only. Energetics, kinetics, equilibrium, acids and bases, and redox are coming in a later update.'],
+    src:'Based on the IB Diploma Programme Chemistry guide (first assessment 2025). Not affiliated with or endorsed by the International Baccalaureate Organization.'},IB_T),
+  jee:coMk({id:'jee',short:'JEE',name:'JEE Main Chemistry',sub:'Atomic structure, bonding and organic',h1:'JEE Main Chemistry',
+    sylH:'JEE Main syllabus points',probK:'JEE-style question',lastKey:'bondline.co.last.jee',sylKey:'bondline.co.syl.jee',kick:u=>u.ref,
+    lede:n=>`${n} units covering atomic structure, chemical bonding and periodicity, and all of the organic chemistry in the JEE Main syllabus, following the NCERT Class 11 and 12 textbooks, including a unit of every named reaction. Each unit has the syllabus points, lessons, a JEE-style question with worked answers, and a quiz.`,
+    note:['How this course fits the syllabus.','Units 1–6 cover the NTA units Atomic structure, Chemical bonding and molecular structure, and Classification of elements and periodicity. Units 7–20 cover the seven organic units: purification and characterisation, basic principles, hydrocarbons, and compounds containing halogens, oxygen and nitrogen, plus biomolecules, ending with a revision unit of named reactions. JEE Advanced asks about the same topics in more depth. The other physical and inorganic chemistry units are coming in a later update.'],
+    src:'Based on the JEE Main syllabus published by the National Testing Agency, and the NCERT Chemistry textbooks for Classes 11 and 12. Not affiliated with or endorsed by NTA or NCERT.'},JEE_T),
+  neet:coMk({id:'neet',short:'NEET',name:'NEET UG Chemistry',sub:'Atomic structure, bonding and organic',h1:'NEET UG Chemistry',
+    sylH:'NEET UG syllabus points',probK:'NEET-style question',lastKey:'bondline.co.last.neet',sylKey:'bondline.co.syl.neet',kick:u=>u.ref,
+    lede:n=>`${n} units covering atomic structure, chemical bonding and periodicity, and all of the organic chemistry in the NEET UG syllabus, following the NCERT Class 11 and 12 textbooks, including biomolecules and a unit of every named reaction. Each unit has the syllabus points, lessons, a NEET-style question with worked answers, and a quiz.`,
+    note:['How this course fits the syllabus.','NEET UG chemistry follows NCERT closely, so read the NCERT text alongside each unit. Units 1–6 cover atomic structure, chemical bonding and periodicity; units 7–20 cover all the organic units, including biomolecules, which carries extra weight for medicine. The other physical and inorganic chemistry units are coming in a later update.'],
+    src:'Based on the NEET UG syllabus published by the National Medical Commission, and the NCERT Chemistry textbooks for Classes 11 and 12. Not affiliated with or endorsed by NMC, NTA or NCERT.'},NEET_T)};
+const CO_IDS=Object.keys(COURSES),CO_ALLQ=Object.assign({},CO_BY,PU_BY);
+
+const CO={c:'',view:null,unit:null,qz:null};
+const C=()=>COURSES[CO.c]||COURSES.icho;
+function coSet(c){if(!COURSES[c]||CO.c===c)return;CO.c=c;CO.unit=null;CO.qz=null;v18set('bondline.course',c)}
+function coFind(id){if(C().uby[id])return CO.c||'icho';if(CO_UBY[id])return'icho';const p=v18get('bondline.course','');if(PU_UBY[id])return(p==='stpm'||p==='cie')&&COURSES[p].uby[id]?p:COURSES.cie.uby[id]?'cie':'stpm';return''}
+const coU=id=>C().uby[id]||PU_UBY[id]||CO_UBY[id];
+const coLocked=u=>!u.free&&!proOpen();
+const coLv=u=>u.lv==='core'?'Core':'Advanced';
+function coStats(uid,c){const u=(c?COURSES[c]:C()).uby[uid];const qs=u?u.qs:[];return{m:qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,n:qs.length,seen:qs.filter(q=>App.quiz.q[q.id]).length}}
+function coAll(c){const K=c?COURSES[c]:C();const m=K.bank.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:K.bank.length,done:K.units.filter(u=>{const s=coStats(u.id,K.id);return s.m>=Math.ceil(.8*s.n)}).length}}
+const coChecks=()=>v18get(C().sylKey,{});
+const coBadge=u=>u.free?'<span class="co-free">Free</span>':PRO_BADGE;
+const coMeter=s=>s.seen?`<span class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*s.m/s.n)}%"></i></span>`:'';
+
+function coSide(){const box=$('#coList');if(!box)return;const K=C(),cur=CO.view==='home'?'home':CO.unit,pick=CO.view==='pick'||!CO.c;
+  const item=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="item${cur===u.id&&CO.view!=='home'?' on':''}" data-counit="${u.id}"><span class="t"><span class="co-n">${u.n}</span>${esc(u.title)}</span><span class="m">${lk?'Pro':s.seen?`${s.m} of ${s.n} mastered`:u.free?'Free':`${s.n} questions`}</span>${coMeter(s)}</button>`};
+  box.innerHTML=`<button class="item${pick?' on':''}" data-copick="1"><span class="t">All courses</span><span class="m">IChO, A Level, STPM, AP, IB, JEE and NEET</span></button>
+   <div class="co-sw" role="group" aria-label="Choose a course">${CO_IDS.map(c=>`<button class="co-swb${!pick&&CO.c===c?' on':''}" data-coc="${c}" aria-pressed="${!pick&&CO.c===c}">${COURSES[c].short}</button>`).join('')}</div>
+   ${pick?'':`<button class="item${cur==='home'?' on':''}" data-cohome="1"><span class="t">${esc(K.name)}</span><span class="m">${esc(K.sub)}</span></button>
+   ${K.groups.map(([h,f])=>`<div class="pg-sh">${esc(h)}</div>${K.units.filter(f).map(item).join('')}`).join('')}`}`}
+
+function coOpen(){if(!CO.c)CO.c=v18get('bondline.course','');if(CO.view==='quiz'&&CO.qz)return coRenderQ();if(CO.view==='unit'&&CO.unit)return coUnit(CO.unit);if(!CO.c||CO.view==='pick')return coPick();coHome()}
+function coDone(){$('#main').scrollTop=0;$('#side').classList.remove('open');coSide()}
+
+function coPick(){
+  CO.view='pick';
+  const card=K=>{const A=coAll(K.id),last=v18get(K.lastKey,null);return`<button class="co-ccard" data-coc="${K.id}"><span class="co-cck">${esc(K.short)}</span><b>${esc(K.h1)}</b><small>${esc(K.lede(K.units.length))}</small>
+    <span class="co-cm"><span>${K.units.length} units · ${K.bank.length} questions</span>${A.m?`<span>${A.m} mastered</span>`:''}${last?'<span class="co-free">In progress</span>':''}</span></button>`};
+  $('#coPage').innerHTML=`<article class="nm-lesson co-home"><header class="nm-head"><div class="nm-kicker">Courses</div><h1>Choose a course</h1>
+   <p class="nm-lede">Structured courses with lessons, worked problems and quizzes. The A Level, STPM, AP, IB, JEE and NEET courses share their lessons, so progress in one counts in the others.</p></header>
+   <div class="co-cgrid">${CO_IDS.map(c=>card(COURSES[c])).join('')}</div>
+   ${!PRO_CFG.enforce?`<p class="co-foot">The first three units of every course are free. The rest are part of Bondline Pro, and free for everyone while Pro is in preview.</p>`:proActive()?'':`<p class="co-foot">The first three units of every course are free. <button class="linkbtn" data-copro="1">Unlock every unit with Pro</button></p>`}</article>`;
+  coDone()}
+
+function coHome(){
+  if(!CO.c)return coPick();
+  const K=C();CO.view='home';const A=coAll(),last=v18get(K.lastKey,null),lu=last&&K.uby[last],u1=K.units[0];
+  const card=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="co-card${lk?' locked':''}" data-counit="${u.id}"><span class="co-cn">${u.n}</span><span class="co-ct"><b>${esc(u.title)}</b><small>${esc(u.lede)}</small></span><span class="co-cm">${coBadge(u)}<span>${s.seen?`${s.m}/${s.n}`:`${s.n} questions`}</span>${coMeter(s)}</span></button>`};
+  $('#coPage').innerHTML=`<article class="nm-lesson co-home"><header class="nm-head"><div class="nm-kicker">Course</div><h1>${esc(K.h1)}</h1>
+   <p class="nm-lede">${esc(K.lede(K.units.length))}</p></header>
+   <div class="co-stats"><div><b>${A.done}</b><span>of ${K.units.length} units complete</span></div><div><b>${A.m}</b><span>of ${A.n} questions mastered</span></div></div>
+   <div class="nm-actions">${lu?`<button class="btn primary" data-counit="${lu.id}">Continue: Unit ${lu.n}</button><button class="btn" data-counit="${u1.id}">Start from Unit 1</button>`:`<button class="btn primary" data-counit="${u1.id}">Start Unit 1</button>`}<button class="linkbtn" data-copick="1">Other courses</button></div>
+   ${coNote(K.note[0],K.note[1])}
+   ${K.groups.map(([h,f])=>`<h2 class="co-gh">${esc(h)}</h2><div class="co-grid">${K.units.filter(f).map(card).join('')}</div>`).join('')}
+   ${!PRO_CFG.enforce?`<p class="co-foot">Units 1–3 are free. The rest are part of Bondline Pro, and free for everyone while Pro is in preview.</p>`:proActive()?'':`<p class="co-foot">Units 1–3 are free. <button class="linkbtn" data-copro="1">Unlock all ${K.units.length} units with Pro</button></p>`}
+   <p class="co-foot">${esc(K.src)}</p></article>`;
+  coDone()}
+
+function coTool(t){const[k,a,l,d]=t;const attr=k==='view3d'?`data-3d="${esc(a)}" data-name="${esc(l.replace(/ in 3D$/,''))}"`:`data-cgo="${k}|${esc(a)}"`;
+  return`<button class="co-tool" ${attr}><b>${esc(l)}</b>${d?`<small>${esc(d)}</small>`:''}</button>`}
+function coUnit(id){
+  const c=coFind(id);if(!c)return coHome();coSet(c);const K=C(),u=K.uby[id];
+  CO.view='unit';CO.unit=id;v18set(K.lastKey,id);const next=K.units[u.n],prev=K.units[u.n-2],u1=K.units[0];
+  const kick=K.kick(u);
+  const head=`<header class="nm-head"><div class="nm-kicker">${esc(K.short)} · Unit ${u.n} of ${K.units.length}${kick?' · '+esc(kick):''} ${coBadge(u)}</div><h1>${esc(u.title)}</h1><p class="nm-lede">${esc(u.lede)}</p></header>`;
+  const chk=coChecks()[id]||[];
+  const syl=`<section class="co-syl"><h2>${esc(K.sylH)}</h2><p class="co-sylh">Tick each one when you could explain it to a friend.</p><ul>${u.syl.map((s,i)=>`<li><label><input type="checkbox" data-cosyl="${i}"${chk.includes(i)?' checked':''}${coLocked(u)?' disabled':''}><span>${esc(s)}</span></label></li>`).join('')}</ul></section>`;
+  if(coLocked(u)){
+    $('#coPage').innerHTML=`<article class="nm-lesson co-unit">${head}${syl}<section class="co-gate"><h2>This unit is part of Bondline Pro</h2><p>Units 1–3 of the ${esc(K.name)} course are free. Pro unlocks all ${K.units.length} units: ${K.units.reduce((s,x)=>s+x.sections.length,0)} lesson sections, ${K.units.length} worked problems and ${K.bank.length} questions, plus every other course, mock exams and weak-spot practice.</p><div class="nm-actions"><button class="btn primary" data-copro="1">See Bondline Pro</button><button class="btn" data-counit="${u1.id}">Go to Unit 1 (free)</button></div></section></article>`;
+    return coDone()}
+  $('#coPage').innerHTML=`<article class="nm-lesson st-lesson co-unit">${head}${syl}
+   ${u.sections.map(s=>`<section class="nm-sec"><h2>${esc(s.h)}</h2>${s.html}</section>`).join('')}
+   ${u.tools&&u.tools.length?`<section class="nm-sec"><h2>Practise in Bondline</h2><div class="co-tools">${u.tools.map(coTool).join('')}</div></section>`:''}
+   <section class="nm-sec co-prob"><div class="co-pk">${esc(K.probK)}</div><h2>${esc(u.prob.title)}</h2><p>${u.prob.stem}</p><ol class="co-parts">${u.prob.parts.map(([q,a])=>`<li><p>${q}</p><details><summary>Show answer</summary><div class="co-ans">${a}</div></details></li>`).join('')}</ol><p class="co-tip">Try each part on paper before opening its answer.</p></section>
+   <div class="nm-actions"><button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${u.qs.length} questions</button>${next?`<button class="btn" data-counit="${next.id}">Next: Unit ${next.n}</button>`:`<button class="btn" data-cohome="1">Back to the course</button>`}${prev?`<button class="linkbtn" data-counit="${prev.id}">Previous unit</button>`:''}</div></article>`;
+  stMount($('#coPage'));coDone()}
+
+/* ---------- quiz ---------- */
+function coBuild(q){return{prompt:q.prompt,fig:stFig(q.fig),opts:shuffle(q.opts.slice()),ans:q.opts[0],why:q.why}}
+function coStart(cfg){
+  const c=coFind(cfg.unit);if(c)coSet(c);const u=C().uby[cfg.unit];if(!u)return coHome();if(coLocked(u))return coUnit(u.id);
+  let pool=cfg.ids?cfg.ids.map(id=>CO_ALLQ[id]).filter(Boolean):u.qs.slice();if(!pool.length)return;
+  if(!cfg.ids){const w=q=>{const r=App.quiz.q[q.id];return!r?0:r.last===0?1:2};pool=[0,1,2].flatMap(k=>shuffle(pool.filter(q=>w(q)===k)))}else pool=shuffle(pool);
+  stDisposeViews();CO.unit=u.id;CO.qz={cfg,items:pool.map(q=>({q,b:coBuild(q)})),i:0,score:0,answered:false,results:[]};CO.view='quiz';coRenderQ()}
+function coRenderQ(){
+  const Z=CO.qz,it=Z.items[Z.i],b=it.b,n=Z.items.length,u=coU(it.q.t);
+  $('#coPage').innerHTML=`<section class="qz co-qz"><div class="qz-top"><span><b>Question ${Z.i+1}</b> of ${n}</span><span class="qz-topic">Unit ${u.n?u.n+': ':''}${esc(u.title)}</span><span class="qz-score">Score ${Z.score}</span><button class="linkbtn" id="coQuit">End quiz</button></div>
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*Z.i/n)}%"></i></div><div class="qz-card"><p class="qz-prompt">${b.prompt}</p>${b.fig}<div class="qz-opts${b.opts.length===2?' two':''}" role="group" aria-label="Answers">${b.opts.map((o,k)=>`<button class="qz-opt" data-cok="${k}"><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div><div class="qz-fb" id="coFb" hidden></div></div></section>`;
+  Z.answered=false;$('#coQuit').onclick=()=>coFinish(true);coDone()}
+function coAnswer(k){
+  const Z=CO.qz;if(!Z||Z.answered)return;const it=Z.items[Z.i],b=it.b;if(k<0||k>=b.opts.length)return;const ok=b.opts[k]===b.ans;
+  document.querySelectorAll('#coPage [data-cok]').forEach((el,j)=>{el.disabled=true;if(b.opts[j]===b.ans)el.classList.add('right');else if(j===k)el.classList.add('wrong')});
+  const r=App.quiz.q[it.q.id]||{c:0,w:0};ok?r.c++:r.w++;r.last=ok?1:0;r.at=Date.now();App.quiz.q[it.q.id]=r;if(ok)Z.score++;Z.results.push({q:it.q,ok});Z.answered=true;saveQuiz();logAns(ok);
+  const last=Z.i===Z.items.length-1,fb=$('#coFb');fb.className='qz-fb '+(ok?'ok':'bad');fb.hidden=false;
+  fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':`Not quite. The answer is <b>${b.ans}</b>.`}</p><p class="qz-why">${b.why}</p><div class="qz-next"><button class="btn primary" id="coNext">${last?'See results':'Next question'}</button><span class="qz-hint">or press Enter</span></div>`;
+  $('#coNext').onclick=coNext;$('.co-qz .qz-score').textContent='Score '+Z.score;fb.scrollIntoView({block:'nearest',behavior:'smooth'});setTimeout(()=>{const x=$('#coNext');if(x)x.focus({preventScroll:true})},50)}
+function coNext(){const Z=CO.qz;if(!Z||!Z.answered)return;if(Z.i>=Z.items.length-1)return coFinish(false);Z.i++;coRenderQ()}
+function coFinish(early){
+  const Z=CO.qz;if(!Z)return;const uid=Z.cfg.unit;if(early&&!Z.results.length){CO.qz=null;return coUnit(uid)}
+  const K=C();CO.view='summary';const res=Z.results,n=res.length,sc=res.filter(r=>r.ok).length,missed=res.filter(r=>!r.ok),u=K.uby[uid],s=coStats(uid),next=K.units[u.n];
+  const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. Reread the sections behind the questions you missed, then try again.':'Keep going. Work through the unit’s problem, then try the quiz again.';
+  $('#coPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Unit ${u.n} quiz</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
+   <div class="qz-break"><div class="qz-brow"><span>Unit ${u.n} mastered</span><span class="nm-meter"><i style="width:${Math.round(100*s.m/s.n)}%"></i></span><b>${s.m}/${s.n}</b></div></div>
+   ${missed.length?`<div class="co-missed"><h2>To review</h2>${missed.map(r=>`<div class="co-mi"><p>${r.q.prompt}</p><p class="co-mia"><b>${r.q.opts[0]}</b>. ${r.q.why}</p></div>`).join('')}</div>`:''}
+   <div class="nm-actions">${missed.length?`<button class="btn primary" id="coRetry">Retry the ${missed.length} I missed</button>`:''}${next?`<button class="btn${missed.length?'':' primary'}" data-counit="${next.id}">Next: Unit ${next.n}</button>`:''}<button class="btn" data-counit="${uid}">Back to the unit</button></div></section>`;
+  if(missed.length)$('#coRetry').onclick=()=>coStart({unit:uid,ids:missed.map(r=>r.q.id)});
+  CO.qz=null;coDone()}
+function coKey(e){if(App.mode!=='course'||!CO.qz||CO.view!=='quiz')return;if(e.target.closest('input,textarea,select,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;if(document.querySelector('.scrim:not([hidden])'))return;
+  if(/^[1-4]$/.test(e.key)&&!CO.qz.answered){e.preventDefault();coAnswer(+e.key-1)}else if(e.key==='Enter'&&CO.qz.answered&&!e.target.closest('button')){e.preventDefault();coNext()}}
+
+function exItemCo(q,area){const b=coBuild(q);return{area:area||'icho',id:q.id,t:q.t,kind:'text',prompt:b.prompt,fig:b.fig,opts:b.opts,ans:b.opts.indexOf(b.ans),answer:b.ans,why:b.why}}
+function coGo(spec){const i=spec.indexOf('|'),k=spec.slice(0,i),a=spec.slice(i+1);
+  if(k==='mech')return openPractice(a);if(k==='lib')return openLibrary(a);
+  if(k==='st'){setMode('stereo');return stLesson(a)}if(k==='sp'){setMode('spectra');return spLesson(a)}
+  if(k==='orb')return setMode('orbitals');
+  if(k==='mode'){setMode(a);if(a==='stereo')stSetup();return}
+  if(k==='guide')return window.open('/guides/'+a+'/','_blank','noopener')}
+function coGoCourse(c){setMode('course');coSet(c);CO.c=c;v18set('bondline.course',c);CO.qz=null;coHome()}
+
+function wireV21(){
+  PX_MODES.unshift('course');PX_LABEL.course='Courses';
+  {const nu=CO_IDS.reduce((t,c)=>t+COURSES[c].units.length,0),nq=CO_BANK.length+PU_BANK.length;PRO_FEATS[0]=['Every course in full',`All ${nu} units of the ${CO_IDS.length} courses (IChO, Cambridge A Level, STPM, AP, IB, JEE Main and NEET UG), with worked problems and ${nq} questions. The first three units of each course are free for everyone.`]}
+  AREA_LABEL.icho='IChO';AREA_LABEL.pu='A Level / STPM';
+  AREAS.icho={label:'IChO',full:'IChO course',topics:()=>CO_TOPICS,bank:()=>CO_BANK,byId:id=>CO_BY[id],item:q=>exItemCo(q,'icho'),
+    go:(t,wrong)=>{setMode('course');wrong.length?coStart({unit:t,ids:wrong}):coUnit(t)}};
+  AREAS.pu={label:'A Level / STPM',full:'A Level and STPM courses',topics:()=>PU_TOPICS,bank:()=>PU_BANK,byId:id=>PU_BY[id],item:q=>exItemCo(q,'pu'),
+    go:(t,wrong)=>{setMode('course');wrong.length?coStart({unit:t,ids:wrong}):coUnit(t)}};
+  const click=e=>{const t=e.target;
+    const cc=t.closest('[data-coc]');if(cc)return coGoCourse(cc.dataset.coc);
+    if(t.closest('[data-copick]')){CO.qz=null;return coPick()}
+    const un=t.closest('[data-counit]');if(un)return coUnit(un.dataset.counit);
+    if(t.closest('[data-cohome]'))return coHome();
+    const q=t.closest('[data-coquiz]');if(q)return coStart({unit:q.dataset.coquiz});
+    const k=t.closest('[data-cok]');if(k)return coAnswer(+k.dataset.cok);
+    const g=t.closest('[data-cgo]');if(g)return coGo(g.dataset.cgo);
+    if(t.closest('[data-copro]'))return openPro(CO.c||'icho')};
+  $('#coPage').addEventListener('click',click);$('#coSide').addEventListener('click',click);
+  $('#coPage').addEventListener('change',e=>{const c=e.target.closest('[data-cosyl]');if(!c||!CO.unit)return;const all=coChecks(),cur=new Set(all[CO.unit]||[]),i=+c.dataset.cosyl;c.checked?cur.add(i):cur.delete(i);all[CO.unit]=[...cur].sort((a,b)=>a-b);v18set(C().sylKey,all)});
+  document.addEventListener('keydown',coKey);
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();
+    I.push({label:'All courses',kind:'Go to',fn:()=>{setMode('course');coPick()},kw:'courses course syllabus icho a level alevel stpm cambridge 9701 962'});
+    I.push({label:'IChO course',kind:'Go to',fn:()=>coGoCourse('icho'),kw:'icho olympiad chemistry olympiad course syllabus competition courses'});
+    I.push({label:'Cambridge A Level Chemistry course (9701)',kind:'Go to',fn:()=>coGoCourse('cie'),kw:'a level alevel cambridge cie caie 9701 as level chemistry course syllabus organic orbitals bonding'});
+    I.push({label:'STPM Chemistry course (962)',kind:'Go to',fn:()=>coGoCourse('stpm'),kw:'stpm 962 malaysia form 6 sixth form chemistry course syllabus organic orbitals bonding'});
+    CO_UNITS.forEach(u=>I.push({label:`IChO unit ${u.n}: ${u.title}`,kind:'Course',fn:()=>{setMode('course');coSet('icho');coUnit(u.id)},kw:'icho olympiad '+u.syl.join(' ')}));
+    COURSES.cie.units.forEach(u=>I.push({label:`A Level unit ${u.n}: ${u.title}`,kind:'Course',fn:()=>{setMode('course');coSet('cie');coUnit(u.id)},kw:'a level cambridge 9701 '+u.ref+' '+u.syl.join(' ')}));
+    COURSES.stpm.units.forEach(u=>I.push({label:`STPM unit ${u.n}: ${u.title}`,kind:'Course',fn:()=>{setMode('course');coSet('stpm');coUnit(u.id)},kw:'stpm 962 '+u.syl.join(' ')}));
+    return I} }
+}
+function v21AfterBoot(){if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{CO_UNITS,CO_BANK,PU_UNITS,PU_BANK,COURSES,coUnit,coHome,coPick,coStart,coAnswer,coGoCourse,CO,PRO_CFG,App,RXN,AREAS,mode:m=>setMode(m)});
+  const q=new URLSearchParams(location.search);if(q.has('course')){setMode('course');const c=q.get('course'),u=q.get('unit');
+    if(COURSES[c]){coSet(c);CO.c=c}
+    if(u&&(COURSES[c]&&COURSES[c].uby[u]||!COURSES[c]&&coFind(u)))coUnit(u);else if(COURSES[c])coHome();
+    try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}}
+
+CHANGELOG.unshift({v:'21',d:'6 November 2026',t:'The IChO course',items:[
+  ['A new Courses tab','The first course follows the International Chemistry Olympiad syllabus for organic chemistry and biochemistry: 15 units, from structure and bonding to proteins, nucleic acids and supramolecular chemistry. Core and advanced topics are marked, just as in the IChO syllabus.'],
+  ['In every unit','The syllabus points to tick off, lessons with structures and tables, links into Bondline’s mechanisms, 3D models and spectra, an olympiad-style problem with worked answers, and a quiz. 144 questions in all, which also count towards Progress and mock exams.'],
+  ['Free and Pro','Units 1–3 are free for everyone. The other units are part of Bondline Pro, and free for everyone while Pro is in preview.']]});
+
+/* ---------- v22: Bondle (daily puzzle), feedback, announcements, usage statistics ---------- */
+// Small Firestore REST helpers. They work without the Firebase library, so guests can send feedback,
+// read announcements and play Bondle without loading sign-in.
+const FS22={pid:(window.BONDLINE_FIREBASE||{}).projectId||'',key:(window.BONDLINE_FIREBASE||{}).apiKey||''};
+const FS22_BASE=()=>`https://firestore.googleapis.com/v1/projects/${FS22.pid}/databases/(default)/documents`;
+function fs22Enc(v){if(v===null||v===undefined)return{nullValue:null};if(typeof v==='boolean')return{booleanValue:v};if(typeof v==='number')return Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v};if(typeof v==='string')return{stringValue:v};if(Array.isArray(v))return{arrayValue:{values:v.map(fs22Enc)}};const f={};for(const k in v)if(v[k]!==undefined)f[k]=fs22Enc(v[k]);return{mapValue:{fields:f}}}
+function fs22Dec(x){if(!x)return null;if('stringValue'in x)return x.stringValue;if('integerValue'in x)return +x.integerValue;if('doubleValue'in x)return x.doubleValue;if('booleanValue'in x)return x.booleanValue;if('nullValue'in x)return null;if('timestampValue'in x)return Date.parse(x.timestampValue);if('arrayValue'in x)return(x.arrayValue.values||[]).map(fs22Dec);if('mapValue'in x){const o={},f=x.mapValue.fields||{};for(const k in f)o[k]=fs22Dec(f[k]);return o}return null}
+async function fs22Req(method,path,body,auth,keepalive){
+  if(!FS22.pid)throw new Error('no project');
+  const h={'Content-Type':'application/json'};
+  if(auth&&FB.user){try{h.Authorization='Bearer '+await FB.user.getIdToken()}catch(e){}}
+  const r=await fetch(FS22_BASE()+path+(path.includes('?')?'&':'?')+'key='+encodeURIComponent(FS22.key),{method,headers:h,body:body?JSON.stringify(body):undefined,keepalive:!!keepalive,cache:'no-store'});
+  if(!r.ok)throw new Error('firestore '+r.status);
+  return r.json();
+}
+async function fs22Get(path,ms){try{const d=await Promise.race([fs22Req('GET','/'+path),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms||4000))]);return fs22Dec({mapValue:{fields:d.fields||{}}})}catch(e){return e&&/404/.test(e.message)?{}:null}}
+const fs22Add=(col,obj,auth)=>fs22Req('POST','/'+col,{fields:fs22Enc(obj).mapValue.fields},auth);
+const fs22Put=(path,obj,auth,qs,keepalive)=>fs22Req('PATCH','/'+path+(qs||''),{fields:fs22Enc(obj).mapValue.fields},auth,keepalive);
+function x22rid(n){const a=new Uint8Array(n);try{crypto.getRandomValues(a)}catch(e){for(let i=0;i<n;i++)a[i]=Math.random()*256}return[...a].map(x=>'abcdefghijklmnopqrstuvwxyz0123456789'[x%36]).join('')}
+function x22vid(){let v=v17ls('bondline.vid');if(!v||!/^[a-z0-9]{16,40}$/.test(v)){v=x22rid(20);v17ls('bondline.vid',v)}return v}
+function x22statsOn(){return v17ls('bondline.stats')!=='off'&&v17ls('bondline.notrack')!=='1'&&!navigator.globalPrivacyControl}
+const x22standalone=()=>!!((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone);
+function x22dev(){const ua=navigator.userAgent||'',touchMac=/Macintosh/.test(ua)&&navigator.maxTouchPoints>1;
+  const os=/iPhone|iPad|iPod/.test(ua)||touchMac?'iOS':/Android/.test(ua)?'Android':/CrOS/.test(ua)?'ChromeOS':/Windows/.test(ua)?'Windows':/Mac OS X|Macintosh/.test(ua)?'Mac':/Linux/.test(ua)?'Linux':'Other';
+  const br=/Edg\//.test(ua)?'Edge':/OPR\/|Opera/.test(ua)?'Opera':/SamsungBrowser/.test(ua)?'Samsung':/Firefox\/|FxiOS/.test(ua)?'Firefox':/CriOS|Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':'Other';
+  const dev=/iPad/.test(ua)||touchMac||(/Android/.test(ua)&&!/Mobile/.test(ua))?'tablet':/Mobi|iPhone|Android/.test(ua)?'mobile':'desktop';
+  return{os,br,dev}}
+
+/* ---------- usage statistics: one small record per device ---------- */
+// devices/{random device id}: which sections are used, how many answers, sessions and days active,
+// where the person first came from. Never note content. Signed-in devices also carry the account's
+// id, email and name, so the admin page can show each user's activity.
+const ACT22={d:null,dirty:false,last:0,busy:false};
+function act22(){if(ACT22.d)return ACT22.d;const d=v18get('bondline.act',null);ACT22.d=d&&typeof d==='object'?d:{first:Date.now(),days:0,sess:0,feat:{},ans:0,ok:0,bondle:0,recent:[],lastDay:''};
+  const D=ACT22.d;D.feat=D.feat||{};D.recent=Array.isArray(D.recent)?D.recent:[];return D}
+function act22save(){ACT22.dirty=true;v18set('bondline.act',act22())}
+function act22event(k){const d=act22();d.recent.push(Date.now()+'|'+String(k).slice(0,60));if(d.recent.length>30)d.recent.splice(0,d.recent.length-30);act22save()}
+function act22feat(k){if(!k)return;const d=act22();k=String(k).slice(0,30);if(!(k in d.feat)&&Object.keys(d.feat).length>=45)return;d.feat[k]=(d.feat[k]||0)+1;act22save()}
+function act22session(){const d=act22();d.sess++;const k=dayKey(Date.now());if(d.lastDay!==k){d.days++;d.lastDay=k}act22event('open:'+(x22standalone()?'app':'web'));act22save()}
+async function act22flush(force,keepalive){
+  if(!x22statsOn()||!FS22.pid||ACT22.busy)return;const now=Date.now();
+  if(!force&&(!ACT22.dirty||now-ACT22.last<60000))return;
+  ACT22.busy=true;ACT22.last=now;ACT22.dirty=false;
+  const d=act22(),u=FB.user,first=v18get('bondline.first',{})||{},heard=v18get('bondline.heard',null),di=x22dev(),bs=bx22store();
+  const doc={v:x22vid(),first:d.first||now,last:now,days:d.days||0,sess:d.sess||0,feat:d.feat,ans:d.ans||0,ok:d.ok||0,bondle:bs.played||0,bbest:bs.best||0,bstreak:bs.streak||0,
+    notes:App.notes.filter(n=>!n.example).length,recent:d.recent.slice(-30),dev:di.dev,os:di.os,br:di.br,
+    tz:(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return''}})().slice(0,60),lang:String(navigator.language||'').slice(0,20),app:x22standalone()?'pwa':'web',ver:APP_VER};
+  if(first.u)doc.utm=String(first.u).slice(0,60);if(first.c)doc.camp=String(first.c).slice(0,80);if(first.r)doc.ref=String(first.r).slice(0,100);
+  if(heard&&heard.s)doc.src=String(heard.s).slice(0,30);if(heard&&heard.o)doc.srcO=String(heard.o).slice(0,80);
+  if(u){doc.uid=u.uid;if(u.email)doc.e=u.email;if(u.displayName)doc.n=String(u.displayName).slice(0,80)}
+  try{await fs22Put('devices/'+x22vid(),doc,!!u,'',keepalive)}catch(e){ACT22.dirty=true}
+  ACT22.busy=false;
+}
+
+/* ---------- "How did you find Bondline?" (optional, asked once) ---------- */
+const HEARD_OPTS=[['instagram','Instagram'],['tiktok','TikTok'],['youtube','YouTube'],['search','Google or another search'],['friend','A friend or classmate'],['teacher','A teacher or lecturer'],['reddit','Reddit'],['other','Somewhere else']];
+function heard22maybe(tries){
+  if(v17ls('bondline.heard')||!x22statsOn())return;const d=act22();if(d.sess<2&&!FB.user)return;
+  setTimeout(()=>{if(v17ls('bondline.heard'))return;const busy=document.querySelector('.scrim:not([hidden])')||(typeof TR!=='undefined'&&TR.on)||document.body.classList.contains('sk-lock')||!['home','notes'].includes(App.mode);
+    if(busy){if((tries||0)<5)heard22maybe((tries||0)+1);return}heard22show()},(tries?40000:25000));
+}
+function heard22show(){
+  if($('#bxHeard'))return;const el=document.createElement('aside');el.id='bxHeard';el.className='bx-heard';el.setAttribute('aria-labelledby','bxHeardT');
+  el.innerHTML=`<button class="bx-heard-x" data-hx aria-label="No thanks"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  <h2 id="bxHeardT">How did you find Bondline?</h2><p>Optional, one tap. It tells us what’s working.</p>
+  <div class="bx-heard-c">${HEARD_OPTS.map(([k,l])=>`<button type="button" class="bx-chip" data-heard="${k}">${esc(l)}</button>`).join('')}</div>
+  <form class="bx-heard-o" hidden><input type="text" maxlength="80" placeholder="Where? (optional)" aria-label="Where did you hear about Bondline?"><button class="btn primary small" type="submit">Send</button></form>
+  <button type="button" class="linkbtn bx-heard-skip" data-hx>No thanks</button>`;
+  document.body.appendChild(el);requestAnimationFrame(()=>el.classList.add('in'));
+  const done=(s,o)=>{v18set('bondline.heard',{s,o:o||'',t:Date.now()});act22event('heard:'+s);act22save();act22flush(true);
+    if(s==='skip'){el.remove();return}el.innerHTML='<p class="bx-heard-thx">Thank you! 🧪</p>';setTimeout(()=>{el.classList.remove('in');setTimeout(()=>el.remove(),400)},1600)};
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-heard]');
+    if(b){if(b.dataset.heard==='other'){el.querySelector('.bx-heard-c').hidden=true;const f=el.querySelector('.bx-heard-o');f.hidden=false;f.querySelector('input').focus();return}done(b.dataset.heard);return}
+    if(e.target.closest('[data-hx]'))done('skip')});
+  el.querySelector('form').addEventListener('submit',e=>{e.preventDefault();done('other',el.querySelector('form input').value.trim())});
+}
+
+/* ---------- announcement banner (set from the admin page, no upload needed) ---------- */
+const ANN_ICONS={info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/>',new:'<path d="M12 3.5l2.2 5.1 5.3.5-4 3.6 1.2 5.3L12 15.3 7.3 18l1.2-5.3-4-3.6 5.3-.5z"/>',warn:'<path d="M12 4l9 15.5H3z"/><path d="M12 10v4.5M12 17v.1"/>',party:'<path d="M4 20l4.5-12 7.5 7.5z"/><path d="M14 4.5c0 2 1 3 3 3M19 10.5c-1.2.2-2 1-2.2 2.2M11 3.5v1.5M20.5 6.5h-1.5"/>'};
+async function ann22load(){
+  let c=v18get('bondline.ann',null);
+  if(!c||Date.now()-c.at>10*60e3){const d=await fs22Get('config/announcement',5000);if(d){c={at:Date.now(),d};v18set('bondline.ann',c)}}
+  ann22show(c&&c.d);
+}
+function ann22link(a){const l=String(a.link||'').trim();if(!l)return'';if(/^app:(bondle|feedback|pro|whatsnew)$/.test(l))return l;if(/^https:\/\/[^\s"'<>]+$/.test(l)||/^\/[^\s"'<>]*$/.test(l))return l;return''}
+function ann22show(a){
+  const old=$('#bxAnn');if(old)old.remove();
+  if(!a||!a.on||!a.text)return;if(a.until&&Date.now()>a.until)return;
+  const id=String(a.id||a.text).slice(0,60);if(v17ls('bondline.annX')===id)return;
+  const kind=['info','new','warn','party'].includes(a.kind)?a.kind:'info',href=ann22link(a);
+  const el=document.createElement('div');el.id='bxAnn';el.className='bx-ann k-'+kind;el.setAttribute('role','status');
+  el.innerHTML=`<span class="bx-ann-i">${ico(ANN_ICONS[kind])}</span><span class="bx-ann-t">${esc(String(a.text).slice(0,280))}</span>${href?`<a class="bx-ann-a" href="${esc(href.startsWith('app:')?'#':href)}" data-ann="${esc(href)}"${/^https:/.test(href)?' target="_blank" rel="noopener"':''}>${esc(String(a.linkText||'Take a look').slice(0,40))}</a>`:''}<button class="bx-ann-x" aria-label="Dismiss"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>`;
+  el.addEventListener('click',e=>{if(e.target.closest('.bx-ann-x')){v17ls('bondline.annX',id);el.remove();return}
+    const l=e.target.closest('[data-ann]');if(!l)return;const k=l.dataset.ann;act22event('ann:'+id.slice(0,20));
+    if(k.startsWith('app:')){e.preventDefault();({bondle:()=>openBondle(),feedback:()=>openFeedback(),pro:()=>openPro(),whatsnew:openWhatsNew}[k.slice(4)]||(()=>{}))()}});
+  const m=$('#main');if(m)m.insertBefore(el,m.firstChild);
+}
+
+/* ---------- feedback ---------- */
+const FB_KINDS={bug:['🐞','Something’s broken','What happened, and what did you expect? Which part of Bondline were you using?'],idea:['💡','An idea','What would make Bondline more useful for you?'],love:['❤️','Something I love','What do you like? (It really helps to know.)'],bondle:['🧪','Bondle','Which answer should count, or which prompt was confusing?'],other:['💬','Something else','Tell us anything.']};
+function openFeedback(kind,prefill){
+  closeMenus();if(isMob())$('#side').classList.remove('open');
+  let sc=$('#fbScrim');
+  if(!sc){sc=document.createElement('div');sc.id='fbScrim';sc.className='scrim bx-scrim';sc.hidden=true;
+    sc.innerHTML=`<div class="bx-dlg bx-fb" role="dialog" aria-modal="true" aria-labelledby="fbTitle">
+    <header class="bx-dh"><div><div class="hm-kicker">Feedback</div><h2 id="fbTitle">Tell us what you think</h2></div><button class="sf-b" type="button" data-fbx aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header>
+    <form class="bx-db" id="fbForm" novalidate>
+      <div class="bx-kinds" role="radiogroup" aria-label="What kind of feedback?">${Object.entries(FB_KINDS).map(([k,[e,l]])=>`<label class="bx-kind"><input type="radio" name="fbk" value="${k}"><span><i aria-hidden="true">${e}</i>${esc(l)}</span></label>`).join('')}</div>
+      <label class="bx-lbl" for="fbMsg">Your message</label>
+      <textarea id="fbMsg" maxlength="2000" rows="5"></textarea>
+      <div class="bx-count" id="fbCount">0 / 2000</div>
+      <label class="bx-lbl" for="fbEmail">Email <small>optional, only if you’d like a reply</small></label>
+      <input id="fbEmail" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com">
+      <label class="bx-chk"><input type="checkbox" id="fbTech" checked><span>Include which part of Bondline I’m in and my device type (helps us fix bugs)</span></label>
+      <p class="bx-err" id="fbErr" role="alert" hidden></p>
+      <div class="bx-dacts"><button type="button" class="btn" data-fbx>Cancel</button><button class="btn primary" type="submit" id="fbSend">Send feedback</button></div>
+    </form>
+    <div class="bx-db bx-fbdone" id="fbDone" hidden><div class="bx-fbok" aria-hidden="true">✓</div><h3>Thank you!</h3><p>Your feedback reached us. We read every message.</p><button class="btn primary" type="button" data-fbx>Done</button></div></div>`;
+    document.body.appendChild(sc);
+    const close=()=>{sc.hidden=true;document.body.classList.remove('sk-lock')};
+    sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('[data-fbx]'))close()});
+    sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();close()}});
+    sc.addEventListener('change',e=>{if(e.target.name==='fbk')$('#fbMsg').placeholder=FB_KINDS[e.target.value][2]});
+    $('#fbMsg').addEventListener('input',()=>{$('#fbCount').textContent=$('#fbMsg').value.length+' / 2000'});
+    $('#fbForm').addEventListener('submit',fb22send);
+  }
+  const k=FB_KINDS[kind]?kind:'idea';sc.querySelector(`input[value="${k}"]`).checked=true;
+  $('#fbMsg').placeholder=FB_KINDS[k][2];$('#fbMsg').value=prefill||'';$('#fbCount').textContent=$('#fbMsg').value.length+' / 2000';
+  if(FB.user&&FB.user.email&&!$('#fbEmail').value)$('#fbEmail').value=FB.user.email;
+  $('#fbErr').hidden=true;$('#fbForm').hidden=false;$('#fbDone').hidden=true;$('#fbSend').disabled=false;$('#fbSend').textContent='Send feedback';
+  sc.hidden=false;document.body.classList.add('sk-lock');setTimeout(()=>{const m=$('#fbMsg');m.focus();m.setSelectionRange(m.value.length,m.value.length)},40);
+}
+async function fb22send(e){
+  e.preventDefault();const msg=$('#fbMsg').value.trim(),email=$('#fbEmail').value.trim(),err=$('#fbErr');
+  const k=(document.querySelector('#fbForm input[name="fbk"]:checked')||{}).value||'other';
+  if(msg.length<3){err.textContent='Please write a few words first.';err.hidden=false;$('#fbMsg').focus();return}
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='That email address doesn’t look right. Leave it empty if you don’t need a reply.';err.hidden=false;$('#fbEmail').focus();return}
+  const doc={k,m:msg.slice(0,2000),t:Date.now(),st:'new',v:x22vid(),ver:APP_VER};
+  if(email)doc.e=email.slice(0,120);
+  if($('#fbTech').checked){const d=x22dev();doc.p=String(App.mode+(App.mode==='notes'&&App.cur?' · '+(App.cur.title||'note').slice(0,40):'')).slice(0,80);doc.dev=`${d.br} · ${d.os} · ${d.dev} · ${innerWidth}×${innerHeight}${x22standalone()?' · installed':''}`.slice(0,120)}
+  let auth=false;if(FB.user){try{await FB.user.getIdToken();doc.uid=FB.user.uid;auth=true}catch(x){}}
+  const b=$('#fbSend');b.disabled=true;b.textContent='Sending…';err.hidden=true;
+  try{await fs22Add('feedback',doc,auth);act22event('feedback:'+k);$('#fbForm').hidden=true;$('#fbDone').hidden=false;$('#fbDone .btn').focus()}
+  catch(x){b.disabled=false;b.textContent='Send feedback';err.innerHTML=`That didn’t send${navigator.onLine?'':' (you seem to be offline)'}. Try again, or email <a href="mailto:bondlinenotes@gmail.com?subject=${encodeURIComponent('Bondline feedback')}&body=${encodeURIComponent(msg)}">bondlinenotes@gmail.com</a>.`;err.hidden=false}
+}
+
+/* ---------- Bondle: a daily chemistry puzzle ---------- */
+// Six rounds a day. Each round is a category; any correct answer scores, rarer ones score more.
+// The day's prompts come from bondle-data.js (picked by date in bondle-core.js), or from
+// bondle/{date} in Firestore if the admin page set that day by hand.
+const BX={ready:null,run:null,timer:0,over:{},loading:false,test:/[?&]bltest\b/.test(location.search),q:new URLSearchParams(location.search)};
+const BX_EPOCH=Date.UTC(2026,10,8),BX_COLORS=['var(--muted)','#3b9ae1','#22a06b','#f0663c','#9b5de5','#e6b400'];
+function bx22idx(k){const m=/^(\d+)-(\d+)-(\d+)$/.exec(k);return m?Math.round((Date.UTC(+m[1],+m[2]-1,+m[3])-BX_EPOCH)/864e5):0}
+function bx22store(){const s=v18get('bondline.bondle',null);return s&&typeof s==='object'?Object.assign({days:{},played:0,streak:0,maxStreak:0,best:0,sum:0,last:'',hist:[0,0,0,0,0,0,0]},s):{days:{},played:0,streak:0,maxStreak:0,best:0,sum:0,last:'',hist:[0,0,0,0,0,0,0]}}
+function bx22save(s){const ks=Object.keys(s.days).sort();while(ks.length>45)delete s.days[ks.shift()];v18set('bondline.bondle',s)}
+function bx22today(){const k=dayKey(Date.now()),s=bx22store();return{k,idx:bx22idx(k),rec:s.days[k]||null,s}}
+function bx22load(){if(BX.ready)return BX.ready;BX.ready=(async()=>{if(!window.BondleCore)await loadScript('bondle-core.js');if(!window.BONDLE_BANK)await loadScript('bondle-data.js')})();BX.ready.catch(()=>{BX.ready=null});return BX.ready}
+function bx22limit(){return v17ls('bondline.bondleTime')==='60'?60:30}
+const BX_HEX=(cls,fills,cur)=>{const P=[[50,6],[88,28],[88,72],[50,94],[12,72],[12,28]];
+  return`<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><path class="bx-hx-ring" d="M50 6L88 28V72L50 94L12 72V28Z"/><path class="bx-hx-in" d="M50 22L74 36V64L50 78L26 64V36Z"/>${P.map(([x,y],i)=>{const f=fills&&fills[i];return`<circle class="bx-hx-d${i===cur?' cur':''}${f!=null?' on':''}" cx="${x}" cy="${y}" r="${i===cur?8:7}" style="${f!=null?`fill:${BX_COLORS[f]}`:''}"/>`}).join('')}</svg>`};
+function bx22rounds(rec){const C=window.BondleCore,by={};(window.BONDLE_BANK||[]).forEach(p=>by[p.id]=p);(rec.custom||[]).forEach(p=>by[p.id]=p);return rec.ids.map(id=>by[id]).filter(Boolean)}
+function bx22fmt(k){const m=/^(\d+)-(\d+)-(\d+)$/.exec(k);if(!m)return'';return new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString([],{weekday:'long',day:'numeric',month:'long'})}
+function bx22emo(rec){const T=window.BondleCore?window.BondleCore.TIERS:null;return rec.r.map(r=>T?T[r.t].emo:'').join('')}
+function bx22next(){const n=new Date();n.setHours(24,0,0,0);const s=Math.max(0,Math.round((n-Date.now())/1000));return`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
+
+function bx22scrim(){let sc=$('#bxScrim');if(sc)return sc;
+  sc=document.createElement('div');sc.id='bxScrim';sc.className='scrim bx-scrim bx-game-scrim';sc.hidden=true;
+  sc.innerHTML=`<div class="bx-game" role="dialog" aria-modal="true" aria-labelledby="bxTitle"><header class="bx-gh"><div class="bx-logo">${BX_HEX('bx-logo-hex',[1,2,3,4,5,0])}<span id="bxTitle">Bondle</span><span class="bx-gnum" id="bxNum"></span></div><button class="sf-b" type="button" data-bx="close" aria-label="Close Bondle"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header><div class="bx-gb" id="bxBody"></div></div>`;
+  document.body.appendChild(sc);
+  sc.addEventListener('click',e=>{if(e.target===sc)return bx22close();const b=e.target.closest('[data-bx]');if(!b)return;const a=b.dataset.bx;
+    ({close:bx22close,start:()=>bx22begin(false),practice:()=>bx22begin(true),next:bx22round,share:bx22share,results:()=>bx22results(),again:()=>bx22begin(true),
+      fb:()=>{const R=BX.run;bx22close();openFeedback('bondle',R&&b.dataset.q?`Bondle #${R.num}, “${b.dataset.q}”: `:'')},intro:()=>bx22intro(),reload:()=>{BX.run=null;openBondle()}}[a]||(()=>{}))()});
+  sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();bx22close()}});
+  sc.addEventListener('submit',e=>{if(e.target.id==='bxForm'){e.preventDefault();bx22guess()}});
+  sc.addEventListener('change',e=>{if(e.target.id==='bxTime'){v17ls('bondline.bondleTime',e.target.checked?'60':'30')}});
+  return sc}
+function bx22close(){const sc=$('#bxScrim');if(sc)sc.hidden=true;clearInterval(BX.timer);document.body.classList.remove('sk-lock');syncBx22();if(App.mode==='home')renderHome()}
+
+async function openBondle(){
+  // Bondle now lives on its own page (bondle/index.html). The in-app window below is kept as a fallback.
+  if(location.protocol.startsWith('http')&&!BX.test){act22feat('bondle');location.href='/bondle/';return}
+  closeMenus();if(isMob())$('#side').classList.remove('open');
+  const sc=bx22scrim();sc.hidden=false;document.body.classList.add('sk-lock');act22feat('bondle');
+  const body=$('#bxBody');body.innerHTML='<div class="bx-load"><span class="bx-spin" aria-hidden="true"></span>Mixing today’s reagents…</div>';
+  try{await bx22load()}catch(e){body.innerHTML='<div class="bx-load">Bondle couldn’t load. Check your connection and try again.<button class="btn" data-bx="reload">Try again</button></div>';return}
+  const t=bx22today();$('#bxNum').textContent='#'+(t.idx+1);
+  if(BX.run&&BX.run.practice&&!BX.run.done){bx22round();return}
+  if(t.rec&&t.rec.done){BX.run=bx22mkRun(t.rec,false,t.k);bx22results();return}
+  if(t.rec&&!t.rec.done){BX.run=bx22mkRun(t.rec,false,t.k);bx22round();return}
+  bx22intro();
+}
+function bx22mkRun(rec,practice,k){return{rec,practice,k,num:practice?0:bx22idx(k)+1,rounds:bx22rounds(rec)}}
+async function bx22override(k){if(k in BX.over)return BX.over[k];const d=await fs22Get('bondle/'+k,3500);if(d===null)return null;BX.over[k]=d&&Array.isArray(d.rounds)&&d.rounds.length?d:false;return BX.over[k]}
+async function bx22intro(){
+  const C=window.BondleCore,t=bx22today(),s=t.s,body=$('#bxBody');
+  const ov=await bx22override(t.k);
+  const yk=dayKey(Date.now()-864e5),y=s.days[yk];
+  body.innerHTML=`<div class="bx-intro">
+   <div class="bx-kick">${esc(bx22fmt(t.k))}</div>
+   <h2 class="bx-h">Six rounds. Find the rarest answer.</h2>
+   ${ov&&ov.theme?`<div class="bx-theme">${esc(String(ov.theme).slice(0,80))}</div>`:''}
+   <ol class="bx-rules"><li>Each round asks you to <b>name something</b> in a chemistry category.</li><li>Any correct answer scores, but <b>rarer answers score more</b>. The obvious one earns the least.</li><li>You have <b>${bx22limit()} seconds</b> and <b>two tries</b> per round. Your total is your bond strength, in kJ/mol.</li></ol>
+   <div class="bx-ladder">${C.TIERS.slice(1).map(T=>`<span class="bx-tier" style="--c:${BX_COLORS[T.n]}"><i>${T.emo}</i><b>${esc(T.name)}</b><small>${T.pts}</small></span>`).join('')}</div>
+   <div class="bx-go"><button class="btn primary bx-big" data-bx="start">Play Bondle #${t.idx+1}</button><label class="bx-time"><input type="checkbox" id="bxTime"${bx22limit()===60?' checked':''}> Extra time (60 s)</label></div>
+   ${s.played?`<div class="bx-mini"><span><b>${s.played}</b> played</span><span><b>${s.last===yk?s.streak:0}</b> day streak</span><span><b>${s.best}</b> best</span>${y&&y.done?`<span>Yesterday: <b>${y.tot}</b> ${esc(bx22emo(y))}</span>`:''}</div>`:''}
+   <p class="bx-fine">One go per day; the clock keeps running if you close the window. New puzzle at midnight.</p>
+   <button class="linkbtn bx-prac-l" data-bx="practice">Or warm up with a practice round</button></div>`;
+  const b=body.querySelector('[data-bx="start"]');if(b)b.focus();
+}
+async function bx22begin(practice){
+  const C=window.BondleCore,bank=window.BONDLE_BANK;
+  if(practice){const rounds=C.practice(bank,(Date.now()^Math.floor(Math.random()*1e9))>>>0);
+    const rec={ids:rounds.map(p=>p.id),r:[],tot:0,done:false,began:Date.now()};BX.run={rec,practice:true,k:'practice',num:0,rounds};act22event('bondle:practice');bx22round();return}
+  const t=bx22today();if(t.rec){BX.run=bx22mkRun(t.rec,false,t.k);t.rec.done?bx22results():bx22round();return}
+  const ov=await bx22override(t.k),day=C.daily(bank,t.idx,ov||null),bankIds=new Set(bank.map(p=>p.id));
+  const rec={ids:day.rounds.map(p=>p.id),custom:day.rounds.filter(p=>!bankIds.has(p.id)).map(p=>({id:p.id,lv:p.lv,q:p.q,h:p.h||'',f:p.f||'',a:p.a})),theme:day.theme||'',r:[],x:[],tot:0,done:false,began:Date.now()};
+  const s=bx22store();s.days[t.k]=rec;bx22save(s);BX.run=bx22mkRun(rec,false,t.k);act22event('bondle:start');bx22round();
+}
+function bx22persist(){const R=BX.run;if(!R||R.practice)return;const s=bx22store();s.days[R.k]=R.rec;bx22save(s)}
+function bx22round(){
+  const R=BX.run,rec=R.rec,i=rec.r.length,body=$('#bxBody');clearInterval(BX.timer);
+  if(i>=R.rounds.length){bx22finish();return}
+  const p=R.rounds[i],lim=bx22limit();
+  if(rec.sti!==i||!rec.st){rec.st=Date.now();rec.sti=i;rec.tries=2;rec.lim=lim;bx22persist()}
+  const fills=rec.r.map(r=>r.t);
+  body.innerHTML=`<div class="bx-round">
+   <div class="bx-top">${BX_HEX('bx-prog',fills,i)}<div class="bx-tt"><div class="bx-kick">${R.practice?'Practice · ':''}Round ${i+1} of ${R.rounds.length}</div><div class="bx-run"><b>${rec.tot}</b> kJ/mol</div></div></div>
+   <h2 class="bx-q" id="bxQ">${esc(p.q)}</h2>${p.h?`<p class="bx-hint">${esc(p.h)}</p>`:''}
+   <div class="bx-timer" role="timer" aria-label="Time left"><i id="bxBar"></i><span id="bxSec"></span></div>
+   <form class="bx-form" id="bxForm" autocomplete="off"><input id="bxIn" type="text" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-labelledby="bxQ" placeholder="Type your answer"><button class="btn primary" type="submit">Bond</button></form>
+   <div class="bx-tries" id="bxTries">${rec.tries===2?'Two tries. Go rare, or play it safe.':'One try left.'}</div>
+   <div class="bx-msg" id="bxMsg" aria-live="polite"></div></div>`;
+  const inp=$('#bxIn');setTimeout(()=>inp.focus(),30);
+  const tick=()=>{const L=(rec.lim||lim)*1000,left=Math.max(0,L-(Date.now()-rec.st)),bar=$('#bxBar'),sec=$('#bxSec');if(!bar){clearInterval(BX.timer);return}
+    bar.style.width=(100*left/L)+'%';bar.classList.toggle('low',left<8000);sec.textContent=Math.ceil(left/1000)+' s';if(left<=0){clearInterval(BX.timer);bx22resolve(null,inp.value.trim(),'time')}};
+  tick();BX.timer=setInterval(tick,100);
+}
+function bx22guess(){
+  const R=BX.run;if(!R)return;const rec=R.rec,p=R.rounds[rec.r.length],inp=$('#bxIn');if(!p||!inp)return;const v=inp.value.trim();
+  if(!v){inp.classList.remove('bx-shake');void inp.offsetWidth;inp.classList.add('bx-shake');return}
+  const m=window.BondleCore.match(p,v);
+  if(m)return bx22resolve(m,v);
+  if(!R.practice&&rec.x&&rec.x.length<12)rec.x.push(p.id+'|'+v.slice(0,60));
+  rec.tries=(rec.tries||2)-1;bx22persist();
+  if(rec.tries>0){inp.classList.remove('bx-shake');void inp.offsetWidth;inp.classList.add('bx-shake');inp.select();
+    $('#bxMsg').innerHTML=`<span class="bx-miss">“${esc(v.slice(0,40))}” isn’t on our list. One more try.</span>`;$('#bxTries').textContent='One try left.';return}
+  bx22resolve(null,v);
+}
+function bx22resolve(m,v,why){
+  clearInterval(BX.timer);const R=BX.run,rec=R.rec,i=rec.r.length,p=R.rounds[i],C=window.BondleCore,T=C.TIERS[m?m.tier:0];
+  rec.r.push({q:p.id,a:String(v||'').slice(0,60),m:m?m.name:'',t:m?m.tier:0,p:T.pts,ms:Date.now()-rec.st});rec.tot+=T.pts;rec.st=null;bx22persist();
+  const ans=C.parse(p),rarer=ans.filter(a=>a.tier>(m?m.tier:0)&&a.tier>=4).sort((a,b)=>b.tier-a.tier||Math.random()-.5).slice(0,3),last=rec.r.length>=R.rounds.length;
+  const body=$('#bxBody');
+  body.innerHTML=`<div class="bx-round bx-after">
+   <div class="bx-top">${BX_HEX('bx-prog',rec.r.map(r=>r.t),-1)}<div class="bx-tt"><div class="bx-kick">${R.practice?'Practice · ':''}Round ${i+1} of ${R.rounds.length}</div><div class="bx-run"><b>${rec.tot}</b> kJ/mol</div></div></div>
+   <h2 class="bx-q sm">${esc(p.q)}</h2>
+   <div class="bx-verdict t${T.n}" style="--c:${BX_COLORS[T.n]}"><span class="bx-ve" aria-hidden="true">${T.emo}</span><div><div class="bx-vt">${m?esc(T.name):why==='time'?'Time’s up':'No bond'}</div><div class="bx-vs">${m?`<b>${esc(m.name)}</b>${C.norm(m.name)!==C.norm(v)?` <small>(you typed “${esc(v.slice(0,40))}”)</small>`:''}`:v?`“${esc(v.slice(0,40))}” isn’t on our list`:'No answer'}</div></div><span class="bx-vp">+${T.pts}</span></div>
+   ${rarer.length?`<p class="bx-deeper">${m&&m.tier===5?'Also one in a mole:':'Deeper cuts:'} ${rarer.map(a=>`<b>${esc(a.name)}</b>`).join(', ')}</p>`:m&&m.tier===5?'<p class="bx-deeper">That’s as rare as it gets. ⚛️</p>':''}
+   ${p.f?`<p class="bx-fact">${esc(p.f)}</p>`:''}
+   <button class="btn primary bx-big" data-bx="next" id="bxNext">${last?'See my results':'Next round'}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></button></div>`;
+  setTimeout(()=>{const n=$('#bxNext');if(n)n.focus()},30);
+  if(m&&m.tier===5)bx22burst();
+}
+function bx22burst(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const g=$('.bx-game');if(!g)return;
+  for(let i=0;i<22;i++){const s=document.createElement('span');s.className='bx-p';s.textContent=['⬡','⚛','✦','⬢'][i%4];const a=Math.random()*Math.PI*2,d=90+Math.random()*140;
+    s.style.cssText=`left:50%;top:42%;--x:${Math.cos(a)*d}px;--y:${Math.sin(a)*d-40}px;--r:${Math.random()*360}deg;color:${BX_COLORS[1+(i%5)]};animation-delay:${Math.random()*80}ms`;g.appendChild(s);setTimeout(()=>s.remove(),1300)}}
+async function bx22finish(){
+  const R=BX.run,rec=R.rec;if(rec.done)return bx22results();rec.done=true;rec.end=Date.now();
+  if(!R.practice){
+    const s=bx22store(),y=dayKey(Date.now()-864e5);s.days[R.k]=rec;s.played++;s.sum+=rec.tot;s.best=Math.max(s.best,rec.tot);
+    s.streak=(s.last===y?s.streak:0)+1;s.last=R.k;s.maxStreak=Math.max(s.maxStreak||0,s.streak);const bk=Math.min(6,Math.floor(rec.tot/100));s.hist[bk]=(s.hist[bk]||0)+1;bx22save(s);
+    act22event('bondle:'+rec.tot);act22save();act22flush(true);syncBx22();
+    if(x22statsOn())bx22report(R).catch(()=>{});
+  }
+  bx22results();
+}
+async function bx22report(R){
+  const rec=R.rec,u=FB.user,doc={d:R.k,n:R.num,v:x22vid(),tot:rec.tot,r:rec.r.map(r=>({q:String(r.q).slice(0,40),a:r.a.slice(0,60),t:r.t})),x:(rec.x||[]).slice(0,12),ms:Math.max(0,(rec.end||Date.now())-(rec.began||Date.now())),t:Date.now()};
+  if(u)doc.uid=u.uid;
+  try{await fs22Put('bondlePlays/'+R.k+'_'+x22vid(),doc,!!u,'?currentDocument.exists=false')}catch(e){return}
+  const name=`projects/${FS22.pid}/databases/(default)/documents/bondleDay/${R.k}`;
+  try{await fetch(`https://firestore.googleapis.com/v1/projects/${FS22.pid}/databases/(default)/documents:commit?key=${encodeURIComponent(FS22.key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name,fields:{}},updateMask:{fieldPaths:[]},updateTransforms:[{fieldPath:'b'+Math.min(6,Math.floor(rec.tot/100)),increment:{integerValue:'1'}}]}]})});
+    v17ls('bondline.bondleSent',R.k)}catch(e){}
+}
+function bx22shareText(R){const C=window.BondleCore,rec=R.rec,b=C.bondFor(rec.tot);
+  const line=rec.tot>=600?'Perfect bond! 6 × One in a Mole':rec.tot===0?'Inert as a noble gas':`Stronger than ${b[2].replace(/^(a|an) /,'a ')} (${b[0]})`;
+  return`Bondle #${R.num} · ${rec.tot} kJ/mol\n${bx22emo(rec)}\n${line}\nbondline.site/bondle`}
+async function bx22share(){const R=BX.run;if(!R)return;const txt=bx22shareText(R);act22event('bondle:share');
+  try{if(navigator.share&&isMob()){await navigator.share({text:txt});return}}catch(e){if(e&&e.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(txt);toast('Copied! Paste it anywhere to share.')}catch(e){prompt('Copy your result:',txt)}}
+async function bx22results(){
+  const R=BX.run,rec=R.rec,C=window.BondleCore,s=bx22store(),body=$('#bxBody');clearInterval(BX.timer);
+  const b=C.bondFor(rec.tot),avg=s.played?Math.round(s.sum/s.played):0,maxH=Math.max(1,...s.hist);
+  const bondLine=rec.tot>=600?'A perfect bond. Six answers, all One in a Mole.':rec.tot===0?'Inert as a noble gas. Tomorrow’s another reaction.':`That’s stronger than ${esc(b[2])} (${esc(b[1])}, ${b[0]} kJ/mol).`;
+  const round=(r,i)=>{const p=R.rounds[i];if(!p)return'';const T=C.TIERS[r.t],all=C.parse(p),groups=[5,4,3,2,1].map(t=>({t,a:all.filter(a=>a.tier===t)})).filter(g=>g.a.length);
+    return`<li class="bx-rr"><div class="bx-rrh"><span class="bx-rre" style="--c:${BX_COLORS[r.t]}">${T.emo}</span><div class="bx-rrq"><b>${esc(p.q)}</b><small>${r.m?`${esc(r.m)} · ${esc(T.name)}`:r.a?`“${esc(r.a)}” · not on the list`:'No answer'}</small></div><span class="bx-rrp">${r.p}</span></div>
+     <details class="bx-all"><summary>All ${all.length} answers</summary>${groups.map(g=>`<div class="bx-ag"><span class="bx-agt" style="--c:${BX_COLORS[g.t]}">${C.TIERS[g.t].emo} ${esc(C.TIERS[g.t].name)}</span><span class="bx-agl">${g.a.map(a=>esc(a.name)).join(' · ')}</span></div>`).join('')}${R.practice?'':`<button class="linkbtn bx-sugg" data-bx="fb" data-q="${esc(p.q)}">Suggest an answer we missed</button>`}</details></li>`};
+  body.innerHTML=`<div class="bx-res">
+   <div class="bx-kick">${R.practice?'Practice round':`Bondle #${R.num} · ${esc(bx22fmt(R.k))}`}</div>
+   <div class="bx-score">${BX_HEX('bx-bighex',rec.r.map(r=>r.t),-1)}<div class="bx-total"><b>${rec.tot}</b><span>kJ/mol</span></div></div>
+   <p class="bx-bond">${bondLine}</p>
+   <div class="bx-emo" aria-label="Your rounds">${bx22emo(rec)}</div>
+   <div class="bx-acts">${R.practice?`<button class="btn primary" data-bx="again">Another practice round</button>${bx22today().rec?'':'<button class="btn" data-bx="intro">Play today’s Bondle</button>'}`:`<button class="btn primary" data-bx="share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 7.5L12 4l4 3.5M5 12.5V19a1 1 0 001 1h12a1 1 0 001-1v-6.5"/></svg>Share</button><button class="btn" data-bx="practice">Practice round</button>`}</div>
+   ${R.practice?'':`<div class="bx-pct" id="bxPct"></div>
+   <div class="bx-stats"><div><b>${s.played}</b><span>Played</span></div><div><b>${s.streak}</b><span>Streak</span></div><div><b>${s.maxStreak||s.streak}</b><span>Best streak</span></div><div><b>${avg}</b><span>Average</span></div></div>
+   <h3 class="bx-rh c">Your scores so far</h3><div class="bx-dist" aria-label="Your scores so far">${s.hist.map((n,i)=>`<div class="bx-db-row${Math.min(6,Math.floor(rec.tot/100))===i?' me':''}"><span>${i*100}${i<6?'+':''}</span><i style="--w:${Math.max(n?6:0,100*n/maxH)}%"></i><b>${n}</b></div>`).join('')}</div>`}
+   <h3 class="bx-rh">Your rounds</h3><ol class="bx-rl">${rec.r.map(round).join('')}</ol>
+   ${R.practice?'':`<div class="bx-nextin">Next Bondle in <b id="bxCount">${bx22next()}</b></div>`}
+   <p class="bx-fine">Think an answer should count? <button class="linkbtn" data-bx="fb">Tell us</button>, and we’ll add it.</p></div>`;
+  if(!R.practice){BX.timer=setInterval(()=>{const c=$('#bxCount');if(!c){clearInterval(BX.timer);return}if(dayKey(Date.now())!==R.k){clearInterval(BX.timer);c.parentNode.innerHTML='<button class="btn primary" data-bx="reload">Today’s Bondle is ready</button>';return}c.textContent=bx22next()},1000);bx22pct(R)}
+}
+async function bx22pct(R){
+  if(!x22statsOn())return;const el=()=>$('#bxPct');let d=null;
+  for(let i=0;i<2;i++){d=await fs22Get('bondleDay/'+R.k,4000);if(d&&Object.keys(d).length)break;await new Promise(r=>setTimeout(r,1500))}
+  if(!el()||!d)return;const b=[0,1,2,3,4,5,6].map(i=>+d['b'+i]||0),n=b.reduce((a,x)=>a+x,0);if(!n)return;
+  const me=Math.min(6,Math.floor(R.rec.tot/100)),below=b.slice(0,me).reduce((a,x)=>a+x,0),same=Math.max(0,b[me]-1);
+  el().innerHTML=n<=1?'You’re the first to finish today’s Bondle! 🥇':`You beat about <b>${Math.round(100*(below+same/2)/Math.max(1,n-1))}%</b> of today’s ${n} players`;
+}
+function syncBx22(){const b=$('#railBondle');if(!b)return;const t=bx22today();b.classList.toggle('has-new',!(t.rec&&t.rec.done));b.title=t.rec&&t.rec.done?`Bondle #${t.idx+1}: ${t.rec.tot} kJ/mol today`:`Bondle #${t.idx+1}: today’s chemistry puzzle`}
+function bx22homeCard(){
+  const hp=$('#homePage');if(!hp||!hp.querySelector('.h7'))return;const old=hp.querySelector('.bx-home');if(old)old.remove();
+  const t=bx22today(),r=t.rec,s=t.s,yk=dayKey(Date.now()-864e5),streak=s.last===yk||s.last===t.k?s.streak:0;
+  const fills=r?r.r.map(x=>x.t):[];
+  const state=r&&r.done?`<div class="bx-hs"><b>${r.tot}</b> kJ/mol <span class="bx-he">${esc(bx22emo(r))}</span></div><small>Next puzzle in ${bx22next().slice(0,5).replace(':','h ')}m${streak>1?` · ${streak}-day streak`:''}</small>`
+    :r?`<div class="bx-hs">Round ${r.r.length+1} of 6</div><small>The clock is running. Jump back in.</small>`
+    :`<div class="bx-hs">Today’s chemistry puzzle</div><small>Six rounds. Rarer answers score more.${streak?` · ${streak}-day streak`:''}</small>`;
+  const card=document.createElement('section');card.className='bx-home';card.setAttribute('aria-label','Bondle');
+  card.innerHTML=`${BX_HEX('bx-home-hex',fills.length?fills:[1,2,3,4,5,0],r&&!r.done?fills.length:-1)}<div class="bx-ht"><div class="bx-hk">Bondle #${t.idx+1}</div>${state}</div><button class="btn${r&&r.done?'':' primary'}" data-bxhome>${r&&r.done?'See results':r?'Continue':'Play'}</button>`;
+  card.addEventListener('click',e=>{if(e.target.closest('button')||e.target===card||e.target.closest('.bx-ht'))openBondle()});
+  const hero=hp.querySelector('.h7-hero');if(hero)hero.insertAdjacentElement('afterend',card);else hp.querySelector('.h7').prepend(card);
+  const fb=hp.querySelector('.bx-hfb');if(!fb){const p=document.createElement('p');p.className='bx-hfb';p.innerHTML='Found a bug or have an idea? <button class="linkbtn" data-hfb>Send feedback</button>';p.querySelector('button').onclick=()=>openFeedback();hp.querySelector('.h7').appendChild(p)}
+}
+
+function wireV22(){
+  // Rail button for Bondle, before Tools.
+  const rt=$('#railTools');
+  if(rt&&!$('#railBondle')){rt.insertAdjacentHTML('beforebegin',`<button class="rail-b bx-rail" id="railBondle" type="button" title="Bondle: today’s chemistry puzzle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l7.3 4.2v8.4L12 20.4l-7.3-4.2V7.8z" stroke-dasharray="2.2 2.2"/><circle cx="12" cy="3.6" r="1.7" class="bx-rd"/><circle cx="19.3" cy="7.8" r="1.7" class="bx-rd"/><circle cx="19.3" cy="16.2" r="1.7" class="bx-rd"/><circle cx="12" cy="20.4" r="1.7" class="bx-rd"/><circle cx="4.7" cy="16.2" r="1.7" class="bx-rd"/><circle cx="4.7" cy="7.8" r="1.7" class="bx-rd"/><path d="M12 9.2l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z" class="bx-rd"/></svg><span>Bondle</span></button>`);
+    $('#railBondle').addEventListener('click',openBondle)}
+  // Account menu: feedback (and the admin dashboard on the admin's own devices).
+  { const _rm=renderAcctMenu;renderAcctMenu=function(){_rm();const m=$('#acctMenu'),sep=m.querySelector('[data-mi="settings"]');
+      const html=menuItem('bondle',ico('<path d="M12 3.2l7.6 4.4v8.8L12 20.8l-7.6-4.4V7.6z"/><path d="M9.3 12.2l1.9 1.9 3.6-3.7"/>'),'Bondle','Today’s chemistry puzzle')+menuItem('feedback',ico('<path d="M4.5 5.5h15v10h-8l-4.5 3.5v-3.5H4.5z"/><path d="M8.5 9.5h7M8.5 12h4.5"/>'),'Send feedback','Bugs, ideas, anything')+(v17ls('bondline.admin')==='1'?menuItem('admin',ico('<rect x="4" y="11" width="3.5" height="8.5" rx="1"/><rect x="10.25" y="7" width="3.5" height="12.5" rx="1"/><rect x="16.5" y="4" width="3.5" height="15.5" rx="1"/>'),'Admin dashboard','Visitors, users and feedback'):'');
+      if(sep)sep.insertAdjacentHTML('beforebegin',html);else m.insertAdjacentHTML('beforeend',html)} }
+  { const _mg=menuGo;menuGo=function(k){if(k==='feedback'||k==='bondle'||k==='admin'){closeMenus();if(isMob())$('#side').classList.remove('open');return k==='feedback'?openFeedback():k==='bondle'?openBondle():(location.href='/admin/')}act22feat('menu:'+k);_mg(k)} }
+  // Command palette.
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();I.push({label:'Bondle: today’s puzzle',kind:'Go to',fn:openBondle,kw:'bondle daily puzzle game trivia wordle krillion challenge'});I.push({label:'Bondle practice round',kind:'Go to',fn:()=>{location.href='/bondle/?practice=mix'},kw:'bondle practice game science'});I.push({label:'Send feedback',kind:'Help',fn:()=>openFeedback(),kw:'feedback bug report idea suggestion contact support'});return I} }
+  // Home: Bondle card and a feedback link.
+  { const _rh=renderHome;renderHome=function(){_rh();try{bx22homeCard()}catch(e){console.warn(e)}} }
+  // Count which sections and tools get used (numbers only).
+  { const _sm=setMode;setMode=function(m){_sm(m);act22feat(App.mode)} }
+  { const _la=logAns;logAns=function(ok){_la(ok);const d=act22();d.ans=(d.ans||0)+1;if(ok)d.ok=(d.ok||0)+1;act22save()} }
+  { const _ol=openLecture;openLecture=function(){act22feat('present');return _ol.apply(this,arguments)} }
+  { const _ep=exportPPTX;exportPPTX=function(){act22feat('pptx');return _ep.apply(this,arguments)} }
+  { const _op=openPro;openPro=function(){act22feat('pro');return _op.apply(this,arguments)} }
+  { const _nn=newNote;newNote=function(){act22feat('newnote');return _nn.apply(this,arguments)} }
+  // Settings: usage statistics switch, feedback.
+  const help=document.querySelector('#setScrim .set-sec:last-of-type');
+  const sec=document.createElement('section');sec.className='set-sec';sec.innerHTML=`<h3>Privacy</h3><label class="set-tg"><input type="checkbox" id="setStats"> <span><b>Share anonymous usage statistics</b><small>Which sections and tools get used and which page you came from, so we know what to improve. Never what’s in your notes. <a href="/privacy/#stats">Details</a></small></span></label>`;
+  if(help&&help.parentNode)help.parentNode.insertBefore(sec,help);
+  const st=$('#setStats');if(st){st.checked=v17ls('bondline.stats')!=='off';st.disabled=!!navigator.globalPrivacyControl;if(navigator.globalPrivacyControl)st.parentNode.querySelector('small').insertAdjacentHTML('beforeend',' <br>Off because your browser sends a Global Privacy Control signal.');
+    st.addEventListener('change',()=>{if(st.checked){v17ls('bondline.stats',null);act22save();act22flush(true)}else{v17ls('bondline.stats','off')}})}
+  const hl=help&&help.querySelector('.set-list');if(hl){hl.insertAdjacentHTML('afterbegin','<button class="set-it" id="setFeedback"><b>Send feedback</b><small>Report a bug or suggest an idea</small></button>');$('#setFeedback').addEventListener('click',()=>{$('#setScrim').hidden=true;openFeedback()})}
+  // Save usage numbers when the page is hidden, and every few minutes.
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')act22flush(false,true)});
+  setInterval(()=>act22flush(false),5*60e3);
+  setInterval(syncBx22,60e3);
+}
+function v22AfterBoot(){
+  syncBx22();if(App.mode==='home')try{bx22homeCard()}catch(e){}
+  act22session();setTimeout(()=>act22flush(true),6000);
+  ann22load().catch(()=>{});
+  heard22maybe(0);
+  const q=BX.q;
+  if(q.has('bondle')){openBondle();try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
+  else if(q.has('feedback')){openFeedback();try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
+  if(BX.test)Object.assign(window.__bl||(window.__bl={}),{BX,openBondle,bx22begin,bx22today,openFeedback,ann22show,act22,act22flush,heard22show,fs22Enc,x22dev});
+}
+
+CHANGELOG.unshift({v:'22',d:'8 November 2026',t:'Bondle, the daily chemistry and science puzzle',items:[
+  ['Bondle','A new puzzle every day at bondline.site/bondle: four chemistry and two science categories, and the rarer your answer, the more it scores, from Tap Water to One in a Mole. Your total is your bond strength in kJ/mol. Share it, keep a streak, and see how you compare with everyone else. Open it from Bondle in the left bar or on Home, and catch up on past days or practise by topic.'],
+  ['Send feedback','Report a bug or suggest an idea from the account menu, Settings or the bottom of Home. Every message reaches us.'],
+  ['Announcements','Occasional notes about new features appear in a slim bar at the top. Dismiss one and it stays away.'],
+  ['Usage statistics','Bondline now counts which sections get used, to decide what to improve next. Never what’s in your notes. Turn it off in Settings → Privacy.']]});
+CHANGELOG.unshift({v:'23',d:'8 November 2026',t:'Cambridge A Level and STPM courses',items:[
+  ['Two new courses','The Courses tab now has a Cambridge International A Level Chemistry (9701) course and an STPM Chemistry (962) course alongside IChO. Pick one from All courses, or switch with the buttons at the top of the course list.'],
+  ['Atoms, orbitals and bonding','Six units: atomic structure and isotopes, orbitals and electronic configurations, ionisation energy, bonding, shapes of molecules and hybridisation, and intermolecular forces.'],
+  ['All the organic chemistry','From the basics and isomerism through hydrocarbons, halogenoalkanes, alcohols, phenol, carbonyls, acids and their derivatives, amines and azo dyes, amino acids, polymers and synthesis. The A Level course adds a unit on spectroscopy and chromatography.'],
+  ['Matched to your syllabus','Each unit lists its syllabus points with references, and shows only the lessons and questions for your exam. The two courses share their lessons, so progress in one counts in the other.'],
+  ['192 new questions','Every unit has an exam-style question with worked answers and a quiz. The questions count towards Progress and can appear in mock exams.']]});
+
+/* ================= v24: age check, drills, more mechanisms, a bigger predictor ================= */
+
+/* ---------- more mechanisms for the reaction library (atom numbers follow the order atoms appear in each SMILES) ---------- */
+const RXN24=[
+ {id:'alcoholhx',name:'Alcohol to chloroalkane (SN1)',cat:'Substitution',sum:'A tertiary alcohol is protonated, loses water to form a carbocation, and chloride attacks. This is why tertiary alcohols turn Lucas reagent cloudy at once.',cond:'Concentrated HCl at room temperature for tertiary alcohols; secondary and primary alcohols need ZnCl₂ (Lucas reagent) or PCl₅/SOCl₂.',
+  steps:[{s:'CC(C)(C)O.[H]Cl',a:[['4','5'],['5-6','6']],r:'',n:'A lone pair on the OH oxygen takes a proton from HCl, turning OH into a good leaving group (water).'},
+   {s:'CC(C)(C)[OH2+].[Cl-]',a:[['1-4','4']],r:'',n:'Slow step: water leaves, giving a planar tertiary carbocation.'},
+   {s:'C[C+](C)C.[Cl-]',out:['O'],a:[['4','1']],r:'',n:'Chloride attacks the carbocation.'},
+   {s:'CC(C)(C)Cl'}]},
+ {id:'cnsub',name:'Nitrile from a halogenoalkane (SN2)',cat:'Substitution',sum:'Cyanide attacks the δ+ carbon from behind as bromide leaves, in one step. The chain gains a carbon, and the nitrile can be hydrolysed to an acid or reduced to an amine.',cond:'KCN or NaCN in ethanol, heat under reflux. Ethanol, not water, so that OH⁻ doesn’t compete.',
+  steps:[{s:'[C-]#N.CCBr',a:[['0','3'],['3-4','4']],r:'',n:'The lone pair on carbon of CN⁻ attacks the carbon bonded to Br, while the C–Br bond breaks.'},
+   {s:'N#CCC.[Br-]'}]},
+ {id:'nh3sub',name:'Amine from a halogenoalkane and ammonia',cat:'Substitution',sum:'Ammonia substitutes for bromide, then a second ammonia molecule removes a proton. Excess ammonia keeps the amine from reacting again.',cond:'Excess concentrated NH₃ in ethanol, heated in a sealed tube.',
+  steps:[{s:'N.CCBr',a:[['0','2'],['2-3','3']],r:'',n:'The nitrogen lone pair attacks the δ+ carbon and bromide leaves (SN2).'},
+   {s:'CC[NH2+][H].N',add:['N'],out:['[Br-]'],a:[['4','3'],['2-3','2']],r:'NH₃',n:'A second ammonia molecule removes a proton from the ethylammonium ion.'},
+   {s:'CCN.[NH4+]'}]},
+ {id:'alcdehyd',name:'Dehydration of an alcohol (E1)',cat:'Elimination',sum:'Acid turns OH into water, a good leaving group. Water leaves to give a carbocation, which loses a proton from the next carbon to form the alkene.',cond:'Concentrated H₂SO₄ or H₃PO₄ and heat (about 170 °C for ethanol), or the vapour over hot Al₂O₃.',
+  steps:[{s:'CC(C)(C)O.[H][OH2+]',a:[['4','5'],['5-6','6']],r:'',n:'The OH group is protonated by the acid catalyst.'},
+   {s:'CC(C)(C)[OH2+].O',a:[['1-4','4']],r:'',n:'Slow step: water leaves, giving a tertiary carbocation.'},
+   {s:'[H]C[C+](C)C.O',out:['O'],a:[['5','0'],['0-1','1-2']],r:'',n:'Water removes a proton from a carbon next to C⁺, and the C–H electrons form the C=C bond.'},
+   {s:'C=C(C)C.[OH3+]'}]},
+ {id:'phenolbr',name:'Bromination of phenol',cat:'Aromatic substitution',sum:'The oxygen lone pair pushes electron density into the ring, so phenol attacks bromine without a halogen carrier. Shown at the 4-position; in bromine water it happens at 2, 4 and 6.',cond:'Bromine water, room temperature, no catalyst. Gives 2,4,6-tribromophenol, a white precipitate.',
+  steps:[{s:'OC1=CC=CC=C1.BrBr',a:[['0','0-1'],['1-2','2-3'],['3-4','7'],['7-8','8']],r:'',n:'Electrons flow from the oxygen lone pair through the ring to attack Br₂ at the 4-position; bromide leaves.'},
+   {s:'[OH+]=C1C=CC([H])(Br)C=C1.[Br-]',a:[['9','5'],['4-5','4-3'],['3-2','2-1'],['1-0','0']],r:'',n:'Bromide removes the proton from the sp³ carbon and the ring becomes aromatic again.'},
+   {s:'OC1=CC=C(Br)C=C1.Br'}]},
+ {id:'diazocoupling',name:'Azo coupling',cat:'Aromatic substitution',sum:'The diazonium ion is a weak electrophile, so it needs the very electron-rich phenoxide ion. Attack at the 4-position, then loss of a proton, gives a yellow-orange azo dye.',cond:'Benzenediazonium chloride added to phenol in cold NaOH(aq), below 10 °C.',
+  steps:[{s:'[O-]C1=CC=CC=C1.N#[N+]C2=CC=CC=C2',a:[['0','0-1'],['1-2','2-3'],['3-4','7'],['7-8','8']],r:'',n:'Electrons flow from the O⁻ through the ring; the 4-position attacks the end nitrogen of the diazonium ion.'},
+   {s:'O=C1C=CC([H])(N=NC2=CC=CC=C2)C=C1.[OH-]',add:['[OH-]'],a:[['16','5'],['4-5','4-3'],['3-2','2-1'],['1-0','0']],r:'OH⁻',n:'Hydroxide removes the proton and the ring becomes aromatic again.'},
+   {s:'[O-]C1=CC=C(N=NC2=CC=CC=C2)C=C1.O'}]},
+ {id:'cannizzaro',name:'Cannizzaro reaction',cat:'Carbonyl addition',sum:'With concentrated alkali, an aldehyde that has no α-hydrogen is both oxidised and reduced: hydroxide adds to one molecule, which then passes a hydride ion to a second.',cond:'Concentrated NaOH or KOH, for aldehydes with no α-hydrogen (methanal, benzaldehyde).',
+  steps:[{s:'[OH-].O=CC1=CC=CC=C1',a:[['0','2'],['2-1','1']],r:'',n:'Hydroxide adds to the carbonyl carbon of one benzaldehyde.'},
+   {s:'[O-]C([H])(O)C1=CC=CC=C1.O=CC2=CC=CC=C2',add:['O=CC2=CC=CC=C2'],a:[['0','0-1'],['1-2','11'],['11-10','10']],r:'PhCHO',n:'The C=O reforms and pushes a hydride ion onto a second benzaldehyde.'},
+   {s:'[H]OC(=O)C1=CC=CC=C1.[O-]CC2=CC=CC=C2',a:[['10','0'],['0-1','1']],r:'',n:'The alkoxide takes the acidic proton: benzoate and benzyl alcohol.'},
+   {s:'[O-]C(=O)C1=CC=CC=C1.OCC2=CC=CC=C2'}]}];
+
+/* ---------- age check: ask before anyone creates or signs in to an account ---------- */
+const AGE_KEY='bondline.age';
+const ageState=()=>v18get(AGE_KEY,null);
+const ageOK=()=>{const a=ageState();return!!(a&&a.ok)};
+const ageBlocked=()=>{const a=ageState();return!!(a&&a.u13)};
+function ageYears(y,m){const d=new Date();let a=d.getFullYear()-y;if(d.getMonth()+1<m)a--;return a}
+function ageScrim(){let sc=$('#ageScrim');if(sc)return sc;sc=document.createElement('div');sc.id='ageScrim';sc.className='scrim v17-scrim';sc.hidden=true;
+  sc.innerHTML=`<div class="help auth age24" role="dialog" aria-modal="true" aria-labelledby="ageTitle"><div id="ageBody"></div></div>`;document.body.appendChild(sc);
+  sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('[data-age="close"]'))return ageClose()});
+  sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();ageClose()}});return sc}
+function ageClose(){const sc=$('#ageScrim');if(sc)sc.hidden=true;document.body.classList.remove('sk-lock')}
+function ageBlockedView(){const sc=ageScrim();$('#ageBody').innerHTML=`<h2 id="ageTitle">You can’t create an account yet</h2><p>You can still use everything in Bondline on this device without an account: your notes, practice and progress are saved here.</p><p class="hm-muted">If you’re a parent or guardian and have a question, email <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p><button class="btn primary" data-age="close" type="button">OK</button>`;sc.hidden=false;document.body.classList.add('sk-lock');setTimeout(()=>{const b=sc.querySelector('[data-age="close"]');if(b)b.focus()},30)}
+function ageAsk(next){const sc=ageScrim(),Y=new Date().getFullYear();
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  $('#ageBody').innerHTML=`<h2 id="ageTitle">Before you sign in</h2><p>What’s your date of birth? We ask everyone, and we don’t store it.</p>
+   <div class="age-row"><label>Month<select id="ageM"><option value="">Month</option>${months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select></label>
+   <label>Year<select id="ageY"><option value="">Year</option>${Array.from({length:101},(_,i)=>Y-i).map(y=>`<option value="${y}">${y}</option>`).join('')}</select></label></div>
+   <p class="auth-err" id="ageErr" role="alert" hidden></p>
+   <div class="nm-actions"><button class="btn primary" id="ageGo" type="button" disabled>Continue</button><button class="linkbtn" data-age="close" type="button">Not now</button></div>`;
+  const m=$('#ageM'),y=$('#ageY'),go=$('#ageGo'),upd=()=>{go.disabled=!(m.value&&y.value)};m.onchange=upd;y.onchange=upd;
+  go.onclick=()=>{const a=ageYears(+y.value,+m.value);if(a<0||a>110){const e=$('#ageErr');e.textContent='Please check the date.';e.hidden=false;return}
+    if(a>=13){v18set(AGE_KEY,{ok:1,t:Date.now()});ageClose();next&&next();return}
+    v18set(AGE_KEY,{u13:1,t:Date.now()});try{localStorage.setItem('bondline.notrack','1')}catch(e){}ageBlockedView()};
+  sc.hidden=false;document.body.classList.add('sk-lock');setTimeout(()=>m.focus(),30)}
+
+/* ---------- predictor: named reactions from A Level, STPM and NCERT ---------- */
+Object.assign(PR_RG,{chcl3:['chcl3','chloroform'],sodalime:['soda lime','soda-lime','sodalime','cao'],redp:['red p','red phosphorus','p(red)','red p4'],
+  cro2cl2:['cro2cl2','chromyl chloride'],co:['co','carbon monoxide'],agf:['agf','hg2f2','cof2','sbf3'],agcn:['agcn'],agno2:['agno2'],
+  fehling:['fehling','fehlings','fehling\'s','fehling\'s solution','benedict','benedict\'s'],dnph:['2,4-dnp','2,4-dnph','dnph','brady','brady\'s reagent','2,4-dinitrophenylhydrazine'],
+  semicarb:['semicarbazide','nh2nhconh2'],lucas:['lucas','lucas reagent','lucas\' reagent','zncl2'],al2o3:['al2o3','alumina','aluminium oxide','aluminum oxide'],
+  electro:['electrolysis','kolbe electrolysis','electrolyse'],hinsberg:['hinsberg','hinsberg\'s reagent','benzenesulfonyl chloride','c6h5so2cl','phso2cl'],
+  cu:['cu','copper'],distil:['distil','distill','distillation','distil off'],conc:['conc','concentrated','conc.'],baso4:['pd/baso4','pd-baso4','rosenmund']});
+function prRingOf(M,F,i){return F.arom.find(r=>r.includes(i))}
+function prRingPos(M,F,i,which){const r=prRingOf(M,F,i);if(!r)return[];const k=r.indexOf(i),pick=which==='o'?[1,5]:which==='p'?[3]:[1,3,5];return pick.map(d=>r[(k+d)%6]).filter(j=>M.A[j].h>=1)}
+function prDimer(M,c,x){const M2=M.clone();if(x!=null)M2.kill(x);const n0=M2.A.length,B=M.clone();if(x!=null)B.kill(x);B.A.forEach(q=>M2.A.push({...q}));B.B.forEach(b=>M2.B.push({...b,a:b.a+n0,b:b.b+n0}));M2.link(c,c+n0);return M2}
+function prV24(M,F,ctx){const has=ctx.has,res=[],add=o=>{if(o&&o.products.length)res.push(o);return o};const tx=ctx.text;
+  const alk=F.halide.filter(h=>!h.bad),ar=F.halide.filter(h=>h.bad==='aryl');const X=h=>M.A[h.x].el;
+  /* sodium: Wurtz, Fittig, Wurtz–Fittig; alcohols → alkoxides */
+  if(has('na')&&!has('nh3')&&F.halide.length&&!F.alcohol.length&&!F.phenol.length){
+    if(ar.length&&ctx.rx){const h=ar[0];const o=prOut('Wurtz–Fittig reaction','Aryl halide + alkyl halide + Na → alkylbenzene');const M2=M.clone();M2.kill(h.x);M2.attach(h.c,ctx.rx.frag);prPush(o,M2,'Product');o.why.push('Sodium in dry ether joins the aryl and alkyl groups, removing both halogens as NaX.');return[add(o)]}
+    const h=(ar[0]||alk[0]);const o=prOut(ar.length?'Fittig reaction':'Wurtz reaction',ar.length?'2ArX + 2Na → Ar–Ar':'2RX + 2Na → R–R');prPush(o,prDimer(M,h.c,h.x),'Product');o.why.push(ar.length?'Two aryl groups join to give a biaryl (biphenyl from chlorobenzene).':'Two alkyl groups join, doubling the carbon chain. It works best for symmetrical alkanes, and can’t make methane.');if(ctx.rx&&!ar.length)o.warn.push('With two different alkyl halides, Wurtz gives a mixture of three alkanes.');return[add(o)]}
+  if(has('na')&&(F.alcohol.length||F.phenol.length)&&!ctx.rx&&!F.halide.length&&!has('nh3')){const x=(F.alcohol[0]||F.phenol[0]);const o=prOut(F.alcohol.length?'Sodium alkoxide':'Sodium phenoxide','R–OH + Na → R–O⁻Na⁺ + ½H₂');const M2=M.clone();M2.A[x.o].ch=-1;M2.add('Na',1);prPush(o,M2,'Products');o.why.push('The O–H hydrogen is released as hydrogen gas (fizzing). Alcohols react more gently than water because they are slightly weaker acids.');return[add(o)]}
+  /* halogen exchange and ambident nucleophiles */
+  if(alk.length&&has('agf')){const o=prOut('Swarts reaction','R–Cl or R–Br → R–F');const M2=M.clone();for(const h of alk){if(X(h)==='F')continue;M2.kill(h.x);M2.attach(h.c,'F')}prPush(o,M2,'Product');o.why.push('Metal fluorides such as AgF, Hg₂F₂, CoF₂ or SbF₃ exchange the halogen for fluorine.');return[add(o)]}
+  if(alk.length&&has('nai')&&has('acetone')&&alk.some(h=>X(h)!=='I')){const h=alk.find(h=>X(h)!=='I');const o=prOut('Finkelstein reaction','R–Cl or R–Br → R–I (SN2)',{lib:'sn2'});const M2=M.clone();M2.kill(h.x);M2.attach(h.c,'I');prPush(o,M2,'Product');o.why.push('NaI dissolves in dry acetone but NaCl and NaBr don’t, so they precipitate and drive the equilibrium forward (Le Chatelier).');return[add(o)]}
+  if(alk.length&&has('agcn')){const h=alk[0];const o=prOut('Isocyanide formation','R–X + AgCN → R–N≡C');const M2=M.clone();M2.kill(h.x);M2.attach(h.c,'[N+]#[C-]');prPush(o,M2,'Major product');o.why.push('Cyanide is an ambident nucleophile. AgCN is mainly covalent, so the nitrogen lone pair attacks and an isocyanide forms. Ionic KCN gives the nitrile instead.');return[add(o)]}
+  if(alk.length&&has('agno2')){const h=alk[0];const o=prOut('Nitroalkane formation','R–X + AgNO₂ → R–NO₂');const M2=M.clone();M2.kill(h.x);M2.attach(h.c,'[N+](=O)[O-]');prPush(o,M2,'Major product');o.why.push('With AgNO₂ the nitrogen attacks, giving a nitroalkane; KNO₂ gives the alkyl nitrite, R–O–N=O.');return[add(o)]}
+  /* acyl chlorides, nitriles, toluene, benzene → aldehydes */
+  if(F.acylCl.length&&has('h2')&&(has('baso4','lindlar')||/baso4/.test(tx))){const x=F.acylCl[0];const cl=M.nb(x.c).find(n=>['Cl','Br'].includes(M.A[n.to].el));const o=prOut('Rosenmund reduction','RCOCl + H₂ → RCHO');const M2=M.clone();M2.kill(cl.to);prPush(o,M2,'Product');o.why.push('Palladium on barium sulfate, partly poisoned (with sulfur or quinoline), reduces the acyl chloride but stops at the aldehyde.');return[add(o)]}
+  if(F.nitrile.length&&/sncl2/.test(tx)){const x=F.nitrile[0];const o=prOut('Stephen reaction','RCN → RCHO');const M2=M.clone();M2.kill(x.n);M2.attach(x.c,'O',2);prPush(o,M2,'Product (after hydrolysis)');o.why.push('SnCl₂ and HCl reduce the nitrile to an imine (as its salt), which water hydrolyses to the aldehyde.');return[add(o)]}
+  if(has('cro2cl2')&&F.arom.length){const me=M.A.map((a,i)=>i).find(i=>sp3(M,i)&&M.A[i].h===3&&M.nb(i).some(n=>M.A[n.to].ar));if(me!=null){const o=prOut('Etard reaction','ArCH₃ → ArCHO');const M2=M.clone();M2.attach(me,'O',2);prPush(o,M2,'Product (after hydrolysis)');o.why.push('Chromyl chloride forms a brown chromium complex with the methyl group (the Etard complex); hydrolysis gives the aldehyde without over-oxidation.');return[add(o)]}}
+  if(has('co')&&has('hcl')&&has('alcl3','cucl')&&F.arom.length&&!F.alcohol.length){const r=F.arom[0];const sub=r.find(i=>M.nb(i).some(n=>!r.includes(n.to)&&!M.A[n.to].dead));const at=sub!=null?prRingPos(M,F,sub,'p')[0]:r.find(i=>M.A[i].h>=1);if(at!=null){const o=prOut('Gattermann–Koch reaction','ArH + CO + HCl → ArCHO');const M2=M.clone();M2.attach(at,'C=O');prPush(o,M2,'Product');o.why.push('CO and HCl with anhydrous AlCl₃ (and a little CuCl) act like the unstable HCOCl, formylating the ring by electrophilic substitution.');return[add(o)]}}
+  /* phenols */
+  if(F.phenol.length){const p=F.phenol[0];
+    if(has('chcl3')&&has('naoh')){const at=prRingPos(M,F,p.c,'o')[0];if(at!=null){const o=prOut('Reimer–Tiemann reaction','Phenol → 2-hydroxybenzaldehyde');const M2=M.clone();M2.attach(at,'C=O');prPush(o,M2,'Product (after acidifying)');o.why.push('CHCl₃ and NaOH give dichlorocarbene, :CCl₂, which attacks the phenoxide ion at the ortho position. Hydrolysis of the –CHCl₂ group gives –CHO.');return[add(o)]}}
+    if(has('co2')&&has('naoh')){const at=prRingPos(M,F,p.c,'o')[0];if(at!=null){const o=prOut('Kolbe reaction','Phenol → 2-hydroxybenzoic acid');const M2=M.clone();M2.attach(at,'C(=O)O');prPush(o,M2,'Product (after acidifying)');o.why.push('Sodium phenoxide is reactive enough to attack the weak electrophile CO₂ (about 400 K, 4–7 atm), mainly at the ortho position: salicylic acid.');return[add(o)]}}
+    if(has('zn')&&!has('hcl','acid')){const o=prOut('Reduction with zinc dust','Phenol → benzene');const M2=M.clone();M2.kill(p.o);prPush(o,M2,'Product');o.why.push('Heating phenol with zinc dust removes the oxygen as ZnO.');return[add(o)]}}
+  if((F.phenol.length||F.aniline.length)&&has('br2')&&has('h2o')&&!has('febr3','fecl3','alcl3')){const g=F.phenol[0]?{c:F.phenol[0].c,n:'phenol'}:{c:F.aniline[0].c,n:'aniline'};const at=prRingPos(M,F,g.c,'op');if(at.length){const o=prOut(`Bromination of ${g.n} (bromine water)`,'Substitution at 2, 4 and 6',{lib:g.n==='phenol'?'phenolbr':null});const M2=M.clone();at.forEach(i=>M2.attach(i,'Br'));prPush(o,M2,'Product');o.why.push(`The ${g.n==='phenol'?'O':'N'} lone pair makes the ring so electron-rich that bromine water substitutes every free ortho and para position, without a catalyst. A white precipitate forms.`);if(g.n==='aniline')o.warn.push('To stop at one bromine, protect –NH₂ first as acetanilide (ethanoic anhydride).');else o.warn.push('In CS₂ at low temperature, phenol gives mainly 4-bromophenol instead.');return[add(o)]}}
+  /* aldehydes and ketones */
+  const CO=[...F.aldehyde,...F.ketone];
+  if(F.aldehyde.length&&has('naoh')&&!has('i2','br2','cl2','acetone')&&!ctx.rx&&!/propanone|ethanal|acetaldehyde|ch3cho|ch3coch3/.test(tx)){const a=F.aldehyde.find(x=>!cNbrs(M,x.c).some(n=>sp3(M,n.to)&&M.A[n.to].h>=1));if(a&&!F.ketone.length){const o=prOut('Cannizzaro reaction','2RCHO + OH⁻ → RCH₂OH + RCOO⁻',{lib:'cannizzaro'});const M2=M.clone();M2.setO(a.c,a.o,1);const M3=M.clone();M3.attach(a.c,'O');prPush(o,M2,'Alcohol');prPush(o,M3,'Carboxylic acid (as its salt; acidify to get the acid)');o.why.push('This aldehyde has no α-hydrogen, so it can’t form an enolate. With concentrated alkali, hydroxide adds and the intermediate passes a hydride ion to a second aldehyde: one is reduced, the other oxidised.');if(!has('conc'))o.warn.push('Cannizzaro needs concentrated alkali.');return[add(o)]}}
+  if(CO.length&&has('dnph','semicarb')){const d=has('dnph');const o=prOut(d?'2,4-DNP derivative':'Semicarbazone','Addition–elimination at C=O');const M2=M.clone();for(const x of CO){M2.kill(x.o);M2.attach(x.c,d?'NNc1ccc(cc1[N+](=O)[O-])[N+](=O)[O-]':'NNC(N)=O',2)}prPush(o,M2,'Product');o.why.push(d?'2,4-Dinitrophenylhydrazine adds to C=O and water is lost. The orange-yellow precipitate shows an aldehyde or ketone; its melting point identifies which one.':'Semicarbazide adds to C=O and water is lost, giving a crystalline semicarbazone (best in weakly acidic solution).');return[add(o)]}
+  if(has('fehling')){if(F.aldehyde.length){const al=F.aldehyde.filter(x=>!M.nb(x.c).some(n=>M.A[n.to].ar));if(al.length){const o=prOut('Fehling’s test','Aldehyde → carboxylate; blue Cu²⁺ → red Cu₂O');const M2=M.clone();for(const x of al)M2.attach(x.c,'O');prPush(o,M2,'Product (as its salt)');o.why.push('Aliphatic aldehydes reduce the copper(II) complex to a brick-red precipitate of copper(I) oxide and are oxidised to the carboxylate.');return[add(o)]}
+      const o=prOut('No reaction','Aromatic aldehydes and Fehling’s');o.why.push('Aromatic aldehydes such as benzaldehyde don’t reduce Fehling’s solution (they do give a silver mirror with Tollens’ reagent).');o.none=true;res.push(o);return res}
+    if(F.ketone.length){const o=prOut('No reaction','Ketones and Fehling’s');o.why.push('Ketones can’t be oxidised without breaking C–C bonds, so Fehling’s solution stays blue.');o.none=true;res.push(o);return res}}
+  /* alcohols */
+  if(F.alcohol.length){const x=F.alcohol[0];
+    if(has('lucas')||(has('hcl')&&has('zn')&&/zncl2/.test(tx))){const o=prOut('Lucas test','R–OH → R–Cl',{lib:x.deg===3?'alcoholhx':null});const M2=M.clone();M2.kill(x.o);M2.attach(x.c,'Cl');prPush(o,M2,'Product');o.why.push(x.deg===3?'Tertiary alcohol: turbidity appears immediately, because the tertiary carbocation forms quickly (SN1).':x.deg===2?'Secondary alcohol: the mixture turns cloudy within about five minutes.':'Primary alcohol: no turbidity at room temperature (the reaction needs heating).');return[add(o)]}
+    if(has('al2o3')){const E=prElims(M,x.c,M2=>M2.kill(x.o));if(E.length){const o=prOut('Dehydration over hot alumina','Alcohol → alkene + H₂O',{lib:'alcdehyd'});prPush(o,E[0].M,'Major product',E.length>1?'Zaitsev product: the more substituted alkene.':'');o.why.push('Hot aluminium oxide (about 350 °C) removes water from the alcohol vapour.');return[add(o)]}}
+    if(has('cu')&&(ctx.heat||/573|300 ?°?c/.test(tx))){if(x.deg===3){const E=prElims(M,x.c,M2=>M2.kill(x.o));if(E.length){const o=prOut('Dehydration on hot copper','Tertiary alcohol → alkene');prPush(o,E[0].M,'Product');o.why.push('A tertiary alcohol has no H on the carbinol carbon to lose, so hot copper (573 K) dehydrates it instead.');return[add(o)]}}
+      const o=prOut('Dehydrogenation on hot copper',x.deg===2?'Secondary alcohol → ketone':'Primary alcohol → aldehyde');const M2=M.clone();M2.setO(x.c,x.o,2);prPush(o,M2,'Product');o.why.push('Copper at 573 K removes H₂ from the alcohol vapour, and stops at the aldehyde.');return[add(o)]}
+    if(has('jones')&&has('distil')&&x.deg===1){const o=prOut('Partial oxidation (distil)','Primary alcohol → aldehyde');const M2=M.clone();M2.setO(x.c,x.o,2);prPush(o,M2,'Product');o.why.push('Distilling the aldehyde off as soon as it forms stops it being oxidised further to the carboxylic acid. Heating under reflux would give the acid.');return[add(o)]}
+    if(has('i2')&&has('naoh')){const me=cNbrs(M,x.c).find(n=>M.A[n.to].h===3&&pDeg(M,n.to)===1);if(me&&M.A[x.c].h>=1){const o=prOut('Iodoform (tri-iodomethane) reaction','CH₃CH(OH)R → RCOO⁻ + CHI₃');const M2=M.clone();M2.kill(me.to);M2.setO(x.c,x.o,2);M2.attach(x.c,'O');prPush(o,M2,'Organic product (after acidifying)');prPushSmi(o,'IC(I)I','Pale yellow precipitate');o.why.push('Alkaline iodine first oxidises CH₃CH(OH)– to CH₃CO–, then replaces the three methyl hydrogens with iodine; hydroxide cleaves off CHI₃.');return[add(o)]}}}
+  /* acids */
+  if(F.acid.length){const x=F.acid[0],R=cNbrs(M,x.c)[0];
+    if(has('br2','cl2')&&(has('redp')||has('pbr3','pcl3'))){const al=R&&sp3(M,R.to)&&M.A[R.to].h>=1?R.to:null;if(al!=null){const Xx=has('br2')?'Br':'Cl';const o=prOut('Hell–Volhard–Zelinsky reaction','α-Halogenation of a carboxylic acid');const M2=M.clone();M2.attach(al,Xx);prPush(o,M2,'Product (after adding water)');o.why.push('Red phosphorus and the halogen form the acyl halide, which enolises easily; the enol is halogenated at the α-carbon, and water returns the acid.');return[add(o)]}}
+    if(has('sodalime')&&R){const o=prOut('Decarboxylation','RCOONa + NaOH (CaO) → R–H');const M2=M.clone();M2.killBranch(x.c,R.to);prPush(o,M2,'Product');o.why.push('Heating the sodium salt with soda lime removes CO₂ (as Na₂CO₃), leaving an alkane with one carbon fewer.');return[add(o)]}
+    if(has('electro')&&R){const M1=M.clone();M1.killBranch(x.c,R.to);const o=prOut('Kolbe electrolysis','2RCOO⁻ → R–R + 2CO₂');prPush(o,prDimer(M1,R.to,null),'Product (at the anode)');o.why.push('At the anode the carboxylate ion loses an electron and CO₂, and two alkyl radicals join. Hydrogen forms at the cathode.');return[add(o)]}}
+  /* amides and amines */
+  if(F.amide.length&&has('br2','cl2')&&has('naoh')){const x=F.amide.find(a=>{const n=M.nb(a.c).find(q=>M.A[q.to].el==='N');return n&&M.A[n.to].h===2});if(x){const nn=M.nb(x.c).find(q=>M.A[q.to].el==='N').to,R=cNbrs(M,x.c)[0];if(R){const o=prOut('Hofmann bromamide degradation','RCONH₂ → RNH₂ (one carbon fewer)');const M2=M.clone();M2.kill(x.o);M2.kill(x.c);M2.link(R.to,nn);prPush(o,M2,'Product');o.why.push('Bromine and alkali convert the amide to an N-bromoamide; the R group migrates from carbon to nitrogen (an isocyanate forms), and hydrolysis releases CO₂. The amine has one carbon fewer than the amide.');return[add(o)]}}}
+  const NH=[...F.amine,...F.aniline];
+  if(NH.length&&has('chcl3')&&has('naoh')){const x=NH.find(a=>M.A[a.n].h===2);const o=prOut('Carbylamine (isocyanide) test','1° amine + CHCl₃ + KOH → R–N≡C');if(!x){o.title='No reaction';o.why.push('Only primary amines give the carbylamine test. Secondary and tertiary amines do not.');o.none=true;res.push(o);return res}
+    const M2=M.clone();M2.A[x.n].ch=1;const c=M2.add('C',-1);M2.link(x.n,c,3);prPush(o,M2,'Product (foul smell)');o.why.push('Dichlorocarbene from CHCl₃ and alcoholic KOH reacts with the –NH₂ group; the isocyanide formed has a very unpleasant smell.');return[add(o)]}
+  if(NH.length&&has('hinsberg')){const x=NH[0],h=M.A[x.n].h;const o=prOut('Hinsberg test','Amine + C₆H₅SO₂Cl');if(h===0){o.title='No reaction';o.why.push('A tertiary amine has no N–H, so it doesn’t form a sulfonamide.');o.none=true;res.push(o);return res}
+    const M2=M.clone();M2.attach(x.n,'S(=O)(=O)c1ccccc1');prPush(o,M2,'Sulfonamide');o.why.push(h===2?'Primary amine: the sulfonamide still has an acidic N–H, so it dissolves in alkali.':'Secondary amine: the sulfonamide has no N–H, so it is insoluble in alkali.');return[add(o)]}
+  if(F.amine.length&&has('nano2')){const x=F.amine.find(a=>M.A[a.n].h===2);if(x){const c=cNbrs(M,x.n)[0];if(c){const o=prOut('Nitrous acid with an aliphatic amine','R–NH₂ → R–OH + N₂');const M2=M.clone();M2.kill(x.n);M2.attach(c.to,'O');prPush(o,M2,'Main product');o.why.push('Aliphatic diazonium ions are very unstable: nitrogen gas bubbles off at once, even in the cold, and the carbocation is trapped by water. (Mixtures of products, including alkenes, form.)');return[add(o)]}}}
+  return res}
+
+/* ---------- Drills: quick interactive practice ---------- */
+const DR={view:'home',sc:{},cur:null};
+const DR_LIST=[{id:'mech',t:'SN1, SN2, E1 or E2?',d:'Classify the substrate and the reagent, then pick the mechanism. Bondline’s predictor shows its reasoning.'},
+  {id:'rs',t:'R or S?',d:'Rank the four groups on a 3D model, then assign the configuration.'},
+  {id:'ir',t:'Find the IR peak',d:'Tap the absorption on a real-looking IR spectrum, or match a spectrum to its molecule.'}];
+const DR_MECH=[
+ ['bromomethane','NaOH, H2O','s'],['1-bromobutane','NaCN, DMSO','w'],['1-bromobutane','t-BuOK, heat','k'],['2-bromobutane','NaOEt, EtOH, heat','s'],
+ ['2-bromobutane','NaCN, DMSO','w'],['2-bromo-2-methylpropane','H2O','n'],['2-bromo-2-methylpropane','NaOEt, EtOH, heat','s'],['2-bromo-2-methylpropane','EtOH, heat','n'],
+ ['1-chloropropane','NaN3, DMF','w'],['2-chloro-2-methylbutane','MeOH','n'],['2-bromopropane','KOH, EtOH, heat','s'],['1-bromopropane','NaOH, H2O','s'],
+ ['bromoethane','NH3, EtOH','w'],['iodomethane','NaOMe, MeOH','s'],['2-iodobutane','NaSH, acetone','w'],['2-bromo-2-methylbutane','t-BuOK, heat','k'],
+ ['1-bromo-2-methylpropane','NaCN, DMSO','w'],['3-bromo-3-methylpentane','H2O, acetone','n']];
+const DR_RTYPE={w:'Good nucleophile, weak base',s:'Strong nucleophile and strong base',k:'Strong, bulky base',n:'Weak nucleophile, weak base (solvent)'};
+const DR_CLASS=['Methyl','Primary','Secondary','Tertiary'];
+const DR_RS=[
+ {g:['Br','Cl','F','H'],pr:[0,1,2,3],why:'Br (35) > Cl (17) > F (9) > H (1).'},
+ {g:['OH','Et','CH3','H'],pr:[0,1,2,3],why:'O beats C. CH₂CH₃ (C, H, H) beats CH₃ (H, H, H) at the first point of difference.'},
+ {g:['NH2','COOH','CH3','H'],pr:[0,1,2,3],why:'N first. COOH (O, O, O) beats CH₃ (H, H, H).'},
+ {g:['OH','CHO','CH2OH','H'],pr:[0,1,2,3],why:'OH first. CHO counts as (O, O, H), CH₂OH as (O, H, H).'},
+ {g:['OH','COOH','CH3','H'],pr:[0,1,2,3],why:'O directly attached wins; then COOH (O, O, O) beats CH₃.'},
+ {g:['Cl','OH','CH3','H'],pr:[0,1,2,3],why:'Cl (17) > O (8) > C (6) > H (1).'},
+ {g:['Br','Et','CH3','H'],pr:[0,1,2,3],why:'Br first. CH₂CH₃ beats CH₃ one atom further out.'},
+ {g:['OH','CN','CH3','H'],pr:[0,1,2,3],why:'O first. C≡N counts as (N, N, N), which beats CH₃ (H, H, H).'},
+ {g:['NH2','Et','CH3','H'],pr:[0,1,2,3],why:'N (7) beats C (6). Then CH₂CH₃ > CH₃.'},
+ {g:['SH','OH','CH3','H'],pr:[0,1,2,3],why:'S (16) > O (8) > C > H.'},
+ {g:['OH','vinyl','Et','H'],pr:[0,1,2,3],why:'O first. CH=CH₂ counts as (C, C, H), beating CH₂CH₃ (C, H, H).'},
+ {g:['Br','CH2OH','CH3','H'],pr:[0,1,2,3],why:'Br first. CH₂OH (O, H, H) beats CH₃ (H, H, H).'},
+ {g:['COOH','CH2OH','CH3','H'],pr:[0,1,2,3],why:'All three attach through C, so compare the next atoms: (O, O, O) > (O, H, H) > (H, H, H).'},
+ {g:['Cl','Br','CH3','H'],pr:[1,0,2,3],why:'Br (35) > Cl (17) > C > H.'},
+ {g:['CHO','COOH','OH','H'],pr:[2,1,0,3],why:'OH is attached through O, so it is first. COOH (O, O, O) beats CHO (O, O, H).'},
+ {g:['CN','vinyl','CH3','H'],pr:[0,1,2,3],why:'All attach through C. C≡N gives (N, N, N), CH=CH₂ gives (C, C, H), CH₃ gives (H, H, H).'},
+ {g:['I','F','CH3','Et'],pr:[0,1,3,2],why:'I (53) > F (9). CH₂CH₃ beats CH₃, so CH₃ is lowest: it plays the role of H here.'},
+ {g:['NH2','OH','Et','CH3'],pr:[1,0,2,3],why:'O (8) > N (7) > CH₂CH₃ > CH₃.'}];
+const DR_IRK=[[/^C=O/,'C=O stretch'],[/^O–H/,'O–H stretch'],[/^N–H(?! bend)/,'N–H stretch'],[/^C≡N/,'C≡N stretch'],[/^C≡C/,'C≡C stretch'],[/^C–H \(aldehyde\)/,'aldehyde C–H stretch'],[/^C–O(?!–)/,'C–O stretch'],[/^≡C–H/,'≡C–H stretch']];
+function drScore(id){return DR.sc[id]||(DR.sc[id]={n:0,ok:0,streak:0})}
+function drTally(id,ok){const s=drScore(id);s.n++;if(ok){s.ok++;s.streak++}else s.streak=0;try{logAns(ok)}catch(e){}const all=v18get('bondline.drills',{});const a=all[id]||{n:0,ok:0,best:0};a.n++;if(ok)a.ok++;a.best=Math.max(a.best,s.streak);all[id]=a;v18set('bondline.drills',all);const el=document.querySelector('#drPage .dr-bar');if(el)el.outerHTML=drBar(id)}
+function drBar(id){const s=drScore(id),b=(v18get('bondline.drills',{})[id]||{}).best||0;return`<div class="dr-bar"><span>This session <b>${s.ok}/${s.n}</b></span><span>Streak <b>${s.streak}</b></span><span>Best streak <b>${b}</b></span></div>`}
+function drSide(){const box=$('#drList');if(!box)return;box.innerHTML=`<button class="item${DR.view==='home'?' on':''}" data-dr="home"><span class="t">All drills</span><span class="m">Quick interactive practice</span></button>${DR_LIST.map(d=>{const a=v18get('bondline.drills',{})[d.id];return`<button class="item${DR.view===d.id?' on':''}" data-dr="${d.id}"><span class="t">${esc(d.t)}</span><span class="m">${a?`${a.ok} of ${a.n} right · best streak ${a.best}`:'Not tried yet'}</span></button>`}).join('')}`}
+function drDone(){$('#main').scrollTop=0;$('#side').classList.remove('open');drSide()}
+function drOpen(){if(DR.view==='home')return drHome();drStart(DR.view)}
+function drHome(){DR.view='home';stDisposeViews();
+  $('#drPage').innerHTML=`<article class="nm-lesson"><header class="nm-head"><div class="nm-kicker">Practice</div><h1>Drills</h1><p class="nm-lede">Short, interactive exercises for the topics that come up in every exam. Each round takes under a minute, and your streak is saved.</p></header>
+   <div class="co-cgrid">${DR_LIST.map(d=>`<button class="co-ccard" data-dr="${d.id}"><span class="co-cck">Drill</span><b>${esc(d.t)}</b><small>${esc(d.d)}</small></button>`).join('')}</div>
+   <p class="co-foot">Want the theory first? See the <button class="linkbtn" data-cgo="guide|sn1-sn2-e1-e2">SN1, SN2, E1 and E2 guide</button>, the <button class="linkbtn" data-cgo="st|rs">R and S lesson</button> and the <button class="linkbtn" data-cgo="sp|ir">IR lesson</button>.</p></article>`;drDone()}
+function drStart(id){DR.view=id;stDisposeViews();if(id==='mech')return drMech();if(id==='rs')return drRS();if(id==='ir')return drIR();drHome()}
+const drHead=(id,sub)=>{const d=DR_LIST.find(x=>x.id===id);return`<header class="nm-head"><div class="nm-kicker">Drill</div><h1>${esc(d.t)}</h1><p class="nm-lede">${sub}</p></header>${drBar(id)}`};
+const drOpts=(name,opts)=>`<div class="qz-opts dr-opts" role="group">${opts.map((o,k)=>`<button class="qz-opt" data-dro="${name}:${k}"><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div>`;
+/* --- drill 1: mechanism --- */
+function drMech(){
+  let pick,res;for(let t=0;t<12;t++){pick=DR_MECH[Math.floor(Math.random()*DR_MECH.length)];if(DR.cur&&DR.cur.p===pick&&t<11)continue;try{res=prPredict(pick[0],pick[1])}catch(e){res=null}if(res&&res.res&&res.res[0]&&res.res[0].mech&&res.res[0].mech.winner)break;res=null}
+  if(!res){$('#drPage').innerHTML='<p class="hm-muted">This drill couldn’t load.</p>';return}
+  let deg=0;try{const M=PM.from(res.smi);M.fixH();const F=fg(M);deg=(F.halide[0]||{deg:0}).deg}catch(e){}
+  const o=res.res[0];DR.cur={p:pick,res,o,deg:Math.min(3,deg),step:0,ok:true};
+  $('#drPage').innerHTML=`<article class="nm-lesson dr">${drHead('mech','Work through the three questions. The first two are the clues for the third.')}
+   <div class="dr-q"><div class="dr-rx"><div class="nm-struct">${smilesSVG(res.smi,1)}</div><div class="dr-arr"><span>${esc(pick[1])}</span><svg viewBox="0 0 60 12" aria-hidden="true"><path d="M2 6h52M48 1.5l7 4.5-7 4.5"/></svg></div><div class="dr-qm">?</div></div><p class="hm-muted dr-nm">${esc(res.name||pick[0])}</p></div>
+   <div id="drSteps"></div></article>`;drMechStep();drDone()}
+function drMechStep(){const C=DR.cur,box=$('#drSteps');
+  const qs=[['What kind of carbon carries the leaving group?',DR_CLASS],['How would you describe the reagent?',Object.values(DR_RTYPE)],['Which mechanism wins?',['SN2','SN1','E2','E1']]];
+  box.innerHTML=qs.slice(0,C.step+1).map(([q,o],i)=>`<section class="dr-st${i<C.step?' done':''}"><h2>${i+1}. ${q}</h2>${i<C.step?`<p class="dr-ans">${C.ans[i]}</p>`:drOpts('m'+i,o)}<div class="qz-fb" id="drFb${i}" hidden></div></section>`).join('')}
+function drMechAnswer(i,k){const C=DR.cur;if(i!==C.step)return;C.ans=C.ans||[];
+  const right=i===0?C.deg:i===1?Object.keys(DR_RTYPE).indexOf(C.p[2]):['SN2','SN1','E2','E1'].indexOf(C.o.mech.winner);const ok=k===right;if(!ok)C.ok=false;
+  const lab=i===0?DR_CLASS:i===1?Object.values(DR_RTYPE):['SN2','SN1','E2','E1'];
+  document.querySelectorAll(`#drSteps [data-dro^="m${i}:"]`).forEach((b,j)=>{b.disabled=true;if(j===right)b.classList.add('right');else if(j===k)b.classList.add('wrong')});
+  const why=i===0?['Only H atoms on the carbon with the halogen.','The carbon with the halogen is joined to one other carbon.','Joined to two other carbons.','Joined to three other carbons: no backside approach, but a stable carbocation.'][right]:
+    i===1?{w:'It attacks carbon readily but is not a strong base (I⁻, CN⁻, N₃⁻, HS⁻, NH₃): substitution is favoured.',s:'Hydroxide and alkoxides are good nucleophiles and strong bases: they substitute or eliminate depending on the substrate and heat.',k:'tert-Butoxide is too bulky to reach carbon, so it removes a β-hydrogen instead (E2, often the less substituted alkene).',n:'Water and alcohols are poor nucleophiles: they wait for a carbocation to form (SN1 or E1).'}[C.p[2]]:'';
+  const fb=$('#drFb'+i);fb.hidden=false;fb.className='qz-fb '+(ok?'ok':'bad');C.ans[i]=lab[right];
+  if(i<2){fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':`Not quite: <b>${lab[right]}</b>.`}</p><p class="qz-why">${why}</p><div class="qz-next"><button class="btn primary" data-drnext="1">Next question</button></div>`;return}
+  const S=C.o.mech.scores,mx=Math.max(100,...Object.values(S)),bars=['SN2','SN1','E2','E1'].map(m=>`<div class="dr-sb"><span>${m}</span><span class="dr-sbt"><i style="width:${Math.max(1,Math.round(100*(S[m]||0)/mx))}%"></i></span><b>${Math.round(S[m]||0)}</b></div>`).join('');
+  const prod=C.o.products[0];drTally('mech',C.ok);
+  fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':`Not quite: <b>${lab[right]}</b> wins.`} ${C.ok?'All three right.':''}</p><ul class="dr-why">${C.o.mech.reasons.slice(0,4).map(r=>`<li>${r}</li>`).join('')}</ul><div class="dr-scores">${bars}</div>
+   ${prod?`<p><b>Major product:</b> ${esc(prod.label||'')} ${prName(prod.smi)?`(${esc(prName(prod.smi))})`:''}</p><div class="nm-struct dr-prod">${smilesSVG(prod.smi,1)}</div>`:''}
+   <div class="qz-next"><button class="btn primary" data-drnew="mech">Next reaction</button><button class="linkbtn" data-drlib="${C.o.lib||''}">See the mechanism</button></div>`;
+  const q=document.querySelector('#drPage .dr-qm');if(q&&prod)q.innerHTML=smilesSVG(prod.smi,1);drSide()}
+/* --- drill 2: R or S --- */
+function drRS(){const base=DR_RS[Math.floor(Math.random()*DR_RS.length)];const sl=shuffle([0,1,2,3]);const m={g:base.g,pr:base.pr,slots:sl,why:base.why,name:'this stereocentre'};
+  let lab='R';try{lab=stModelRS(m)}catch(e){}DR.cur={m,lab,tap:[],stage:0,ok:true};
+  $('#drPage').innerHTML=`<article class="nm-lesson dr">${drHead('rs','Drag the model to turn it. First tap the four groups in priority order, highest first. Then decide: R or S?')}
+   <div class="dr-rs"><div class="stw-3d dr-3d"></div><div class="dr-rside"><h2>1. Rank the groups</h2><div class="qz-chips dr-chips">${m.g.map((g,i)=>`<button class="qz-chip" data-drg="${i}"><span>${ST_LBL[g]}</span></button>`).join('')}</div><p class="hm-muted" id="drRank">Tap the highest priority group first.</p><div class="qz-fb" id="drFbA" hidden></div><div id="drB"></div></div></div></article>`;
+  const box=$('#drPage .dr-3d');stEnsure3D().then(()=>{const V=stView(box,{dist:8.5});const M=stCentreModel(m.g,m.slots);stMesh(M,V.root);m.g.forEach((g,i)=>{const a=M.atoms[M.gIdx[i]].p;V.label(V3a(a,V3n(a),.6),`<b>${ST_LBL[g]}</b>`,'grp')});V.pivot.quaternion.setFromEuler(new THREE.Euler(Math.random()*.5-.25,Math.random()*1.2-.6,0));V.draw()}).catch(()=>{box.innerHTML='<p class="hm-muted">The 3D model needs WebGL, which isn’t available on this device.</p>'});drDone()}
+function drRSTap(i){const C=DR.cur;if(C.stage!==0||C.tap.includes(i))return;C.tap.push(i);const b=document.querySelector(`#drPage [data-drg="${i}"]`);if(b){b.classList.add('on');b.insertAdjacentHTML('beforeend',`<small>${C.tap.length}</small>`)}
+  $('#drRank').textContent=C.tap.length<4?`Now priority ${C.tap.length+1}.`:'';
+  if(C.tap.length<4)return;const ok=C.tap.every((g,k)=>g===C.m.pr[k]);if(!ok)C.ok=false;C.stage=1;const fb=$('#drFbA');fb.hidden=false;fb.className='qz-fb '+(ok?'ok':'bad');
+  fb.innerHTML=`<p class="qz-verdict">${ok?'Correct order.':`Not quite. The order is <b>${C.m.pr.map(k=>ST_LBL[C.m.g[k]]).join(' > ')}</b>.`}</p><p class="qz-why">${C.m.why}</p>`;
+  $('#drB').innerHTML=`<h2>2. Is it R or S?</h2><p class="hm-muted">Turn the model so ${ST_LBL[C.m.g[C.m.pr[3]]]} points away from you, then follow 1 → 2 → 3.</p>${drOpts('rs',['R (clockwise)','S (anticlockwise)'])}<div class="qz-fb" id="drFbB" hidden></div>`}
+function drRSAnswer(k){const C=DR.cur;if(C.stage!==1)return;C.stage=2;const right=C.lab==='R'?0:1,ok=k===right;if(!ok)C.ok=false;
+  document.querySelectorAll('#drPage [data-dro^="rs:"]').forEach((b,j)=>{b.disabled=true;if(j===right)b.classList.add('right');else if(j===k)b.classList.add('wrong')});drTally('rs',C.ok);
+  const fb=$('#drFbB');fb.hidden=false;fb.className='qz-fb '+(ok?'ok':'bad');fb.innerHTML=`<p class="qz-verdict">${ok?'Correct':'Not quite'}: this centre is <b>${C.lab}</b>.</p><p class="qz-why">With ${ST_LBL[C.m.g[C.m.pr[3]]]} pointing away, the path 1 → 2 → 3 runs ${C.lab==='R'?'clockwise':'anticlockwise'}. If the lowest-priority group points <i>towards</i> you instead, read the direction and then swap it.</p><div class="qz-next"><button class="btn primary" data-drnew="rs">Next molecule</button><button class="linkbtn" data-cgo="st|rs">Step-by-step lesson</button></div>`;drSide()}
+/* --- drill 3: IR --- */
+function drIRPool(){const P=[];for(const c of SP_BANK){if(!c.ir)continue;for(const p of c.ir){if(!p[3])continue;const k=DR_IRK.find(([re])=>re.test(p[3]));if(k)P.push({c,p,key:k[1]})}}return P}
+function drIR(){const P=drIRPool();const mode=Math.random()<.65||P.length<4?'tap':'match';
+  if(mode==='tap'){const it=P[Math.floor(Math.random()*P.length)];const hw=it.p[2]==='vb'?300:it.p[2]==='b'?110:(typeof it.p[2]==='number'&&it.p[2]>0?it.p[2]:it.p[0]>2600?16:8);
+    DR.cur={mode,it,tol:Math.max(70,hw*1.1),done:false};
+    $('#drPage').innerHTML=`<article class="nm-lesson dr">${drHead('ir',`Tap the spectrum where you expect the <b>${it.key}</b>.`)}
+     <div class="dr-ir"><div class="dr-irm"><div class="nm-struct">${smilesSVG(it.c.s,.9)}</div><p class="hm-muted">${esc(it.c.n)}</p></div><div class="dr-irs" id="drIrs">${spIR(it.c,{labels:false})}</div></div>
+     <div class="qz-fb" id="drFbI" hidden></div></article>`}
+  else{const it=P[Math.floor(Math.random()*P.length)];const others=shuffle(SP_BANK.filter(c=>c.ir&&c.cls!==it.c.cls)).slice(0,3);const opts=shuffle([it.c,...others]);
+    DR.cur={mode,it,opts,right:opts.indexOf(it.c),done:false};
+    $('#drPage').innerHTML=`<article class="nm-lesson dr">${drHead('ir','Which molecule gives this IR spectrum?')}
+     <div class="dr-irs">${spIR(it.c,{labels:false})}</div><div class="dr-mgrid">${opts.map((c,k)=>`<button class="dr-mol" data-dro="irm:${k}"><span class="nm-struct">${smilesSVG(c.s,.75)}</span><small>${esc(c.n)}</small></button>`).join('')}</div>
+     <div class="qz-fb" id="drFbI" hidden></div></article>`}
+  drDone()}
+function drIRMark(nu,cls){const svg=$('#drIrs svg');if(!svg)return;const vb=svg.viewBox.baseVal,L=46,R=12,T=14,B=40,w=vb.width||640,h=vb.height||236,pw=w-L-R,X=L+(4000-nu)/(4000-450)*pw;
+  const ln=document.createElementNS('http://www.w3.org/2000/svg','line');ln.setAttribute('x1',X);ln.setAttribute('x2',X);ln.setAttribute('y1',T);ln.setAttribute('y2',h-B);ln.setAttribute('class','dr-mk '+cls);svg.appendChild(ln)}
+function drIRTap(e){const C=DR.cur;if(!C||C.mode!=='tap'||C.done)return;const svg=$('#drIrs svg');if(!svg)return;const r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal,w=vb.width||640,x=(e.clientX-r.left)*w/r.width,L=46,pw=w-L-12;
+  if(x<L||x>L+pw)return;const nu=Math.round(4000-(x-L)/pw*(4000-450));const ok=Math.abs(nu-C.it.p[0])<=C.tol;C.done=true;drTally('ir',ok);drIRMark(nu,ok?'ok':'bad');if(!ok)drIRMark(C.it.p[0],'ok');
+  const fb=$('#drFbI');fb.hidden=false;fb.className='qz-fb '+(ok?'ok':'bad');fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':'Not quite.'} You tapped about ${nu} cm⁻¹; the ${C.it.key} is at <b>${C.it.p[0]} cm⁻¹</b>${C.it.p[2]==='b'||C.it.p[2]==='vb'?' (broad)':''}.</p><p class="qz-why">${drIRWhy(C.it.key)}</p><div class="qz-next"><button class="btn primary" data-drnew="ir">Next spectrum</button></div>`;drSide()}
+function drIRWhy(k){return({'C=O stretch':'C=O gives a strong, sharp peak between about 1650 and 1750 cm⁻¹: usually the tallest peak in the spectrum.','O–H stretch':'Alcohol O–H is a broad peak at 3200–3550 cm⁻¹ (hydrogen bonding broadens it). In a carboxylic acid it is very broad, 2500–3300 cm⁻¹.','N–H stretch':'N–H stretches appear at 3300–3500 cm⁻¹; a primary NH₂ shows two bands.','C≡N stretch':'C≡N is a sharp, medium peak at 2210–2260 cm⁻¹, in an otherwise empty region.','C≡C stretch':'C≡C is weak, at 2100–2260 cm⁻¹.','aldehyde C–H stretch':'Aldehyde C–H gives two weak peaks near 2720 and 2820 cm⁻¹, a useful way to tell aldehydes from ketones.','C–O stretch':'C–O is strong, at 1000–1300 cm⁻¹, in the fingerprint region.','≡C–H stretch':'The C–H of a terminal alkyne is a sharp peak near 3300 cm⁻¹.'})[k]||''}
+function drIRMatch(k){const C=DR.cur;if(!C||C.mode!=='match'||C.done)return;C.done=true;const ok=k===C.right;drTally('ir',ok);
+  document.querySelectorAll('#drPage [data-dro^="irm:"]').forEach((b,j)=>{b.disabled=true;if(j===C.right)b.classList.add('right');else if(j===k)b.classList.add('wrong')});
+  const keys=(C.it.c.ir||[]).filter(p=>p[3]).map(p=>`${p[3]} at ${p[0]}`).slice(0,4).join('; ');
+  const fb=$('#drFbI');fb.hidden=false;fb.className='qz-fb '+(ok?'ok':'bad');fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':`Not quite: it’s <b>${esc(C.it.c.n)}</b>.`}</p><p class="qz-why">Key peaks: ${esc(keys)} cm⁻¹.</p><div class="qz-next"><button class="btn primary" data-drnew="ir">Next spectrum</button></div>`;drSide()}
+function drClick(e){const t=e.target;
+  const d=t.closest('[data-dr]');if(d){const v=d.dataset.dr;return v==='home'?drHome():drStart(v)}
+  const n=t.closest('[data-drnew]');if(n)return drStart(n.dataset.drnew);
+  const nx=t.closest('[data-drnext]');if(nx&&DR.cur){DR.cur.step++;return drMechStep()}
+  const lb=t.closest('[data-drlib]');if(lb){const id=lb.dataset.drlib;return id?openLibrary(id):openLibrary()}
+  const g=t.closest('[data-drg]');if(g)return drRSTap(+g.dataset.drg);
+  const o=t.closest('[data-dro]');if(o){const[a,b]=o.dataset.dro.split(':');if(a.startsWith('m'))return drMechAnswer(+a.slice(1),+b);if(a==='rs')return drRSAnswer(+b);if(a==='irm')return drIRMatch(+b)}
+  const cg=t.closest('[data-cgo]');if(cg)return coGo(cg.dataset.cgo);
+  if(t.closest('#drIrs'))return drIRTap(e)}
+function drKey(e){if(App.mode!=='drills'||!DR.cur)return;if(e.target.closest('input,textarea,select,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;if(document.querySelector('.scrim:not([hidden])'))return;
+  if(/^[1-4]$/.test(e.key)){const b=[...document.querySelectorAll('#drPage [data-dro]:not(:disabled)')][+e.key-1];if(b){e.preventDefault();b.click()}}
+  else if(e.key==='Enter'){const b=document.querySelector('#drPage [data-drnext],#drPage [data-drnew]');if(b&&!e.target.closest('button')){e.preventDefault();b.click()}}}
+
+function wireV24(){
+  RXN.push(...RXN24);RXN24.forEach(r=>{RXN_BY[r.id]=r});
+  /* predictor */
+  { const _pr=prRules;prRules=function(M,F,ctx){let r=[];try{r=prV24(M,F,ctx)}catch(e){console.warn('predictor v24',e);r=[]}return r&&r.length?r:_pr(M,F,ctx)} }
+  PR_EXAMPLES.push(['benzaldehyde','conc. NaOH'],['phenol','CHCl3, NaOH'],['propanamide','Br2, NaOH'],['ethanoic acid','Cl2, red P'],['bromoethane','Na, dry ether'],['benzoyl chloride','H2, Pd/BaSO4'],['butan-2-ol','Lucas reagent'],['phenol','Br2, H2O'],['propan-2-ol','I2, NaOH'],['toluene','CrO2Cl2']);
+  /* age check before sign-in */
+  { const _oa=openAuth;openAuth=function(mode){if(ageBlocked())return ageBlockedView();if(!ageOK())return ageAsk(()=>_oa(mode));return _oa(mode)} }
+  { const _hm=heard22maybe;heard22maybe=function(t){if(ageBlocked())return;return _hm(t)} }
+  { const _of=openFeedback;openFeedback=function(k,p){const r=_of(k,p);if(ageBlocked()){const em=$('#fbEmail');if(em){em.value='';const l=em.closest('label')||em.parentNode;if(l)l.hidden=true}}return r} }
+  /* drills tab */
+  const i=PX_MODES.indexOf('stereo');PX_MODES.splice(i+1,0,'drills');PX_LABEL.drills='Drills';
+  $('#drPage').addEventListener('click',drClick);$('#drSide').addEventListener('click',drClick);document.addEventListener('keydown',drKey);
+  /* course links to drills */
+  { const _cg=coGo;coGo=function(spec){if(spec.startsWith('drill|')){setMode('drills');return drStart(spec.slice(6))}return _cg(spec)} }
+  const addTool=(u,t)=>{const x=PU_UBY[u];if(x&&!x.tools.some(y=>y[0]===t[0]&&y[1]===t[1]))x.tools.unshift(t)};
+  addTool('pu-halo',['drill','mech','Drill: SN1, SN2, E1 or E2?','Decide the mechanism, then see why']);
+  addTool('pu-iso',['drill','rs','Drill: R or S?','Rank the groups on a 3D model']);
+  addTool('pu-spec',['drill','ir','Drill: find the IR peak','Tap the absorption on the spectrum']);
+  addTool('pu-alkene',['drill','mech','Drill: SN1, SN2, E1 or E2?','Practise choosing elimination conditions']);
+  addTool('pu-named',['mech','cannizzaro','Cannizzaro mechanism','Step through the hydride transfer']);
+  addTool('pu-oh',['mech','alcdehyd','Dehydration of an alcohol','The E1 mechanism step by step']);
+  addTool('pu-amine',['mech','diazocoupling','Azo coupling mechanism','How the dye forms']);
+  addTool('pu-phenol',['mech','phenolbr','Bromination of phenol','Why no catalyst is needed']);
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();I.push({label:'Drills',kind:'Go to',fn:()=>{setMode('drills');drHome()},kw:'drills practice exercises interactive quick'});
+    DR_LIST.forEach(d=>I.push({label:'Drill: '+d.t,kind:'Practice',fn:()=>{setMode('drills');drStart(d.id)},kw:'drill '+d.t+' '+d.d}));
+    CO_IDS.filter(c=>['ap','ib','jee','neet'].includes(c)).forEach(c=>{const K=COURSES[c];I.push({label:K.h1+' course',kind:'Go to',fn:()=>coGoCourse(c),kw:`${K.short} ${K.name} course syllabus ${c==='jee'?'iit jee main advanced ncert india':c==='neet'?'neet ug medical ncert india':c==='ap'?'ap chemistry college board advanced placement':'ib ib dp international baccalaureate diploma sl hl'}`});
+      K.units.forEach(u=>I.push({label:`${K.short} unit ${u.n}: ${u.title}`,kind:'Course',fn:()=>{setMode('course');coSet(c);coUnit(u.id)},kw:`${K.short} ${u.ref} ${u.syl.join(' ')}`}))});
+    return I} }
+}
+function v24AfterBoot(){
+  if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{prPredict,RXN,RXN_BY,mechRow,structSVG,drStart,drHome,DR,DR_RS,DR_MECH,ageAsk,ageState,openAuth,COURSES,PU_UBY,stModelRS,cipRank,cipCtx,parseSmiles,PM,fg,ST_LBL,schemeSVG});
+  const q=new URLSearchParams(location.search);if(q.has('drill')){setMode('drills');const d=q.get('drill');if(DR_LIST.some(x=>x.id===d))drStart(d);try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}}
+
+CHANGELOG.unshift({v:'24',d:'9 November 2026',t:'AP, IB, JEE and NEET courses, and Drills',items:[
+  ['Four more courses','AP Chemistry (6 units), IB Diploma Chemistry (18 units), JEE Main (20 units) and NEET UG (20 units) join IChO, Cambridge A Level and STPM. Each shows its own syllabus points, and only the lessons and questions for that exam.'],
+  ['New lessons','Photons and the photoelectric effect, the Bohr model and quantum numbers, photoelectron spectroscopy, electron affinity, formal charge and resonance, molecular orbital theory, hyperconjugation, conformations, the peroxide effect, alkynes, aromaticity, ethers, the Lucas test, aldol and Cannizzaro, and more. Plus three new units: purifying and analysing organic compounds, biomolecules, and every NCERT named reaction.'],
+  ['Drills','A new Practice tab with quick interactive exercises: decide between SN1, SN2, E1 and E2; rank groups and assign R or S on a 3D model; and tap the right peak on an IR spectrum. Your best streaks are saved.'],
+  ['7 new mechanisms','Alcohol to chloroalkane, nitrile and amine formation, dehydration of an alcohol, bromination of phenol, azo coupling and the Cannizzaro reaction. Each one can be practised arrow by arrow.'],
+  ['A smarter predictor','Wurtz, Fittig, Swarts, Finkelstein, Rosenmund, Stephen, Etard, Gattermann–Koch, Reimer–Tiemann, Kolbe, Cannizzaro, HVZ, Hofmann bromamide, carbylamine, Hinsberg, Lucas, iodoform, Fehling’s, 2,4-DNP and more.'],
+  ['110 new questions','Every new lesson comes with exam-style questions and worked answers. They count towards Progress and appear in mock exams.'],['Free and Pro','The first three units of every course are free. The rest are part of Bondline Pro.'],
+  ['Age check','Before creating an account or signing in, Bondline asks for your date of birth (it isn’t stored). Under-13s can keep using Bondline on their device without an account.']]});
+
+/* ================= v25: Study: focus timer, stopwatch, tasks, schedule, exams, goals ================= */
+const SD_KEY='bondline.study';
+const SD_DEF=()=>({v:1,upd:0,tasks:[],blocks:[],exams:[],goals:{daily:60,weekly:300,custom:[]},sessions:[],
+  timer:{mode:'pomo',cfg:{work:25,short:5,long:15,every:4,auto:false,sound:true,count:45},run:null,cycle:0,task:null,subj:''}});
+const SD={view:'today',d:null,schedDay:(new Date().getDay()+6)%7,taskFilter:'open',editBlock:null,sound:null,pulled:0};
+function sdLoad(){let d=null;try{d=JSON.parse(localStorage.getItem(SD_KEY)||'null')}catch(e){}const def=SD_DEF();
+  if(!d||typeof d!=='object')d=def;for(const k of Object.keys(def))if(d[k]==null)d[k]=def[k];d.timer.cfg=Object.assign(def.timer.cfg,d.timer.cfg||{});d.goals=Object.assign(def.goals,d.goals||{});SD.d=d}
+let sdSaveT;function sdSave(touch=true){if(touch)SD.d.upd=Date.now();if(SD.d.sessions.length>3000)SD.d.sessions=SD.d.sessions.slice(-3000);try{localStorage.setItem(SD_KEY,JSON.stringify(SD.d))}catch(e){}
+  clearTimeout(sdSaveT);sdSaveT=setTimeout(()=>{if(Store.mode==='cloud'&&Store.col)Store.col.doc('_study').set(JSON.parse(JSON.stringify(SD.d))).catch(()=>{})},1200)}
+async function sdPull(){if(Store.mode!=='cloud'||!Store.col||Date.now()-SD.pulled<30000)return;SD.pulled=Date.now();
+  try{const doc=await Store.col.doc('_study').get();if(!doc.exists){sdSave(false);return}const r=JSON.parse(JSON.stringify(doc.data()));
+    const ids=new Set(SD.d.sessions.map(s=>s.id));const sess=[...SD.d.sessions,...(r.sessions||[]).filter(s=>!ids.has(s.id))].sort((a,b)=>a.s-b.s);
+    if((r.upd||0)>(SD.d.upd||0)){const run=SD.d.timer.run;SD.d=Object.assign(SD_DEF(),r);SD.d.timer.run=run||r.timer&&r.timer.run||null}
+    SD.d.sessions=sess;sdSave(false);if(App.mode==='study')sdRender()}catch(e){}}
+const sdId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const sdToday=()=>dayKey(Date.now());
+const sdMin=ms=>Math.round(ms/60000);
+const sdFmt=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(x).padStart(2,'0')};
+const sdHM=m=>m>=60?`${Math.floor(m/60)} h${m%60?` ${m%60} min`:''}`:`${m} min`;
+const SD_COLS=['#3b9ae1','#22a06b','#f0663c','#9b5de5','#e6b400','#ff5a5f','#14b8a6','#7f8ea6'];
+const SD_DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+/* ---------- stats ---------- */
+function sdDayMins(){const m={};for(const s of SD.d.sessions){const k=dayKey(s.s);m[k]=(m[k]||0)+s.m}return m}
+function sdStats(){const dm=sdDayMins(),today=sdToday(),g=SD.d.goals.daily||0;const now=new Date();const mon=new Date(now);mon.setHours(0,0,0,0);mon.setDate(mon.getDate()-((now.getDay()+6)%7));
+  let week=0;for(const s of SD.d.sessions)if(s.s>=+mon)week+=s.m;let total=0;for(const k in dm)total+=dm[k];
+  let streak=0;{const d=new Date();if(!((dm[dayKey(+d)]||0)>=Math.max(1,g)))d.setDate(d.getDate()-1);while((dm[dayKey(+d)]||0)>=Math.max(1,g)){streak++;d.setDate(d.getDate()-1)}}
+  let best=0,run=0;const keys=Object.keys(dm).sort();if(keys.length){const d=new Date(keys[0]+'T00:00');const end=new Date();while(d<=end){if((dm[dayKey(+d)]||0)>=Math.max(1,g)){run++;best=Math.max(best,run)}else run=0;d.setDate(d.getDate()+1)}}
+  return{today:dm[today]||0,week,total,streak,best,dm}}
+/* ---------- timer engine ---------- */
+const T_=()=>SD.d.timer;
+function sdPhaseDur(ph){const c=T_().cfg;return ph==='work'?c.work*60e3:ph==='short'?c.short*60e3:ph==='long'?c.long*60e3:ph==='count'?c.count*60e3:null}
+function sdElapsed(){const r=T_().run;if(!r)return 0;return r.acc+(r.on?Date.now()-r.at:0)}
+function sdRemain(){const r=T_().run;if(!r||r.dur==null)return null;return r.dur-sdElapsed()}
+function sdStart(phase,opts={}){const T=T_();phase=phase||(T.mode==='stop'?'stop':T.mode==='count'?'count':'work');
+  if(opts.task!==undefined)T.task=opts.task;if(opts.subj!==undefined)T.subj=opts.subj;
+  T.run={ph:phase,dur:sdPhaseDur(phase),acc:0,at:Date.now(),on:true,st:Date.now()};sdSave();sdAudioUnlock();sdTick(true);if(App.mode==='study')sdRender()}
+function sdPause(){const r=T_().run;if(!r||!r.on)return;r.acc+=Date.now()-r.at;r.on=false;sdSave();sdTick(true);if(App.mode==='study')sdRender()}
+function sdResume(){const r=T_().run;if(!r||r.on)return;r.at=Date.now();r.on=true;sdSave();sdAudioUnlock();sdTick(true);if(App.mode==='study')sdRender()}
+function sdLog(ms,kind){const m=sdMin(ms);if(m<1)return;const T=T_(),task=T.task?SD.d.tasks.find(x=>x.id===T.task):null;
+  SD.d.sessions.push({id:sdId(),s:Date.now()-ms,m,k:kind,task:T.task||null,subj:(task&&task.subj)||T.subj||''});if(task)task.foc=(task.foc||0)+m}
+function sdStop(log=true){const r=T_().run;if(!r)return;if(log&&(r.ph==='work'||r.ph==='stop'||r.ph==='count'))sdLog(sdElapsed(),r.ph);T_().run=null;sdSave();sdTick(true);if(App.mode==='study')sdRender()}
+function sdSkip(){const r=T_().run;if(!r)return;sdFinish(true)}
+function sdFinish(skipped){const T=T_(),r=T.run;if(!r)return;const ph=r.ph;
+  if(ph==='work'||ph==='count')sdLog(skipped?sdElapsed():r.dur,ph);
+  if(!skipped){sdChime(ph==='work'||ph==='count'?'done':'break');sdNotify(ph==='work'?'Focus session done. Time for a break.':ph==='count'?'Timer finished.':'Break over. Back to it!')}
+  if(T.mode!=='pomo'||ph==='count'||ph==='stop'){T.run=null;sdSave();sdTick(true);if(App.mode==='study')sdRender();return}
+  let next='work';if(ph==='work'){T.cycle=(T.cycle||0)+1;next=T.cycle%T.cfg.every===0?'long':'short'}
+  T.run={ph:next,dur:sdPhaseDur(next),acc:0,at:Date.now(),on:!!T.cfg.auto,st:Date.now()};sdSave();sdTick(true);if(App.mode==='study')sdRender()}
+let sdIv=null;const SD_PH={work:'Focus',short:'Short break',long:'Long break',stop:'Stopwatch',count:'Timer'};
+function sdTick(force){const r=T_().run;const rem=sdRemain();if(r&&r.on&&rem!=null&&rem<=0){sdFinish(false);return}
+  const shown=r?(r.dur==null?sdElapsed():Math.max(0,rem))/1000:(T_().mode==='stop'?0:(sdPhaseDur(T_().mode==='count'?'count':'work')||0)/1000);
+  document.querySelectorAll('[data-sdclock]').forEach(el=>el.textContent=sdFmt(shown));
+  const ring=document.querySelector('#sdRing circle.p');if(ring){const tot=r&&r.dur?r.dur:1,f=r&&r.dur?1-Math.max(0,rem)/tot:r?(sdElapsed()/1000%60)/60:0;ring.style.strokeDashoffset=String(1-f)}
+  // floating pill
+  let pill=$('#sdPill');if(r&&App.mode!=='study'){if(!pill){pill=document.createElement('button');pill.id='sdPill';pill.type='button';pill.addEventListener('click',()=>{SD.view='timer';setMode('study')});document.body.appendChild(pill)}
+    pill.className='sd-pill ph-'+r.ph+(r.on?'':' paused');pill.innerHTML=`<i></i><span>${SD_PH[r.ph]}</span><b>${sdFmt(shown)}</b>`;pill.hidden=false}else if(pill)pill.hidden=true;
+  const base=document.title.replace(/^\(\d[\d:]*\S*\) /,'');document.title=r&&r.on?`(${sdFmt(shown)}${r.ph==='work'?' 🍅':''}) ${base}`:base;
+  if(force&&App.mode==='study')sdSideRender()}
+function sdTimerLoop(){if(!sdIv)sdIv=setInterval(()=>sdTick(false),250)}
+/* ---------- sound ---------- */
+let sdAC=null;function sdAudioUnlock(){try{if(!sdAC)sdAC=new (window.AudioContext||window.webkitAudioContext)();if(sdAC.state==='suspended')sdAC.resume()}catch(e){}}
+function sdChime(kind){if(!T_().cfg.sound)return;sdAudioUnlock();if(!sdAC)return;const notes=kind==='done'?[659.25,783.99,1046.5]:[523.25,659.25];
+  notes.forEach((f,i)=>{const o=sdAC.createOscillator(),g=sdAC.createGain(),t=sdAC.currentTime+i*.18;o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+1.1);o.connect(g).connect(sdAC.destination);o.start(t);o.stop(t+1.2)})}
+function sdNotify(msg){try{if('Notification'in window&&Notification.permission==='granted'&&document.hidden)new Notification('Bondline',{body:msg,icon:'/icons/icon-192.png'})}catch(e){}}
+function sdAmbient(kind){sdAudioUnlock();if(!sdAC)return;if(SD.sound){try{SD.sound.src.stop()}catch(e){}SD.sound=null}if(!kind||kind==='off'){if(App.mode==='study')sdRender();return}
+  const len=sdAC.sampleRate*4,buf=sdAC.createBuffer(2,len,sdAC.sampleRate);for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);let last=0;for(let i=0;i<len;i++){const w=Math.random()*2-1;if(kind==='brown'){last=(last+.02*w)/1.02;d[i]=last*3.2}else if(kind==='rain'){last=.97*last+.03*w;d[i]=w*.22+last*.6+(Math.random()<.0004?(Math.random()*2-1)*.8:0)}else d[i]=w*.35}}
+  const src=sdAC.createBufferSource();src.buffer=buf;src.loop=true;const g=sdAC.createGain();g.gain.value=(SD.vol??.5)*.6;let node=src;
+  if(kind==='rain'){const f=sdAC.createBiquadFilter();f.type='lowpass';f.frequency.value=2200;node.connect(f);node=f}
+  node.connect(g).connect(sdAC.destination);src.start();SD.sound={src,g,kind};if(App.mode==='study')sdRender()}
+/* ---------- UI ---------- */
+const SD_VIEWS=[['today','Today'],['timer','Focus timer'],['tasks','Tasks'],['schedule','Timetable'],['exams','Exam countdown'],['goals','Goals and stats']];
+function sdSideRender(){const box=$('#sdList');if(!box)return;const st=sdStats(),open=SD.d.tasks.filter(t=>!t.done).length,r=T_().run,ne=sdNextExam();
+  const meta={today:`${sdHM(st.today)} focused today`,timer:r?`${SD_PH[r.ph]} · ${r.on?'running':'paused'}`:'Pomodoro and stopwatch',tasks:open?`${open} to do`:'All done',schedule:(n=>n?`${n} block${n>1?'s':''} today`:'Weekly study blocks')(sdTodayBlocks().length),exams:ne?`${ne.days} days to ${ne.t}`:'No exams yet',goals:st.streak?`${st.streak}-day streak`:`Goal: ${SD.d.goals.daily} min a day`};
+  box.innerHTML=SD_VIEWS.map(([k,l])=>`<button class="item${SD.view===k?' on':''}" data-sdv="${k}"><span class="t">${l}</span><span class="m">${esc(meta[k])}</span></button>`).join('')}
+function sdDone(){$('#side').classList.remove('open');sdSideRender()}
+function sdOpen(){if(!SD.d)sdLoad();sdPull();sdRender();$('#main').scrollTop=0}
+function sdRender(){const p=$('#sdPage');if(!p)return;const v=SD.view;
+  p.innerHTML=`<article class="nm-lesson sd">${v==='today'?sdToday_():v==='timer'?sdTimerV():v==='tasks'?sdTasksV():v==='schedule'?sdSchedV():v==='exams'?sdExamsV():sdGoalsV()}</article>`;sdTick(false);sdDone()}
+const sdHead=(k,t,l)=>`<header class="nm-head"><div class="nm-kicker">${k}</div><h1>${t}</h1>${l?`<p class="nm-lede">${l}</p>`:''}</header>`;
+/* today */
+function sdTodayBlocks(){const d=(new Date().getDay()+6)%7;return SD.d.blocks.filter(b=>b.days.includes(d)).sort((a,b)=>a.s.localeCompare(b.s))}
+function sdNextExam(){const now=new Date();now.setHours(0,0,0,0);const e=SD.d.exams.map(x=>({...x,days:Math.round((new Date(x.date+'T00:00')-now)/864e5)})).filter(x=>x.days>=0).sort((a,b)=>a.days-b.days);return e[0]||null}
+function sdRingSvg(f,cls){const r=52,c=2*Math.PI*r;return`<svg class="sd-gring ${cls||''}" viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" class="bg"/><circle cx="60" cy="60" r="${r}" class="fg" style="stroke-dasharray:${c};stroke-dashoffset:${c*(1-Math.min(1,f))}"/></svg>`}
+function sdToday_(){const st=sdStats(),g=SD.d.goals.daily,r=T_().run,ne=sdNextExam(),h=new Date().getHours();
+  const due=SD.d.tasks.filter(t=>!t.done&&t.due&&t.due<=sdToday()).sort((a,b)=>(a.due||'').localeCompare(b.due||'')),blocks=sdTodayBlocks();
+  const greet=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+  return`${sdHead('Study',greet+'.','Your plan for today: focus time, tasks, timetable and the next exam, all in one place.')}
+  <div class="sd-cards">
+   <div class="sd-card sd-goalc">${sdRingSvg(g?st.today/g:0)}<div><b>${st.today}<small> / ${g} min</small></b><span>focused today</span></div></div>
+   <div class="sd-card"><b>${st.streak}<small> ${st.streak===1?'day':'days'}</small></b><span>streak${st.best>st.streak?` · best ${st.best}`:''}</span></div>
+   <div class="sd-card"><b>${sdHM(st.week)}</b><span>this week · goal ${sdHM(SD.d.goals.weekly)}</span></div>
+   ${ne?`<button class="sd-card sd-exc" data-sdv="exams"><b>${ne.days}<small> ${ne.days===1?'day':'days'}</small></b><span>to ${esc(ne.t)}</span></button>`:`<button class="sd-card sd-exc" data-sdv="exams"><b>+</b><span>Add your exam dates</span></button>`}
+  </div>
+  <section class="sd-sec sd-quick"><div class="sd-qt"><span class="sd-mini" data-sdclock></span><span class="hm-muted">${r?`${SD_PH[r.ph]} ${r.on?'running':'paused'}`:`${T_().cfg.work}-minute focus session`}</span></div>
+   <div class="nm-actions">${r?`<button class="btn primary" data-sdt="${r.on?'pause':'resume'}">${r.on?'Pause':'Resume'}</button><button class="btn" data-sdv="timer">Open timer</button>`:`<button class="btn primary" data-sdt="startpomo">Start focusing</button><button class="btn" data-sdt="startstop">Stopwatch</button>`}</div></section>
+  <div class="sd-two">
+  <section class="sd-sec"><h2>Due today${due.length?` <span class="sd-n">${due.length}</span>`:''}</h2>${due.length?`<ul class="sd-tl">${due.slice(0,8).map(sdTaskRow).join('')}</ul>`:'<p class="hm-muted">Nothing due today.</p>'}
+   ${sdQuickAdd(sdToday())}<button class="linkbtn" data-sdv="tasks">All tasks</button></section>
+  <section class="sd-sec"><h2>Today’s timetable</h2>${blocks.length?`<ul class="sd-agenda">${blocks.map(b=>`<li style="--c:${b.c}"><b>${b.s}–${b.e}</b><span>${esc(b.t)}</span></li>`).join('')}</ul>`:'<p class="hm-muted">No study blocks today.</p>'}<button class="linkbtn" data-sdv="schedule">Edit timetable</button></section>
+  </div>`}
+/* timer view */
+function sdTimerV(){const T=T_(),r=T.run,c=T.cfg,ph=r?r.ph:(T.mode==='stop'?'stop':T.mode==='count'?'count':'work');const tasks=SD.d.tasks.filter(t=>!t.done);
+  const cyc=T.mode==='pomo'?`<div class="sd-dots">${Array.from({length:c.every},(_,i)=>`<i class="${i<(T.cycle||0)%c.every?'on':''}"></i>`).join('')}</div>`:'';
+  return`${sdHead('Study','Focus timer','Pomodoro: focus for a set time, then take a short break, with a longer break every few rounds. Or use the stopwatch or a simple countdown.')}
+  <div class="sd-seg" role="group">${[['pomo','Pomodoro'],['stop','Stopwatch'],['count','Countdown']].map(([k,l])=>`<button class="${T.mode===k?'on':''}" data-sdmode="${k}" ${r?'disabled':''}>${l}</button>`).join('')}</div>
+  <div class="sd-timer ph-${ph}">
+   <svg id="sdRing" viewBox="0 0 220 220"><circle cx="110" cy="110" r="96" class="bg" pathLength="1"/><circle cx="110" cy="110" r="96" class="p" pathLength="1" style="stroke-dasharray:1;stroke-dashoffset:1"/></svg>
+   <div class="sd-tin"><span class="sd-ph">${SD_PH[ph]}</span><b data-sdclock></b>${cyc}</div></div>
+  <div class="nm-actions sd-tact">${!r?`<button class="btn primary" data-sdt="start">Start</button>`:`<button class="btn primary" data-sdt="${r.on?'pause':'resume'}">${r.on?'Pause':'Resume'}</button>${r.dur!=null?`<button class="btn" data-sdt="skip">${r.ph==='work'?'Finish early':'Skip'}</button>`:''}<button class="btn" data-sdt="stop">${r.ph==='stop'?'Stop and save':'Reset'}</button>`}</div>
+  <section class="sd-sec"><h2>Working on</h2><div class="sd-row"><select id="sdTask"><option value="">No task</option>${tasks.map(t=>`<option value="${t.id}"${T.task===t.id?' selected':''}>${esc(t.t)}</option>`).join('')}</select>
+   <input id="sdSubj" list="sdSubjects" placeholder="Subject (optional)" value="${esc(T.subj||'')}">${sdSubjList()}</div></section>
+  <section class="sd-sec"><h2>Background sound</h2><div class="sd-seg">${[['off','Off'],['rain','Rain'],['brown','Brown noise'],['white','White noise']].map(([k,l])=>`<button class="${(SD.sound?SD.sound.kind:'off')===k?'on':''}" data-sdamb="${k}">${l}</button>`).join('')}</div>
+   <label class="sd-vol">Volume <input type="range" min="0" max="1" step=".05" value="${SD.vol??.5}" id="sdVol"></label></section>
+  <details class="sd-sec sd-set"><summary>Timer settings</summary><div class="sd-grid">
+   ${[['work','Focus (min)',c.work],['short','Short break',c.short],['long','Long break',c.long],['every','Long break every',c.every],['count','Countdown (min)',c.count]].map(([k,l,v])=>`<label>${l}<input type="number" min="1" max="${k==='every'?12:240}" value="${v}" data-sdcfg="${k}"></label>`).join('')}
+   <label class="sd-chk"><input type="checkbox" data-sdcfg="auto"${c.auto?' checked':''}> Start the next round automatically</label>
+   <label class="sd-chk"><input type="checkbox" data-sdcfg="sound"${c.sound?' checked':''}> Chime when time is up</label>
+   <button class="linkbtn" data-sdt="notify">Notify me when the tab is in the background</button></div></details>`}
+function sdSubjList(){const s=[...new Set([...SD.d.tasks.map(t=>t.subj),...SD.d.blocks.map(b=>b.t),'Organic chemistry','Physical chemistry','Inorganic chemistry'].filter(Boolean))];return`<datalist id="sdSubjects">${s.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`}
+/* tasks */
+const SD_PRI={3:['High','#ff5a5f'],2:['Medium','#f0a020'],1:['Low','#3b9ae1']};
+function sdDueLabel(d){if(!d)return'';const t=sdToday();const diff=Math.round((new Date(d+'T00:00')-new Date(t+'T00:00'))/864e5);return diff<0?`Overdue ${-diff} d`:diff===0?'Today':diff===1?'Tomorrow':diff<7?new Date(d+'T00:00').toLocaleDateString(undefined,{weekday:'short'}):new Date(d+'T00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'})}
+function sdTaskRow(t){const sub=t.sub||[],sd=sub.filter(x=>x.done).length,ov=t.due&&t.due<sdToday()&&!t.done,P=SD_PRI[t.pri];
+  return`<li class="sd-task${t.done?' done':''}" data-tid="${t.id}"><div class="sd-tr"><input type="checkbox" class="sd-ck" data-sdck="${t.id}"${t.done?' checked':''} aria-label="Done">
+   <div class="sd-tt"><span class="sd-ttl" data-sdedit="${t.id}">${esc(t.t)}</span><div class="sd-meta">${t.due?`<span class="${ov?'ov':''}">📅 ${sdDueLabel(t.due)}</span>`:''}${P?`<span style="color:${P[1]}">● ${P[0]}</span>`:''}${t.subj?`<span>${esc(t.subj)}</span>`:''}${sub.length?`<span>☑ ${sd}/${sub.length}</span>`:''}${t.foc?`<span>⏱ ${sdHM(t.foc)}</span>`:''}${t.link?`<button class="linkbtn" data-sdlink="${esc(t.link)}">Open in Bondline</button>`:''}</div></div>
+   <div class="sd-tb">${t.done?'':`<button class="sd-ib" title="Focus on this" data-sdfocus="${t.id}">▶</button>`}<button class="sd-ib" title="Add a subtask" data-sdaddsub="${t.id}">＋</button><button class="sd-ib" title="Delete" data-sddel="${t.id}">✕</button></div></div>
+   ${sub.length||SD.addSub===t.id?`<ul class="sd-sub">${sub.map(x=>`<li class="${x.done?'done':''}"><input type="checkbox" data-sdsck="${t.id}:${x.id}"${x.done?' checked':''}><span>${esc(x.t)}</span><button class="sd-ib sm" data-sdsdel="${t.id}:${x.id}">✕</button></li>`).join('')}${SD.addSub===t.id?`<li class="sd-subadd"><input id="sdSubIn" placeholder="Subtask, then Enter" data-sdsubin="${t.id}"></li>`:''}</ul>`:''}</li>`}
+function sdQuickAdd(due){return`<form class="sd-add" data-sdaddform="1"><input name="t" placeholder="Add a task…" autocomplete="off" required><input type="date" name="due" value="${due||''}"><select name="pri"><option value="0">Priority</option><option value="3">High</option><option value="2">Medium</option><option value="1">Low</option></select><input name="subj" list="sdSubjects" placeholder="Subject"><button class="btn primary" type="submit">Add</button>${sdSubjList()}</form>`}
+function sdTasksV(){const f=SD.taskFilter,t=sdToday();let L=SD.d.tasks.slice();
+  const sortF=(a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||(b.pri||0)-(a.pri||0)||a.c-b.c;
+  const groups=f==='done'?[['Completed',L.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))]]:[['Overdue',L.filter(x=>!x.done&&x.due&&x.due<t)],['Today',L.filter(x=>!x.done&&x.due===t)],['Upcoming',L.filter(x=>!x.done&&x.due&&x.due>t)],['No date',L.filter(x=>!x.done&&!x.due)]].map(([h,a])=>[h,a.sort(sortF)]);
+  const done=L.filter(x=>x.done).length;
+  return`${sdHead('Study','Tasks','Break big jobs into subtasks, give them due dates and priorities, and start a focus session on any task with ▶.')}
+  ${sdQuickAdd('')}
+  <div class="sd-seg sd-filt">${[['open','To do'],['done',`Completed (${done})`]].map(([k,l])=>`<button class="${f===k?'on':''}" data-sdfilt="${k}">${l}</button>`).join('')}</div>
+  ${groups.filter(g=>g[1].length).map(([h,a])=>`<section class="sd-sec"><h2>${h} <span class="sd-n">${a.length}</span></h2><ul class="sd-tl">${a.map(sdTaskRow).join('')}</ul></section>`).join('')||`<p class="hm-muted sd-empty">${f==='done'?'Nothing completed yet.':'No tasks. Add one above, or use “Add to my study plan” on any course unit.'}</p>`}
+  ${f==='done'&&done?`<button class="linkbtn" data-sdt="cleardone">Delete completed tasks</button>`:''}`}
+/* schedule */
+function sdSchedV(){const B=SD.d.blocks,eb=SD.editBlock&&B.find(b=>b.id===SD.editBlock);const H0=7,H1=23,ph=46;
+  const toM=s=>{const[h,m]=s.split(':').map(Number);return h*60+m};
+  const grid=`<div class="sd-week"><div class="sd-hcol">${Array.from({length:H1-H0},(_,i)=>`<span style="top:${i*ph}px">${String(H0+i).padStart(2,'0')}:00</span>`).join('')}</div>${SD_DAYS.map((d,di)=>`<div class="sd-dcol${di===(new Date().getDay()+6)%7?' today':''}"><div class="sd-dh">${d}</div><div class="sd-dbody" style="height:${(H1-H0)*ph}px">${B.filter(b=>b.days.includes(di)).map(b=>{const top=Math.max(0,(toM(b.s)-H0*60)/60*ph),h=Math.max(18,(toM(b.e)-toM(b.s))/60*ph);return`<button class="sd-blk" data-sdblk="${b.id}" style="top:${top}px;height:${h}px;--c:${b.c}"><b>${esc(b.t)}</b><small>${b.s}–${b.e}</small></button>`}).join('')}</div></div>`).join('')}</div>`;
+  const day=SD.schedDay,list=B.filter(b=>b.days.includes(day)).sort((a,b)=>a.s.localeCompare(b.s));
+  const mob=`<div class="sd-mob"><div class="sd-seg">${SD_DAYS.map((d,i)=>`<button class="${i===day?'on':''}" data-sdday="${i}">${d}</button>`).join('')}</div>${list.length?`<ul class="sd-agenda">${list.map(b=>`<li style="--c:${b.c}" data-sdblk="${b.id}"><b>${b.s}–${b.e}</b><span>${esc(b.t)}</span></li>`).join('')}</ul>`:'<p class="hm-muted">Nothing planned.</p>'}</div>`;
+  const v=eb||{t:'',s:'16:00',e:'17:00',days:[day],c:SD_COLS[B.length%SD_COLS.length]};
+  return`${sdHead('Study','Timetable','Plan your weekly study blocks. They repeat every week and show on your Today page.')}
+  ${grid}${mob}
+  <form class="sd-sec sd-bform" data-sdblockform="${eb?eb.id:''}"><h2>${eb?'Edit block':'Add a study block'}</h2>
+   <div class="sd-row"><input name="t" placeholder="What (e.g. Organic: amines)" value="${esc(v.t)}" required list="sdSubjects"><label>From <input type="time" name="s" value="${v.s}" required></label><label>to <input type="time" name="e" value="${v.e}" required></label></div>
+   <div class="sd-days">${SD_DAYS.map((d,i)=>`<label><input type="checkbox" name="d${i}"${v.days.includes(i)?' checked':''}><span>${d}</span></label>`).join('')}</div>
+   <div class="sd-cols">${SD_COLS.map(c=>`<label><input type="radio" name="c" value="${c}"${c===v.c?' checked':''}><i style="background:${c}"></i></label>`).join('')}</div>
+   <div class="nm-actions"><button class="btn primary" type="submit">${eb?'Save':'Add block'}</button>${eb?`<button class="btn" type="button" data-sdblkdel="${eb.id}">Delete</button><button class="linkbtn" type="button" data-sdblkcancel="1">Cancel</button>`:''}</div>${sdSubjList()}</form>`}
+/* exams */
+function sdExamsV(){const now=new Date();now.setHours(0,0,0,0);const E=SD.d.exams.map(x=>({...x,days:Math.round((new Date(x.date+'T00:00')-now)/864e5)})).sort((a,b)=>a.date.localeCompare(b.date));
+  return`${sdHead('Study','Exam countdown','Add your exams to see how many days you have left. The nearest one shows on your Today page.')}
+  <div class="sd-exams">${E.map(e=>`<div class="sd-ex${e.days<0?' past':e.days<=14?' soon':''}"><b>${e.days<0?'Done':e.days}</b><small>${e.days<0?'':e.days===1?'day':'days'}</small><span>${esc(e.t)}</span><em>${new Date(e.date+'T00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})}${e.days>=0?` · ${Math.floor(e.days/7)} weeks`:''}</em><button class="sd-ib" data-sdexdel="${e.id}" title="Delete">✕</button></div>`).join('')||'<p class="hm-muted">No exams yet.</p>'}</div>
+  <form class="sd-sec sd-row" data-sdexform="1"><input name="t" placeholder="Exam (e.g. STPM Chemistry Paper 3)" required><input type="date" name="date" required><button class="btn primary" type="submit">Add exam</button></form>`}
+/* goals */
+function sdGoalsV(){const st=sdStats(),G=SD.d.goals;const dm=st.dm;
+  const days=[];const d=new Date();d.setDate(d.getDate()-7*16+1+((7-((d.getDay()+6)%7)-1)));for(let i=0;i<7*16;i++){const k=dayKey(+d);days.push([k,dm[k]||0]);d.setDate(d.getDate()+1)}
+  const lvl=m=>!m?0:m<15?1:m<45?2:m<G.daily?3:4;
+  const since=Date.now()-30*864e5,subj={};for(const s of SD.d.sessions)if(s.s>=since){const k=s.subj||'Other';subj[k]=(subj[k]||0)+s.m}const sub=Object.entries(subj).sort((a,b)=>b[1]-a[1]).slice(0,6),mx=Math.max(1,...sub.map(x=>x[1]));
+  return`${sdHead('Study','Goals and stats','Set a daily and weekly focus goal. Meeting your daily goal keeps your streak going.')}
+  <div class="sd-cards"><div class="sd-card"><b>${sdHM(st.today)}</b><span>today</span></div><div class="sd-card"><b>${sdHM(st.week)}</b><span>this week</span></div><div class="sd-card"><b>${st.streak}</b><span>day streak · best ${st.best}</span></div><div class="sd-card"><b>${sdHM(st.total)}</b><span>all time · ${SD.d.sessions.length} sessions</span></div></div>
+  <section class="sd-sec"><h2>Focus goals</h2><div class="sd-row"><label>Daily goal (min)<input type="number" min="5" max="720" value="${G.daily}" data-sdgoal="daily"></label><label>Weekly goal (min)<input type="number" min="10" max="5000" value="${G.weekly}" data-sdgoal="weekly"></label></div>
+   <div class="sd-wbar"><i style="width:${Math.min(100,100*st.week/Math.max(1,G.weekly))}%"></i></div><p class="hm-muted">${sdHM(st.week)} of ${sdHM(G.weekly)} this week.</p></section>
+  <section class="sd-sec"><h2>Last 16 weeks</h2><div class="sd-heat">${days.map(([k,m])=>`<i class="l${lvl(m)}" title="${k}: ${m} min"></i>`).join('')}</div><p class="sd-legend">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</p></section>
+  ${sub.length?`<section class="sd-sec"><h2>By subject, last 30 days</h2>${sub.map(([k,m])=>`<div class="sd-sb"><span>${esc(k)}</span><span class="sd-sbt"><i style="width:${100*m/mx}%"></i></span><b>${sdHM(m)}</b></div>`).join('')}</section>`:''}
+  <section class="sd-sec"><h2>Your own goals</h2>${G.custom.map(g=>`<div class="sd-cg"><div><b>${esc(g.t)}</b><small>${g.n} / ${g.target} ${esc(g.unit||'')}</small></div><div class="sd-wbar"><i style="width:${Math.min(100,100*g.n/Math.max(1,g.target))}%"></i></div><div class="sd-cgb"><button class="sd-ib" data-sdcg="${g.id}:-1">−</button><button class="sd-ib" data-sdcg="${g.id}:1">＋</button><button class="sd-ib" data-sdcgdel="${g.id}">✕</button></div></div>`).join('')||'<p class="hm-muted">For example: “Finish 20 mechanism drills” or “Do 5 past papers”.</p>'}
+   <form class="sd-row" data-sdcgform="1"><input name="t" placeholder="Goal" required><input name="target" type="number" min="1" value="10" required><input name="unit" placeholder="Unit (e.g. papers)"><button class="btn primary" type="submit">Add goal</button></form></section>`}
+/* ---------- events ---------- */
+function sdTask(id){return SD.d.tasks.find(t=>t.id===id)}
+function sdClick(e){const t=e.target;let b;
+  if(b=t.closest('[data-sdv]')){SD.view=b.dataset.sdv;SD.editBlock=null;sdRender();$('#main').scrollTop=0;return}
+  if(b=t.closest('[data-sdt]')){const a=b.dataset.sdt,T=T_();
+    if(a==='start'||a==='startpomo'){if(a==='startpomo')T.mode='pomo';const tk=$('#sdTask'),sj=$('#sdSubj');sdStart(null,{task:tk?tk.value||null:T.task,subj:sj?sj.value.trim():T.subj})}
+    else if(a==='startstop'){T.mode='stop';sdStart('stop')}
+    else if(a==='pause')sdPause();else if(a==='resume')sdResume();else if(a==='skip')sdSkip();else if(a==='stop'){sdStop(true);toast('Session saved')}
+    else if(a==='notify'){try{Notification.requestPermission().then(p=>toast(p==='granted'?'Notifications on':'Notifications are blocked in your browser settings'))}catch(e){toast('Notifications aren’t supported here')}}
+    else if(a==='cleardone'){SD.d.tasks=SD.d.tasks.filter(x=>!x.done);sdSave();sdRender()}
+    return}
+  if(b=t.closest('[data-sdmode]')){T_().mode=b.dataset.sdmode;sdSave();sdRender();return}
+  if(b=t.closest('[data-sdamb]'))return sdAmbient(b.dataset.sdamb);
+  if(b=t.closest('[data-sdfilt]')){SD.taskFilter=b.dataset.sdfilt;sdRender();return}
+  if(b=t.closest('[data-sdfocus]')){const tk=sdTask(b.dataset.sdfocus);T_().mode='pomo';SD.view='timer';sdStart('work',{task:tk.id,subj:tk.subj||''});return}
+  if(b=t.closest('[data-sdaddsub]')){SD.addSub=SD.addSub===b.dataset.sdaddsub?null:b.dataset.sdaddsub;sdRender();setTimeout(()=>{const i=$('#sdSubIn');if(i)i.focus()},20);return}
+  if(b=t.closest('[data-sddel]')){SD.d.tasks=SD.d.tasks.filter(x=>x.id!==b.dataset.sddel);sdSave();sdRender();return}
+  if(b=t.closest('[data-sdsdel]')){const[a,s]=b.dataset.sdsdel.split(':');const tk=sdTask(a);tk.sub=tk.sub.filter(x=>x.id!==s);sdSave();sdRender();return}
+  if(b=t.closest('[data-sdedit]')){const tk=sdTask(b.dataset.sdedit);const v=prompt('Rename task',tk.t);if(v&&v.trim()){tk.t=v.trim();sdSave();sdRender()}return}
+  if(b=t.closest('[data-sdlink]')){const l=b.dataset.sdlink.split('|');if(l[0]==='course'){setMode('course');coSet(l[1]);coUnit(l[2])}return}
+  if(b=t.closest('[data-sdblk]')){SD.editBlock=b.dataset.sdblk;sdRender();const f=document.querySelector('.sd-bform');if(f)f.scrollIntoView({block:'center'});return}
+  if(b=t.closest('[data-sdblkdel]')){SD.d.blocks=SD.d.blocks.filter(x=>x.id!==b.dataset.sdblkdel);SD.editBlock=null;sdSave();sdRender();return}
+  if(t.closest('[data-sdblkcancel]')){SD.editBlock=null;sdRender();return}
+  if(b=t.closest('[data-sdday]')){SD.schedDay=+b.dataset.sdday;sdRender();return}
+  if(b=t.closest('[data-sdexdel]')){SD.d.exams=SD.d.exams.filter(x=>x.id!==b.dataset.sdexdel);sdSave();sdRender();return}
+  if(b=t.closest('[data-sdcg]')){const[id,dlt]=b.dataset.sdcg.split(':');const g=SD.d.goals.custom.find(x=>x.id===id);g.n=Math.max(0,g.n+ +dlt);sdSave();sdRender();if(g.n===g.target&&+dlt>0)toast('Goal reached! 🎉');return}
+  if(b=t.closest('[data-sdcgdel]')){SD.d.goals.custom=SD.d.goals.custom.filter(x=>x.id!==b.dataset.sdcgdel);sdSave();sdRender();return}}
+function sdChange(e){const t=e.target;
+  if(t.dataset.sdck){const tk=sdTask(t.dataset.sdck);tk.done=t.checked;tk.doneAt=t.checked?Date.now():null;if(t.checked&&(tk.sub||[]).length)tk.sub.forEach(s=>s.done=true);sdSave();setTimeout(sdRender,t.checked?350:0);if(t.checked)sdChime('break');return}
+  if(t.dataset.sdsck){const[a,s]=t.dataset.sdsck.split(':');const tk=sdTask(a),x=tk.sub.find(y=>y.id===s);x.done=t.checked;sdSave();sdRender();return}
+  if(t.dataset.sdcfg){const c=T_().cfg,k=t.dataset.sdcfg;if(t.type==='checkbox')c[k]=t.checked;else c[k]=Math.max(1,Math.min(+t.max||240,Math.round(+t.value||1)));sdSave();sdTick(false);return}
+  if(t.dataset.sdgoal){SD.d.goals[t.dataset.sdgoal]=Math.max(1,Math.round(+t.value||1));sdSave();sdRender();return}
+  if(t.id==='sdTask'){T_().task=t.value||null;const tk=sdTask(t.value);if(tk&&tk.subj)T_().subj=tk.subj;sdSave();return}
+  if(t.id==='sdSubj'){T_().subj=t.value.trim();sdSave();return}}
+function sdInput(e){if(e.target.id==='sdVol'){SD.vol=+e.target.value;if(SD.sound)SD.sound.g.gain.value=SD.vol*.6}}
+function sdSubmit(e){const f=e.target;const v=n=>(f.elements[n]&&f.elements[n].value||'').trim();
+  if(f.dataset.sdaddform){e.preventDefault();if(!v('t'))return;SD.d.tasks.push({id:sdId(),t:v('t'),due:v('due')||null,pri:+v('pri')||0,subj:v('subj'),sub:[],done:false,c:Date.now()});sdSave();sdRender();setTimeout(()=>{const i=document.querySelector('.sd-add input[name=t]');if(i)i.focus()},20);return}
+  if(f.dataset.sdblockform!=null&&f.classList.contains('sd-bform')){e.preventDefault();const days=SD_DAYS.map((_,i)=>f.elements['d'+i].checked?i:-1).filter(i=>i>=0);if(!days.length){toast('Pick at least one day');return}if(v('e')<=v('s')){toast('The end time must be after the start time');return}
+    const c=(f.querySelector('input[name=c]:checked')||{}).value||SD_COLS[0];const id=f.dataset.sdblockform;
+    if(id){Object.assign(SD.d.blocks.find(b=>b.id===id),{t:v('t'),s:v('s'),e:v('e'),days,c})}else SD.d.blocks.push({id:sdId(),t:v('t'),s:v('s'),e:v('e'),days,c});SD.editBlock=null;sdSave();sdRender();return}
+  if(f.dataset.sdexform){e.preventDefault();SD.d.exams.push({id:sdId(),t:v('t'),date:v('date')});sdSave();sdRender();return}
+  if(f.dataset.sdcgform){e.preventDefault();SD.d.goals.custom.push({id:sdId(),t:v('t'),target:Math.max(1,+v('target')||1),unit:v('unit'),n:0});sdSave();sdRender();return}}
+function sdKey(e){const t=e.target;
+  if(t.dataset&&t.dataset.sdsubin!=null&&e.key==='Enter'){e.preventDefault();const tk=sdTask(t.dataset.sdsubin);if(t.value.trim()){(tk.sub=tk.sub||[]).push({id:sdId(),t:t.value.trim(),done:false});sdSave();sdRender();setTimeout(()=>{const i=$('#sdSubIn');if(i)i.focus()},20)}else{SD.addSub=null;sdRender()}return}
+  if(App.mode!=='study'||t.closest('input,textarea,select,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;if(document.querySelector('.scrim:not([hidden])'))return;
+  if(e.key===' '&&(SD.view==='timer'||SD.view==='today')){e.preventDefault();const r=T_().run;if(!r)sdStart(null);else r.on?sdPause():sdResume()}}
+/* ---------- course integration ---------- */
+function sdAddUnit(cid,uid){if(!SD.d)sdLoad();const K=COURSES[cid],u=K&&K.uby[uid];if(!u)return;const link=`course|${cid}|${uid}`;
+  if(SD.d.tasks.some(t=>t.link===link&&!t.done)){toast('Already in your study plan');return}
+  SD.d.tasks.push({id:sdId(),t:`${K.short} unit ${u.n}: ${u.title}`,due:null,pri:0,subj:K.name,link,done:false,c:Date.now(),
+    sub:[...u.sections.map(s=>({id:sdId(),t:'Read: '+s.h,done:false})),{id:sdId(),t:'Try the '+K.probK.toLowerCase(),done:false},{id:sdId(),t:`Unit quiz (${u.qs.length} questions)`,done:false}]});
+  sdSave();toast('Added to your study plan, under Study → Tasks')}
+function sdHomeCard(){const hp=$('#homePage');if(!hp||!hp.querySelector('.h7'))return;const old=hp.querySelector('.sd-home');if(old)old.remove();if(!SD.d)sdLoad();
+  const st=sdStats(),ne=sdNextExam(),due=SD.d.tasks.filter(t=>!t.done&&t.due&&t.due<=sdToday()).length,r=T_().run;
+  const c=document.createElement('section');c.className='sd-home';c.setAttribute('aria-label','Study');
+  c.innerHTML=`${sdRingSvg(SD.d.goals.daily?st.today/SD.d.goals.daily:0,'sm')}<div class="sd-ht"><div class="sd-hk">Study today</div><b>${st.today} of ${SD.d.goals.daily} min</b><small>${[st.streak?`${st.streak}-day streak`:'',due?`${due} task${due>1?'s':''} due`:'',ne?`${ne.days} days to ${esc(ne.t)}`:''].filter(Boolean).join(' · ')||'Plan tasks, a timetable and exam dates'}</small></div><button class="btn${r?'':' primary'}" type="button">${r?'Open timer':'Start focusing'}</button>`;
+  c.querySelector('button').onclick=e=>{e.stopPropagation();if(r){SD.view='timer';setMode('study')}else{SD.view='timer';T_().mode='pomo';setMode('study');sdStart('work')}};
+  c.addEventListener('click',()=>{SD.view='today';setMode('study')});
+  const after=hp.querySelector('.bx-home')||hp.querySelector('.h7-hero');if(after)after.insertAdjacentElement('afterend',c);else hp.querySelector('.h7').prepend(c)}
+
+function wireV25(){sdLoad();sdTimerLoop();
+  const pg=$('#sdPage'),sd=$('#sdSide');pg.addEventListener('click',sdClick);sd.addEventListener('click',sdClick);pg.addEventListener('change',sdChange);pg.addEventListener('input',sdInput);pg.addEventListener('submit',sdSubmit);document.addEventListener('keydown',sdKey);
+  { const _rh=renderHome;renderHome=function(){_rh();try{sdHomeCard()}catch(e){console.warn(e)}} }
+  { const _cu=coUnit;coUnit=function(id){_cu(id);try{const a=document.querySelector('#coPage .co-unit > .nm-actions');if(a&&!a.querySelector('[data-sdplan]')&&CO.view==='unit'&&!coLocked(C().uby[id]||{free:1})){const b=document.createElement('button');b.className='linkbtn';b.dataset.sdplan='1';b.textContent='Add to my study plan';b.onclick=()=>sdAddUnit(CO.c,id);a.appendChild(b)}}catch(e){}} }
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();const go=v=>()=>{SD.view=v;setMode('study')};
+    I.push({label:'Study planner',kind:'Go to',fn:go('today'),kw:'study planner today dashboard plan schedule'});
+    I.push({label:'Start a focus session (Pomodoro)',kind:'Study',fn:()=>{SD.view='timer';T_().mode='pomo';setMode('study');sdStart('work')},kw:'pomodoro focus timer start study session 25 minutes'});
+    I.push({label:'Stopwatch',kind:'Study',fn:()=>{SD.view='timer';T_().mode='stop';setMode('study');sdStart('stop')},kw:'stopwatch timer study track time'});
+    I.push({label:'Tasks and to-do list',kind:'Study',fn:go('tasks'),kw:'tasks todo to-do list subtasks checklist homework'});
+    I.push({label:'Study timetable',kind:'Study',fn:go('schedule'),kw:'timetable schedule weekly plan calendar blocks'});
+    I.push({label:'Exam countdown',kind:'Study',fn:go('exams'),kw:'exam countdown days left date'});
+    I.push({label:'Study goals and stats',kind:'Study',fn:go('goals'),kw:'goals streak stats heatmap focus minutes'});return I} }
+  window.addEventListener('storage',e=>{if(e.key===SD_KEY){sdLoad();if(App.mode==='study')sdRender();sdTick(true)}});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)sdTick(false)});}
+function v25AfterBoot(){
+  if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SD,sdStart,sdPause,sdResume,sdStop,sdFinish,sdStats,sdRender,sdAddUnit,sdSave,sdLoad});
+  const q=new URLSearchParams(location.search);if(q.has('study')){const v=q.get('study');if(SD_VIEWS.some(x=>x[0]===v))SD.view=v;setMode('study');try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
+  let n=0;const iv=setInterval(()=>{n++;if(Store.mode==='cloud'){clearInterval(iv);sdPull()}else if(n>40)clearInterval(iv)},3000);sdTick(true)}
+
+CHANGELOG.unshift({v:'25',d:'9 November 2026',t:'Study planner',items:[
+  ['A new Study section','Everything you need to plan and track your revision, next to your notes and practice: a Today page, a focus timer, tasks, a timetable, exam countdowns, and goals with stats.'],
+  ['Focus timer','Pomodoro (25-minute focus sessions with short breaks and a long break every four rounds, all adjustable), a stopwatch and a countdown. It keeps running while you use the rest of Bondline, shows a small timer in the corner, chimes when time is up, and can play rain, brown or white noise.'],
+  ['Tasks with subtasks','Add tasks with due dates, priorities and subjects, split them into subtasks, and press ▶ to focus on one. Any course unit can be added to your plan in one click, with a subtask for each lesson, the exam-style question and the quiz.'],
+  ['Timetable and exam countdown','Plan repeating weekly study blocks, and add your exam dates to see how many days are left.'],
+  ['Goals, streaks and stats','Set daily and weekly focus goals, keep a streak, see 16 weeks of study on a heatmap, see time by subject, and track your own goals, such as past papers done. Everything syncs when you’re signed in.']]});
+
+/* ================= version 26: reaction guide, back button ================= */
+const RG=(window.BL_GUIDE&&window.BL_GUIDE.rx)||[],RG_BY=Object.fromEntries(RG.map(r=>[r.id,r])),V26_Q=new URLSearchParams(location.search);
+RL.kind='guide';
+const rgAsRx=r=>({id:r.id,name:r.name,cat:r.cat,sum:r.sum,cond:r.r,steps:[{s:r.s,r:r.r,n:(r.k||[]).join(' ')},{s:r.p}]});
+function rgRender(){
+  const cats=[...new Set(RG.map(r=>r.cat))],q=RL.q.toLowerCase();if(RL.cat&&!cats.includes(RL.cat))RL.cat=null;
+  $('#rxnCats').innerHTML=`<button class="tf${!RL.cat?' on':''}" data-rcat="">All</button>`+cats.map(c=>`<button class="tf${RL.cat===c?' on':''}" data-rcat="${esc(c)}">${esc(c)}</button>`).join('');
+  const list=RG.filter(r=>(!RL.cat||r.cat===RL.cat)&&(!q||(r.name+' '+r.cat+' '+r.sum+' '+r.r+' '+(r.aka||'')).toLowerCase().includes(q)));
+  $('#rxnList').innerHTML=list.map(r=>`<button class="item${RL.cur===r.id?' on':''}" data-rg="${r.id}"><span class="t">${esc(r.name)}</span><span class="m"><span>${esc(r.cat)}</span>${r.m?'<span>mechanism</span>':''}</span></button>`).join('')||'<div class="empty-list">No reactions match.</div>';
+  const r=RG_BY[RL.cur];
+  if(!r){$('#rxnDetail').innerHTML=`<div class="rx-empty"><h2>Reaction guide</h2><p>${RG.length} reactions, grouped by functional group: what reacts, the reagents, the product and the points to remember. ${RXN.length} of the most important also have a full curly-arrow mechanism.</p></div>`;return}
+  let svg='';try{svg=structSVG(mechRow(rgAsRx(r),0).d,1)}catch(e){}
+  $('#rxnDetail').innerHTML=`<div class="rx-head"><div class="hm-kicker">${esc(r.cat)}</div><h2>${esc(r.name)}</h2><p>${esc(r.sum)}</p><p class="rx-cond"><b>Reagents</b> ${esc(r.r)}</p></div><div class="rg-scheme rx-svg">${svg}</div><h3 class="ref-h">Key points</h3><ul class="rg-pts">${(r.k||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="rx-btns" style="margin-top:16px">${r.m&&RXN_BY[r.m]?`<button class="btn primary" data-rga="mech">See the mechanism step by step</button>`:''}<button class="btn" data-rga="insert">Add to ${App.cur&&App.mode==='notes'?'this note':'a new note'}</button></div>`;
+}
+function wireV26(){
+  const _rl=renderLibrary;renderLibrary=function(){if(RL.kind==='guide'&&RG.length)rgRender();else{if(RL.cat&&!RXN.some(r=>r.cat===RL.cat))RL.cat=null;_rl()}
+    if(RG.length){let k=$('#rxnKind');if(!k){k=document.createElement('div');k.id='rxnKind';k.className='rxl-kind';$('#rxnSearch').insertAdjacentElement('afterend',k)}
+      k.innerHTML=`<button data-rkind="guide" class="${RL.kind==='guide'?'on':''}">All reactions (${RG.length})</button><button data-rkind="mech" class="${RL.kind!=='guide'?'on':''}">Mechanisms (${RXN.length})</button>`}};
+  const _ol=openLibrary;openLibrary=function(id){if(id)RL.kind=RG_BY[id]?'guide':'mech';return _ol(id)};
+  $('#rxnScrim').addEventListener('click',e=>{const k=e.target.closest('[data-rkind]');if(k){RL.kind=k.dataset.rkind;RL.cat=null;RL.cur=null;renderLibrary();return}
+    const it=e.target.closest('[data-rg]');if(it){RL.cur=it.dataset.rg;renderLibrary();$('#rxnDetail').scrollTop=0;return}
+    const a=e.target.closest('[data-rga]');if(a){const r=RG_BY[RL.cur];if(!r)return;if(a.dataset.rga==='mech'){RL.kind='mech';RL.cat=null;RL.cur=r.m;renderLibrary();$('#rxnDetail').scrollTop=0}else insertReaction(rgAsRx(r))}});
+  { const _tm=renderToolsMenu;renderToolsMenu=function(){_tm();const b=document.querySelector('#toolsMenu [data-mi="rxn"] small');if(b&&RG.length)b.textContent=`${RG.length} reactions, ${RXN.length} full mechanisms`} }
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();RG.forEach(r=>I.push({label:r.name,kind:'Reaction',fn:()=>openLibrary(r.id),kw:r.cat+' '+r.r+' '+(r.aka||'')}));return I} }
+  /* back button: remembers the sections and notes you came from */
+  const NAV={st:[],busy:false,on:false},snap=()=>({m:App.mode,n:App.mode==='notes'&&App.cur?App.cur.id:null});
+  const sync=()=>{for(const id of['#navBack','#navBack2']){const b=$(id);if(b)b.hidden=!NAV.st.length}};
+  const push=p=>{if(!NAV.on||NAV.busy||!p.m)return;const t=NAV.st[NAV.st.length-1];if(t&&t.m===p.m&&t.n===p.n)return;NAV.st.push(p);if(NAV.st.length>40)NAV.st.shift();try{history.pushState({bl:NAV.st.length},'')}catch(e){}sync()};
+  const back=()=>{const open=[...document.querySelectorAll('.scrim')].filter(x=>!x.hidden);
+    if(open.length){const c=open[open.length-1].querySelector('[id$="Close"],[data-mp="close"]');if(c)c.click();else{open[open.length-1].hidden=true;document.body.classList.remove('sk-lock')}try{history.pushState({bl:1},'')}catch(e){}return}
+    const p=NAV.st.pop();sync();if(!p)return;NAV.busy=true;try{setMode(p.m);if(p.n&&App.notes.some(n=>n.id===p.n))openNote(p.n)}finally{NAV.busy=false}};
+  { const _sm=setMode;setMode=function(m){const p=snap();_sm(m);if(p.m!==App.mode)push(p)} }
+  { const _on=openNote;openNote=function(id){const p=snap();const r=_on.apply(this,arguments);if(p.m==='notes'&&p.n&&p.n!==id)push(p);return r} }
+  const go=()=>{if(history.state&&history.state.bl)history.back();else back()};
+  for(const id of['#navBack','#navBack2']){const b=$(id);if(b)b.addEventListener('click',go)}
+  window.addEventListener('popstate',()=>{if(NAV.on)back()});
+  wireV26.nav=NAV;
+}
+function v26AfterBoot(){
+  if(V26_Q.get('rx')&&RG_BY[V26_Q.get('rx')]){openLibrary(V26_Q.get('rx'));try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}}
+  setTimeout(()=>{wireV26.nav.on=true},300);
+  if(V26_Q.has('bltest'))Object.assign(window.__bl||(window.__bl={}),{RG,RG_BY,rgRender,RL,setMode2:m=>setMode(m),openLibrary:id=>openLibrary(id),nav:wireV26.nav});
+}
+CHANGELOG.unshift({v:'26',d:'10 November 2026',t:'Reaction guide and a Back button',items:[
+  ['230 reactions in the library','The reaction library now covers alkanes to amino acids, grouped by functional group. Each reaction shows the reagents, the product and the key points, and links to the full curly-arrow mechanism where there is one.'],
+  ['Back button','A Back button in the left menu (and at the top on phones) returns you to the section or note you came from. Your phone’s back gesture does the same.'],
+  ['Fused rings draw properly','Naphthalene, steroids, indoles and other fused or spiro ring systems are now laid out as regular rings.']]});
+
+
+/* ---------- v27: teaching tools ----------
+   Tutor-made quizzes, every kind of content as class work, per-question insights, worksheets with answer keys,
+   live class quizzes, co-teachers, class notebooks, a teacher plan with class passes, class-only accounts
+   for students without email, and quizzes marked on the server. */
+const TC={qz:new Map(),co:new Map(),tab:v18get('bondline.tc.tab','work'),ed:null,bank:null,run:null,cards:null,drill:null,live:null,play:null,
+  req:undefined,pass:{},passUntil:0,passBy:'',fnOK:null,stu:null,ins:null,icache:new Map(),wsDlg:null,lpPin:'',lpName:''};
+const tcFV=()=>window.firebase.firestore.FieldValue;
+const tcMe=()=>FB.user&&FB.user.uid;
+const tcIsTeacher=c=>!!(c&&FB.user&&(c.owner===FB.user.uid||(c.teacherIds||[]).includes(FB.user.uid)));
+const tcIsOwner=c=>!!(c&&FB.user&&c.owner===FB.user.uid);
+const tcAnon=()=>!!(FB.user&&FB.user.isAnonymous);
+const tcPl=(n,w,ws)=>n+' '+(n===1?w:(ws||w+'s'));
+const tcStrip=h=>String(h||'').replace(/<svg[\s\S]*?<\/svg>/g,' [structure] ').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+const tcClip=(s,n)=>{s=String(s||'');return s.length>n?s.slice(0,n-1)+'…':s};
+const TC_L='ABCDEFGH';
+// Start Classes (if signed in) before switching to one of its pages, so its start-up doesn't reset the view.
+function tcEnsure(){if(clOn()&&!(CL.started&&CL.uid===FB.user.uid))clStart()}
+function tcDate(t){return new Date(t).toLocaleDateString([],{day:'numeric',month:'short'})}
+function tcDur(s){s=Math.max(0,Math.round(s||0));return s<60?s+' s':Math.floor(s/60)+' min'+(s%60?' '+(s%60)+' s':'')}
+
+/* seeded randomness: every student (and the printed worksheet, and every live player) sees the same options in the same order */
+function tcHash(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return(h^h>>>16)>>>0}
+function tcRng(seed){let a=tcHash(String(seed));return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function tcSeeded(seed,fn){const R=Math.random;Math.random=tcRng(seed);try{return fn()}finally{Math.random=R}}
+
+/* text that teachers type: plain text, $maths$, and automatic formula subscripts. Never raw HTML. */
+function tcTxt(s){s=String(s==null?'':s);return s.trim()?cardTextHTML(s).replace(/\n/g,'<br>'):''}
+function tcMol(s){s=String(s||'').trim();return s?cardMolHTML(s):''}
+function tcTex(el){if(el&&el.querySelector&&el.querySelector('[data-tex]'))Promise.resolve(mathReady()).then(ok=>{if(ok)renderMathIn(el)}).catch(()=>{})}
+
+/* ---------- question sources ---------- */
+// Bondline's own questions are stored as {b:'area|id'}; teachers' own questions as {t,p,o,a,tol,u,s,w,g}.
+const TC_SRC=()=>[{id:'naming',label:'Naming',area:'naming'},{id:'spectra',label:'Spectra',area:'spectra'},{id:'stereo',label:'Stereochemistry',area:'stereo'},
+  ...CO_IDS.map(c=>({id:'co:'+c,label:COURSES[c].short+(c==='icho'?' course':''),area:c==='icho'?'icho':'pu',course:c}))].filter(s=>AREAS[s.area]);
+function tcSrc(id){return TC_SRC().find(s=>s.id===id)||TC_SRC()[0]}
+function tcSrcTopics(s){if(s.course)return COURSES[s.course].units.map(u=>({id:u.id,title:u.n+'. '+u.title}));return AREAS[s.area].topics()}
+function tcSrcBank(s,topics){const T=topics&&topics.length?new Set(topics):null;
+  if(s.course)return COURSES[s.course].units.filter(u=>!T||T.has(u.id)).flatMap(u=>u.qs.map(q=>({ref:s.area+'|'+q.id,t:u.id,q})));
+  return AREAS[s.area].bank().filter(q=>!T||T.has(q.t)).map(q=>({ref:s.area+'|'+q.id,t:q.t,q}))}
+function tcBankQ(ref){const p=String(ref||'').split('|'),a=p[0],id=p.slice(1).join('|');const q=areaQ(a,id);return q?{a,q}:null}
+function tcBankItem(ref,seed){const b=tcBankQ(ref);if(!b)return null;let it=null;try{it=tcSeeded(seed,()=>AREAS[b.a].item(b.q))}catch(e){console.warn('item',ref,e)}
+  if(!it||!(it.ans>=0))return null;
+  return{src:'bank',ref,kind:'mc',struct:it.kind==='struct',prompt:it.prompt,fig:it.fig||'',opts:it.opts,ans:it.ans,answer:it.answer,why:it.why||'',
+    topic:exTopicTitle(it),area:b.a,tkey:b.a+':'+it.t,label:AREA_LABEL[b.a]||b.a}}
+function tcFmtNum(v){v=+v;if(!isFinite(v))return'';const a=Math.abs(v);return a!==0&&(a>=1e6||a<1e-3)?v.toExponential(3).replace(/\.?0+e/,'e'):String(+v.toPrecision(6))}
+function tcCusItem(q){q=q||{};const t=q.t||'mc';
+  const it={src:'custom',kind:t==='text'?'text':t==='num'?'num':'mc',struct:false,prompt:tcTxt(q.p),fig:q.s?`<div class="qz-struct">${tcMol(q.s)}</div>`:'',
+    why:tcTxt(q.w),topic:q.g?String(q.g):'Your questions',tkey:'c:'+(q.g||''),area:'custom',label:q.g?String(q.g):'Own question',raw:q,has:'a' in q};
+  if(t==='tf'){it.opts=['True','False'];it.ans='a' in q?(q.a===1?1:0):-1;it.answer=it.ans>=0?it.opts[it.ans]:''}
+  else if(t==='mc'){it.opts=(q.o||[]).map(tcTxt);it.ans='a' in q?(q.a|0):-1;it.answer=it.ans>=0?it.opts[it.ans]||'':''}
+  else if(t==='text'){it.acc=(Array.isArray(q.a)?q.a:[]).map(String).filter(x=>x.trim());it.answer=it.acc.length?tcTxt(it.acc[0]):''}
+  else{it.num='a' in q?+q.a:NaN;it.tol=Math.abs(+q.tol||0);it.unit=String(q.u||'');it.answer=isFinite(it.num)?esc(tcFmtNum(it.num))+(it.unit?' '+esc(it.unit):'')+(it.tol?` <small>(± ${esc(tcFmtNum(it.tol))})</small>`:''):''}
+  return it}
+function tcItem(e,seed){if(!e)return null;return e.b?tcBankItem(e.b,seed):tcCusItem(e)}
+function tcItems(qs,seedBase){return(qs||[]).map((e,i)=>tcItem(e,seedBase+':'+i))}
+
+/* ---------- marking ---------- */
+function tcParseNum(s){s=String(s==null?'':s).trim().replace(/−/g,'-').replace(/\s+/g,'');if(!s)return null;
+  if(/^[-+]?\d+,\d+$/.test(s))s=s.replace(',','.');else s=s.replace(/,/g,'');
+  s=s.replace(/[×x*]10\^?\(?([-+]?\d+)\)?$/i,'e$1');
+  if(!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(s))return null;const v=parseFloat(s);return isFinite(v)?v:null}
+function tcNorm(s){return normName(String(s||''))}
+function tcMark(it,r){if(!it||!r)return false;
+  if(it.kind==='mc')return r.k!=null&&r.k===it.ans;
+  if(it.kind==='text'){const v=String(r.t||'');if(!v.trim())return false;return it.acc.some(a=>tcNorm(a)===tcNorm(v)||looseName(a)===looseName(v))}
+  const v=tcParseNum(r.t);if(v==null||!isFinite(it.num))return false;const tol=it.tol>0?it.tol:Math.max(1e-12,Math.abs(it.num)*0.005);return Math.abs(v-it.num)<=tol+1e-12}
+
+/* ---------- labels ---------- */
+Object.assign(CL_KINDS,{quiz:'Quiz',drill:'Drill',cards:'Flashcards'});
+const TC_DRILLS={mech:'SN1, SN2, E1 or E2?',rs:'R or S in 3D',ir:'Read the IR spectrum'};
+const TC_MODES={practice:'Practice',test:'Test'};
+const _clCfgText=clCfgText;
+clCfgText=function(a){const o=a.opt||{};
+  if(a.kind==='quiz'){const n=(a.qs||[]).length;return[tcPl(n,'question'),TC_MODES[o.mode]||'Practice',o.mins?o.mins+' min':'',o.tries?tcPl(o.tries,'attempt'):'',o.secure?'marked on the server':''].filter(Boolean).join(' · ')}
+  if(a.kind==='drill')return`${TC_DRILLS[(a.cfg||{}).drill]||''} · ${tcPl((a.cfg||{}).rounds||10,'round')}`;
+  if(a.kind==='cards')return`${tcPl(((a.deck||{}).cards||[]).length,'card')}`;
+  return _clCfgText(a)};
+function tcTotal(a){if(a.kind==='quiz')return(a.qs||[]).length;if(a.kind==='cards')return((a.deck||{}).cards||[]).length;if(a.kind==='drill')return(a.cfg||{}).rounds||10;return 0}
+
+/* ---------- subscriptions: co-taught classes and the teacher's quiz library ---------- */
+const _clStart=clStart;
+clStart=function(){const had=CL.started&&FB.user&&CL.uid===FB.user.uid;_clStart();if(had||!CL.started||!FB.user)return;const me=FB.user.uid;
+  CL.subs.push(FB.db.collection('classes').where('teacherIds','array-contains',me).onSnapshot(s=>{TC.co=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]));if(CL.cur&&!clGet(CL.cur))clLeaveView();clRefresh()},e=>console.warn('co-classes',e)));
+  if(!tcAnon())CL.subs.push(FB.db.collection('quizzes').where('owner','==',me).onSnapshot(s=>{TC.qz=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]));renderClassSide();if(App.mode==='classes'&&['list','quizzes'].includes(CL.view))clRender();else if(App.mode==='classes'&&CL.view==='class'&&CL.form)clRender()},e=>console.warn('quizzes',e)));
+  tcPassCheck();tcReqLoad()};
+const _clStop=clStop;clStop=function(){_clStop();TC.co=new Map();TC.qz=new Map()};
+clGet=function(id){return CL.own.get(id)||TC.co.get(id)||CL.joined.get(id)||null};
+clIsOwner=function(c){return tcIsTeacher(c)};
+renderClassSide=function(){const box=$('#classList');if(!box)return;if(!clOn()){box.innerHTML='';return}
+  const row=c=>`<button class="item${CL.cur===c.id&&CL.view==='class'?' on':''}" data-clopen="${c.id}"><span class="t">${esc(c.name)}</span><span class="m"><span>${tcIsOwner(c)?'Teaching':tcIsTeacher(c)?'Co-teaching':'Student'}</span><span>${tcPl((c.memberIds||[]).length,'student')}</span></span></button>`;
+  const by=(a,b)=>a.name.localeCompare(b.name),teach=[...CL.own.values(),...TC.co.values()].sort(by),jn=[...CL.joined.values()].sort(by);
+  const tools=tcAnon()?'':`<div class="syn-lvh">Teaching tools</div><button class="item${CL.view==='quizzes'||CL.view==='qedit'?' on':''}" data-t="quizzes"><span class="t">My quizzes</span><span class="m"><span>${tcPl(TC.qz.size,'quiz','quizzes')}</span></span></button><button class="item${CL.view==='livehost'?' on':''}" data-t="livenew"><span class="t">Live quiz</span><span class="m"><span>Play on the big screen</span></span></button>`;
+  box.innerHTML=(teach.length?`<div class="syn-lvh">Teaching</div>${teach.map(row).join('')}`:'')+(jn.length?`<div class="syn-lvh">Joined</div>${jn.map(row).join('')}`:'')+tools||'<div class="empty-list">No classes yet.</div>'};
+
+/* ---------- Classes home ---------- */
+function tcJoinCards(){return`<form class="cl-card" id="clJoinF" autocomplete="off"><h2>Join a class</h2><p class="hm-muted">Your teacher will see your name${tcAnon()?'':', email address'} and your scores on the work they set. Co-teachers: type the teacher code here.</p><label class="cl-f">Class code<input id="clJoinCode" maxlength="9" placeholder="ABCD-2345" spellcheck="false" autocapitalize="characters" value="${esc(clFmt(CL.pendingCode||''))}"></label><button class="btn primary" type="submit">Join</button><p class="cl-err" id="clJoinErr" role="alert"></p></form>
+  <form class="cl-card" id="tcLiveF" autocomplete="off"><h2>Join a live quiz</h2><p class="hm-muted">Type the 6-digit game PIN on your teacher’s screen.</p><label class="cl-f">Game PIN<input id="tcLivePin" inputmode="numeric" maxlength="7" placeholder="123 456" value="${esc(TC.lpPin||'')}"></label><button class="btn primary" type="submit">Join the game</button><p class="cl-err" id="tcLiveErr" role="alert"></p></form>`}
+function tcHomeRender(){const pg=$('#classPage');
+  const teach=[...CL.own.values(),...TC.co.values()],jn=[...CL.joined.values()];const anon=tcAnon();
+  const req=TC.req,ent=PRO.ent||{},tp=ent.teacher&&proActive();
+  pg.innerHTML=`<section class="cl tc"><header class="nm-head"><div class="nm-kicker">Classes</div><h1>Classes</h1><p class="nm-lede">${anon?'You’re using a class-only account. Join your teacher’s classes and live quizzes with their codes.':'Join a class with your teacher’s code, or make your own class to set work, quizzes and live games.'}</p></header>
+   <div class="cl-two tc-three">${tcJoinCards()}${anon?'':`<form class="cl-card" id="clNewF" autocomplete="off"><h2>Make a class</h2><p class="hm-muted">For lecturers, teachers and tutors. You’ll get a code to share with students.</p><label class="cl-f">Class name<input id="clNewName" maxlength="100" placeholder="e.g. CHM1012 Organic Chemistry, Group B"></label><button class="btn primary" type="submit">Create class</button></form>`}</div>
+   ${anon?`<p class="hm-muted tc-anonnote">Class-only accounts are saved on this device. If you log out, you can’t get back in, so ask your teacher for help if you change device.</p>`:`
+   <h2 class="qz-h">Teaching tools</h2>
+   <div class="tc-tools">
+    <button class="tc-tool" data-t="quizzes"><b>My quizzes</b><span>${TC.qz.size?tcPl(TC.qz.size,'quiz','quizzes')+'. ':''}Write your own questions or pick from ${tcBankSize()} of Bondline’s, then set them, print them or play them live.</span></button>
+    <button class="tc-tool" data-t="livenew"><b>Host a live quiz</b><span>Students join on their phones with a PIN. Questions on the big screen, a leaderboard after each one.</span></button>
+    <button class="tc-tool" data-t="tplan"><b>${tp?'Teacher plan: active':req&&req.st==='pending'?'Teacher plan: under review':'Free Pro for teachers'}</b><span>${tp?`Pro is on until ${esc(v18Date(proUntil()))}.`:req&&req.st==='pending'?'We’ll switch Pro on when we’ve checked your details.':req&&req.st==='no'?'We couldn’t verify your request. You can update it and try again.':'Verified teachers and lecturers get Bondline Pro free. Tuition centres can add class passes for students.'}</span></button>
+   </div>`}
+   ${teach.length?`<h2 class="qz-h">Classes you teach</h2><div class="cl-grid">${teach.map(c=>`<button class="cl-tile" data-clopen="${c.id}"><b>${esc(c.name)}</b><span>${tcPl((c.memberIds||[]).length,'student')} · ${tcIsOwner(c)?'code '+clFmt(c.code):'co-teaching with '+esc(c.ownerName||'')}</span></button>`).join('')}</div>`:''}
+   ${jn.length?`<h2 class="qz-h">Classes you’re in</h2><div class="cl-grid">${jn.map(c=>`<button class="cl-tile" data-clopen="${c.id}"><b>${esc(c.name)}</b><span>Teacher: ${esc(c.ownerName||'')}${TC.pass[c.owner]&&TC.passUntil>Date.now()?' · Pro from your class':''}</span></button>`).join('')}</div>`:''}
+  </section>`}
+function tcBankSize(){try{return Object.values(AREAS).reduce((n,A)=>n+A.bank().length,0).toLocaleString()}catch(e){return'1,000'}}
+function tcSignedOutRender(){const pg=$('#classPage');
+  pg.innerHTML=`<section class="cl tc"><header class="nm-head"><div class="nm-kicker">Classes</div><h1>Teach and learn together</h1><p class="nm-lede">Lecturers, teachers and tutors make a class and set work: their own quizzes, any of Bondline’s questions, drills and flashcards. Students join with a code, and their scores come back automatically. There are live quizzes for the classroom too.</p></header>
+   <div class="cl-two tc-three"><div class="cl-card"><h2>Sign in</h2><p>Classes are stored in your Bondline account, so you need to sign in first.</p><button class="btn primary" data-cla="signin">Sign in</button></div>
+   <div class="cl-card"><h2>No account?</h2><p class="hm-muted">Students without an email address, or under 13, can join their teacher’s class or a live quiz with just a first name.</p><button class="btn" data-t="classonly">Join with a class code or PIN</button></div></div>${tipHTML('study',3)}</section>`}
+const _clRender=clRender;
+clRender=function(){const pg=$('#classPage');if(!pg)return;
+  if(!FB.cfg)return _clRender();
+  if(!clOn()){if(CL.view==='liveplay'&&TC.play)return lpRender();return tcSignedOutRender()}
+  const v=CL.view;
+  if(v==='quizzes')return qlRender();if(v==='qedit')return qeRender();if(v==='run')return trRender();if(v==='cards')return tcCardsRender();
+  if(v==='livehost')return lhRender();if(v==='liveplay')return lpRender();if(v==='tplan')return tpRender();
+  if(v==='class'&&CL.cur&&clGet(CL.cur))return clRenderClass(clGet(CL.cur));
+  tcHomeRender()};
+
+/* ---------- joining: class codes, co-teacher codes ---------- */
+const _clJoin=clJoin;
+clJoin=async function(raw){const code=clNorm(raw),err=$('#clJoinErr');if(code.length!==8){if(err)err.textContent='Class codes have 8 letters and numbers.';return}
+  try{const cd=await FB.db.collection('classCodes').doc(code).get();if(cd.exists)return _clJoin(raw);
+    const td=await FB.db.collection('teacherCodes').doc(code).get();if(!td.exists){if(err)err.textContent='No class has that code. Check it with your teacher.';return}
+    if(tcAnon()){if(err)err.textContent='Co-teachers need a full Bondline account. Log out and sign in with your email.';return}
+    const cid=td.data().cid,me=FB.user.uid;if(CL.own.has(cid)||TC.co.has(cid)){if(err)err.textContent='You already teach that class.';return}
+    await clRef(cid).update({teacherIds:tcFV().arrayUnion(me),['teacherNames.'+me]:shMe().n,lastJoin:'T'+code+':'+me});
+    CL.pendingCode='';try{sessionStorage.removeItem('bondline.classCode')}catch(e){}toast('You’re now a co-teacher of this class.');setTimeout(()=>clOpenClass(cid,true),500)}
+  catch(e){console.warn(e);if(err)err.textContent='Couldn’t join with that code. If you’re already a student in the class, leave it first.'}};
+const _clCreate=clCreate;clCreate=async function(name){if(tcAnon())return toast('Class-only accounts can’t make classes.');return _clCreate(name)};
+
+/* ---------- class page ---------- */
+const TC_TABS=[['work','Work'],['results','Results'],['insights','Insights'],['people','People'],['notebooks','Notebooks'],['settings','Settings']];
+function tcAsgStats(c,a){const ids=c.memberIds||[];const rs=ids.map(u=>CL.res.get(a.id+'_'+u)).filter(Boolean);
+  return{done:rs.length,n:ids.length,avg:rs.length?Math.round(100*rs.reduce((s,r)=>s+r.best/r.total,0)/rs.length):null,rs}}
+clRenderClass=function(c){if(tcIsTeacher(c))return tcTeacherRender(c);return tcStudentRender(c)};
+function tcTeacherRender(c){const pg=$('#classPage'),own=tcIsOwner(c),asg=[...CL.asg.values()].sort((a,b)=>(a.at||0)-(b.at||0));
+  const co=Object.entries(c.teacherNames||{}).filter(([u])=>(c.teacherIds||[]).includes(u)).map(([,n])=>n);
+  const tab=TC_TABS.some(t=>t[0]===TC.tab)?TC.tab:'work';
+  const head=`<header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-cla="back">← Classes</button></div><h1>${esc(c.name)}</h1><p class="nm-lede">${tcPl((c.memberIds||[]).length,'student')}${own?'':' · class owner: '+esc(c.ownerName||'')}${co.length?' · co-teachers: '+esc(co.join(', ')):''}</p></header>
+   <div class="cl-code"><div><span class="hm-kicker">Class code</span><b>${clFmt(c.code)}</b></div><button class="btn" data-cla="copycode">Copy code</button><button class="btn" data-cla="copylink">Copy invite link</button><span class="np-sp"></span><button class="btn" data-t="livenew" data-cid="${c.id}">Live quiz</button></div>
+   <nav class="tc-tabs" role="tablist">${TC_TABS.map(([k,t])=>`<button role="tab" class="${k===tab?'on':''}" aria-selected="${k===tab}" data-ttab="${k}">${t}</button>`).join('')}</nav>`;
+  let body='';
+  if(tab==='work')body=tcWorkTab(c,asg);else if(tab==='results')body=tcResultsTab(c,asg);else if(tab==='insights')body=tcInsightsTab(c,asg);
+  else if(tab==='people')body=tcPeopleTab(c);else if(tab==='notebooks')body=tcNbTab(c);else body=tcSettingsTab(c);
+  pg.innerHTML=`<section class="cl tc">${head}<div class="tc-body">${body}</div></section>`;tcTex(pg);
+  if(tab==='notebooks'||tab==='people')tcNbAutoSync(c)}
+function tcWorkTab(c,asg){
+  const row=a=>{const S=tcAsgStats(c,a),quiz=a.kind==='quiz';
+    return`<div class="cl-asg tc-asg"><div><b>${esc(a.title)}</b><span class="hm-muted">${esc(CL_KINDS[a.kind]||'')} · ${esc(clCfgText(a))}${a.due?` · due ${clDue(a)}`:''}</span>
+      <span class="tc-asgm"><span>${S.done}/${S.n} done</span>${S.avg!=null?`<span>average ${S.avg}%</span>`:''}</span></div>
+     <div class="tc-asgb">${['quiz','naming','spectra','cards'].includes(a.kind)?`<button class="btn small" data-t="ins" data-id="${a.id}">Insights</button>`:''}${quiz||a.kind==='cards'?`<button class="btn small" data-t="preview" data-id="${a.id}">Preview</button>`:''}${quiz?`<button class="btn small" data-t="wsasg" data-id="${a.id}">Worksheet</button>`:''}<button class="btn small" data-cldel="${a.id}">Delete</button></div></div>`};
+  return`<div class="cl-sec-h"><h2 class="qz-h">Assignments</h2><span class="tc-acts"><button class="btn" data-t="asgquiz">Set one of my quizzes</button><button class="btn primary" data-t="newasg">New assignment</button></span></div>
+   ${CL.form?clFormHTML():''}
+   ${asg.length?`<div class="cl-asgs">${asg.map(row).join('')}</div>`:`<div class="tc-empty"><p>No assignments yet.</p><p class="hm-muted">Set one of your own quizzes, a paper of Bondline’s questions from any topic or course unit, a drill or a flashcard deck. Scores come back here automatically.</p></div>`}`}
+
+/* ---------- student view ---------- */
+function tcStudentRender(c){const pg=$('#classPage'),me=FB.user.uid,asg=[...CL.asg.values()].sort((a,b)=>(a.at||0)-(b.at||0));
+  const now=Date.now(),nbs=(c.nbs||[]).map(x=>String(x).split(':')[0]).map(id=>SH.nbs.get(id)).filter(Boolean);
+  const row=a=>{const r=CL.res.get(a.id+'_'+me),o=a.opt||{},left=o.tries?Math.max(0,o.tries-(r?r.tries:0)):null,late=a.due&&now>a.due;
+    const status=r?`<span class="cl-avg" title="Your best score">${r.best}/${r.total}${r.v?' <span class="tc-v" title="Marked on the server">✓</span>':''}</span>`:`<span class="cl-avg cl-todo">${late?'Overdue':'To do'}</span>`;
+    const btn=left===0?`<button class="btn small" data-t="review" data-id="${a.id}"${tcCanReveal(a)?'':' disabled'}>${tcCanReveal(a)?'Review':'No attempts left'}</button>`:`<button class="btn small${r?'':' primary'}" data-clgo="${a.id}">${r?'Try again':'Start'}</button>`;
+    return`<div class="cl-asg"><div><b>${esc(a.title)}</b><span class="hm-muted">${esc(CL_KINDS[a.kind]||'')} · ${esc(clCfgText(a))}${a.due?` · due ${clDue(a)}`:''}${left!=null&&left>0?` · ${tcPl(left,'attempt')} left`:''}</span></div>${status}${btn}</div>`};
+  pg.innerHTML=`<section class="cl tc"><header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-cla="back">← Classes</button></div><h1>${esc(c.name)}</h1><p class="nm-lede">Teacher: ${esc(c.ownerName||'')}${TC.pass[c.owner]&&TC.passUntil>now?' · your class gives you Bondline Pro':''}</p></header>
+   <h2 class="qz-h">Work set</h2>${asg.length?`<div class="cl-asgs">${asg.map(row).join('')}</div>`:'<p class="hm-muted">Nothing set yet.</p>'}
+   ${nbs.length?`<h2 class="qz-h">Class notebooks</h2><div class="cl-grid">${nbs.map(n=>`<button class="cl-tile" data-t="opennb" data-id="${esc(n.id)}"><b>${esc(n.name)}</b><span>${(n.roles||{})[me]==='editor'?'You can edit':'Read only'} · open in Notes</span></button>`).join('')}</div>`:''}
+   <h2 class="qz-h">Live quiz</h2><form class="tc-inlive" id="tcLiveF" autocomplete="off"><input id="tcLivePin" inputmode="numeric" maxlength="7" placeholder="Game PIN"><button class="btn" type="submit">Join</button><p class="cl-err" id="tcLiveErr" role="alert"></p></form>
+   <p class="hm-muted cl-note">Your teacher sees your name${tcAnon()?'':', email address'} and your scores on each piece of work, including how long you took. Your notes are never shared. Leaving the class deletes your scores.</p>
+   <div class="cl-danger"><button class="btn" data-cla="leave">Leave class</button></div>${tipHTML('study',asg.length)}</section>`}
+function tcCanReveal(a){const o=a.opt||{},r=o.reveal||'now';return r==='now'||(r==='due'&&a.due&&Date.now()>a.due)}
+
+/* ---------- assignment form ---------- */
+const TC_FKINDS=[['bank','Questions from Bondline (any topic or course unit)'],['myquiz','One of my quizzes'],['naming','Naming quiz (new questions each try)'],['spectra','Spectra practice (new questions each try)'],['mech','Mechanism practice'],['synth','Synthesis problems'],['drill','Drill'],['cards','Flashcard deck from my notes']];
+function tcNewForm(kind,extra){return Object.assign({title:'',kind:kind||'bank',sel:new Set(),len:10,style:'mix',due:'',src:'naming',bsel:new Set(),blen:10,qid:'',drill:'mech',rounds:10,deck:'',mode:'practice',mins:0,tries:0,reveal:'now',secure:false},extra||{})}
+function tcOptsHTML(F,canSecure){const sel=(id,cur,opts)=>`<select id="${id}">${opts.map(([v,t])=>`<option value="${v}"${String(cur)===String(v)?' selected':''}>${t}</option>`).join('')}</select>`;
+  return`<h3>How it runs</h3><div class="cl-inl"><label class="cl-f">Mode${sel('tfMode',F.secure?'test':F.mode,[['practice','Practice: feedback after each question'],['test','Test: marked when handed in']])}</label>
+   <label class="cl-f">Time limit${sel('tfMins',F.mins,[[0,'None'],[5,'5 min'],[10,'10 min'],[15,'15 min'],[20,'20 min'],[30,'30 min'],[45,'45 min'],[60,'1 hour'],[90,'1½ hours']])}</label>
+   <label class="cl-f">Attempts${sel('tfTries',F.tries,[[0,'Unlimited'],[1,'1'],[2,'2'],[3,'3']])}</label>
+   <label class="cl-f">Show answers${sel('tfReveal',F.reveal,[['now','After handing in'],['due','After the due date'],['never','Never (score only)']])}</label></div>
+   <label class="tc-check${canSecure?'':' off'}"><input type="checkbox" id="tfSecure"${F.secure&&canSecure?' checked':''}${canSecure?'':' disabled'}> <span><b>Mark on the server</b> · answers stay hidden from students’ browsers, so scores can’t be faked. ${canSecure?'Runs as a test.':TC.fnOK===false?'Not available: the site isn’t deployed from GitHub, so its server functions aren’t running (see the README).':'Only for quizzes made entirely of your own questions, because Bondline’s own questions ship inside the app.'}</span></label>`}
+clFormHTML=function(){const F=CL.form;if(!F.src)Object.assign(F,tcNewForm(F.kind,{title:F.title,sel:F.sel,len:F.len,style:F.style,due:F.due}));
+  const chips=(list,sel,attr)=>`<div class="qz-chips">${list.map(([id,t])=>`<button type="button" class="qz-chip${sel.has(id)?' on':''}" data-${attr}="${esc(id)}" aria-pressed="${sel.has(id)}"><span>${esc(t)}</span></button>`).join('')}</div>`;
+  let opts='';
+  if(F.kind==='naming')opts=`<h3>Topics</h3>${chips(NM_TOPICS.map(t=>[t.id,t.title]),F.sel,'clsel')}<div class="cl-inl"><label class="cl-f">Questions<select id="clLen">${[5,10,15,20].map(n=>`<option${F.len===n?' selected':''}>${n}</option>`).join('')}</select></label><label class="cl-f">Style<select id="clStyle">${[['mix','Mixed'],['name','Choose the name'],['type','Type the name'],['struct','Choose the structure']].map(([v,t])=>`<option value="${v}"${F.style===v?' selected':''}>${t}</option>`).join('')}</select></label></div>`;
+  else if(F.kind==='spectra')opts=`<h3>Topics</h3>${chips(SP_TOPICS.map(t=>[t.id,t.title]),F.sel,'clsel')}<label class="cl-f">Questions<select id="clLen">${[5,10,15,20].map(n=>`<option${F.len===n?' selected':''}>${n}</option>`).join('')}</select></label>`;
+  else if(F.kind==='mech')opts=`<h3>Reactions</h3>${chips(RXN.map(r=>[r.id,r.name]),F.sel,'clsel')}`;
+  else if(F.kind==='synth')opts=`<h3>Problems</h3>${chips(SYN.map(p=>[p.id,p.title+' ('+SYN_LV[p.lv]+')']),F.sel,'clsel')}`;
+  else if(F.kind==='bank'){const S=tcSrc(F.src),pool=tcSrcBank(S,[...F.bsel]);
+    opts=`<div class="cl-inl"><label class="cl-f">From<select id="tfSrc">${TC_SRC().map(s=>`<option value="${s.id}"${s.id===F.src?' selected':''}>${esc(s.label)}</option>`).join('')}</select></label><label class="cl-f">Questions<select id="tfBlen">${[5,10,15,20,25,30,40].map(n=>`<option${F.blen===n?' selected':''}>${n}</option>`).join('')}</select></label></div>
+     <h3>${S.course?'Units':'Topics'} <small class="hm-muted">${F.bsel.size?'':'none chosen means all'}</small></h3>${chips(tcSrcTopics(S).map(t=>[t.id,t.title]),F.bsel,'tsel')}
+     <p class="hm-muted">${pool.length} questions to choose from. Bondline picks ${Math.min(F.blen,pool.length)} when you press Set; every student gets the same questions, so you can compare answers. To hand-pick questions, make a quiz in My quizzes.</p>${tcOptsHTML(F,false)}`}
+  else if(F.kind==='myquiz'){const list=[...TC.qz.values()].sort((a,b)=>(b.upd||0)-(a.upd||0)),q=TC.qz.get(F.qid);const allOwn=q&&(q.qs||[]).length&&q.qs.every(x=>!x.b);
+    opts=list.length?`<label class="cl-f">Quiz<select id="tfQid"><option value="">Choose a quiz…</option>${list.map(x=>`<option value="${x.id}"${x.id===F.qid?' selected':''}>${esc(x.title)} (${tcPl((x.qs||[]).length,'question')})</option>`).join('')}</select></label>${tcOptsHTML(F,!!allOwn&&TC.fnOK!==false)}`
+      :`<div class="tc-empty"><p>You haven’t made a quiz yet.</p><button class="btn primary" type="button" data-t="newquiz">Make a quiz</button></div>`}
+  else if(F.kind==='drill')opts=`<div class="cl-inl"><label class="cl-f">Drill<select id="tfDrill">${Object.entries(TC_DRILLS).map(([k,t])=>`<option value="${k}"${F.drill===k?' selected':''}>${t}</option>`).join('')}</select></label><label class="cl-f">Rounds<select id="tfRounds">${[5,10,15,20,30].map(n=>`<option${F.rounds===n?' selected':''}>${n}</option>`).join('')}</select></label></div><p class="hm-muted">Students do the rounds in the Drills tab. Their score is the number they got right.</p>`;
+  else if(F.kind==='cards'){const decks=allDecks().filter(x=>x.d.cards.some(k=>k.f.trim()&&k.b.trim()));
+    opts=decks.length?`<label class="cl-f">Deck<select id="tfDeck"><option value="">Choose a deck…</option>${decks.map((x,i)=>{const id=x.n.id+'/'+x.b.id;return`<option value="${esc(id)}"${F.deck===id?' selected':''}>${esc(x.d.title||x.n.title||'Untitled deck')} (${tcPl(x.d.cards.length,'card')})</option>`}).join('')}</select></label><p class="hm-muted">A copy of the deck is set, so later edits to your note don’t change it. Students go through the cards and say which ones they knew.</p>`
+      :`<p class="hm-muted">You don’t have a flashcard deck yet. Add a Flashcards block to a note first.</p>`}
+  return`<form class="cl-card cl-form" id="clAsgF" autocomplete="off"><h2>New assignment</h2>
+   <div class="cl-inl"><label class="cl-f cl-grow">Title<input id="clTitle" maxlength="120" value="${esc(F.title)}" placeholder="${F.kind==='myquiz'&&TC.qz.get(F.qid)?esc(TC.qz.get(F.qid).title):'e.g. Week 3: SN1 and SN2'}"></label><label class="cl-f">Type<select id="clKind">${TC_FKINDS.map(([k,t])=>`<option value="${k}"${F.kind===k?' selected':''}>${t}</option>`).join('')}</select></label><label class="cl-f">Due (optional)<input id="clDueIn" type="date" value="${esc(F.due||'')}"></label></div>
+   ${opts}<div class="syn-row"><span class="np-sp"></span><button class="btn" type="button" data-cla="cancelasg">Cancel</button><button class="btn primary" type="submit">Set assignment</button></div></form>`};
+function tcFormRead(){const F=CL.form;if(!F)return;const v=id=>{const e=$('#'+id);return e?e.value:null};
+  const t=v('clTitle');if(t!=null)F.title=t;const d=v('clDueIn');if(d!=null)F.due=d;
+  if(v('tfMode')!=null)F.mode=v('tfMode');if(v('tfMins')!=null)F.mins=+v('tfMins');if(v('tfTries')!=null)F.tries=+v('tfTries');if(v('tfReveal')!=null)F.reveal=v('tfReveal');
+  const s=$('#tfSecure');if(s)F.secure=s.checked&&!s.disabled;if(F.secure)F.mode='test';
+  if(v('tfBlen')!=null)F.blen=+v('tfBlen');if(v('tfQid')!=null)F.qid=v('tfQid');if(v('tfDrill')!=null)F.drill=v('tfDrill');if(v('tfRounds')!=null)F.rounds=+v('tfRounds');if(v('tfDeck')!=null)F.deck=v('tfDeck')}
+function tcOpt(F){const o={mode:F.secure?'test':F.mode,mins:F.mins|0,tries:F.tries|0,reveal:F.reveal};if(F.secure)o.secure=true;return o}
+const _clSaveAsg=clSaveAsg;
+clSaveAsg=async function(){const F=CL.form,c=clGet(CL.cur);if(!F||!c)return;tcFormRead();
+  if(['naming','spectra','mech','synth'].includes(F.kind))return _clSaveAsg();
+  const due=F.due?new Date(F.due+'T23:59:00').getTime():null,base={due,at:Date.now(),by:FB.user.uid,cfg:{}};let doc,key=null;
+  if(F.kind==='bank'){const S=tcSrc(F.src),pool=shuffle(tcSrcBank(S,[...F.bsel]));if(!pool.length)return toast('No questions match those topics.');
+    const pick=pool.slice(0,F.blen);const tl=F.bsel.size&&F.bsel.size<=3?tcSrcTopics(S).filter(t=>F.bsel.has(t.id)).map(t=>t.title.replace(/^\d+\.\s*/,'')).join(', '):S.label;
+    doc={...base,title:(F.title.trim()||tl).slice(0,120),kind:'quiz',qs:pick.map(p=>({b:p.ref})),opt:tcOpt(F),nq:pick.length}}
+  else if(F.kind==='myquiz'){const q=TC.qz.get(F.qid);if(!q)return toast('Choose a quiz.');if(!(q.qs||[]).length)return toast('That quiz has no questions yet.');
+    let qs=q.qs.map(x=>({...x}));const bad=qs.findIndex(x=>!x.b&&!tcQReady(x));if(bad>=0)return toast(`Question ${bad+1} isn’t finished. Open the quiz to fix it.`);
+    if(F.secure){key={a:qs.map(tcKeyOf),w:qs.map(x=>String(x.w||'').slice(0,1000)),at:Date.now()};qs=qs.map(x=>{const y={...x};delete y.a;delete y.w;delete y.tol;return y})}
+    doc={...base,title:(F.title.trim()||q.title).slice(0,120),kind:'quiz',qs,opt:tcOpt(F),nq:qs.length,qid:q.id}}
+  else if(F.kind==='drill')doc={...base,title:(F.title.trim()||TC_DRILLS[F.drill]).slice(0,120),kind:'drill',cfg:{drill:F.drill,rounds:F.rounds}};
+  else if(F.kind==='cards'){const[nid,bid]=String(F.deck).split('/'),n=App.notes.find(x=>x.id===nid),b=n&&n.blocks.find(x=>x.id===bid);if(!b)return toast('Choose a deck.');
+    const cards=b.data.cards.filter(k=>k.f.trim()&&k.b.trim()).slice(0,200).map(k=>({f:k.f.slice(0,600),b:k.b.slice(0,600),ft:k.ft,bt:k.bt}));
+    doc={...base,title:(F.title.trim()||b.data.title||n.title||'Flashcards').slice(0,120),kind:'cards',deck:{title:String(b.data.title||n.title||'').slice(0,120),cards}}}
+  if(!doc)return;
+  const aid=shKey(16);
+  try{if(key)await clRef(c.id).collection('keys').doc(aid).set(key);
+    await clRef(c.id).collection('assignments').doc(aid).set(doc);CL.form=null;clRender();toast('Assignment set.')}
+  catch(e){console.warn(e);toast('Couldn’t save the assignment. Check that the latest database rules are published.')}};
+// Answer key for server marking, one string per question: "2" (option), "a\u001fb" (accepted answers), "6.02e23\u001f0.01" (number and tolerance).
+function tcKeyOf(x){return x.t==='text'?(x.a||[]).map(String).join('\u001f'):x.t==='num'?String(+x.a)+'\u001f'+String(+x.tol||0):String(x.a|0)}
+function tcQReady(q){if(!q||q.b)return true;if(!String(q.p||'').trim())return false;
+  if(q.t==='mc')return(q.o||[]).filter(o=>String(o).trim()).length>=2&&(q.o||[]).every(o=>String(o).trim())&&q.a>=0&&q.a<(q.o||[]).length;
+  if(q.t==='tf')return q.a===0||q.a===1;if(q.t==='text')return Array.isArray(q.a)&&q.a.some(x=>String(x).trim());if(q.t==='num')return isFinite(+q.a)&&String(q.a).trim()!=='';return false}
+
+/* ---------- starting work ---------- */
+clGo=function(aid){const c=clGet(CL.cur),a=CL.asg.get(aid);if(!c||!a)return;const me=FB.user.uid,r=CL.res.get(a.id+'_'+me),o=a.opt||{};
+  if(o.tries&&r&&r.tries>=o.tries&&!tcIsTeacher(c))return toast('You’ve used all your attempts.');
+  const cfg=a.cfg||{};
+  const done=(s,t,res)=>{const d={score:s,total:t};if(Array.isArray(res)&&res.length){d.qi=res.slice(0,60).map(x=>String(x.q&&x.q.id||'').slice(0,60));d.qo=res.slice(0,60).map(x=>x.ok?1:0)}tcSubmit(c,a,d)};
+  if(a.kind==='quiz')return trStart({c,a,items:tcItems(a.qs,a.id),title:a.title,opt:o});
+  if(a.kind==='cards')return tcCardsStart(c,a,false);
+  if(a.kind==='drill'){TC.drill={c,a,id:cfg.drill||'mech',n:0,ok:0,len:cfg.rounds||10,t0:Date.now()};setMode('drills');drStart(TC.drill.id);tcDrillPill();return}
+  if(a.kind==='naming'){setMode('naming');startQuiz({topics:cfg.topics||[],style:cfg.style||'mix',len:cfg.len||10,onDone:done,assign:a.title})}
+  else if(a.kind==='spectra'){setMode('spectra');spStart({topics:cfg.topics||[],len:cfg.len||10,onDone:done,assign:a.title})}
+  else if(a.kind==='mech')openPracticeSet(cfg.ids||[],(s,t)=>done(s,t));
+  else if(a.kind==='synth'){setMode('synth');synStartSet(cfg.ids||[],(s,t)=>done(s,t))}};
+clSubmit=function(c,a,score,total){return tcSubmit(c,a,{score,total})};
+async function tcSubmit(c,a,d){if(!clOn()||!c||!a)return;const me=FB.user.uid,id=a.id+'_'+me,prev=CL.res.get(id),mine=shMe(),now=Date.now();
+  const total=Math.max(1,Math.min(500,d.total|0)),score=Math.max(0,Math.min(total,d.score|0));const same=prev&&prev.total===total;
+  const doc={aid:a.id,uid:me,n:mine.n,e:mine.e,score,total,best:same?Math.max(prev.best||0,score):score,tries:(prev&&prev.tries||0)+1,at:now};
+  // Insights use each student's first attempt, which shows what they understood before practising.
+  const keep=same&&prev.qo;['qo','qk','qi','qt'].forEach(k=>{const v=keep?prev[k]:d[k];if(Array.isArray(v))doc[k]=v.slice(0,60)});
+  doc.first=same&&prev.first!=null?prev.first:same?prev.score:score;
+  if(d.secs!=null)doc.secs=Math.max(0,Math.round(d.secs));else if(prev&&prev.secs!=null)doc.secs=prev.secs;
+  if(d.sw!=null)doc.sw=Math.max(0,d.sw|0);if(a.due&&now>a.due)doc.late=true;
+  try{await clRef(c.id).collection('results').doc(id).set(doc);toast(`Score sent to your teacher: ${score}/${total}.`)}catch(e){console.warn(e);toast('Couldn’t send your score. Check your connection.')}}
+
+/* ---------- the quiz runner (practice and test modes) ---------- */
+function trStart(o){tcEnsure();const items=o.items.map((it,idx)=>it?Object.assign(it,{idx}):null).filter(Boolean);if(!items.length)return toast('This quiz has no questions that can be shown.');
+  const opt=o.opt||{},secure=!!opt.secure&&!o.preview;
+  TC.run={cid:o.c?o.c.id:null,a:o.a||null,title:o.title||'Quiz',items,n:o.items.length,i:0,resp:[],shown:[],flag:[],mode:secure||opt.mode==='test'?'test':'practice',
+    limit:(opt.mins|0)*60,t0:Date.now(),sw:0,done:false,preview:!!o.preview,secure,back:o.back||(o.c?'class':'list'),res:null};
+  clearInterval(TC.tick);if(TC.run.limit)TC.tick=setInterval(trTick,1000);
+  if(App.mode!=='classes')setMode('classes');CL.view='run';clRender();$('#main').scrollTop=0}
+function trLeft(){const R=TC.run;return R&&R.limit?Math.max(0,R.limit-Math.floor((Date.now()-R.t0)/1000)):0}
+function trTick(){const R=TC.run;if(!R||R.done){clearInterval(TC.tick);return}const left=trLeft(),c=$('#trClock');if(c){c.textContent=fmtClock(left);c.classList.toggle('low',left<=60)}if(left<=0){clearInterval(TC.tick);trFinish(true)}}
+function trOptCls(R,it,k){const r=R.resp[it.idx];if(R.mode==='test'||!R.shown[it.idx])return r&&r.k===k?' sel':'';return k===it.ans?' right':r&&r.k===k?' wrong':''}
+function trQuestionHTML(R,it,opts){const r=R.resp[it.idx]||{},shown=opts.shown,dis=shown?' disabled':'';
+  let ans='';
+  if(it.kind==='mc')ans=it.struct?`<div class="qz-sopts" role="group" aria-label="Structures">${it.opts.map((o,k)=>`<button class="qz-sopt${opts.cls(k)}" data-tro="${k}" aria-pressed="${r.k===k}" aria-label="Option ${k+1}"${dis}><span class="qz-key">${k+1}</span>${o}</button>`).join('')}</div>`
+    :`<div class="qz-opts${it.opts.length===2?' two':''}" role="group" aria-label="Answers">${it.opts.map((o,k)=>`<button class="qz-opt${opts.cls(k)}" data-tro="${k}" aria-pressed="${r.k===k}"${dis}><span class="qz-key">${TC_L[k]}</span><span>${o}</span></button>`).join('')}</div>`;
+  else ans=`<form class="tc-typed" id="trForm" autocomplete="off"><input id="trIn" ${it.kind==='num'?'inputmode="decimal" ':''}maxlength="120" placeholder="${it.kind==='num'?'Type a number':'Type your answer'}" value="${esc(r.t||'')}"${dis}>${it.kind==='num'&&it.unit?`<span class="tc-unit">${esc(it.unit)}</span>`:''}<button class="btn${R.mode==='practice'?' primary':''}" type="submit"${dis}>${R.mode==='practice'?'Check':'Save answer'}</button></form>`;
+  return`<p class="qz-prompt">${it.prompt}</p>${it.fig}${ans}`}
+function trRender(){const R=TC.run,pg=$('#classPage');if(!R){CL.view='list';return clRender()}if(R.done)return trResultRender();
+  const it=R.items[R.i],n=R.items.length,test=R.mode==='test',shown=!test&&R.shown[it.idx],answered=R.items.filter(x=>R.resp[x.idx]!=null).length;
+  const ok=shown&&tcMark(it,R.resp[it.idx]);
+  const fb=shown?`<div class="qz-fb ${ok?'ok':'bad'}"><p class="qz-verdict">${ok?'Correct.':it.answer?`Not quite. The answer is <b>${it.answer}</b>.`:'Not quite.'}</p>${it.why?`<p class="qz-why">${it.why}</p>`:''}</div>`:'';
+  const nav=test?`<div class="ex-nav"><button class="btn small" data-trn="prev"${R.i?'':' disabled'}>← Previous</button><button class="btn small ex-flag${R.flag[it.idx]?' on':''}" data-trn="flag" aria-pressed="${!!R.flag[it.idx]}">${R.flag[it.idx]?'Flagged':'Flag for review'}</button>${R.i<n-1?`<button class="btn primary small" data-trn="next">Next →</button>`:`<button class="btn primary small" data-trn="submit">Hand in</button>`}</div>`
+    :shown?`<div class="qz-next"><button class="btn primary" data-trn="${R.i<n-1?'next':'submit'}" id="trNext">${R.i<n-1?'Next question':'See results'}</button><span class="qz-hint">or press Enter</span></div>`:'';
+  const grid=test?`<div class="ex-grid" aria-label="Questions">${R.items.map((x,k)=>`<button class="ex-cell${k===R.i?' cur':''}${R.resp[x.idx]!=null?' done':''}${R.flag[x.idx]?' flag':''}" data-trn="${k}" aria-label="Question ${k+1}">${k+1}</button>`).join('')}</div>`:'';
+  pg.innerHTML=`<section class="qz ex tc-run">${R.preview?`<div class="tc-prevbar">Preview: scores aren’t saved. <button class="linkbtn" data-trn="quit">Close preview</button></div>`:''}
+   <div class="qz-top"><span><b>Question ${R.i+1}</b> of ${n}</span><span class="qz-topic">${esc(R.title)}</span>${R.limit?`<span class="ex-clock" id="trClock">${fmtClock(trLeft())}</span>`:''}<span class="qz-score">${test?answered+' answered':it.label?esc(it.topic):''}</span><button class="linkbtn" data-trn="submit">${test?'Hand in':'Finish'}</button></div>
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*(test?answered:R.i)/n)}%"></i></div>
+   <div class="qz-card">${trQuestionHTML(R,it,{shown,cls:k=>trOptCls(R,it,k)})}${fb}${nav}</div>${grid}</section>`;
+  tcTex(pg);const inp=$('#trIn');if(inp&&!shown)setTimeout(()=>inp.focus({preventScroll:true}),40);if(shown)setTimeout(()=>{const x=$('#trNext');if(x)x.focus({preventScroll:true})},40)}
+function trAnswer(resp){const R=TC.run;if(!R||R.done)return;const it=R.items[R.i];if(R.mode==='practice'&&R.shown[it.idx])return;
+  R.resp[it.idx]=resp;if(R.mode==='practice'){R.shown[it.idx]=true;const ok=tcMark(it,resp);if(it.src==='bank'&&!R.preview){try{exRecord({id:tcBankQ(it.ref).q.id},ok)}catch(e){}}else try{logAns(ok)}catch(e){}}
+  trRender()}
+function trNav(v){const R=TC.run;if(!R)return;const n=R.items.length;
+  if(v==='quit'){TC.run=null;clearInterval(TC.tick);CL.view=R.back==='qedit'||R.back==='quizzes'?R.back:R.cid?'class':'list';return clRender()}
+  if(v==='submit')return trFinish(false);if(v==='prev'&&R.i>0)R.i--;else if(v==='next'&&R.i<n-1)R.i++;else if(v==='flag'){const k=R.items[R.i].idx;R.flag[k]=!R.flag[k]}else if(/^\d+$/.test(v))R.i=Math.min(n-1,+v);trRender()}
+let trConfirmAt=0;
+async function trFinish(auto){const R=TC.run;if(!R||R.done)return;const left=R.items.filter(x=>R.resp[x.idx]==null).length;
+  if(!auto&&left&&Date.now()-trConfirmAt>4000){trConfirmAt=Date.now();return toast(`${tcPl(left,'question')} ${left===1?'is':'are'} unanswered. Press ${R.mode==='test'?'Hand in':'Finish'} again to finish.`)}
+  clearInterval(TC.tick);R.done=true;R.secs=Math.round((Date.now()-R.t0)/1000);const c=R.cid?clGet(R.cid):null;
+  if(R.secure){R.view='sending';trRender();
+    try{const tok=await FB.user.getIdToken();const ans=Array.from({length:R.n},(_,i)=>R.resp[i]==null?null:R.resp[i].k!=null?{k:R.resp[i].k}:{t:String(R.resp[i].t||'').slice(0,120)});
+      const rq=await fetch('/api/grade-quiz',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+tok},body:JSON.stringify({cid:R.cid,aid:R.a.id,ans,secs:R.secs,sw:R.sw})});
+      const j=await rq.json().catch(()=>({}));if(!rq.ok)throw new Error(j.error||('HTTP '+rq.status));
+      R.res={score:j.score,total:j.total,qo:j.qo||[],key:j.key||null,why:j.why||null};
+      if(j.key)R.items.forEach(it=>{const k=j.key[it.idx];if(k==null)return;tcApplyKey(it,k,(j.why||[])[it.idx])});
+      toast(`Marked: ${j.score}/${j.total}. Your teacher can see it.`)}
+    catch(e){console.warn(e);R.res={error:String(e.message||e)};toast('Couldn’t mark your answers. They’re kept here; try again.')}
+    R.view=null;if(App.mode==='classes'&&CL.view==='run')trRender();return}
+  const qo=[],qk=[],qt=[];let score=0;for(let i=0;i<R.n;i++){const it=R.items.find(x=>x.idx===i),r=R.resp[i];const ok=!!(it&&r&&tcMark(it,r));if(ok)score++;qo.push(ok?1:0);qk.push(r&&r.k!=null?r.k:-1);qt.push(r&&r.t!=null?String(r.t).slice(0,80):'')}
+  if(R.mode==='test'&&!R.preview)R.items.forEach(it=>{const r=R.resp[it.idx];if(r==null)return;const ok=tcMark(it,r);if(it.src==='bank'){try{exRecord({id:tcBankQ(it.ref).q.id},ok)}catch(e){}}});
+  R.res={score,total:R.n,qo};
+  if(!R.preview&&c&&R.a)await tcSubmit(c,R.a,{score,total:R.n,qo,qk,qt:qt.some(Boolean)?qt:undefined,secs:R.secs,sw:R.sw});
+  if(auto)toast('Time’s up. Your quiz has been handed in.');
+  if(App.mode==='classes'&&CL.view==='run')trRender()}
+function tcApplyKey(it,k,w){k=String(k);
+  if(it.kind==='mc'){it.ans=+k;it.answer=it.opts[it.ans]||''}
+  else if(it.kind==='text'){it.acc=k.split('\u001f');it.answer=tcTxt(it.acc[0]||'')}
+  else{const[v,t]=k.split('\u001f');it.num=+v;it.tol=+t||0;it.answer=esc(tcFmtNum(it.num))+(it.unit?' '+esc(it.unit):'')}
+  if(w)it.why=tcTxt(w)}
+function trResultRender(){const R=TC.run,pg=$('#classPage');const a=R.a||{},c=R.cid?clGet(R.cid):null;
+  if(R.view==='sending'){pg.innerHTML=`<section class="qz-sum tc"><header class="nm-head"><div class="nm-kicker">${esc(R.title)}</div><h1>Marking your answers…</h1></header></section>`;return}
+  if(R.res&&R.res.error){pg.innerHTML=`<section class="qz-sum tc"><header class="nm-head"><div class="nm-kicker">${esc(R.title)}</div><h1>Couldn’t mark your answers</h1><p class="nm-lede">${esc(R.res.error)}</p></header><div class="nm-actions"><button class="btn primary" data-t="retrymark">Try again</button><button class="btn" data-trn="quit">Back to the class</button></div></section>`;return}
+  const S=R.res,pct=Math.round(100*S.score/S.total),reveal=R.preview||(R.secure?!!S.key:tcCanReveal(a));
+  const review=reveal?`<h2 class="qz-h">Review</h2><div class="ex-review">${R.items.map((it,k)=>{const r=R.resp[it.idx],ok=S.qo[it.idx]===1;const yours=r==null?'Not answered':it.kind==='mc'?(it.struct?'Option '+(r.k+1):it.opts[r.k]):esc(r.t||'');
+      return`<details class="ex-rv ${ok?'ok':'bad'}"${!ok&&k<3?' open':''}><summary><span class="ex-rk">${ok?'✓':'✗'}</span><span><b>Q${k+1}</b> ${esc(it.topic||'')}</span><small>${r==null?'Not answered':ok?'Correct':'Wrong'}</small></summary>
+       <div class="ex-rb"><p class="qz-prompt">${it.prompt}</p>${it.fig}${it.answer?`<p><b>Answer:</b> ${it.answer}</p>`:''}${!ok&&r!=null&&!it.struct?`<p><b>You answered:</b> ${yours}</p>`:''}${it.why?`<p class="qz-why">${it.why}</p>`:''}</div></details>`}).join('')}</div>`
+    :`<p class="hm-muted">${a.opt&&a.opt.reveal==='due'&&a.due?`Answers will be shown after the due date (${esc(clDue(a))}).`:'Your teacher has chosen not to show the answers for this one.'}</p>`;
+  const again=!R.preview&&c&&!(a.opt&&a.opt.tries&&(CL.res.get(a.id+'_'+tcMe())||{}).tries>=a.opt.tries);
+  pg.innerHTML=`<section class="qz-sum ex-sum tc"><header class="nm-head"><div class="nm-kicker">${R.preview?'Preview':esc(R.title)}</div><h1>${S.score} out of ${S.total} <span class="ex-pct">${pct}%</span></h1><p class="nm-lede">${pct>=90?'Excellent work.':pct>=70?'A solid result. Look over the ones you missed.':pct>=50?'A pass, with a few things to work on.':'A tough one. Read the explanations, then try again.'} Time taken ${fmtClock(R.secs||0)}.${R.preview?'':R.secure?' Marked on the server.':' Your teacher can see your score.'}</p></header>
+   <div class="nm-actions">${again?`<button class="btn" data-t="again">Try again</button>`:''}<button class="btn primary" data-trn="quit">${R.preview?'Close preview':'Back to the class'}</button></div>${review}</section>`;
+  tcTex(pg);$('#main').scrollTop=0}
+document.addEventListener('visibilitychange',()=>{const R=TC.run;if(document.hidden&&R&&!R.done&&!R.preview)R.sw++});
+document.addEventListener('keydown',e=>{if(App.mode!=='classes'||CL.view!=='run'||!TC.run||TC.run.done)return;if(e.target.closest('input,textarea,select,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;if(document.querySelector('.scrim:not([hidden])'))return;
+  const R=TC.run,it=R.items[R.i];if(/^[1-8]$/.test(e.key)&&it.kind==='mc'){const k=+e.key-1;if(k<it.opts.length){e.preventDefault();trAnswer({k})}}
+  else if(e.key==='Enter'&&R.mode==='practice'&&R.shown[it.idx]&&!e.target.closest('button')){e.preventDefault();trNav(R.i<R.items.length-1?'next':'submit')}
+  else if(R.mode==='test'&&e.key==='ArrowRight'){e.preventDefault();trNav('next')}else if(R.mode==='test'&&e.key==='ArrowLeft'){e.preventDefault();trNav('prev')}});
+
+/* ---------- flashcards as class work ---------- */
+function tcCardSide(t,k){return k==='m'?tcMol(t):tcTxt(t)}
+function tcCardsStart(c,a,preview){tcEnsure();const cards=((a.deck||{}).cards||[]);if(!cards.length)return toast('This deck is empty.');
+  TC.cards={cid:c?c.id:null,a,order:shuffle(cards.map((_,i)=>i)),i:0,flip:false,got:[],t0:Date.now(),preview};if(App.mode!=='classes')setMode('classes');CL.view='cards';clRender()}
+function tcCardsRender(){const K=TC.cards,pg=$('#classPage');if(!K){CL.view='class';return clRender()}const cards=K.a.deck.cards,n=cards.length;
+  if(K.i>=n){const got=K.got.filter(Boolean).length;pg.innerHTML=`<section class="qz-sum tc"><header class="nm-head"><div class="nm-kicker">${esc(K.a.title)}</div><h1>You knew ${got} of ${n}</h1><p class="nm-lede">${K.preview?'Preview: nothing was saved.':'Your teacher can see this score.'} Cards you didn’t know are worth another look.</p></header><div class="nm-actions"><button class="btn" data-tk="restart">Go through again</button><button class="btn primary" data-tk="quit">${K.preview?'Close preview':'Back to the class'}</button></div></section>`;return}
+  const ci=K.order[K.i],k=cards[ci];
+  pg.innerHTML=`<section class="qz tc-cards">${K.preview?`<div class="tc-prevbar">Preview: scores aren’t saved. <button class="linkbtn" data-tk="quit">Close preview</button></div>`:''}<div class="qz-top"><span><b>Card ${K.i+1}</b> of ${n}</span><span class="qz-topic">${esc(K.a.title)}</span><span class="qz-score">${K.got.filter(Boolean).length} known</span><button class="linkbtn" data-tk="quit">Stop</button></div>
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*K.i/n)}%"></i></div>
+   <div class="tc-card${K.flip?' flip':''}"><div class="tc-cside"><small>Question</small>${tcCardSide(k.f,k.ft)}</div>${K.flip?`<div class="tc-cside back"><small>Answer</small>${tcCardSide(k.b,k.bt)}</div>`:''}</div>
+   <div class="nm-actions tc-cbtns">${K.flip?`<button class="btn" data-tk="no">Didn’t know it</button><button class="btn primary" data-tk="yes">Knew it</button>`:`<button class="btn primary" data-tk="flip">Show the answer</button>`}</div></section>`;tcTex(pg)}
+function tcCardsAct(k){const K=TC.cards;if(!K)return;
+  if(k==='quit'){TC.cards=null;CL.view=K.preview&&!K.cid?'list':'class';return clRender()}
+  if(k==='restart'){K.order=shuffle(K.order);K.i=0;K.flip=false;K.got=[];K.t0=Date.now();return tcCardsRender()}
+  if(k==='flip'){K.flip=true;return tcCardsRender()}
+  if(k==='yes'||k==='no'){K.got[K.order[K.i]]=k==='yes';K.i++;K.flip=false;
+    if(K.i>=K.a.deck.cards.length&&!K.preview){const c=clGet(K.cid),n=K.a.deck.cards.length,qo=Array.from({length:Math.min(60,n)},(_,i)=>K.got[i]?1:0);tcSubmit(c,K.a,{score:K.got.filter(Boolean).length,total:n,qo,secs:(Date.now()-K.t0)/1000})}
+    tcCardsRender()}}
+
+/* ---------- drills as class work ---------- */
+const _drTally=drTally;
+drTally=function(id,ok){_drTally(id,ok);const D=TC.drill;if(!D||D.id!==id)return;D.n++;if(ok)D.ok++;tcDrillPill();
+  if(D.n>=D.len){const c=clGet(D.c.id);TC.drill=null;tcDrillPill();tcSubmit(c,D.a,{score:D.ok,total:D.len,secs:(Date.now()-D.t0)/1000});toastAction(`Assignment done: ${D.ok}/${D.len}.`,'Back to the class',()=>{setMode('classes');clOpenClass(D.c.id)})}};
+function tcDrillPill(){let p=$('#tcDrillPill');const D=TC.drill;if(!D){if(p)p.remove();return}
+  if(!p){p=document.createElement('div');p.id='tcDrillPill';p.className='tc-pill';document.body.appendChild(p);p.addEventListener('click',e=>{if(e.target.closest('[data-tdp="stop"]')){TC.drill=null;tcDrillPill();toast('Assignment stopped. Nothing was sent.')}else if(e.target.closest('[data-tdp="go"]')){setMode('drills');drStart(TC.drill.id)}})}
+  p.innerHTML=`<button class="tc-pill-b" data-tdp="go"><b>${esc(D.a.title)}</b><span>${D.n} of ${D.len} rounds · ${D.ok} right</span></button><button class="linkbtn" data-tdp="stop" aria-label="Stop the assignment">Stop</button>`}
+
+/* ---------- results ---------- */
+function tcPeople(c){return(c.memberIds||[]).map(u=>({u,...(CL.mem.get(u)||{n:'Student',e:''})})).sort((a,b)=>String(a.n).localeCompare(String(b.n)))}
+function tcCell(a,r){if(!r)return'<td class="cl-na">–</td>';const pct=Math.round(100*r.best/r.total);
+  const marks=[r.tries>1?tcPl(r.tries,'try','tries'):'',r.secs!=null?tcDur(r.secs):'',r.late?'late':''].filter(Boolean).join(' · ');
+  return`<td class="cl-sc" style="--p:${pct}"><button class="tc-cellb" data-t="stu" data-id="${esc(r.uid)}"><b>${r.best}/${r.total}${r.v?' <span class="tc-v" title="Marked on the server">✓</span>':''}${r.sw?` <span class="tc-sw" title="Left the page ${tcPl(r.sw,'time')} during the attempt">⚠${r.sw}</span>`:''}</b><small>${esc(marks)}</small></button></td>`}
+function tcResultsTab(c,asg){const people=tcPeople(c);
+  let html=`<div class="cl-sec-h"><h2 class="qz-h">Results</h2>${people.length&&asg.length?'<button class="btn" data-cla="csv">Download CSV</button>':''}</div>`;
+  if(!people.length)return html+'<p class="hm-muted">No students yet. Share the class code to get started.</p>';
+  if(!asg.length)return html+'<p class="hm-muted">No assignments yet.</p>';
+  html+=`<div class="cl-tablewrap"><table class="cl-table"><thead><tr><th>Student</th>${asg.map(a=>`<th title="${esc(a.title)}">${esc(a.title)}${a.due?`<small>due ${clDue(a)}</small>`:''}</th>`).join('')}</tr></thead><tbody>${people.map(p=>`<tr${TC.stu===p.u?' class="on"':''}><th><button class="tc-stub" data-t="stu" data-id="${esc(p.u)}"><b>${esc(p.n)}</b><small>${p.e?esc(p.e):'Class-only account'}</small></button></th>${asg.map(a=>tcCell(a,CL.res.get(a.id+'_'+p.u))).join('')}</tr>`).join('')}</tbody></table></div>
+   <p class="hm-muted tc-legend">Best score shown. ✓ marked on the server · ⚠ left the page during a quiz · late handed in after the due date. Click a score or a name for details.</p>`;
+  if(TC.stu&&people.some(p=>p.u===TC.stu))html+=tcStudentDetail(c,asg,people.find(p=>p.u===TC.stu));
+  return html}
+function tcStudentDetail(c,asg,p){
+  const rows=asg.map(a=>{const r=CL.res.get(a.id+'_'+p.u);if(!r)return`<div class="tc-sd-row"><b>${esc(a.title)}</b><span class="hm-muted">Not done${a.due&&Date.now()>a.due?' · overdue':''}</span></div>`;
+    let qs='';if(Array.isArray(r.qo)){const items=a.kind==='quiz'?tcInsItems(a):null;
+      qs=`<div class="tc-ticks">${r.qo.map((o,i)=>{const it=items&&items[i];const ch=it&&it.kind==='mc'&&Array.isArray(r.qk)&&r.qk[i]>=0?TC_L[r.qk[i]]:Array.isArray(r.qt)&&r.qt[i]?r.qt[i]:'';
+        return`<span class="tc-tick ${o?'ok':'bad'}" title="${esc(it?tcClip(tcStrip(it.prompt),120):'Question '+(i+1))}${ch?' · answered '+esc(ch):''}">${i+1}${ch&&!o?`<small>${esc(tcClip(ch,10))}</small>`:''}</span>`}).join('')}</div>`}
+    return`<div class="tc-sd-row"><b>${esc(a.title)}</b><span>${r.best}/${r.total} best${r.first!=null&&r.first!==r.best?` · ${r.first}/${r.total} first try`:''} · ${tcPl(r.tries,'try','tries')}${r.secs!=null?' · '+tcDur(r.secs):''} · ${esc(tcDate(r.at))}${r.late?' · late':''}${r.sw?` · left the page ${tcPl(r.sw,'time')}`:''}${r.v?' · marked on the server':''}</span>${qs}${r.v?`<button class="linkbtn" data-t="clearres" data-id="${esc(r.id)}">Clear this result</button>`:''}</div>`}).join('');
+  return`<div class="cl-card tc-sd"><div class="tc-sd-h"><h2>${esc(p.n)}</h2><span class="hm-muted">${p.e?esc(p.e):'Class-only account'}${p.at?' · joined '+esc(tcDate(p.at)):''}</span><button class="linkbtn" data-t="stu" data-id="">Close</button></div>${rows}<p class="hm-muted">Ticks show each question on the first attempt; hover for the question and the answer given.</p></div>`}
+clCSV=function(c){const asg=[...CL.asg.values()].sort((a,b)=>(a.at||0)-(b.at||0)),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const rows=[['Name','Email',...asg.flatMap(a=>[a.title+' (best)',a.title+' (first try)',a.title+' (tries)',a.title+' (minutes)',a.title+' (late)'])].map(q).join(',')];
+  for(const p of tcPeople(c))rows.push([p.n,p.e||'class-only',...asg.flatMap(a=>{const r=CL.res.get(a.id+'_'+p.u);return r?[`${r.best}/${r.total}`,r.first!=null?`${r.first}/${r.total}`:'',r.tries,r.secs!=null?(r.secs/60).toFixed(1):'',r.late?'yes':'']:['','','','','']})].map(q).join(','));
+  saveFile((c.name||'class').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').toLowerCase()+'-results.csv','﻿'+rows.join('\r\n')).catch(()=>{})};
+
+/* ---------- insights ---------- */
+function tcInsItems(a){if(TC.icache.has(a.id))return TC.icache.get(a.id);const it=tcItems(a.qs,a.id);TC.icache.set(a.id,it);return it}
+function tcLegacyLabel(a,id){const area=a.kind==='naming'?'naming':'spectra',q=areaQ(area,id);if(!q)return{label:id,tkey:''};
+  return area==='naming'?{label:q.n,tkey:'naming:'+q.t}:{label:((q.c&&q.c.n)||id)+' · '+exTopicTitle({area,t:q.t}),tkey:'spectra:'+q.t}}
+function tcInsightsTab(c,asg){const people=tcPeople(c);const usable=asg.filter(a=>['quiz','naming','spectra','cards'].includes(a.kind));
+  if(!usable.length)return`<div class="tc-empty"><p>Nothing to analyse yet.</p><p class="hm-muted">Insights work for quizzes, naming and spectra practice and flashcards. Set one and they’ll appear here as students finish.</p></div>`;
+  const cur=usable.find(a=>a.id===TC.ins)||usable.slice().reverse().find(a=>people.some(p=>CL.res.get(a.id+'_'+p.u)))||usable[usable.length-1];TC.ins=cur.id;tcLoadKeys(c,cur);
+  const rs=people.map(p=>CL.res.get(cur.id+'_'+p.u)).filter(Boolean),wq=rs.filter(r=>Array.isArray(r.qo));
+  const pick=`<div class="qz-chips tc-inspick">${usable.map(a=>`<button class="qz-chip${a.id===cur.id?' on':''}" data-t="ins" data-id="${a.id}"><span>${esc(a.title)}</span></button>`).join('')}</div>`;
+  const avg=rs.length?Math.round(100*rs.reduce((s,r)=>s+(r.first!=null?r.first:r.best)/r.total,0)/rs.length):null;
+  const secs=rs.filter(r=>r.secs!=null).map(r=>r.secs).sort((a,b)=>a-b),med=secs.length?secs[Math.floor(secs.length/2)]:null;
+  let body=`<div class="tc-kpis"><div><b>${rs.length}/${people.length}</b><span>done</span></div><div><b>${avg!=null?avg+'%':'–'}</b><span>average, first try</span></div><div><b>${med!=null?tcDur(med):'–'}</b><span>typical time</span></div><div><b>${rs.filter(r=>r.sw).length}</b><span>left the page</span></div></div>`;
+  if(!wq.length)body+=`<p class="hm-muted">${rs.length?'These results came in before question-by-question data was recorded, or from a kind of work without it.':'No one has finished this yet.'}</p>`;
+  else if(cur.kind==='quiz'){const items=tcInsItems(cur);
+    const rows=items.map((it,i)=>{const ans=wq.filter(r=>r.qo.length>i),n=ans.length,ok=ans.filter(r=>r.qo[i]===1).length,pct=n?Math.round(100*ok/n):0;if(!it)return'';
+      let dist='';
+      if(it.kind==='mc'&&it.opts){const cnt=it.opts.map(()=>0);let none=0;ans.forEach(r=>{const k=Array.isArray(r.qk)?r.qk[i]:-1;if(k>=0&&k<cnt.length)cnt[k]++;else none++});
+        dist=`<div class="tc-dist">${cnt.map((x,k)=>`<span class="${k===it.ans?'ok':x&&x===Math.max(...cnt.filter((_,j)=>j!==it.ans))?'bad':''}" title="${esc(it.struct?'Option '+(k+1):tcClip(tcStrip(it.opts[k]),80))}"><b>${TC_L[k]}</b><i style="width:${n?Math.round(100*x/n):0}%"></i><em>${x}</em></span>`).join('')}${none?`<span><b>–</b><i style="width:${Math.round(100*none/n)}%"></i><em>${none}</em></span>`:''}</div>`}
+      else{const wrong={};ans.forEach(r=>{if(r.qo[i]!==1&&Array.isArray(r.qt)&&r.qt[i]){const k=r.qt[i].trim().toLowerCase();wrong[k]=(wrong[k]||0)+1}});const top=Object.entries(wrong).sort((a,b)=>b[1]-a[1]).slice(0,4);
+        dist=top.length?`<div class="tc-wrong">Common wrong answers: ${top.map(([t,k])=>`<span>${esc(t)}${k>1?` ×${k}`:''}</span>`).join('')}</div>`:''}
+      return`<details class="tc-iq${pct<50?' low':''}"><summary><span class="tc-iqn">Q${i+1}</span><span class="tc-iqt">${esc(tcClip(tcStrip(it.prompt),140))}<small>${esc(it.topic||'')}</small></span><span class="nm-meter"><i style="width:${pct}%"></i></span><b>${n?pct+'%':'–'}</b></summary>
+        <div class="tc-iqb"><p class="qz-prompt">${it.prompt}</p>${it.fig}${dist}${it.answer?`<p><b>Answer:</b> ${it.answer}</p>`:''}${it.why?`<p class="qz-why">${it.why}</p>`:''}</div></details>`}).join('');
+    body+=`<div class="cl-sec-h"><h2 class="qz-h">Question by question</h2><button class="btn" data-t="anscsv" data-id="${cur.id}">Answers CSV</button></div><p class="hm-muted">Percent correct on each student’s first attempt. Questions under 50% are highlighted; open one to see which options students chose.</p><div class="tc-iqs">${rows}</div>`}
+  else{const per={};wq.forEach(r=>r.qo.forEach((o,i)=>{const id=cur.kind==='cards'?'c'+i:(r.qi||[])[i];if(!id)return;const x=per[id]=per[id]||{n:0,ok:0};x.n++;if(o)x.ok++}));
+    const list=Object.entries(per).map(([id,x])=>{let label=id;if(cur.kind==='cards'){const k=((cur.deck||{}).cards||[])[+id.slice(1)];label=k?tcClip(k.f,90):id}else label=tcLegacyLabel(cur,id).label;return{label,...x}}).sort((a,b)=>a.ok/a.n-b.ok/b.n);
+    body+=`<h2 class="qz-h">${cur.kind==='cards'?'Cards':'Questions'}, hardest first</h2><p class="hm-muted">${cur.kind==='cards'?'How many students said they knew each card.':'Each student gets different questions here, so counts vary.'}</p><div class="qz-break">${list.slice(0,30).map(x=>`<div class="qz-brow"><span>${esc(x.label)}</span><span class="nm-meter"><i style="width:${Math.round(100*x.ok/x.n)}%"></i></span><b>${x.ok}/${x.n}</b></div>`).join('')}</div>`}
+  return pick+body+tcWeakTopics(c,asg,people)}
+function tcWeakTopics(c,asg,people){const T={};
+  for(const a of asg){if(!['quiz','naming','spectra'].includes(a.kind))continue;const items=a.kind==='quiz'?tcInsItems(a):null;
+    for(const p of people){const r=CL.res.get(a.id+'_'+p.u);if(!r||!Array.isArray(r.qo))continue;
+      r.qo.forEach((o,i)=>{let tk,lab;if(items){const it=items[i];if(!it)return;tk=it.tkey;lab=it.topic+(it.src==='bank'?' · '+it.label:'')}else{const L=tcLegacyLabel(a,(r.qi||[])[i]);tk=L.tkey;if(!tk)return;const[ar,t]=tk.split(':');lab=exTopicTitle({area:ar,t})+' · '+(AREA_LABEL[ar]||ar)}
+        const x=T[tk]=T[tk]||{lab,n:0,ok:0};x.n++;if(o)x.ok++})}}
+  const list=Object.entries(T).filter(([,x])=>x.n>=3).map(([k,x])=>({k,...x})).sort((a,b)=>a.ok/a.n-b.ok/b.n);if(!list.length)return'';
+  const bankWeak=list.filter(x=>!x.k.startsWith('c:')&&x.ok/x.n<0.7).slice(0,3);
+  return`<div class="cl-sec-h"><h2 class="qz-h">Class weak spots</h2>${bankWeak.length?`<button class="btn primary" data-t="setweak" data-keys="${esc(bankWeak.map(x=>x.k).join(','))}">Set practice on the ${bankWeak.length===1?'weakest topic':bankWeak.length+' weakest topics'}</button>`:''}</div>
+   <p class="hm-muted">Every topic with at least three answers across all the work set, first attempts only, weakest first.</p>
+   <div class="qz-break">${list.slice(0,12).map(x=>`<div class="qz-brow"><span>${esc(x.lab)}</span><span class="nm-meter"><i style="width:${Math.round(100*x.ok/x.n)}%"></i></span><b>${Math.round(100*x.ok/x.n)}%</b></div>`).join('')}</div>`}
+async function tcSetWeak(c,keys){const pool=shuffle(keys.flatMap(k=>{const[a,t]=k.split(':');return AREAS[a]?AREAS[a].bank().filter(q=>q.t===t).map(q=>({b:a+'|'+q.id})):[]}));if(!pool.length)return toast('No questions found for those topics.');
+  const qs=pool.slice(0,12),title='Practice: '+keys.map(k=>{const[a,t]=k.split(':');return exTopicTitle({area:a,t})}).join(', ');
+  try{await clRef(c.id).collection('assignments').doc(shKey(16)).set({title:tcClip(title,120),kind:'quiz',qs,opt:{mode:'practice',mins:0,tries:0,reveal:'now'},nq:qs.length,cfg:{},due:null,at:Date.now(),by:FB.user.uid});TC.tab='work';v18set('bondline.tc.tab','work');clRender();toast('Practice quiz set on those topics.')}
+  catch(e){console.warn(e);toast('Couldn’t set the practice quiz.')}}
+function tcAnsCSV(c,a){const items=a.kind==='quiz'?tcInsItems(a):[],q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';const n=Math.max(items.length,1);
+  const rows=[['Name','Email','Score (first try)','Best',...items.map((it,i)=>'Q'+(i+1)+(it?': '+tcClip(tcStrip(it.prompt),60):''))].map(q).join(',')];
+  for(const p of tcPeople(c)){const r=CL.res.get(a.id+'_'+p.u);if(!r){rows.push([p.n,p.e,'','',...items.map(()=>'')].map(q).join(','));continue}
+    rows.push([p.n,p.e||'class-only',r.first!=null?`${r.first}/${r.total}`:'',`${r.best}/${r.total}`,...items.map((it,i)=>{if(!Array.isArray(r.qo)||r.qo.length<=i)return'';const ok=r.qo[i]===1;const ch=it&&it.kind==='mc'&&Array.isArray(r.qk)&&r.qk[i]>=0?TC_L[r.qk[i]]:Array.isArray(r.qt)?r.qt[i]||'':'';return(ok?'✓':'✗')+(ch?' '+ch:'')})].map(q).join(','))}
+  saveFile(tcClip((a.title||'quiz').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').toLowerCase(),60)+'-answers.csv','﻿'+rows.join('\r\n')).catch(()=>{})}
+
+/* ---------- people and settings ---------- */
+function tcPeopleTab(c){const own=tcIsOwner(c),people=tcPeople(c),asg=[...CL.asg.values()];
+  const co=(c.teacherIds||[]).map(u=>({u,n:(c.teacherNames||{})[u]||'Co-teacher'}));
+  return`<div class="cl-sec-h"><h2 class="qz-h">Students</h2><span class="hm-muted">${tcPl(people.length,'student')} of 300</span></div>
+   ${people.length?`<div class="tc-ppl">${people.map(p=>{const done=asg.filter(a=>CL.res.get(a.id+'_'+p.u)).length;return`<div class="tc-pp"><span class="acct-av sm" aria-hidden="true">${esc((String(p.n).trim()[0]||'?').toUpperCase())}</span><span class="tc-ppn"><b>${esc(p.n)}</b><small>${p.e?esc(p.e):'Class-only account'}${p.at?' · joined '+esc(tcDate(p.at)):''}</small></span><span class="hm-muted">${done}/${asg.length} done</span><button class="linkbtn" data-clrm="${esc(p.u)}">Remove</button></div>`}).join('')}</div>`:'<p class="hm-muted">No students yet. Share the class code or invite link. Students without an email address (or under 13) can join with just a first name from the Classes page.</p>'}
+   <div class="cl-sec-h"><h2 class="qz-h">Co-teachers</h2></div>
+   ${co.length?`<div class="tc-ppl">${co.map(x=>`<div class="tc-pp"><span class="acct-av sm" aria-hidden="true">${esc((x.n.trim()[0]||'?').toUpperCase())}</span><span class="tc-ppn"><b>${esc(x.n)}</b><small>Can set work and see all results</small></span>${own?`<button class="linkbtn" data-t="corm" data-id="${esc(x.u)}">Remove</button>`:x.u===tcMe()?`<button class="linkbtn" data-t="coleave">Leave</button>`:''}</div>`).join('')}</div>`:'<p class="hm-muted">No co-teachers yet.</p>'}
+   ${own?(c.tcode?`<div class="cl-code tc-tcode"><div><span class="hm-kicker">Teacher code</span><b>${clFmt(c.tcode)}</b></div><button class="btn" data-t="copytcode">Copy code</button><button class="btn" data-t="copytlink">Copy link</button><span class="np-sp"></span><button class="linkbtn" data-t="newtcode">New code</button></div><p class="hm-muted">Give this to another teacher or a teaching assistant. Don’t give it to students: co-teachers can see every student’s results.</p>`
+     :`<button class="btn" data-t="newtcode">Invite a co-teacher</button><p class="hm-muted">Co-teachers can set work, see every result and manage students. Only you can delete the class.</p>`):''}`}
+function tcSettingsTab(c){const own=tcIsOwner(c);
+  return`<h2 class="qz-h">Class</h2><div class="tc-set"><button class="btn" data-cla="rename">Rename the class</button><button class="btn" data-t="wsjoin">Print a join slip</button></div>
+   <div class="cl-danger">${own?`<button class="btn" data-cla="delclass">Delete class</button><p class="hm-muted">Deletes the class, its assignments and every result. Students keep their own notes.</p>`:`<button class="btn" data-t="coleave">Stop co-teaching this class</button>`}</div>`}
+
+/* ---------- My quizzes: the library ---------- */
+const TC_QT={mc:'Multiple choice',tf:'True or false',text:'Short answer',num:'Number'};
+function tcCleanQ(q){if(q.b)return{b:String(q.b)};const o={t:['mc','tf','text','num'].includes(q.t)?q.t:'mc',p:String(q.p||'').slice(0,1500)};
+  if(o.t==='mc'){o.o=(q.o||[]).slice(0,6).map(x=>String(x||'').slice(0,300));o.a=q.a>=0&&o.o.length?Math.min(o.o.length-1,q.a|0):-1}
+  else if(o.t==='tf')o.a=q.a===1?1:0;else if(o.t==='text')o.a=(Array.isArray(q.a)?q.a:[]).map(x=>String(x).trim().slice(0,120)).filter(Boolean).slice(0,12);
+  else{o.a=String(q.a==null?'':q.a).trim().slice(0,40);if(+q.tol)o.tol=Math.abs(+q.tol);if(q.u)o.u=String(q.u).slice(0,30)}
+  if(q.s&&String(q.s).trim())o.s=String(q.s).trim().slice(0,300);if(q.w&&String(q.w).trim())o.w=String(q.w).slice(0,1000);if(q.g&&String(q.g).trim())o.g=String(q.g).trim().slice(0,60);return o}
+function qlRender(){const pg=$('#classPage'),list=[...TC.qz.values()].sort((a,b)=>(b.upd||0)-(a.upd||0)),teach=[...CL.own.values(),...TC.co.values()];
+  pg.innerHTML=`<section class="cl tc"><header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-cla="back">← Classes</button></div><h1>My quizzes</h1><p class="nm-lede">Write your own questions (multiple choice, true or false, short answer or a number, with structures and $maths$) and mix in any of Bondline’s ${tcBankSize()} questions. Then set a quiz for a class, print it as a worksheet with an answer key, or play it live.</p></header>
+   <div class="tc-acts tc-qlacts"><button class="btn primary" data-t="newquiz">New quiz</button><button class="btn" data-t="pastequiz">Paste in questions</button></div>
+   ${list.length?`<div class="tc-qlist">${list.map(q=>{const n=(q.qs||[]).length,own=(q.qs||[]).filter(x=>!x.b).length;return`<div class="tc-qtile"><button class="tc-qmain" data-t="editquiz" data-id="${q.id}"><b>${esc(q.title)}</b><span>${tcPl(n,'question')}${own&&own<n?` · ${own} of your own`:own?' · all your own':''} · edited ${esc(tcDate(q.upd||q.at))}</span>${q.desc?`<small>${esc(tcClip(q.desc,140))}</small>`:''}</button>
+     <div class="tc-qbtns"><button class="btn small" data-t="setquiz" data-id="${q.id}"${teach.length?'':' disabled title="Make a class first"'}>Set for a class</button><button class="btn small" data-t="livequiz" data-id="${q.id}">Play live</button><button class="btn small" data-t="wsquiz" data-id="${q.id}">Worksheet</button><button class="btn small" data-t="pvquiz" data-id="${q.id}">Preview</button><button class="btn small" data-t="dupquiz" data-id="${q.id}">Duplicate</button><button class="linkbtn" data-t="delquiz" data-id="${q.id}">Delete</button></div>
+     ${TC.setPick===q.id?`<div class="tc-setpick"><label class="cl-f">Class<select id="tcSetCls">${teach.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label><button class="btn primary small" data-t="setquizgo" data-id="${q.id}">Continue</button><button class="linkbtn" data-t="setquiz" data-id="">Cancel</button></div>`:''}</div>`}).join('')}</div>`
+    :`<div class="tc-empty"><p>No quizzes yet.</p><p class="hm-muted">Start a new quiz, or paste in questions you already have, like this:</p><pre class="tc-pastex">1. Which reagent turns a primary alcohol into an aldehyde?
+A) KMnO₄, heat
+*B) PCC
+C) NaBH₄
+Explanation: PCC stops at the aldehyde.</pre></div>`}
+   ${TC.paste?tcPasteHTML():''}</section>`}
+function tcPasteHTML(){return`<form class="cl-card cl-form tc-paste" id="tcPasteF"><h2>Paste in questions</h2><p class="hm-muted">One question per block, with a blank line between questions. Options start with A) or A. and the right one starts with *, or add a line “Answer: B”. A question with no options and “Answer: …” becomes short answer, or a number if the answer is a number. “Explanation: …” and “Topic: …” lines are optional.</p>
+   <textarea id="tcPasteT" rows="12" placeholder="1. What is the hybridisation of carbon in ethyne?\nA) sp\nB) sp²\nC) sp³\nAnswer: A\n\n2. What is the molar mass of water in g/mol?\nAnswer: 18.02 ± 0.1">${esc(TC.paste.text||'')}</textarea><p class="cl-err" id="tcPasteErr" role="alert"></p>
+   <div class="syn-row"><label class="cl-f">Add to<select id="tcPasteTo"><option value="">A new quiz</option>${[...TC.qz.values()].map(q=>`<option value="${q.id}"${TC.paste.to===q.id?' selected':''}>${esc(q.title)}</option>`).join('')}</select></label><span class="np-sp"></span><button class="btn" type="button" data-t="pastecancel">Cancel</button><button class="btn primary" type="submit">Add questions</button></div></form>`}
+function tcParsePaste(text){const blocks=String(text||'').replace(/\r/g,'').split(/\n\s*\n/).map(b=>b.trim()).filter(Boolean),out=[],bad=[];
+  blocks.forEach((b,bi)=>{const lines=b.split('\n').map(l=>l.trim()).filter(Boolean);let p=[],o=[],star=-1,ans=null,w='',g='';
+    for(const l of lines){let m;
+      if((m=/^(\*)?\s*([A-Ha-h])[\).:]\s+(.*)$/.exec(l))&&(o.length||p.length)){if(m[1])star=o.length;o.push(m[3])}
+      else if((m=/^(?:answer|ans|correct)\s*[:\-]\s*(.*)$/i.exec(l)))ans=m[1].trim();
+      else if((m=/^(?:explanation|why|because|reason)\s*[:\-]\s*(.*)$/i.exec(l)))w=m[1];
+      else if((m=/^(?:topic|tag)\s*[:\-]\s*(.*)$/i.exec(l)))g=m[1];
+      else if(o.length&&!p.length)p.push(l);else if(o.length)o[o.length-1]+=' '+l;else p.push(l.replace(/^(?:q(?:uestion)?\s*)?\d+\s*[\).:]\s*/i,''))}
+    const q={p:p.join('\n')};if(w)q.w=w;if(g)q.g=g;
+    if(o.length>=2){q.t='mc';q.o=o.slice(0,6);if(star>=0)q.a=star;else if(ans&&/^[A-Ha-h]$/.test(ans))q.a=ans.toUpperCase().charCodeAt(0)-65;else{const k=o.findIndex(x=>ans&&x.toLowerCase()===ans.toLowerCase());q.a=k}
+      if(/^(true|false)$/i.test(o[0])&&o.length===2&&/^(true|false)$/i.test(o[1])){q.t='tf';q.a=q.a>=0?(o[q.a].toLowerCase()==='true'?0:1):-1;delete q.o}}
+    else if(ans!=null){const m=/^([-+]?[\d.,]+(?:\s*[×x*]\s*10\^?\(?[-+]?\d+\)?|e[-+]?\d+)?)\s*(?:(?:±|\+\/-|\+-)\s*([\d.]+))?\s*(.*)$/i.exec(ans);
+      if(/^(true|false)$/i.test(ans)){q.t='tf';q.a=/^true$/i.test(ans)?0:1}
+      else if(m&&tcParseNum(m[1])!=null){q.t='num';q.a=String(tcParseNum(m[1]));if(m[2])q.tol=+m[2];if(m[3])q.u=m[3].trim()}
+      else{q.t='text';q.a=ans.split(/\s*[;|]\s*|\s+or\s+/i).filter(Boolean)}}
+    else{q.t='text';q.a=[]}
+    const c=tcCleanQ(q);if(q.t==='mc'&&!(q.a>=0))c.a=-1;if(!tcQReady(c))bad.push(bi+1);out.push(c)});
+  return{qs:out,bad}}
+
+/* ---------- quiz editor ---------- */
+function qeOpen(id,extra){tcEnsure();const q=id?TC.qz.get(id):null;TC.ed={id:q?q.id:null,title:q?q.title:'',desc:q?q.desc||'':'',qs:q?(q.qs||[]).map(x=>({...x})):[],open:null,dirty:!q,at:q?q.at:Date.now(),...(extra||{})};TC.bank=null;CL.view='qedit';clRender();$('#main').scrollTop=0}
+function qeItem(q,i){return q.b?tcBankItem(q.b,'pv:'+(TC.ed.id||'new')+':'+i):tcCusItem(q)}
+function qeCard(q,i){const E=TC.ed,open=E.open===i,ready=tcQReady(q);
+  const kind=q.b?`<span class="tc-badge bank">${esc((tcBankQ(q.b)&&AREA_LABEL[tcBankQ(q.b).a])||'Bondline')}</span>`:`<span class="tc-badge">${TC_QT[q.t]||''}</span>`;
+  const tools=`<span class="tc-qtools"><button class="linkbtn" data-qa="up" data-i="${i}" aria-label="Move up"${i?'':' disabled'}>↑</button><button class="linkbtn" data-qa="down" data-i="${i}" aria-label="Move down"${i<E.qs.length-1?'':' disabled'}>↓</button><button class="linkbtn" data-qa="dup" data-i="${i}">Duplicate</button>${q.b?`<button class="linkbtn" data-qa="swap" data-i="${i}">Swap</button>`:''}<button class="linkbtn" data-qa="del" data-i="${i}">Delete</button></span>`;
+  if(!open||q.b){const it=qeItem(q,i);
+    return`<div class="tc-qc${ready?'':' warn'}"><div class="tc-qch"><span class="tc-qn">${i+1}</span>${kind}${q.g?`<span class="tc-badge tag">${esc(q.g)}</span>`:''}${!ready?'<span class="tc-badge warn">Unfinished</span>':''}<span class="np-sp"></span>${tools}</div>
+     <button class="tc-qcb" data-qa="${q.b?'':'open'}" data-i="${i}"${q.b?' tabindex="-1"':''}>${it?`<div class="tc-qp">${it.prompt||'<span class="hm-muted">Write the question…</span>'}</div>${it.fig?`<div class="tc-qfig">${it.fig}</div>`:''}${it.opts?`<ol class="tc-qo" type="A">${it.opts.map((o,k)=>`<li class="${k===it.ans?'ok':''}">${it.struct?'Structure '+(k+1):o||'<span class="hm-muted">Empty</span>'}</li>`).join('')}</ol>`:it.answer?`<p class="tc-qans">Answer: ${it.answer}</p>`:''}`:'<span class="hm-muted">This question is no longer in Bondline.</span>'}</button></div>`}
+  const f=(k,lab,inner)=>`<label class="cl-f tc-qf">${lab}${inner}</label>`;let ans='';
+  if(q.t==='mc')ans=`<div class="tc-opts">${(q.o||[]).map((o,k)=>`<div class="tc-optrow"><input type="radio" name="qeA" value="${k}" data-qf="a" aria-label="Option ${TC_L[k]} is correct"${q.a===k?' checked':''}><span class="tc-optl">${TC_L[k]}</span><input data-qf="o" data-k="${k}" maxlength="300" value="${esc(o)}" placeholder="Option ${TC_L[k]}"><button class="linkbtn" type="button" data-qa="optdel" data-i="${i}" data-k="${k}" aria-label="Remove option ${TC_L[k]}"${(q.o||[]).length<=2?' disabled':''}>✕</button></div>`).join('')}${(q.o||[]).length<6?`<button class="linkbtn tc-addopt" type="button" data-qa="optadd" data-i="${i}">+ Add an option</button>`:''}<p class="hm-muted">Tick the right answer.</p></div>`;
+  else if(q.t==='tf')ans=`<div class="tc-inl">${['True','False'].map((t,k)=>`<label class="tc-radio"><input type="radio" name="qeA" value="${k}" data-qf="a"${q.a===k?' checked':''}> ${t}</label>`).join('')}</div>`;
+  else if(q.t==='text')ans=f('acc','Accepted answers <small>one per line; capitals, spaces and punctuation in names are forgiven</small>',`<textarea data-qf="acc" rows="3" placeholder="propan-2-ol&#10;2-propanol">${esc((q.a||[]).join('\n'))}</textarea>`);
+  else ans=`<div class="cl-inl">${f('a','Answer',`<input data-qf="a" inputmode="decimal" value="${esc(q.a==null?'':q.a)}" placeholder="e.g. 6.02e23 or 0.25">`)}${f('tol','Allowed error <small>±, optional</small>',`<input data-qf="tol" inputmode="decimal" value="${esc(q.tol||'')}" placeholder="0.5% if empty">`)}${f('u','Unit <small>optional</small>',`<input data-qf="u" maxlength="30" value="${esc(q.u||'')}" placeholder="g mol⁻¹">`)}</div>`;
+  return`<div class="tc-qc open"><div class="tc-qch"><span class="tc-qn">${i+1}</span><select data-qf="t" aria-label="Question type">${Object.entries(TC_QT).map(([k,t])=>`<option value="${k}"${q.t===k?' selected':''}>${t}</option>`).join('')}</select><span class="np-sp"></span>${tools}<button class="btn small primary" data-qa="close" data-i="${i}">Done</button></div>
+   <div class="tc-qedit"><div class="tc-qfields">
+    ${f('p','Question <small>$maths$ works; formulas like H2SO4 get subscripts</small>',`<textarea data-qf="p" rows="3" maxlength="1500" placeholder="What is the major product when…">${esc(q.p||'')}</textarea>`)}
+    ${f('s','Structure <small>optional: a name or SMILES, drawn under the question</small>',`<input data-qf="s" maxlength="300" value="${esc(q.s||'')}" placeholder="e.g. 2-methylbutan-2-ol or CC(C)(O)CC">`)}
+    ${ans}
+    ${f('w','Explanation <small>shown after answering</small>',`<textarea data-qf="w" rows="2" maxlength="1000" placeholder="Why the answer is right">${esc(q.w||'')}</textarea>`)}
+    ${f('g','Topic <small>optional; groups your questions in Insights</small>',`<input data-qf="g" maxlength="60" value="${esc(q.g||'')}" placeholder="e.g. Oxidation">`)}
+   </div><div class="tc-qprev"><span class="hm-kicker">Students see</span><div id="qePrev">${qePrevHTML(q)}</div></div></div></div>`}
+function qePrevHTML(q){const it=tcCusItem(q);const o=it.opts?`<div class="qz-opts${it.opts.length===2?' two':''}">${it.opts.map((x,k)=>`<div class="qz-opt${k===it.ans?' right':''}"><span class="qz-key">${TC_L[k]}</span><span>${x||'…'}</span></div>`).join('')}</div>`:`<div class="tc-typed"><input disabled placeholder="${it.kind==='num'?'A number':'Their answer'}">${it.unit?`<span class="tc-unit">${esc(it.unit)}</span>`:''}</div>${it.answer?`<p class="tc-qans">Accepted: ${it.answer}${it.acc&&it.acc.length>1?` <small>and ${it.acc.length-1} more</small>`:''}</p>`:''}`;
+  return`<p class="qz-prompt">${it.prompt||'<span class="hm-muted">Your question</span>'}</p>${it.fig}${o}${it.why?`<p class="qz-why">${it.why}</p>`:''}`}
+function qeRender(){const E=TC.ed,pg=$('#classPage');if(!E){CL.view='quizzes';return clRender()}const teach=[...CL.own.values(),...TC.co.values()],n=E.qs.length;
+  pg.innerHTML=`<section class="cl tc tc-ed"><header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-t="edback">← My quizzes</button></div>
+    <input class="tc-edtitle" id="qeTitle" maxlength="120" value="${esc(E.title)}" placeholder="Quiz title" aria-label="Quiz title"><input class="tc-eddesc" id="qeDesc" maxlength="500" value="${esc(E.desc)}" placeholder="A short description (optional)" aria-label="Description"></header>
+   <div class="tc-edbar"><span class="hm-muted">${qeBarText()}</span><span class="np-sp"></span>
+    <button class="btn" data-t="edpv"${n?'':' disabled'}>Preview</button><button class="btn" data-t="edws"${n?'':' disabled'}>Worksheet</button><button class="btn" data-t="edlive"${n?'':' disabled'}>Play live</button>${teach.length?`<button class="btn" data-t="edset"${n?'':' disabled'}>Set for a class</button>`:''}<button class="btn primary" data-t="edsave"${E.saving?' disabled':''}>${E.saving?'Saving…':'Save'}</button></div>
+   <div class="tc-qcs">${E.qs.map(qeCard).join('')||'<div class="tc-empty"><p>No questions yet.</p><p class="hm-muted">Add your own below, or pick from Bondline’s questions on any topic or course unit.</p></div>'}</div>
+   ${n<60?`<div class="tc-addbar"><span class="hm-kicker">Add</span>${Object.entries(TC_QT).map(([k,t])=>`<button class="btn" data-t="addq" data-k="${k}">${t}</button>`).join('')}<button class="btn primary" data-t="bankopen">From Bondline’s questions</button><button class="btn" data-t="pastequiz">Paste</button></div>`:'<p class="hm-muted">A quiz can have up to 60 questions.</p>'}
+   ${TC.bank?tcBankHTML():''}${TC.paste?tcPasteHTML():''}</section>`;
+  tcTex(pg)}
+function qeField(el){const E=TC.ed;if(!E||E.open==null)return;const q=E.qs[E.open],k=el.dataset.qf;if(!q)return;
+  if(k==='t'){const t=el.value;if(t===q.t)return;const keep={p:q.p,s:q.s,w:q.w,g:q.g};E.qs[E.open]=Object.assign(keep,{t},t==='mc'?{o:['',''],a:0}:t==='tf'?{a:0}:t==='text'?{a:[]}:{a:''});E.dirty=true;return qeRender()}
+  if(k==='a'&&(q.t==='mc'||q.t==='tf'))q.a=+el.value;else if(k==='o')q.o[+el.dataset.k]=el.value;else if(k==='acc')q.a=el.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  else q[k]=el.value;
+  E.dirty=true;const pv=$('#qePrev');if(pv){pv.innerHTML=qePrevHTML(q);tcTex(pv)}qeBar()}
+function qeBarText(){const E=TC.ed,n=E.qs.length,unf=E.qs.filter(q=>!tcQReady(q)).length;return`${tcPl(n,'question')} of 60${unf?` · <b class="tc-warn">${unf} unfinished</b>`:''}${E.dirty?' · unsaved changes':E.id?' · saved':''}`}
+function qeBar(){const b=document.querySelector('.tc-edbar>.hm-muted');if(b&&TC.ed)b.innerHTML=qeBarText()}
+function qeAct(a,i,k){const E=TC.ed;if(!E)return;i=+i;
+  if(a==='open'){E.open=i;return qeRender()}if(a==='close'){E.open=null;return qeRender()}
+  if(a==='up'&&i>0){[E.qs[i-1],E.qs[i]]=[E.qs[i],E.qs[i-1]];if(E.open===i)E.open=i-1}
+  else if(a==='down'&&i<E.qs.length-1){[E.qs[i+1],E.qs[i]]=[E.qs[i],E.qs[i+1]];if(E.open===i)E.open=i+1}
+  else if(a==='dup'&&E.qs.length<60){E.qs.splice(i+1,0,JSON.parse(JSON.stringify(E.qs[i])))}
+  else if(a==='del'){E.qs.splice(i,1);E.open=null}
+  else if(a==='optadd'){const q=E.qs[i];if((q.o||[]).length<6)q.o.push('')}
+  else if(a==='optdel'){const q=E.qs[i];if(q.o.length>2){q.o.splice(+k,1);if(q.a>=q.o.length)q.a=0;else if(q.a>+k)q.a--}}
+  else if(a==='swap'){const b=tcBankQ(E.qs[i].b);if(!b)return;const have=new Set(E.qs.map(x=>x.b));const pool=AREAS[b.a].bank().filter(q=>q.t===b.q.t&&!have.has(b.a+'|'+q.id));if(!pool.length)return toast('No other questions on this topic.');E.qs[i]={b:b.a+'|'+pool[Math.floor(Math.random()*pool.length)].id}}
+  else return;E.dirty=true;qeRender()}
+async function qeSave(){const E=TC.ed;if(!E)return null;E.title=($('#qeTitle')||{}).value!=null?$('#qeTitle').value:E.title;E.desc=($('#qeDesc')||{}).value!=null?$('#qeDesc').value:E.desc;
+  const title=E.title.trim()||'Untitled quiz';const id=E.id||shKey(16),now=Date.now();const doc={owner:FB.user.uid,title:title.slice(0,120),qs:E.qs.slice(0,60).map(tcCleanQ),at:E.at||now,upd:now};if(E.desc.trim())doc.desc=E.desc.trim().slice(0,500);
+  E.saving=true;qeRender();
+  try{await FB.db.collection('quizzes').doc(id).set(doc);E.id=id;E.title=doc.title;E.dirty=false;TC.qz.set(id,{id,...doc});toast('Quiz saved.')}catch(e){console.warn(e);toast('Couldn’t save the quiz. Check that the latest database rules are published.')}
+  E.saving=false;if(CL.view==='qedit')qeRender();return E.dirty?null:id}
+
+/* ---------- picking from Bondline's questions ---------- */
+function tcBankHTML(){const B=TC.bank,S=tcSrc(B.src),topics=tcSrcTopics(S),have=new Set(TC.ed.qs.map(x=>x.b).filter(Boolean));
+  let pool=tcSrcBank(S,B.topic?[B.topic]:[]);const qtext=x=>[x.q.prompt,x.q.n,x.q.c&&x.q.c.n,x.q.why].filter(Boolean).join(' ').toLowerCase();
+  if(B.q.trim())pool=pool.filter(x=>qtext(x).includes(B.q.trim().toLowerCase()));
+  const per=12,pages=Math.max(1,Math.ceil(pool.length/per));B.page=Math.min(B.page,pages-1);const view=pool.slice(B.page*per,B.page*per+per);
+  return`<div class="cl-card tc-bank" id="tcBank"><div class="tc-bankh"><h2>Bondline’s questions</h2><span class="np-sp"></span><button class="linkbtn" data-t="bankclose">Close</button></div>
+   <div class="cl-inl"><label class="cl-f">From<select id="tbSrc">${TC_SRC().map(s=>`<option value="${s.id}"${s.id===B.src?' selected':''}>${esc(s.label)}</option>`).join('')}</select></label>
+    <label class="cl-f cl-grow">${S.course?'Unit':'Topic'}<select id="tbTopic"><option value="">All ${S.course?'units':'topics'}</option>${topics.map(t=>`<option value="${esc(t.id)}"${t.id===B.topic?' selected':''}>${esc(t.title)}</option>`).join('')}</select></label>
+    <label class="cl-f cl-grow">Search<input id="tbQ" value="${esc(B.q)}" placeholder="e.g. Grignard, chiral, ester"></label></div>
+   <div class="tc-bankbar"><span class="hm-muted">${pool.length} questions${B.sel.size?` · <b>${B.sel.size} selected</b>`:''}</span><span class="np-sp"></span><label class="cl-f tc-rand"><select id="tbRandN">${[3,5,10,15,20].map(n=>`<option${n===5?' selected':''}>${n}</option>`).join('')}</select></label><button class="btn" data-t="bankrand"${pool.length?'':' disabled'}>Add random</button><button class="btn primary" data-t="bankadd"${B.sel.size?'':' disabled'}>Add ${B.sel.size||''} selected</button></div>
+   <div class="tc-bankl">${view.map(x=>{const it=tcBankItem(x.ref,'pv:'+x.ref),on=B.sel.has(x.ref),used=have.has(x.ref);if(!it)return'';
+     return`<label class="tc-bq${on?' on':''}${used?' used':''}"><input type="checkbox" data-bsel="${esc(x.ref)}"${on?' checked':''}${used?' disabled':''}><div class="tc-bqb"><small>${esc(it.topic)}${used?' · already in this quiz':''}</small><div class="tc-qp">${it.prompt}</div>${it.fig?`<div class="tc-qfig">${it.fig}</div>`:''}${it.struct?`<p class="tc-qans">Answer: ${it.answer}</p>`:`<ol class="tc-qo" type="A">${it.opts.map((o,k)=>`<li class="${k===it.ans?'ok':''}">${o}</li>`).join('')}</ol>`}</div></label>`}).join('')||'<p class="hm-muted">Nothing matches.</p>'}</div>
+   ${pages>1?`<div class="tc-pager"><button class="btn small" data-t="bankpg" data-k="-1"${B.page?'':' disabled'}>← Previous</button><span class="hm-muted">Page ${B.page+1} of ${pages}</span><button class="btn small" data-t="bankpg" data-k="1"${B.page<pages-1?'':' disabled'}>Next →</button></div>`:''}
+   <p class="hm-muted">Options for Bondline’s questions are shuffled once per quiz, the same way for every student.</p></div>`}
+function tcBankRefresh(){const box=$('#tcBank');if(!box)return qeRender();const y=$('#main').scrollTop;box.outerHTML=tcBankHTML();tcTex($('#tcBank'));$('#main').scrollTop=y}
+function tcBankAdd(refs){const E=TC.ed;const have=new Set(E.qs.map(x=>x.b));let n=0;for(const r of refs){if(E.qs.length>=60)break;if(have.has(r))continue;E.qs.push({b:r});have.add(r);n++}
+  E.dirty=true;TC.bank.sel=new Set();toast(n?`Added ${tcPl(n,'question')}.`:'Nothing new to add.');qeRender();const b=$('#tcBank');if(b)b.scrollIntoView({block:'start'})}
+
+/* ---------- worksheets ---------- */
+function tcWsDialog(o){TC.wsDlg=o;let sc=$('#tcWsScrim');if(!sc){sc=document.createElement('div');sc.id='tcWsScrim';sc.className='scrim v17-scrim';sc.hidden=true;sc.innerHTML='<div class="help tc-dlg" role="dialog" aria-modal="true" aria-labelledby="tcWsT"><div id="tcWsB"></div></div>';document.body.appendChild(sc);
+    sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('[data-ws="close"]')){sc.hidden=true;document.body.classList.remove('sk-lock');return}if(e.target.closest('[data-ws="print"]')){const g=id=>$('#'+id).checked;sc.hidden=true;document.body.classList.remove('sk-lock');tcWsPrint(Object.assign({},TC.wsDlg,{key:g('wsKey'),why:g('wsWhy'),work:g('wsWork'),fields:g('wsFields')}))}});
+    sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();sc.hidden=true;document.body.classList.remove('sk-lock')}})}
+  const n=o.items.filter(Boolean).length;
+  $('#tcWsB').innerHTML=`<h2 id="tcWsT">Print a worksheet</h2><p class="hm-muted">${esc(o.title)} · ${tcPl(n,'question')}. Choose “Save as PDF” as the printer to get a PDF.</p>
+   <label class="tc-check"><input type="checkbox" id="wsFields" checked> <span>Name, class and date boxes at the top</span></label>
+   <label class="tc-check"><input type="checkbox" id="wsWork"> <span>Space for working under each question</span></label>
+   <label class="tc-check"><input type="checkbox" id="wsKey" checked> <span>Answer key on a separate page</span></label>
+   <label class="tc-check"><input type="checkbox" id="wsWhy" checked> <span>Explanations in the answer key</span></label>
+   <div class="nm-actions"><button class="btn primary" data-ws="print">Print</button><button class="btn" data-ws="close">Cancel</button></div>`;
+  sc.hidden=false;document.body.classList.add('sk-lock');setTimeout(()=>{const b=sc.querySelector('[data-ws="print"]');if(b)b.focus()},30)}
+async function tcPrintHTML(html,title){if(App.printing)return;App.printing=true;const area=document.createElement('div');area.id='printArea';area.innerHTML=html;document.body.appendChild(area);
+  try{if(area.querySelector('[data-tex]')){if(await mathReady())renderMathIn(area)}if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
+  const old=document.title;document.title=title||'Bondline';document.body.classList.add('printing');
+  const done=()=>{document.body.classList.remove('printing');area.remove();document.title=old;App.printing=false;window.removeEventListener('afterprint',done)};
+  window.addEventListener('afterprint',done);
+  try{window.print()}catch(e){done();toast('Printing isn’t available here.');return}
+  setTimeout(()=>{if(App.printing&&!matchMedia('print').matches)done()},1500)}
+function tcWsPrint(o){const items=o.items.filter(Boolean);
+  const q=(it,k)=>{let a='';if(it.kind==='mc')a=it.struct?`<div class="ws-sopts">${it.opts.map((x,j)=>`<div class="ws-sopt"><b>${TC_L[j]}</b>${x}</div>`).join('')}</div>`:`<ol class="ws-opts" type="A">${it.opts.map(x=>`<li>${x}</li>`).join('')}</ol>`;
+      else a=`<div class="ws-line">${it.kind==='num'?'Answer: ________________ '+esc(it.unit||''):'Answer: ____________________________________________'}</div>`;
+    return`<li class="ws-q"><div class="ws-p">${it.prompt}</div>${it.fig?`<div class="ws-fig">${it.fig}</div>`:''}${a}${o.work?'<div class="ws-work"></div>':''}</li>`};
+  const head=`<header class="ws-h"><div><div class="ws-k">${esc(o.kicker||'Bondline worksheet')}</div><h1>${esc(o.title)}</h1></div>${o.fields?`<div class="ws-fields"><span>Name</span><span>Class</span><span>Date</span></div>`:''}</header>`;
+  let html=`<div class="ws-root">${head}<p class="ws-ins">${tcPl(items.length,'question')}. ${items.some(it=>it.kind==='mc')?'For multiple choice, circle one letter. ':''}${items.some(it=>it.kind!=='mc')?'Write short answers on the line.':''}</p><ol class="ws-qs">${items.map(q).join('')}</ol><footer class="ws-foot">bondline.site</footer></div>`;
+  if(o.key)html+=`<div class="ws-root ws-key"><header class="ws-h"><div><div class="ws-k">Answer key · for the teacher</div><h1>${esc(o.title)}</h1></div></header><table class="ws-kt"><thead><tr><th>Q</th><th>Answer</th>${o.why?'<th>Explanation</th>':''}</tr></thead><tbody>${items.map((it,k)=>`<tr><td>${k+1}</td><td>${it.kind==='mc'?`<b>${TC_L[it.ans]}</b>${it.struct?'':' '+it.opts[it.ans]}`:it.answer||'–'}${it.acc&&it.acc.length>1?`<small> (also accept: ${it.acc.slice(1).map(esc).join('; ')})</small>`:''}</td>${o.why?`<td>${it.why||''}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
+  tcPrintHTML(html,o.title)}
+function tcJoinSlips(c){const link=location.origin+'/?class='+c.code,slip=`<div class="ws-slip"><b>${esc(c.name)}</b><span>Join the class on Bondline</span><span class="ws-code">${clFmt(c.code)}</span><span>1. Open <b>${esc(location.host)}</b> and sign in<br>2. Classes → Join a class → type the code</span><small>${esc(link)}<br>No email? Choose “Join with a class code” and use your first name.</small></div>`;
+  tcPrintHTML(`<div class="ws-root ws-slips">${Array.from({length:8},()=>slip).join('')}</div>`,c.name+' join slips')}
+
+/* ---------- live class quiz: the host's screen ---------- */
+// live/{pin} holds question references (teachers' own answers removed), the state and the scores.
+// Each player's phone rebuilds the same question from the shared seed, so nothing the host writes is shown as HTML.
+const TC_LC=['#e5484d','#3e63dd','#f5a524','#30a46c','#8e4ec6','#0091ff'];
+const TC_SHAPES=['▲','◆','●','■','★','⬢'];
+const lvRef=pin=>FB.db.collection('live').doc(pin);
+function lhSetup(o){tcEnsure();TC.lset=Object.assign({src:TC.qz.size?'quiz':'bank',qid:'',bsrc:'naming',btopic:'',bn:10,dur:20,cid:''},TC.lset||{},o||{});TC.live=null;CL.view='livehost';if(App.mode!=='classes')setMode('classes');clRender()}
+function lhSetupHTML(){const S=TC.lset,list=[...TC.qz.values()].sort((a,b)=>(b.upd||0)-(a.upd||0)),src=tcSrc(S.bsrc);
+  return`<section class="cl tc"><header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-cla="back">← Classes</button></div><h1>Live quiz</h1><p class="nm-lede">Put this screen on the projector. Students join on their phones at <b>${esc(location.host)}</b> with a 6-digit PIN, answer against the clock and see a leaderboard after each question.</p></header>
+   <form class="cl-card cl-form" id="lsForm" autocomplete="off"><h2>Questions</h2>
+    <div class="tc-inl"><label class="tc-radio"><input type="radio" name="lsSrc" value="quiz"${S.src==='quiz'?' checked':''}${list.length?'':' disabled'}> One of my quizzes</label><label class="tc-radio"><input type="radio" name="lsSrc" value="bank"${S.src==='bank'?' checked':''}> Random questions from Bondline</label></div>
+    ${S.src==='quiz'?`<label class="cl-f">Quiz<select id="lsQid"><option value="">Choose a quiz…</option>${list.map(q=>`<option value="${q.id}"${q.id===S.qid?' selected':''}>${esc(q.title)} (${tcPl((q.qs||[]).length,'question')})</option>`).join('')}</select></label>`
+      :`<div class="cl-inl"><label class="cl-f">From<select id="lsBsrc">${TC_SRC().map(s=>`<option value="${s.id}"${s.id===S.bsrc?' selected':''}>${esc(s.label)}</option>`).join('')}</select></label><label class="cl-f cl-grow">${src.course?'Unit':'Topic'}<select id="lsBtopic"><option value="">All</option>${tcSrcTopics(src).map(t=>`<option value="${esc(t.id)}"${t.id===S.btopic?' selected':''}>${esc(t.title)}</option>`).join('')}</select></label><label class="cl-f">Questions<select id="lsBn">${[5,8,10,12,15,20].map(n=>`<option${n===S.bn?' selected':''}>${n}</option>`).join('')}</select></label></div>`}
+    <label class="cl-f">Time per question<select id="lsDur">${[10,15,20,30,45,60,90].map(n=>`<option value="${n}"${n===S.dur?' selected':''}>${n} seconds</option>`).join('')}</select></label>
+    <p class="hm-muted">Players need to be signed in. Students without an account can join with just a first name. Faster right answers score more (500 to 1,000 points).</p>
+    <div class="syn-row"><span class="np-sp"></span><button class="btn primary" type="submit">Open the game</button></div></form></section>`}
+async function lhCreate(){const S=TC.lset;let qs,title;
+  if(S.src==='quiz'){const q=TC.qz.get(S.qid);if(!q||!(q.qs||[]).length)return toast('Choose a quiz with at least one question.');const bad=q.qs.findIndex(x=>!tcQReady(x));if(bad>=0)return toast(`Question ${bad+1} isn’t finished.`);qs=q.qs.map(x=>({...x}));title=q.title}
+  else{const s=tcSrc(S.bsrc),pool=shuffle(tcSrcBank(s,S.btopic?[S.btopic]:[]));if(!pool.length)return toast('No questions for that topic.');qs=pool.slice(0,S.bn).map(p=>({b:p.ref}));
+    title=S.btopic?(tcSrcTopics(s).find(t=>t.id===S.btopic)||{}).title||s.label:s.label}
+  const seed=shKey(10),items=qs.map((q,i)=>tcItem(q,seed+':'+i));if(items.some(x=>!x))return toast('Some of those questions can’t be shown. Try another quiz.');
+  const pub=qs.map(q=>{if(q.b)return{b:q.b};const y={...q};delete y.a;delete y.w;delete y.tol;return y});
+  let pin='';for(let k=0;k<6&&!pin;k++){const p=String(100000+Math.floor(Math.random()*900000));try{const d=await lvRef(p).get();if(!d.exists)pin=p}catch(e){console.warn(e);return toast('Couldn’t start a game. Check that the latest database rules are published.')}}
+  if(!pin)return toast('Couldn’t find a free PIN. Try again.');
+  const doc={host:FB.user.uid,hn:shMe().n,title:tcClip(title,120),qs:pub,n:qs.length,st:'lobby',i:0,t0:0,dur:S.dur,ver:APP_VER,at:Date.now(),seed,sc:{},board:[]};
+  try{await lvRef(pin).set(doc)}catch(e){console.warn(e);return toast('Couldn’t start a game. Check that the latest database rules are published.')}
+  TC.live={pin,title:doc.title,qs,items,seed,dur:S.dur,st:'lobby',i:0,t0:0,players:new Map(),sc:{},qres:[],gain:{},unsub:null};
+  TC.live.unsub=lvRef(pin).collection('players').onSnapshot(s=>{const L=TC.live;if(!L||L.pin!==pin)return;L.players=new Map(s.docs.map(d=>[d.id,d.data()]));lhUpdate()},e=>console.warn('players',e));
+  clRender()}
+function lhAnsweredNow(L){const k=String(L.i);let n=0;for(const p of L.players.values())if(p.a&&p.a[k]!=null)n++;return n}
+function lhUpdate(){const L=TC.live;if(!L||CL.view!=='livehost'||App.mode!=='classes')return;
+  if(L.st==='lobby'){const box=$('#lhPlayers');if(box){box.innerHTML=lhPlayersHTML(L);const c=$('#lhCount');if(c)c.textContent=tcPl(L.players.size,'player')}return}
+  if(L.st==='q'){const c=$('#lhAns');if(c)c.textContent=`${lhAnsweredNow(L)} of ${L.players.size} answered`;if(L.players.size&&lhAnsweredNow(L)>=L.players.size)lhReveal()}}
+function lhPlayersHTML(L){const ps=[...L.players.values()];return ps.length?ps.map(p=>`<span class="lv-chip">${esc(p.n)}</span>`).join(''):'<span class="hm-muted">Waiting for players…</span>'}
+function lhLeft(){const L=TC.live;return L&&L.st==='q'?Math.max(0,L.dur-(Date.now()-L.t0)/1000):0}
+function lhTick(){const L=TC.live;if(!L||L.st!=='q'){clearInterval(TC.ltick);return}const left=lhLeft(),c=$('#lhClock'),r=$('#lhRing');if(c)c.textContent=Math.ceil(left);if(r)r.style.setProperty('--f',(left/L.dur).toFixed(3));if(left<=0)lhReveal()}
+async function lhSet(fields){const L=TC.live;try{await lvRef(L.pin).update(fields)}catch(e){console.warn(e);toast('Couldn’t update the game. Check your connection.')}}
+async function lhQuestion(i){const L=TC.live;L.i=i;L.st='q';L.t0=Date.now();clearInterval(TC.ltick);TC.ltick=setInterval(lhTick,250);clRender();await lhSet({st:'q',i,t0:L.t0,ra:null,rw:null})}
+async function lhReveal(){const L=TC.live;if(!L||L.st!=='q')return;clearInterval(TC.ltick);L.st='rev';const it=L.items[L.i],k=String(L.i),durMs=L.dur*1000,res={};L.gain={};
+  for(const[u,p]of L.players){const a=p.a&&p.a[k];if(!Array.isArray(a))continue;const r=typeof a[0]==='number'?{k:a[0]}:{t:String(a[0])},ok=tcMark(it,r),ms=Math.max(0,Math.min(durMs,+a[1]||durMs));
+    const pts=ok?Math.round(1000-500*ms/durMs):0;res[u]={r,ok,pts};L.sc[u]=(L.sc[u]||0)+pts;L.gain[u]=pts}
+  L.qres[L.i]=res;const q=L.qs[L.i];let ra=null;if(it.kind==='mc')ra=it.ans;else if(it.kind==='text')ra=(it.acc||[])[0]||'';else ra=String(it.num);
+  clRender();await lhSet({st:'rev',ra,rw:q.b?null:String(q.w||'').slice(0,1000),sc:L.sc,board:lhBoard(L).slice(0,10)})}
+function lhBoard(L){return[...L.players.entries()].map(([u,p])=>({u,n:p.n,s:L.sc[u]||0})).sort((a,b)=>b.s-a.s).map(x=>({n:x.n,s:x.s}))}
+function lhRender(){const L=TC.live,pg=$('#classPage');if(!L)return pg.innerHTML=lhSetupHTML();
+  const join=`<div class="lv-join"><span>Join at <b>${esc(location.host)}</b> → Classes</span><span class="lv-pin">${L.pin.slice(0,3)} ${L.pin.slice(3)}</span></div>`;
+  if(L.st==='lobby'){pg.innerHTML=`<section class="lv lv-host"><div class="lv-top"><b>${esc(L.title)}</b><span>${tcPl(L.items.length,'question')} · ${L.dur} s each</span><span class="np-sp"></span><button class="linkbtn" data-t="lhclose">Cancel game</button></div>
+    <div class="lv-lobby">${join}<p class="lv-or">or open <b>${esc(location.host)}/?live=${L.pin}</b></p><div class="lv-count"><b id="lhCount">${tcPl(L.players.size,'player')}</b></div><div class="lv-players" id="lhPlayers">${lhPlayersHTML(L)}</div>
+    <button class="btn primary lv-big" data-t="lhstart">Start</button></div></section>`;return}
+  const it=L.items[L.i],n=L.items.length;
+  const top=`<div class="lv-top"><b>Question ${L.i+1} of ${n}</b><span>${esc(L.title)}</span><span class="np-sp"></span><span class="lv-pinsm">PIN ${L.pin}</span><button class="linkbtn" data-t="lhend">End game</button></div>`;
+  const opts=k=>it.kind==='mc'?`<div class="lv-opts${it.struct?' struct':''}">${it.opts.map((o,j)=>`<div class="lv-opt" style="--c:${TC_LC[j%6]}"${k&&j!==it.ans?' data-dim="1"':''}><span class="lv-shape">${TC_SHAPES[j%6]}</span><span>${o}</span>${k?`<b class="lv-n">${k[j]}</b>`:''}</div>`).join('')}</div>`:`<div class="lv-typed">Players type ${it.kind==='num'?'a number':'their answer'}</div>`;
+  if(L.st==='q'){pg.innerHTML=`<section class="lv lv-host">${top}<div class="lv-q"><div class="lv-qtop"><div class="lv-ring" id="lhRing" style="--f:1"><span id="lhClock">${Math.ceil(lhLeft())}</span></div><span id="lhAns" class="lv-ans">${lhAnsweredNow(L)} of ${L.players.size} answered</span><button class="btn" data-t="lhreveal">Reveal now</button></div>
+    <div class="lv-prompt">${it.prompt}</div>${it.fig?`<div class="lv-fig">${it.fig}</div>`:''}${opts(null)}</div></section>`;tcTex(pg);return}
+  if(L.st==='rev'){const res=L.qres[L.i]||{},vals=Object.values(res),right=vals.filter(x=>x.ok).length;let counts=null;
+    if(it.kind==='mc'){counts=it.opts.map(()=>0);vals.forEach(x=>{if(x.r.k>=0&&x.r.k<counts.length)counts[x.r.k]++})}
+    const wrong=it.kind!=='mc'?Object.entries(vals.filter(x=>!x.ok).reduce((m,x)=>{const t=String(x.r.t||'').trim().toLowerCase();if(t)m[t]=(m[t]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1]).slice(0,5):[];
+    pg.innerHTML=`<section class="lv lv-host">${top}<div class="lv-q"><div class="lv-qtop"><span class="lv-ans"><b>${right}</b> of ${vals.length} right${L.players.size>vals.length?` · ${L.players.size-vals.length} didn’t answer`:''}</span><span class="np-sp"></span><button class="btn primary" data-t="lhboard">Leaderboard</button></div>
+     <div class="lv-prompt">${it.prompt}</div>${it.fig?`<div class="lv-fig">${it.fig}</div>`:''}${opts(counts)}
+     ${it.kind!=='mc'?`<p class="lv-correct">Answer: ${it.answer}</p>${wrong.length?`<p class="hm-muted">Wrong answers: ${wrong.map(([t,c])=>esc(t)+(c>1?' ×'+c:'')).join(', ')}</p>`:''}`:''}${it.why?`<p class="qz-why lv-why">${it.why}</p>`:''}</div></section>`;tcTex(pg);return}
+  const B=lhBoard(L);
+  if(L.st==='board'){const gain=Object.fromEntries([...L.players.entries()].map(([u,p])=>[p.n,L.gain[u]||0]));
+    pg.innerHTML=`<section class="lv lv-host">${top}<div class="lv-board"><h2>Leaderboard</h2><ol>${B.slice(0,5).map(x=>`<li><span>${esc(x.n)}</span><b>${x.s.toLocaleString()}</b>${gain[x.n]?`<small>+${gain[x.n]}</small>`:''}</li>`).join('')||'<li class="hm-muted">No one has scored yet.</li>'}</ol>
+     <button class="btn primary lv-big" data-t="${L.i<n-1?'lhnext':'lhend'}">${L.i<n-1?'Next question':'Final results'}</button></div></section>`;return}
+  pg.innerHTML=`<section class="lv lv-host"><div class="lv-top"><b>${esc(L.title)}</b><span>Final results</span><span class="np-sp"></span><button class="btn" data-t="lhcsv">Download results</button><button class="btn" data-t="lhclose">Close game</button></div>
+   <div class="lv-podium">${[1,0,2].map(k=>B[k]?`<div class="lv-pod p${k+1}"><span>${esc(B[k].n)}</span><b>${B[k].s.toLocaleString()}</b><i>${k+1}</i></div>`:'').join('')}</div>
+   <div class="lv-final"><ol>${B.slice(3,20).map(x=>`<li><span>${esc(x.n)}</span><b>${x.s.toLocaleString()}</b></li>`).join('')}</ol></div>
+   <h2 class="qz-h">Question by question</h2><div class="qz-break">${L.items.map((it,i)=>{const v=Object.values(L.qres[i]||{}),ok=v.filter(x=>x.ok).length;return`<div class="qz-brow"><span>Q${i+1}. ${esc(tcClip(tcStrip(it.prompt),90))}</span><span class="nm-meter"><i style="width:${v.length?Math.round(100*ok/v.length):0}%"></i></span><b>${ok}/${v.length}</b></div>`}).join('')}</div></section>`}
+async function lhAct(k){const L=TC.live;if(!L)return;
+  if(k==='lhstart'){if(!L.players.size)return toast('Wait for at least one player to join.');return lhQuestion(0)}
+  if(k==='lhreveal')return lhReveal();
+  if(k==='lhboard'){L.st='board';clRender();return lhSet({st:'board'})}
+  if(k==='lhnext')return lhQuestion(L.i+1);
+  if(k==='lhend'){clearInterval(TC.ltick);L.st='end';clRender();return lhSet({st:'end',sc:L.sc,board:lhBoard(L).slice(0,10)})}
+  if(k==='lhcsv'){const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';const rows=[['Player','Score',...L.items.map((_,i)=>'Q'+(i+1))].map(q).join(',')];
+    for(const[u,p]of L.players)rows.push([p.n,L.sc[u]||0,...L.items.map((_,i)=>{const x=(L.qres[i]||{})[u];return x?(x.ok?'✓ ':'✗ ')+(x.r.k!=null?TC_L[x.r.k]:x.r.t||''):''})].map(q).join(','));
+    return saveFile('live-quiz-'+L.pin+'.csv','﻿'+rows.join('\r\n')).catch(()=>{})}
+  if(k==='lhclose'){clearInterval(TC.ltick);if(L.unsub)try{L.unsub()}catch(e){}const pin=L.pin;TC.live=null;CL.view='list';clRender();
+    try{const s=await lvRef(pin).collection('players').get();await Promise.all(s.docs.map(d=>d.ref.delete()));await lvRef(pin).delete()}catch(e){console.warn(e)}}}
+
+/* ---------- live class quiz: a player's phone ---------- */
+function lpOpen(pin){tcEnsure();TC.play={pin:String(pin||'').replace(/\D/g,'').slice(0,6),joined:false,live:null,unsub:null,ans:{},seen:{},items:{},prev:0};CL.view='liveplay';if(App.mode!=='classes')setMode('classes');clRender()}
+async function lpJoin(pin,name){pin=String(pin||'').replace(/\D/g,'');const err=$('#tcLiveErr')||$('#lpErr');const say=m=>{if(err)err.textContent=m;else toast(m)};
+  if(pin.length!==6)return say('The game PIN has 6 digits.');
+  if(!clOn()){tcClassOnlyDlg({pin});return}
+  name=String(name||'').trim()||TC.lpName||shMe().n;name=name.slice(0,40);
+  let d;try{d=await lvRef(pin).get()}catch(e){console.warn(e);return say('Couldn’t reach the game. Check your connection.')}
+  if(!d.exists)return say('No game has that PIN. Check the screen.');if(d.data().st==='end')return say('That game has finished.');
+  try{await lvRef(pin).collection('players').doc(FB.user.uid).set({n:name,a:{},at:Date.now()},{merge:true})}catch(e){console.warn(e);return say('Couldn’t join that game.')}
+  if(TC.play&&TC.play.unsub)try{TC.play.unsub()}catch(e){}
+  tcEnsure();TC.lpName=name;v18set('bondline.tc.liveName',name);
+  TC.play={pin,name,joined:true,live:d.data(),unsub:null,ans:{},seen:{},items:{},prev:0};CL.view='liveplay';if(App.mode!=='classes')setMode('classes');
+  TC.play.unsub=lvRef(pin).onSnapshot(s=>{const P=TC.play;if(!P||P.pin!==pin)return;if(!s.exists){P.live={st:'gone'};return lpRender()}const L=s.data();
+    if(L.st==='q'&&(!P.live||P.live.st!=='q'||P.live.i!==L.i))P.seen[L.i]=Date.now();if(L.st==='q'&&P.live&&P.live.st!=='q'&&P.live.sc)P.prev=(P.live.sc||{})[FB.user.uid]||0;
+    P.live=L;if(App.mode==='classes'&&CL.view==='liveplay')lpRender()},e=>{console.warn('live',e)});
+  clRender()}
+function lpItem(P,i){if(P.items[i])return P.items[i];const L=P.live,q=(L.qs||[])[i];const it=q?tcItem(q,L.seed+':'+i):null;P.items[i]=it;return it}
+async function lpAnswer(v){const P=TC.play;if(!P||!P.live||P.live.st!=='q')return;const i=P.live.i;if(P.ans[i]!=null)return;
+  const ms=Math.min(P.live.dur*1000,Date.now()-(P.seen[i]||Date.now()));P.ans[i]=v;lpRender();
+  try{await lvRef(P.pin).collection('players').doc(FB.user.uid).update({['a.'+i]:[v,ms],at:Date.now()})}catch(e){console.warn(e);P.ans[i]=null;lpRender();toast('Your answer didn’t send. Try again.')}}
+function lpRender(){const P=TC.play,pg=$('#classPage');
+  if(!P||!P.joined){const pin=P?P.pin:'';pg.innerHTML=`<section class="lv lv-play"><form class="lv-joinf" id="lpJoinF" autocomplete="off"><h1>Join a live quiz</h1><label class="cl-f">Game PIN<input id="lpPin" inputmode="numeric" maxlength="7" value="${esc(pin)}" placeholder="123 456"></label>
+    ${clOn()?`<label class="cl-f">Your name in the game<input id="lpName" maxlength="40" value="${esc(TC.lpName||v18get('bondline.tc.liveName','')||shMe().n)}"></label>`:''}<button class="btn primary lv-big" type="submit">${clOn()?'Join':'Continue'}</button><p class="cl-err" id="lpErr" role="alert"></p>
+    ${clOn()?'':'<p class="hm-muted">You’ll be asked for your first name. No email needed.</p>'}<button class="linkbtn" type="button" data-cla="back">Back to Classes</button></form></section>`;const f=$('#lpPin');if(f&&!pin)setTimeout(()=>f.focus(),40);return}
+  const L=P.live||{},me=FB.user&&FB.user.uid,sc=(L.sc||{})[me]||0,rank=1+Object.values(L.sc||{}).filter(s=>s>sc).length,np=Object.keys(L.sc||{}).length;
+  const head=`<div class="lv-ptop"><b>${esc(P.name)}</b><span>${sc.toLocaleString()} points</span><button class="linkbtn" data-t="lpleave">Leave</button></div>`;
+  const shell=x=>{pg.innerHTML=`<section class="lv lv-play">${head}${x}</section>`;tcTex(pg)};
+  if(L.st==='gone')return shell(`<div class="lv-wait"><h2>The game has ended</h2><p>The host closed the game.</p><button class="btn" data-t="lpleave">Back to Classes</button></div>`);
+  if(L.ver&&L.ver!==APP_VER)return shell(`<div class="lv-wait"><h2>Update Bondline</h2><p>This game needs the latest version. Reload the page, then join again.</p><button class="btn primary" data-t="reload">Reload</button></div>`);
+  if(L.st==='lobby')return shell(`<div class="lv-wait"><h2>You’re in!</h2><p>See your name on the screen? The quiz starts when your teacher presses Start.</p><p class="hm-muted">${esc(L.title||'')}</p></div>`);
+  const it=lpItem(P,L.i),mine=P.ans[L.i];
+  if(!it)return shell(`<div class="lv-wait"><h2>Question ${L.i+1}</h2><p>Look at the screen.</p></div>`);
+  if(L.st==='q'){if(mine!=null)return shell(`<div class="lv-wait"><h2>Answer locked in</h2><p>Waiting for everyone else…</p></div>`);
+    const ans=it.kind==='mc'?`<div class="lv-popts${it.struct?' struct':''}">${it.opts.map((o,j)=>`<button class="lv-popt" style="--c:${TC_LC[j%6]}" data-lpa="${j}"><span class="lv-shape">${TC_SHAPES[j%6]}</span><span>${o}</span></button>`).join('')}</div>`
+      :`<form class="tc-typed lv-ptyped" id="lpTyped" autocomplete="off"><input id="lpIn" ${it.kind==='num'?'inputmode="decimal" ':''}maxlength="120" placeholder="${it.kind==='num'?'Type a number':'Type your answer'}">${it.unit?`<span class="tc-unit">${esc(it.unit)}</span>`:''}<button class="btn primary" type="submit">Send</button></form>`;
+    shell(`<div class="lv-pq"><div class="lv-pqh"><span>Question ${L.i+1} of ${L.n}</span></div><div class="lv-prompt sm">${it.prompt}</div>${it.fig?`<div class="lv-fig sm">${it.fig}</div>`:''}${ans}</div>`);const inp=$('#lpIn');if(inp)setTimeout(()=>inp.focus(),40);return}
+  if(L.st==='rev'){let ok=false;if(mine!=null){const r=typeof mine==='number'?{k:mine}:{t:mine};if(it.kind==='mc'&&L.ra!=null){ok=r.k===L.ra}else if(it.kind==='text')ok=tcMark(Object.assign({},it,{acc:it.acc&&it.acc.length?it.acc:[String(L.ra||'')]}),r);else ok=tcMark(Object.assign({},it,{num:isFinite(it.num)?it.num:+L.ra}),r)}
+    const gained=Math.max(0,sc-P.prev);const right=it.kind==='mc'&&L.ra!=null?(it.struct?'Option '+TC_L[L.ra]:it.opts[L.ra]):it.answer||esc(String(L.ra==null?'':L.ra));
+    return shell(`<div class="lv-res ${mine==null?'none':ok?'ok':'bad'}"><h2>${mine==null?'Too slow!':ok?'Correct!':'Not this time'}</h2>${ok?`<p class="lv-gain">+${gained.toLocaleString()}</p>`:''}<p>Answer: <b>${right}</b></p>${it.why||L.rw?`<p class="qz-why">${it.why||tcTxt(L.rw)}</p>`:''}</div>`)}
+  if(L.st==='board')return shell(`<div class="lv-wait"><h2>You’re ${tcOrd(rank)}</h2><p>of ${tcPl(np,'player')}, with ${sc.toLocaleString()} points.</p></div>`);
+  if(L.st==='end')return shell(`<div class="lv-wait"><h2>${rank===1?'You won! 🏆':'You came '+tcOrd(rank)}</h2><p>${sc.toLocaleString()} points. Thanks for playing.</p><button class="btn" data-t="lpleave">Back to Classes</button></div>`);
+  shell('<div class="lv-wait"><p>Connecting…</p></div>')}
+function tcOrd(n){const s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0])}
+function lpLeave(){const P=TC.play;if(P&&P.unsub)try{P.unsub()}catch(e){}TC.play=null;CL.view='list';clRender()}
+
+/* ---------- co-teachers ---------- */
+async function tcNewTcode(c){if(!tcIsOwner(c))return;const code=clCode();
+  try{if(c.tcode)await FB.db.collection('teacherCodes').doc(c.tcode).delete().catch(()=>{});await clRef(c.id).update({tcode:code});await FB.db.collection('teacherCodes').doc(code).set({cid:c.id,by:FB.user.uid,at:Date.now()});toast('Teacher code ready. Share it only with other teachers.')}
+  catch(e){console.warn(e);toast('Couldn’t make a teacher code. Check that the latest database rules are published.')}}
+async function tcCoRemove(c,u){try{await clRef(c.id).update({teacherIds:tcFV().arrayRemove(u),['teacherNames.'+u]:tcFV().delete()});toast('Co-teacher removed.')}catch(e){console.warn(e);toast('Couldn’t remove the co-teacher.')}}
+async function tcCoLeave(c){const me=tcMe();try{await clRef(c.id).update({teacherIds:tcFV().arrayRemove(me),['teacherNames.'+me]:tcFV().delete()});TC.co.delete(c.id);clLeaveView();toast('You’ve stopped co-teaching that class.')}catch(e){console.warn(e);toast('Couldn’t leave the class.')}}
+
+// Deleting a class also removes its answer keys and co-teacher code.
+const _clDelete=clDelete;clDelete=async function(c){try{const s=await clRef(c.id).collection('keys').get();await Promise.all(s.docs.map(d=>d.ref.delete()));if(c.tcode)await FB.db.collection('teacherCodes').doc(c.tcode).delete().catch(()=>{})}catch(e){console.warn(e)}return _clDelete(c)};
+/* ---------- class notebooks: shared notebooks linked to a class ---------- */
+function tcNbEntries(c){return(c.nbs||[]).map(x=>{const[id,r]=String(x).split(':');return{raw:x,id,role:r==='e'?'editor':'viewer'}})}
+function tcNbTab(c){const me=tcMe(),ents=tcNbEntries(c),linked=new Set(ents.map(e=>e.id));
+  const mine=[...SH.nbs.values()].filter(n=>n.owner===me&&!linked.has(n.id)).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const rows=ents.map(e=>{const nb=SH.nbs.get(e.id),own=nb&&nb.owner===me;const inN=nb?(c.memberIds||[]).filter(u=>(nb.memberIds||[]).includes(u)).length:0;
+    return`<div class="tc-pp"><span class="fd-ic" aria-hidden="true">👥</span><span class="tc-ppn"><b>${esc(nb?nb.name:'Notebook')}</b><small>${nb?`${own?'Yours':'Linked by '+esc(((nb.people||{})[nb.owner]||{}).n||'another teacher')} · ${inN}/${(c.memberIds||[]).length} students added · students ${e.role==='editor'?'can edit':'can read'}`:'You’re not a member of this notebook yet. Its owner can sync it to add you.'}</small></span>
+     ${nb?`<button class="btn small" data-t="opennb" data-id="${esc(e.id)}">Open</button>`:''}${own?`<button class="btn small" data-t="nbrole" data-id="${esc(e.raw)}">${e.role==='editor'?'Make read only':'Let students edit'}</button><button class="btn small" data-t="nbsync" data-id="${esc(e.id)}">Sync now</button>`:''}${own||tcIsOwner(c)?`<button class="linkbtn" data-t="nbunlink" data-id="${esc(e.raw)}">Unlink</button>`:''}</div>`}).join('');
+  return`<div class="cl-sec-h"><h2 class="qz-h">Class notebooks</h2></div><p class="hm-muted">Link a shared notebook and every student in the class is added to it, now and when they join later. Co-teachers can edit. Students find it under Notes → Shared and on the class page.</p>
+   ${rows?`<div class="tc-ppl">${rows}</div>`:''}
+   ${ents.length<10?`<form class="cl-card cl-form tc-nbform" id="tcNbF"><h2>Link a notebook</h2><div class="cl-inl"><label class="cl-f cl-grow">Notebook<select id="tcNbSel">${mine.map(n=>`<option value="${esc(n.id)}">${esc(n.name)}</option>`).join('')}<option value="new"${mine.length?'':' selected'}>A new notebook…</option></select></label>
+     <label class="cl-f cl-grow" id="tcNbNameL"${mine.length?' hidden':''}>Name<input id="tcNbName" maxlength="100" value="${esc(c.name)} notes"></label><label class="cl-f">Students<select id="tcNbRole"><option value="viewer">Can read</option><option value="editor">Can edit</option></select></label></div>
+     <div class="syn-row"><span class="np-sp"></span><button class="btn primary" type="submit">Link</button></div></form>`:''}
+   ${(c.memberIds||[]).length>300?'<p class="hm-muted">Shared notebooks hold up to 320 people.</p>':''}`}
+async function tcNbLink(c,sel,name,role){const me=tcMe();let id=sel;
+  try{if(sel==='new'){name=String(name||'').trim().slice(0,100)||c.name+' notes';id=shKey(20);const doc={name,owner:me,roles:{[me]:'owner'},people:{[me]:shMe()},memberIds:[me],inviteEmails:[],inviteEditors:[],at:Date.now()};
+      await shRef(id).set(doc);SH.nbs.set(id,{id,...doc});try{shListen(id)}catch(e){}}
+    await clRef(c.id).update({nbs:tcFV().arrayUnion(id+(role==='editor'?':e':''))});const c2={...c,nbs:[...(c.nbs||[]),id+(role==='editor'?':e':'')]};await tcNbSync(c2,id,true);toast('Notebook linked. Students have been added.')}
+  catch(e){console.warn(e);toast('Couldn’t link the notebook.')}}
+async function tcNbSync(c,id,loud){const me=tcMe(),nb=SH.nbs.get(id);if(!nb||nb.owner!==me)return;const ent=tcNbEntries(c).find(e=>e.id===id);
+  const want=new Map();if(ent){for(const u of c.memberIds||[]){const m=CL.mem.get(u);if(m)want.set(u,{role:ent.role,p:{n:m.n,e:m.e||'',c:c.id}})}
+    for(const u of[c.owner,...(c.teacherIds||[])])if(u!==me)want.set(u,{role:'editor',p:{n:u===c.owner?c.ownerName||'Teacher':(c.teacherNames||{})[u]||'Co-teacher',e:'',c:c.id}})}
+  const ids=new Set(nb.memberIds||[]),up={};let changed=false;
+  for(const[u,w]of want){if(!ids.has(u)){ids.add(u);changed=true}if((nb.roles||{})[u]!==w.role&&(nb.roles||{})[u]!=='owner'){up['roles.'+u]=w.role;changed=true}if(!(nb.people||{})[u]){up['people.'+u]=w.p;changed=true}}
+  for(const u of[...ids]){const p=(nb.people||{})[u];if(u!==me&&p&&p.c===c.id&&!want.has(u)){ids.delete(u);up['roles.'+u]=tcFV().delete();up['people.'+u]=tcFV().delete();changed=true}}
+  if(!changed){if(loud)toast('Already up to date.');return}
+  if(ids.size>320)return toast('That notebook would have more than 320 people.');
+  up.memberIds=[...ids];try{await shRef(id).update(up);if(loud)toast('Notebook synced.')}catch(e){console.warn(e);if(loud)toast('Couldn’t sync the notebook.')}}
+const tcNbLast={};
+function tcNbAutoSync(c){const me=tcMe();if(!CL.mem.size&&(c.memberIds||[]).length)return;if(Date.now()-(tcNbLast[c.id]||0)<20000)return;tcNbLast[c.id]=Date.now();
+  for(const e of tcNbEntries(c)){const nb=SH.nbs.get(e.id);if(nb&&nb.owner===me)tcNbSync(c,e.id,false)}}
+async function tcNbUnlink(c,raw){const id=String(raw).split(':')[0];try{await clRef(c.id).update({nbs:tcFV().arrayRemove(raw)});const c2={...c,nbs:(c.nbs||[]).filter(x=>x!==raw)};await tcNbSync(c2,id,false);toast('Notebook unlinked. Students added by the class were removed from it.')}catch(e){console.warn(e);toast('Couldn’t unlink the notebook.')}}
+async function tcNbRole(c,raw){const[id,r]=String(raw).split(':'),nw=id+(r==='e'?'':':e');try{await clRef(c.id).update({nbs:(c.nbs||[]).map(x=>x===raw?nw:x)});await tcNbSync({...c,nbs:(c.nbs||[]).map(x=>x===raw?nw:x)},id,true)}catch(e){console.warn(e);toast('Couldn’t change that.')}}
+
+/* ---------- teacher plan and class passes ---------- */
+async function tcReqLoad(){if(!clOn()||tcAnon())return;try{const d=await FB.db.collection('teachers').doc(FB.user.uid).get();TC.req=d.exists?d.data():null}catch(e){TC.req=null}if(App.mode==='classes'&&(CL.view==='list'||CL.view==='tplan'))clRender()}
+function tpRender(){const pg=$('#classPage'),R=TC.req||{},u=FB.user||{},ent=PRO.ent||{},active=ent.teacher&&proActive();
+  const status=active?`<div class="cl-card tc-tpst ok"><h2>Your teacher plan is active</h2><p>Bondline Pro is on until ${esc(v18Date(proUntil()))}. Thank you for teaching with Bondline.</p></div>`
+    :R.st==='pending'?`<div class="cl-card tc-tpst"><h2>We’re checking your details</h2><p>Sent ${esc(tcDate(R.at))}. We’ll switch Pro on for this account when we’ve checked them, usually within two working days. You can update your details below.</p></div>`
+    :R.st==='no'?`<div class="cl-card tc-tpst bad"><h2>We couldn’t verify that</h2><p>Add a school or centre website, or a work email, and send it again. Questions? Email <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p></div>`:'';
+  pg.innerHTML=`<section class="cl tc"><header class="nm-head"><div class="nm-kicker"><button class="linkbtn" data-cla="back">← Classes</button></div><h1>Bondline for teachers</h1><p class="nm-lede">Classes, quizzes, worksheets and live games are free for everyone. Verified teachers, lecturers and tutors also get <b>Bondline Pro free</b>: every course unit, mock exams and weak-spot practice.</p></header>
+   ${status}
+   <div class="tc-tpgrid">${R.st==='ok'?'<div></div>':`<form class="cl-card cl-form" id="tpForm" autocomplete="off"><h2>${R.st?'Update your details':'Ask for the teacher plan'}</h2>
+    <div class="cl-inl"><label class="cl-f cl-grow">Your name<input id="tpN" maxlength="80" required value="${esc(R.n||u.displayName||'')}"></label><label class="cl-f cl-grow">Work email <small>if you have one</small><input id="tpE" type="email" maxlength="120" value="${esc(R.e||u.email||'')}"></label></div>
+    <div class="cl-inl"><label class="cl-f cl-grow">School, university or centre<input id="tpS" maxlength="120" required value="${esc(R.school||'')}" placeholder="Name, and its website if it has one"></label><label class="cl-f">You are<select id="tpR">${[['school','A school teacher'],['lecturer','A lecturer'],['tutor','A private tutor'],['centre','Running a tuition centre'],['other','Something else']].map(([v,t])=>`<option value="${v}"${R.role===v?' selected':''}>${t}</option>`).join('')}</select></label></div>
+    <div class="cl-inl"><label class="cl-f">Country<input id="tpC" maxlength="60" value="${esc(R.country||'')}" placeholder="Malaysia"></label><label class="cl-f">Students you teach<input id="tpK" type="number" min="0" max="100000" value="${esc(R.students!=null?R.students:'')}" placeholder="40"></label></div>
+    <label class="cl-f">How will you use Bondline? <small>optional</small><textarea id="tpU" rows="3" maxlength="1000">${esc(R.use||'')}</textarea></label>
+    <div class="syn-row"><span class="np-sp"></span><button class="btn primary" type="submit">${R.st?'Send again':'Send'}</button></div></form>`}
+    <div class="cl-card tc-tpside"><h2>Tuition centres and departments</h2><p>Class passes give every student in your classes Bondline Pro while they’re enrolled, so they can use every course unit and mock exam at home.</p><p class="hm-muted">Priced per class, per term. Tell us how many classes and students you have.</p><a class="btn" href="mailto:bondlinenotes@gmail.com?subject=Bondline class passes">Email us about class passes</a></div></div></section>`}
+async function tpSubmit(){const v=id=>($('#'+id).value||'').trim();const doc={n:v('tpN').slice(0,80),e:v('tpE').slice(0,120),school:v('tpS').slice(0,120),role:$('#tpR').value,country:v('tpC').slice(0,60),students:Math.max(0,Math.min(100000,parseInt(v('tpK'),10)||0)),use:v('tpU').slice(0,1000),st:'pending',at:Date.now()};
+  if(!doc.n||!doc.school)return toast('Add your name and your school or centre.');
+  try{await FB.db.collection('teachers').doc(FB.user.uid).set(doc);TC.req=doc;clRender();toast('Sent. We’ll be in touch.')}catch(e){console.warn(e);toast('Couldn’t send that. Check that the latest database rules are published.')}}
+let tcPassT=0;
+async function tcPassCheck(){if(!clOn())return;clearTimeout(tcPassT);tcPassT=setTimeout(async()=>{const me=tcMe();let until=0,by={};
+  for(const c of CL.joined.values()){if(!c.owner)continue;let p=TC.passCache&&TC.passCache[c.owner];
+    if(!p||Date.now()-p.t>6e5){try{const d=await FB.db.collection('passes').doc(c.owner).get();p={t:Date.now(),d:d.exists?d.data():null}}catch(e){p={t:Date.now(),d:null}}(TC.passCache=TC.passCache||{})[c.owner]=p}
+    const d=p.d;if(d&&+d.seats>0&&+d.until>Date.now()&&(c.memberIds||[]).indexOf(me)>-1&&(c.memberIds||[]).indexOf(me)<+d.seats){until=Math.max(until,+d.until);by[c.owner]=true}}
+  const was=TC.passUntil;TC.passUntil=until;TC.pass=by;if(!!was!==!!until){syncProUI();if(until)toast('Your class gives you Bondline Pro.')}},800)}
+const _proUntil=proUntil;proUntil=function(e){const v=_proUntil(e);return!e||e===PRO.ent?Math.max(v,TC.passUntil||0):v};
+const _clRefresh=clRefresh;clRefresh=function(){_clRefresh();if(CL.joined.size)tcPassCheck()};
+
+/* ---------- class-only accounts (no email; for students under 13 or without an address) ---------- */
+function tcClassOnlyDlg(pre){pre=pre||{};let sc=$('#tcCoScrim');if(!sc){sc=document.createElement('div');sc.id='tcCoScrim';sc.className='scrim v17-scrim';sc.hidden=true;sc.innerHTML='<div class="help auth tc-dlg" role="dialog" aria-modal="true" aria-labelledby="tcCoT"><div id="tcCoB"></div></div>';document.body.appendChild(sc);
+    sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('[data-co="close"]')){sc.hidden=true;document.body.classList.remove('sk-lock')}});
+    sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();sc.hidden=true;document.body.classList.remove('sk-lock')}});
+    sc.addEventListener('submit',e=>{e.preventDefault();tcClassOnlyGo()})}
+  $('#tcCoB').innerHTML=`<form id="tcCoF" autocomplete="off"><h2 id="tcCoT">Join with a class code</h2><p>No email needed. Your teacher sees only the name you type here and your scores.</p>
+   <label class="cl-f">Class code or game PIN<input id="tcCoCode" maxlength="9" value="${esc(pre.pin||clFmt(pre.code||CL.pendingCode||''))}" placeholder="ABCD-2345 or 123456" autocapitalize="characters"></label>
+   <div class="cl-inl"><label class="cl-f cl-grow">First name<input id="tcCoFirst" maxlength="30" autocomplete="off"></label><label class="cl-f">First letter of your last name<input id="tcCoLast" maxlength="1" autocomplete="off"></label></div>
+   <p class="hm-muted">This makes a class-only account on this device. Don’t use your full name. If you log out or clear the browser, you can’t get back in. If you’re under 13, your teacher or school is responsible for getting your parent’s or guardian’s permission.</p>
+   <p class="auth-err" id="tcCoErr" role="alert" hidden></p><div class="nm-actions"><button class="btn primary" type="submit">Join</button><button class="linkbtn" type="button" data-co="close">Not now</button></div></form>`;
+  sc.hidden=false;document.body.classList.add('sk-lock');setTimeout(()=>{const f=$('#tcCoCode');if(f&&f.value)$('#tcCoFirst').focus();else if(f)f.focus()},40)}
+async function tcClassOnlyGo(){const raw=($('#tcCoCode').value||'').trim(),first=($('#tcCoFirst').value||'').trim(),last=($('#tcCoLast').value||'').trim();const err=$('#tcCoErr'),say=m=>{err.textContent=m;err.hidden=false};
+  const pin=raw.replace(/\D/g,'');const isPin=/^\d{6}$/.test(raw.replace(/\s/g,''));const code=clNorm(raw);
+  if(!isPin&&code.length!==8)return say('Type the 8-character class code or the 6-digit game PIN.');if(!first)return say('Type your first name.');
+  const name=(first.charAt(0).toUpperCase()+first.slice(1)+(last?' '+last.toUpperCase()+'.':'')).slice(0,40);
+  try{sessionStorage.setItem('bondline.tcAuto',JSON.stringify(isPin?{pin,name}:{code,name}))}catch(e){}
+  try{localStorage.setItem('bondline.welcomed','1')}catch(e){}
+  const b=$('#tcCoF button[type="submit"]');if(b){b.disabled=true;b.textContent='Joining…'}
+  try{await fbLoad();const r=await FB.auth.signInAnonymously();await r.user.updateProfile({displayName:name});$('#tcCoScrim').hidden=true;document.body.classList.remove('sk-lock');await afterSignIn(r.user)}
+  catch(e){console.warn(e);if(b){b.disabled=false;b.textContent='Join'}try{sessionStorage.removeItem('bondline.tcAuto')}catch(x){}
+    say(e&&e.code==='auth/operation-not-allowed'?'Class-only accounts aren’t switched on for this site yet. Ask your teacher.':e&&/network/.test(e.code||'')?'No connection. Check your internet and try again.':'Couldn’t join. Try again.')}}
+async function tcAutoAfterSignIn(){let job=null;try{job=JSON.parse(sessionStorage.getItem('bondline.tcAuto')||'null')}catch(e){}if(!job)return;
+  for(let k=0;k<40&&!clOn();k++)await new Promise(r=>setTimeout(r,250));try{sessionStorage.removeItem('bondline.tcAuto')}catch(e){}if(!clOn())return;
+  if(job.pin){TC.lpName=job.name;return lpJoin(job.pin,job.name)}
+  if(job.code){setMode('classes');CL.pendingCode=job.code;clRender();setTimeout(()=>clJoin(job.code),300)}}
+
+/* ---------- reviewing a finished assignment ---------- */
+function tcReview(a){const c=clGet(CL.cur),r=CL.res.get(a.id+'_'+tcMe());if(!c||!r||a.kind!=='quiz')return;const items=tcItems(a.qs,a.id).map((it,idx)=>it?Object.assign(it,{idx}):null).filter(Boolean);
+  const resp=[];(r.qk||[]).forEach((k,i)=>{if(k>=0)resp[i]={k}});(r.qt||[]).forEach((t,i)=>{if(t)resp[i]={t}});
+  TC.run={cid:c.id,a,title:a.title,items,n:a.qs.length,i:0,resp,shown:[],flag:[],mode:'test',limit:0,t0:Date.now(),sw:0,done:true,preview:false,secure:false,back:'class',secs:r.secs||0,res:{score:r.first!=null?r.first:r.best,total:r.total,qo:r.qo||[]}};
+  CL.view='run';clRender()}
+
+/* ---------- wiring ---------- */
+function tcAsgPreview(c,a){
+  if(a.kind==='cards')return tcCardsStart(c,a,true);
+  const items=tcItems(a.qs,a.id),go=()=>trStart({c,a,items,title:a.title,opt:Object.assign({},a.opt,{secure:false}),preview:true,back:'class'});
+  if(!(a.opt||{}).secure)return go();
+  clRef(c.id).collection('keys').doc(a.id).get().then(d=>{const K=d.exists?d.data():{a:[],w:[]};items.forEach((it,i)=>{if(it&&K.a[i]!=null)tcApplyKey(it,K.a[i],K.w[i])});go()}).catch(()=>go())}
+function tcLoadKeys(c,a){if(!(a.opt||{}).secure||(TC.keys||{})[a.id])return;(TC.keys=TC.keys||{})[a.id]=1;
+  clRef(c.id).collection('keys').doc(a.id).get().then(d=>{if(!d.exists)return;const K=d.data(),items=tcInsItems(a);items.forEach((it,i)=>{if(it&&K.a[i]!=null)tcApplyKey(it,K.a[i],K.w[i])});if(CL.view==='class')clRender()}).catch(()=>{})}
+function tcClick(e){const t=e.target;
+  const tab=t.closest('[data-ttab]');if(tab){TC.tab=tab.dataset.ttab;v18set('bondline.tc.tab',TC.tab);if(TC.tab!=='results')TC.stu=null;CL.form=null;clRender();$('#main').scrollTop=0;return}
+  const ro=t.closest('[data-tro]');if(ro&&!ro.disabled)return trAnswer({k:+ro.dataset.tro});
+  const rn=t.closest('[data-trn]');if(rn)return trNav(rn.dataset.trn);
+  const tk=t.closest('[data-tk]');if(tk)return tcCardsAct(tk.dataset.tk);
+  const qa=t.closest('[data-qa]');if(qa&&qa.dataset.qa)return qeAct(qa.dataset.qa,qa.dataset.i,qa.dataset.k);
+  const lpa=t.closest('[data-lpa]');if(lpa)return lpAnswer(+lpa.dataset.lpa);
+  const ts=t.closest('[data-tsel]');if(ts&&CL.form){tcFormRead();const id=ts.dataset.tsel,S=CL.form.bsel;S.has(id)?S.delete(id):S.add(id);return clRender()}
+  const b=t.closest('[data-t]');if(!b||b.disabled)return;const k=b.dataset.t,id=b.dataset.id,c=clGet(CL.cur);
+  switch(k){
+    case'quizzes':tcEnsure();CL.form=null;TC.paste=null;CL.view='quizzes';if(App.mode!=='classes')setMode('classes');clRender();renderClassSide();$('#main').scrollTop=0;return;
+    case'livenew':return lhSetup({cid:b.dataset.cid||''});
+    case'tplan':tcEnsure();CL.view='tplan';clRender();tcReqLoad();return;
+    case'classonly':return tcClassOnlyDlg({});
+    case'newasg':TC.tab='work';CL.form=tcNewForm('bank');clRender();setTimeout(()=>{const x=$('#clTitle');if(x)x.focus()},30);return;
+    case'asgquiz':TC.tab='work';CL.form=tcNewForm('myquiz');clRender();return;
+    case'ins':TC.ins=id;TC.tab='insights';v18set('bondline.tc.tab','insights');{const a=CL.asg.get(id);if(a&&c)tcLoadKeys(c,a)}clRender();return;
+    case'preview':{const a=CL.asg.get(id);if(a&&c)tcAsgPreview(c,a);return}
+    case'wsasg':{const a=CL.asg.get(id);if(!a||!c)return;tcLoadKeys(c,a);const go=()=>tcWsDialog({title:a.title,kicker:c.name,items:tcInsItems(a)});return(a.opt||{}).secure?setTimeout(go,600):go()}
+    case'stu':TC.stu=id||null;TC.tab='results';clRender();if(id){const x=document.querySelector('.tc-sd');if(x)x.scrollIntoView({block:'nearest'})}return;
+    case'clearres':if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Click again to clear';return}clRef(c.id).collection('results').doc(id).delete().then(()=>toast('Result cleared. The student can try again.')).catch(()=>toast('Couldn’t clear it.'));return;
+    case'anscsv':{const a=CL.asg.get(id);if(a&&c)tcAnsCSV(c,a);return}
+    case'setweak':if(c)tcSetWeak(c,String(b.dataset.keys||'').split(',').filter(Boolean));return;
+    case'corm':if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Click again';return}return tcCoRemove(c,id);
+    case'coleave':if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Click again to stop co-teaching';return}return tcCoLeave(c);
+    case'newtcode':return tcNewTcode(c);
+    case'copytcode':navigator.clipboard&&navigator.clipboard.writeText(clFmt(c.tcode)).then(()=>toast('Teacher code copied.'),()=>toast(clFmt(c.tcode)));return;
+    case'copytlink':{const u=location.origin+'/?teach='+c.tcode;navigator.clipboard&&navigator.clipboard.writeText(u).then(()=>toast('Link copied.'),()=>toast(u));return}
+    case'wsjoin':return tcJoinSlips(c);
+    case'opennb':return shShowNb(id);
+    case'nbsync':return tcNbSync(c,id,true);
+    case'nbunlink':if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Click again';return}return tcNbUnlink(c,id);
+    case'nbrole':return tcNbRole(c,id);
+    case'review':{const a=CL.asg.get(id);if(a)tcReview(a);return}
+    case'again':{const R=TC.run;if(R&&R.a){TC.run=null;CL.view='class';clGo(R.a.id)}return}
+    case'retrymark':{const R=TC.run;if(R){R.done=false;trFinish(true)}return}
+    case'newquiz':TC.paste=null;return qeOpen(null);
+    case'pastequiz':TC.paste={text:'',to:CL.view==='qedit'&&TC.ed?'__ed':''};clRender();setTimeout(()=>{const x=$('#tcPasteT');if(x){x.scrollIntoView({block:'center'});x.focus()}},40);return;
+    case'pastecancel':TC.paste=null;return clRender();
+    case'editquiz':return qeOpen(id);
+    case'setquiz':TC.setPick=id||null;return clRender();
+    case'setquizgo':{const cid=$('#tcSetCls').value;TC.setPick=null;clOpenClass(cid,true);TC.tab='work';CL.form=tcNewForm('myquiz',{qid:id});clRender();return}
+    case'livequiz':return lhSetup({src:'quiz',qid:id});
+    case'wsquiz':{const q=TC.qz.get(id);if(q)tcWsDialog({title:q.title,items:tcItems(q.qs,'qz:'+q.id)});return}
+    case'pvquiz':{const q=TC.qz.get(id);if(q)trStart({items:tcItems(q.qs,'qz:'+q.id),title:q.title,opt:{mode:'practice'},preview:true,back:'quizzes'});return}
+    case'dupquiz':{const q=TC.qz.get(id);if(q)qeOpen(null,{title:tcClip(q.title+' (copy)',120),desc:q.desc||'',qs:(q.qs||[]).map(x=>JSON.parse(JSON.stringify(x))),dirty:true});return}
+    case'delquiz':if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Click again to delete';setTimeout(()=>{b.classList.remove('armed');b.textContent='Delete'},3000);return}
+      FB.db.collection('quizzes').doc(id).delete().then(()=>{TC.qz.delete(id);clRender();toast('Quiz deleted. Assignments already set keep their copy.')}).catch(()=>toast('Couldn’t delete it.'));return;
+    case'edback':if(TC.ed&&TC.ed.dirty&&Date.now()-(TC.edWarn||0)>4000){TC.edWarn=Date.now();return toast('You have unsaved changes. Press again to leave without saving.')}TC.ed=null;TC.bank=null;TC.paste=null;CL.view='quizzes';return clRender();
+    case'edsave':return qeSave();
+    case'edpv':{const E=TC.ed;return trStart({items:tcItems(E.qs,'qz:'+(E.id||'new')),title:E.title||'Untitled quiz',opt:{mode:'practice'},preview:true,back:'qedit'})}
+    case'edws':{const E=TC.ed;return tcWsDialog({title:($('#qeTitle')||{}).value||E.title||'Quiz',items:tcItems(E.qs,'qz:'+(E.id||'new'))})}
+    case'edlive':case'edset':qeSave().then(qid=>{if(!qid)return;if(k==='edlive')lhSetup({src:'quiz',qid});else{TC.ed=null;TC.setPick=qid;CL.view='quizzes';clRender()}});return;
+    case'addq':{const E=TC.ed;if(!E||E.qs.length>=60)return;const t=b.dataset.k;E.qs.push(t==='mc'?{t,p:'',o:['','','',''],a:0}:t==='tf'?{t,p:'',a:0}:t==='text'?{t,p:'',a:[]}:{t,p:'',a:''});E.open=E.qs.length-1;E.dirty=true;qeRender();setTimeout(()=>{const x=document.querySelector('.tc-qc.open textarea[data-qf="p"]');if(x){x.scrollIntoView({block:'center'});x.focus()}},40);return}
+    case'bankopen':TC.bank={src:TC.bank?TC.bank.src:'naming',topic:'',q:'',sel:new Set(),page:0};qeRender();setTimeout(()=>{const x=$('#tcBank');if(x)x.scrollIntoView({block:'start'})},40);return;
+    case'bankclose':TC.bank=null;return qeRender();
+    case'bankadd':return tcBankAdd([...TC.bank.sel]);
+    case'bankrand':{const B=TC.bank,S=tcSrc(B.src),have=new Set(TC.ed.qs.map(x=>x.b));const pool=shuffle(tcSrcBank(S,B.topic?[B.topic]:[]).filter(x=>!have.has(x.ref)));return tcBankAdd(pool.slice(0,+($('#tbRandN')||{}).value||5).map(x=>x.ref))}
+    case'bankpg':TC.bank.page=Math.max(0,TC.bank.page+(+b.dataset.k));return tcBankRefresh();
+    case'lhstart':case'lhreveal':case'lhboard':case'lhnext':case'lhend':case'lhcsv':case'lhclose':return lhAct(k);
+    case'lpleave':return lpLeave();
+    case'reload':return location.reload();
+  }}
+function tcSubmitF(e){const f=e.target;
+  if(f.id==='tcLiveF'){e.preventDefault();e.stopImmediatePropagation();const pin=$('#tcLivePin').value;if(!clOn())return tcClassOnlyDlg({pin:pin.replace(/\D/g,'')});TC.lpPin=pin;return lpOpen(pin)}
+  if(f.id==='lpJoinF'){e.preventDefault();e.stopImmediatePropagation();const pin=$('#lpPin').value;if(!clOn())return tcClassOnlyDlg({pin:pin.replace(/\D/g,'')});return lpJoin(pin,($('#lpName')||{}).value)}
+  if(f.id==='lpTyped'){e.preventDefault();e.stopImmediatePropagation();const v=($('#lpIn').value||'').trim();if(v)lpAnswer(v.slice(0,120));return}
+  if(f.id==='trForm'){e.preventDefault();e.stopImmediatePropagation();const v=($('#trIn').value||'').trim();if(!v)return;trAnswer({t:v.slice(0,120)});if(TC.run&&TC.run.mode==='test'){toast('Answer saved.')}return}
+  if(f.id==='tcPasteF'){e.preventDefault();e.stopImmediatePropagation();const P=tcParsePaste($('#tcPasteT').value),to=$('#tcPasteTo').value,err=$('#tcPasteErr');
+    if(!P.qs.length){err.textContent='Nothing to add. Put a blank line between questions.';return}
+    if(TC.paste.to==='__ed'&&TC.ed&&!to){const E=TC.ed;E.qs.push(...P.qs.slice(0,60-E.qs.length));E.dirty=true;TC.paste=null;qeRender()}
+    else if(to){const q=TC.qz.get(to);qeOpen(to);TC.ed.qs.push(...P.qs.slice(0,60-TC.ed.qs.length));TC.ed.dirty=true;TC.paste=null;qeRender()}
+    else{qeOpen(null,{qs:P.qs.slice(0,60)});TC.paste=null;qeRender()}
+    toast(`Added ${tcPl(P.qs.length,'question')}${P.bad.length?`. Check ${P.bad.length===1?'question '+P.bad[0]:'questions '+P.bad.join(', ')}: something is missing.`:'.'} Press Save when you’re done.`);return}
+  if(f.id==='lsForm'){e.preventDefault();e.stopImmediatePropagation();lsRead();return lhCreate()}
+  if(f.id==='tpForm'){e.preventDefault();e.stopImmediatePropagation();return tpSubmit()}
+  if(f.id==='tcNbF'){e.preventDefault();e.stopImmediatePropagation();const c=clGet(CL.cur);if(c)tcNbLink(c,$('#tcNbSel').value,($('#tcNbName')||{}).value,$('#tcNbRole').value);return}}
+function lsRead(){const S=TC.lset;if(!S)return;const r=document.querySelector('input[name="lsSrc"]:checked');if(r)S.src=r.value;const g=id=>{const e=$('#'+id);return e?e.value:null};
+  if(g('lsQid')!=null)S.qid=g('lsQid');if(g('lsBsrc')!=null)S.bsrc=g('lsBsrc');if(g('lsBtopic')!=null)S.btopic=g('lsBtopic');if(g('lsBn')!=null)S.bn=+g('lsBn');if(g('lsDur')!=null)S.dur=+g('lsDur')}
+function tcChange(e){const t=e.target;
+  if(t.dataset&&t.dataset.qf&&(t.tagName==='SELECT'||t.type==='radio'))return qeField(t);
+  if(t.dataset&&t.dataset.bsel!=null){const B=TC.bank;if(!B)return;t.checked?B.sel.add(t.dataset.bsel):B.sel.delete(t.dataset.bsel);t.closest('.tc-bq').classList.toggle('on',t.checked);const ab=document.querySelector('[data-t="bankadd"]');if(ab){ab.disabled=!B.sel.size;ab.textContent='Add '+(B.sel.size||'')+' selected'}return}
+  if(t.id==='tbSrc'){TC.bank.src=t.value;TC.bank.topic='';TC.bank.page=0;return tcBankRefresh()}
+  if(t.id==='tbTopic'){TC.bank.topic=t.value;TC.bank.page=0;return tcBankRefresh()}
+  if(t.id==='tfSrc'&&CL.form){tcFormRead();CL.form.src=t.value;CL.form.bsel=new Set();return clRender()}
+  if((t.id==='tfQid'||t.id==='tfMode'||t.id==='tfSecure')&&CL.form){tcFormRead();return clRender()}
+  if(t.name==='lsSrc'||t.id==='lsBsrc'){lsRead();if(t.id==='lsBsrc')TC.lset.btopic='';return clRender()}
+  if(t.id==='tcNbSel'){const l=$('#tcNbNameL');if(l)l.hidden=t.value!=='new'}}
+let tcSearchT=0;
+function tcInput(e){const t=e.target;
+  if(t.dataset&&t.dataset.qf&&t.tagName!=='SELECT'&&t.type!=='radio')return qeField(t);
+  if((t.id==='qeTitle'||t.id==='qeDesc')&&TC.ed){TC.ed[t.id==='qeTitle'?'title':'desc']=t.value;TC.ed.dirty=true;qeBar();return}
+  if(t.id==='tbQ'&&TC.bank){TC.bank.q=t.value;TC.bank.page=0;clearTimeout(tcSearchT);tcSearchT=setTimeout(()=>{tcBankRefresh();const x=$('#tbQ');if(x){x.focus();x.setSelectionRange(x.value.length,x.value.length)}},250);return}
+  if(t.id==='tcPasteT'&&TC.paste){TC.paste.text=t.value}}
+function wireV27(){
+  const pg=$('#classPage');
+  pg.addEventListener('submit',tcSubmitF,true);
+  pg.addEventListener('click',tcClick);pg.addEventListener('change',tcChange);pg.addEventListener('input',tcInput);
+  $('#classSide').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)tcClick(e)});
+  // students without an account (or under 13) can still join a class from the age check
+  const _abv=ageBlockedView;ageBlockedView=function(){_abv();const body=$('#ageBody');if(body&&!body.querySelector('[data-tco]')){const p=document.createElement('p');p.innerHTML='<button class="btn" type="button" data-tco="1">Joining your teacher’s class? Use a class code</button>';body.insertBefore(p,body.lastElementChild);p.querySelector('button').onclick=()=>{ageClose();tcClassOnlyDlg({})}}};
+  const _ra=renderAcct;renderAcct=function(){_ra();const el=$('#acct');if(el&&FB.user&&FB.user.isAnonymous&&!el.querySelector('.tc-anon')){const p=document.createElement('p');p.className='acct-note tc-anon';p.textContent='Class-only account on this device. If you log out, you can’t get back in.';el.appendChild(p)}};
+  CHANGELOG.unshift({v:'27',d:'11 November 2026',t:'Teaching tools: your own quizzes, live games and class insights',items:[
+    ['Make your own quizzes','Classes → My quizzes. Write multiple-choice, true-or-false, short-answer and number questions, with structures and maths, and mix in any of Bondline’s questions from any topic or course unit. You can paste in questions you already have.'],
+    ['Set anything as class work','Quizzes in practice or test mode with time limits, attempt limits and answers shown when you choose, plus papers from any course unit, stereochemistry, drills and flashcard decks.'],
+    ['Insights','See which questions and options students got wrong, common wrong answers, time taken, and the class’s weakest topics, with one click to set practice on them.'],
+    ['Worksheets','Print any quiz with an answer key on a separate page, or save it as a PDF. Print join slips with the class code.'],
+    ['Live quizzes','Play a quiz on the big screen. Students join on their phones with a PIN and see a leaderboard after each question.'],
+    ['Co-teachers and class notebooks','Invite another teacher to share a class, and link shared notebooks so every student is added automatically.'],
+    ['Class-only accounts','Students without an email address, or under 13, can join a class or live quiz with just a first name.'],
+    ['Free Pro for teachers','Verified teachers get Bondline Pro free. Tuition centres can add class passes for their students.']]});
+}
+const TC_TEST=/[?&]bltest\b/.test(location.search);
+const TC_Q=new URLSearchParams(location.search);
+function v27AfterBoot(){
+  const q=TC_Q;
+  try{if(q.has('live')){lpOpen(q.get('live'));history.replaceState(null,'',location.pathname+location.hash)}
+    else if(q.get('teach')){CL.pendingCode=clNorm(q.get('teach'));try{sessionStorage.setItem('bondline.classCode',CL.pendingCode)}catch(e){}setMode('classes');history.replaceState(null,'',location.pathname+location.hash)}}catch(e){console.warn(e)}
+  tcAutoAfterSignIn();
+  // Is the server marking function deployed? (Only when the site is deployed from GitHub or the CLI.)
+  fetch('/api/grade-quiz',{method:'GET'}).then(r=>r.ok?r.json():null).then(j=>{TC.fnOK=!!(j&&j.ok&&j.ready)}).catch(()=>{TC.fnOK=false});
+  TC.lpName=v18get('bondline.tc.liveName','');
+  if(TC_TEST)Object.assign(window.__bl||(window.__bl={}),{TC,tcItems,tcItem,tcCusItem,tcBankItem,tcMark,tcParsePaste,tcParseNum,tcCleanQ,tcQReady,trStart,qeOpen,lhSetup,lhCreate,lpJoin,lpOpen,tcWsPrint,tcWsDialog,tcSubmit,CL,clRender,clOpenClass,tcSrcBank,TC_SRC,tcKeyOf,tcSeeded,APP_VER,tcClassOnlyDlg,tcNbSync,tcPassCheck,proUntil,proActive,PRO,COURSES,allDecks})}
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();
+boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

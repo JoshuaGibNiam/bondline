@@ -95,9 +95,9 @@ service cloud.firestore {
       return d.keys().hasOnly(['name', 'owner', 'roles', 'people', 'memberIds', 'inviteEmails', 'inviteEditors', 'at', 'joinKey', 'linkKey', 'linkRole'])
           && d.name is string && d.name.size() > 0 && d.name.size() <= 100
           && d.owner is string
-          && d.roles is map && d.roles.size() <= 100
-          && d.people is map && d.people.size() <= 100
-          && d.memberIds is list && d.memberIds.size() <= 100
+          && d.roles is map && d.roles.size() <= 320
+          && d.people is map && d.people.size() <= 320
+          && d.memberIds is list && d.memberIds.size() <= 320
           && d.inviteEmails is list && d.inviteEmails.size() <= 100
           && d.inviteEditors is list && d.inviteEditors.size() <= 100
           && d.roles[d.owner] == 'owner'
@@ -237,7 +237,14 @@ service cloud.firestore {
                 && d.keys().hasOnly(['v', 'at', 'terms'])
                 && d.terms is list && d.terms.size() <= 500
                 && d.at is number)
-          || (docId != '_meta' && docId != '_quiz' && docId != '_gloss'
+          || (docId == '_study'
+                && d.keys().hasOnly(['v', 'upd', 'tasks', 'blocks', 'exams', 'goals', 'sessions', 'timer'])
+                && d.tasks is list && d.tasks.size() <= 2000
+                && d.blocks is list && d.blocks.size() <= 300
+                && d.exams is list && d.exams.size() <= 200
+                && d.sessions is list && d.sessions.size() <= 3000
+                && d.goals is map && d.timer is map)
+          || (docId != '_meta' && docId != '_quiz' && docId != '_gloss' && docId != '_study'
                 && docId.size() <= 100
                 && d.keys().hasOnly(['title', 'tag', 'tags', 'folder', 'pinned', 'comments', 'deleted', 'share', 'updated', 'blocks'])
                 && d.title is string && d.title.size() <= 500
@@ -252,36 +259,55 @@ service cloud.firestore {
                 && d.blocks is list && d.blocks.size() <= 400);
     }
 
-    // ---------- Classes (version 16) ----------
+    // ---------- Classes (version 16, extended in version 27) ----------
     // A lecturer owns a class. Students join with its 8-character code, which only members can see.
+    // Co-teachers (version 27) join with a separate teacher code and can set work and see results.
     // Members read the class and its assignments. Students' names, emails and results are readable
-    // only by the lecturer and by that student.
+    // only by the class's teachers and by that student.
     match /classes/{cid} {
-      allow get, list: if signedIn() && (resource.data.owner == request.auth.uid || request.auth.uid in resource.data.memberIds);
+      allow get: if signedIn() && (resource.data.owner == request.auth.uid
+                                   || request.auth.uid in resource.data.memberIds
+                                   || request.auth.uid in resource.data.get('teacherIds', []));
+      // The app lists classes three ways: owner ==, memberIds array-contains, teacherIds array-contains.
+      allow list: if signedIn() && (resource.data.owner == request.auth.uid
+                                    || request.auth.uid in resource.data.memberIds
+                                    || request.auth.uid in resource.data.teacherIds);
       allow create: if signedIn() && validNewClass(request.resource.data);
-      allow update: if signedIn() && validClass(request.resource.data) && (classOwnerUpdate() || classJoin() || classLeave());
+      allow update: if signedIn() && validClass(request.resource.data)
+                    && (classOwnerUpdate() || coTeacherUpdate() || classJoin() || classLeave() || teacherJoin() || teacherLeave());
       allow delete: if signedIn() && resource.data.owner == request.auth.uid;
 
       match /assignments/{aid} {
-        allow read: if isClassOwner(cid) || isClassMember(cid);
-        allow create, update: if isClassOwner(cid) && validAssignment(request.resource.data);
-        allow delete: if isClassOwner(cid);
+        allow read: if isClassTeacher(cid) || isClassMember(cid);
+        allow create, update: if isClassTeacher(cid) && validAssignment(request.resource.data);
+        allow delete: if isClassTeacher(cid);
       }
-      // Each student's name and email: readable only by the lecturer and that student.
+      // Answer keys for quizzes marked on the server. Students can never read these.
+      match /keys/{aid} {
+        allow read, delete: if isClassTeacher(cid);
+        allow create, update: if isClassTeacher(cid)
+                              && request.resource.data.keys().hasOnly(['a', 'w', 'at'])
+                              && request.resource.data.a is list && request.resource.data.a.size() <= 60
+                              && request.resource.data.w is list && request.resource.data.w.size() <= 60;
+      }
+      // Each student's name and email: readable only by the teachers and that student.
       match /members/{uid} {
-        allow read: if isClassOwner(cid) || (signedIn() && request.auth.uid == uid);
+        allow read: if isClassTeacher(cid) || (signedIn() && request.auth.uid == uid);
         allow create, update: if signedIn() && request.auth.uid == uid && isClassMember(cid)
-                              && request.resource.data.keys().hasOnly(['n', 'e', 'at'])
+                              && request.resource.data.keys().hasOnly(['n', 'e', 'at', 'k'])
                               && request.resource.data.n is string && request.resource.data.n.size() <= 80
                               && request.resource.data.e is string && request.resource.data.e.size() <= 120
-                              && request.resource.data.at is number;
-        allow delete: if isClassOwner(cid) || (signedIn() && request.auth.uid == uid);
+                              && request.resource.data.at is number
+                              && (!('k' in request.resource.data) || request.resource.data.k in ['acct', 'class']);
+        allow delete: if isClassTeacher(cid) || (signedIn() && request.auth.uid == uid);
       }
       match /results/{rid} {
-        allow get: if isClassOwner(cid) || (signedIn() && (resource == null || resource.data.uid == request.auth.uid));
-        allow list: if isClassOwner(cid) || (signedIn() && resource.data.uid == request.auth.uid);
-        allow create, update: if isClassMember(cid) && validResult(cid, rid, request.resource.data);
-        allow delete: if isClassOwner(cid) || (signedIn() && resource.data.uid == request.auth.uid);
+        allow get: if isClassTeacher(cid) || (signedIn() && (resource == null || resource.data.uid == request.auth.uid));
+        allow list: if isClassTeacher(cid) || (signedIn() && resource.data.uid == request.auth.uid);
+        allow create, update: if isClassMember(cid) && validResult(cid, rid, request.resource.data)
+                              && (resource == null || resource.data.get('v', false) == false);
+        // Results marked on the server ("v") can be cleared by a teacher, not by the student.
+        allow delete: if isClassTeacher(cid) || (signedIn() && resource.data.uid == request.auth.uid && resource.data.get('v', false) == false);
       }
     }
 
@@ -297,6 +323,18 @@ service cloud.firestore {
                     && classData(request.resource.data.cid).code == code;
       allow delete: if signedIn() && resource.data.by == request.auth.uid;
     }
+    // Co-teacher codes (version 27): the same idea, pointing at the class's tcode.
+    match /teacherCodes/{code} {
+      allow get: if signedIn() && code.size() == 8;
+      allow list, update: if false;
+      allow create: if signedIn() && code.size() == 8
+                    && request.resource.data.keys().hasOnly(['cid', 'by', 'at'])
+                    && request.resource.data.by == request.auth.uid
+                    && request.resource.data.cid is string
+                    && classData(request.resource.data.cid).owner == request.auth.uid
+                    && classData(request.resource.data.cid).get('tcode', '') == code;
+      allow delete: if signedIn() && resource.data.by == request.auth.uid;
+    }
 
     function classData(cid) {
       return get(/databases/$(database)/documents/classes/$(cid)).data;
@@ -306,12 +344,17 @@ service cloud.firestore {
       return signedIn() && classData(cid).owner == request.auth.uid;
     }
 
+    function isClassTeacher(cid) {
+      let c = classData(cid);
+      return signedIn() && (c.owner == request.auth.uid || request.auth.uid in c.get('teacherIds', []));
+    }
+
     function isClassMember(cid) {
       return signedIn() && request.auth.uid in classData(cid).memberIds;
     }
 
     function validClass(d) {
-      return d.keys().hasOnly(['name', 'owner', 'ownerName', 'code', 'memberIds', 'at', 'lastJoin'])
+      return d.keys().hasOnly(['name', 'owner', 'ownerName', 'code', 'memberIds', 'at', 'lastJoin', 'teacherIds', 'teacherNames', 'tcode', 'nbs'])
           && d.name is string && d.name.size() > 0 && d.name.size() <= 100
           && d.owner is string
           && d.ownerName is string && d.ownerName.size() <= 80
@@ -319,6 +362,10 @@ service cloud.firestore {
           && d.memberIds is list && d.memberIds.size() <= 300
           && d.at is number
           && (!('lastJoin' in d) || (d.lastJoin is string && d.lastJoin.size() <= 200))
+          && (!('teacherIds' in d) || (d.teacherIds is list && d.teacherIds.size() <= 10 && !(d.owner in d.teacherIds)))
+          && (!('teacherNames' in d) || (d.teacherNames is map && d.teacherNames.size() <= 10))
+          && (!('tcode' in d) || (d.tcode is string && d.tcode.size() == 8))
+          && (!('nbs' in d) || (d.nbs is list && d.nbs.size() <= 10))
           && !(d.owner in d.memberIds);
     }
 
@@ -326,16 +373,28 @@ service cloud.firestore {
       return validClass(d)
           && d.owner == request.auth.uid
           && d.memberIds.size() == 0
+          && d.get('teacherIds', []).size() == 0
           && !('lastJoin' in d);
     }
 
-    // The lecturer can rename the class and remove students, but can't add anyone or change the code.
+    // The lecturer can rename the class, remove students and co-teachers, make a co-teacher code and link
+    // notebooks, but can't add anyone directly or change the class code.
     function classOwnerUpdate() {
       let d = request.resource.data;
       let o = resource.data;
       return o.owner == request.auth.uid
           && d.owner == o.owner && d.code == o.code
-          && d.diff(o).affectedKeys().hasOnly(['name', 'ownerName', 'memberIds'])
+          && d.diff(o).affectedKeys().hasOnly(['name', 'ownerName', 'memberIds', 'teacherIds', 'teacherNames', 'tcode', 'nbs'])
+          && o.memberIds.toSet().hasAll(d.memberIds)
+          && o.get('teacherIds', []).toSet().hasAll(d.get('teacherIds', []));
+    }
+
+    // A co-teacher can rename the class, remove students and link notebooks.
+    function coTeacherUpdate() {
+      let d = request.resource.data;
+      let o = resource.data;
+      return request.auth.uid in o.get('teacherIds', [])
+          && d.diff(o).affectedKeys().hasOnly(['name', 'memberIds', 'nbs'])
           && o.memberIds.toSet().hasAll(d.memberIds);
     }
 
@@ -344,7 +403,7 @@ service cloud.firestore {
       let d = request.resource.data;
       let o = resource.data;
       let me = request.auth.uid;
-      return !(me in o.memberIds) && me != o.owner
+      return !(me in o.memberIds) && me != o.owner && !(me in o.get('teacherIds', []))
           && d.lastJoin == o.code + ':' + me
           && d.diff(o).affectedKeys().hasOnly(['memberIds', 'lastJoin'])
           && d.memberIds.toSet() == o.memberIds.toSet().union([me].toSet())
@@ -361,22 +420,65 @@ service cloud.firestore {
           && d.memberIds.toSet() == o.memberIds.toSet().difference([me].toSet());
     }
 
+    // A co-teacher adds only themselves, proving they know the teacher code: "T<tcode>:<their id>".
+    function teacherJoin() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      let t = o.get('teacherIds', []);
+      return ('tcode' in o)
+          && !(me in t) && me != o.owner && !(me in o.memberIds)
+          && d.lastJoin == 'T' + o.tcode + ':' + me
+          && d.diff(o).affectedKeys().hasOnly(['teacherIds', 'teacherNames', 'lastJoin'])
+          && d.teacherIds.toSet() == t.toSet().union([me].toSet())
+          && d.teacherIds.size() == t.size() + 1
+          && d.teacherNames.diff(o.get('teacherNames', {})).affectedKeys().hasOnly([me])
+          && d.teacherNames[me] is string && d.teacherNames[me].size() <= 80;
+    }
+
+    // A co-teacher removes only themselves.
+    function teacherLeave() {
+      let d = request.resource.data;
+      let o = resource.data;
+      let me = request.auth.uid;
+      return me in o.get('teacherIds', [])
+          && d.diff(o).affectedKeys().hasOnly(['teacherIds', 'teacherNames'])
+          && d.teacherIds.toSet() == o.teacherIds.toSet().difference([me].toSet())
+          && !(me in d.get('teacherNames', {}));
+    }
+
     function validAssignment(d) {
-      return d.keys().hasOnly(['title', 'kind', 'cfg', 'due', 'at', 'by'])
+      return d.keys().hasOnly(['title', 'kind', 'cfg', 'due', 'at', 'by', 'qs', 'opt', 'deck', 'nq', 'qid'])
           && d.title is string && d.title.size() > 0 && d.title.size() <= 120
-          && d.kind in ['naming', 'spectra', 'mech', 'synth']
-          && d.cfg is map && d.cfg.keys().hasOnly(['topics', 'len', 'style', 'ids'])
+          && d.kind in ['naming', 'spectra', 'mech', 'synth', 'quiz', 'drill', 'cards']
+          && d.cfg is map && d.cfg.keys().hasOnly(['topics', 'len', 'style', 'ids', 'drill', 'rounds'])
           && (!('topics' in d.cfg) || (d.cfg.topics is list && d.cfg.topics.size() <= 12))
           && (!('ids' in d.cfg) || (d.cfg.ids is list && d.cfg.ids.size() <= 40))
           && (!('len' in d.cfg) || (d.cfg.len is int && d.cfg.len > 0 && d.cfg.len <= 50))
           && (!('style' in d.cfg) || (d.cfg.style is string && d.cfg.style.size() <= 10))
+          && (!('drill' in d.cfg) || d.cfg.drill in ['mech', 'rs', 'ir'])
+          && (!('rounds' in d.cfg) || (d.cfg.rounds is int && d.cfg.rounds > 0 && d.cfg.rounds <= 50))
+          && (!('qs' in d) || (d.qs is list && d.qs.size() > 0 && d.qs.size() <= 60))
+          && (!('opt' in d) || (d.opt is map && d.opt.keys().hasOnly(['mode', 'mins', 'tries', 'shuffle', 'reveal', 'secure'])))
+          && (!('deck' in d) || (d.deck is map && d.deck.cards is list && d.deck.cards.size() <= 200))
+          && (!('nq' in d) || (d.nq is int && d.nq >= 0 && d.nq <= 200))
+          && (!('qid' in d) || (d.qid is string && d.qid.size() <= 40))
+          && (d.kind != 'quiz' || ('qs' in d))
           && (d.due == null || d.due is number)
           && d.at is number
           && d.by == request.auth.uid;
     }
 
+    function asgData(cid, aid) {
+      return get(/databases/$(database)/documents/classes/$(cid)/assignments/$(aid)).data;
+    }
+
+    // Results the student's browser writes. "v" (marked on the server) is never allowed here, quizzes
+    // marked on the server can't be written from the browser at all, and the attempt limit is enforced.
     function validResult(cid, rid, d) {
-      return d.keys().hasOnly(['aid', 'uid', 'n', 'e', 'score', 'total', 'best', 'tries', 'at'])
+      let a = asgData(cid, d.aid);
+      let opt = a.get('opt', {});
+      return d.keys().hasOnly(['aid', 'uid', 'n', 'e', 'score', 'total', 'best', 'tries', 'at', 'qo', 'qk', 'qi', 'qt', 'first', 'secs', 'sw', 'late'])
           && d.uid == request.auth.uid
           && d.aid is string && d.aid.size() <= 40
           && rid == d.aid + '_' + request.auth.uid
@@ -388,7 +490,100 @@ service cloud.firestore {
           && d.best >= 0 && d.best <= d.total
           && d.tries >= 1 && d.tries <= 100000
           && d.at is number
-          && exists(/databases/$(database)/documents/classes/$(cid)/assignments/$(d.aid));
+          && (!('qo' in d) || (d.qo is list && d.qo.size() <= 60))
+          && (!('qk' in d) || (d.qk is list && d.qk.size() <= 60))
+          && (!('qi' in d) || (d.qi is list && d.qi.size() <= 60))
+          && (!('qt' in d) || (d.qt is list && d.qt.size() <= 60))
+          && (!('first' in d) || (d.first is int && d.first >= 0 && d.first <= d.total))
+          && (!('secs' in d) || (d.secs is int && d.secs >= 0))
+          && (!('sw' in d) || (d.sw is int && d.sw >= 0))
+          && (!('late' in d) || d.late is bool)
+          && opt.get('secure', false) == false
+          && (!('tries' in opt) || opt.tries == 0 || d.tries <= opt.tries);
+    }
+
+    // ---------- Version 27: a teacher's own quiz library ----------
+    match /quizzes/{qid} {
+      allow read, delete: if signedIn() && resource.data.owner == request.auth.uid;
+      allow create: if signedIn() && validQuiz(request.resource.data) && request.resource.data.owner == request.auth.uid;
+      allow update: if signedIn() && resource.data.owner == request.auth.uid && validQuiz(request.resource.data)
+                    && request.resource.data.owner == resource.data.owner;
+    }
+    function validQuiz(d) {
+      return d.keys().hasOnly(['owner', 'title', 'desc', 'qs', 'at', 'upd'])
+          && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+          && (!('desc' in d) || (d.desc is string && d.desc.size() <= 500))
+          && d.qs is list && d.qs.size() <= 60
+          && d.at is number && d.upd is number;
+    }
+
+    // ---------- Version 27: live class quizzes ----------
+    // The host's screen owns live/{pin}. Players (signed in, including class-only accounts) read it and
+    // write only their own answers. Correct answers reach players only when the host reveals them.
+    match /live/{pin} {
+      allow get: if signedIn() && pin.size() == 6;
+      allow list: if false;
+      allow create: if signedIn() && pin.size() == 6 && validLive(request.resource.data) && request.resource.data.host == request.auth.uid;
+      allow update: if signedIn() && resource.data.host == request.auth.uid && validLive(request.resource.data)
+                    && request.resource.data.host == resource.data.host;
+      allow delete: if signedIn() && resource.data.host == request.auth.uid;
+
+      match /players/{uid} {
+        allow get: if signedIn() && (request.auth.uid == uid || liveData(pin).host == request.auth.uid);
+        allow list: if signedIn() && liveData(pin).host == request.auth.uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+                              && liveData(pin).st != 'end'
+                              && request.resource.data.keys().hasOnly(['n', 'a', 'at'])
+                              && request.resource.data.n is string && request.resource.data.n.size() > 0 && request.resource.data.n.size() <= 40
+                              && request.resource.data.a is map && request.resource.data.a.size() <= 60
+                              && request.resource.data.at is number;
+        allow delete: if signedIn() && (request.auth.uid == uid || liveData(pin).host == request.auth.uid);
+      }
+    }
+    function liveData(pin) {
+      return get(/databases/$(database)/documents/live/$(pin)).data;
+    }
+    function validLive(d) {
+      return d.keys().hasOnly(['host', 'hn', 'title', 'qs', 'n', 'st', 'i', 't0', 'dur', 'ra', 'board', 'ver', 'at', 'cnt', 'seed', 'sc', 'rw'])
+          && d.host is string
+          && d.hn is string && d.hn.size() <= 80
+          && d.title is string && d.title.size() <= 120
+          && d.qs is list && d.qs.size() > 0 && d.qs.size() <= 60
+          && d.n is int
+          && d.st in ['lobby', 'q', 'rev', 'board', 'end']
+          && d.i is int && d.i >= 0 && d.i < 60
+          && d.t0 is number && d.dur is int && d.dur >= 5 && d.dur <= 300
+          && (!('board' in d) || (d.board is list && d.board.size() <= 10))
+          && (!('sc' in d) || (d.sc is map && d.sc.size() <= 400))
+          && d.at is number;
+    }
+
+    // ---------- Version 27: teachers ----------
+    // A teacher asks for free Pro with teachers/{uid}. Only an admin can approve it.
+    match /teachers/{uid} {
+      allow get: if isOwner(uid) || isAdmin();
+      allow list, delete: if isAdmin();
+      allow create, update: if isOwner(uid) && validTeacherReq(request.resource.data)
+                            && request.resource.data.st == 'pending'
+                            && (resource == null || resource.data.st in ['pending', 'no']);
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st', 'note', 'by', 'dec'])
+                    && request.resource.data.st in ['pending', 'ok', 'no'];
+    }
+    function validTeacherReq(d) {
+      return d.keys().hasOnly(['n', 'e', 'school', 'role', 'country', 'students', 'use', 'st', 'at'])
+          && d.n is string && d.n.size() > 0 && d.n.size() <= 80
+          && d.e is string && d.e.size() <= 120
+          && d.school is string && d.school.size() > 0 && d.school.size() <= 120
+          && d.role in ['school', 'lecturer', 'tutor', 'centre', 'other']
+          && d.country is string && d.country.size() <= 60
+          && d.students is int && d.students >= 0 && d.students <= 100000
+          && d.use is string && d.use.size() <= 1000
+          && d.at is number;
+    }
+    // Class passes: an admin gives a teacher a number of Pro seats per class. Students read it to unlock Pro.
+    match /passes/{uid} {
+      allow get: if signedIn();
+      allow list, write: if isAdmin();
     }
 
     // ---------- Bondline Pro ----------
@@ -407,6 +602,145 @@ service cloud.firestore {
         && request.resource.data.email is string && request.resource.data.email.size() <= 200
         && request.resource.data.t is int;
       allow delete: if isOwner(uid);
+    }
+
+    // ---------- Version 22: admin, usage statistics, feedback, announcements, Bondle ----------
+    // Admins are the accounts listed in admins/{uid}. Create that document by hand in the Firebase
+    // console (see README). Nobody can create or change it from the app or the website.
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    match /admins/{uid} {
+      allow get: if isOwner(uid);
+      allow list, write: if false;
+    }
+
+    // Page views: anyone can add one small record; only admins can read them.
+    match /visits/{id} {
+      allow create: if validVisit(request.resource.data);
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+    function validVisit(d) {
+      return d.keys().hasOnly(['t', 'd', 'v', 's', 'p', 'r', 'u', 'c', 'm', 'dev', 'app', 'tz', 'lang', 'uid', 'n'])
+          && d.t is int && d.d is string && d.d.size() == 10
+          && d.v is string && d.v.size() >= 16 && d.v.size() <= 40
+          && d.s is string && d.s.size() <= 20
+          && d.p is string && d.p.size() <= 140
+          && (!('r' in d) || (d.r is string && d.r.size() <= 100))
+          && (!('u' in d) || (d.u is string && d.u.size() <= 60))
+          && (!('c' in d) || (d.c is string && d.c.size() <= 80))
+          && (!('m' in d) || (d.m is string && d.m.size() <= 40))
+          && d.dev in ['mobile', 'tablet', 'desktop'] && d.app in ['web', 'pwa']
+          && d.tz is string && d.tz.size() <= 60 && d.lang is string && d.lang.size() <= 20
+          && (!('uid' in d) || (d.uid is string && d.uid.size() <= 128))
+          && d.n is bool;
+    }
+
+    // One usage record per device (random id). Signed-in devices may add their own account details only.
+    match /devices/{vid} {
+      allow create, update: if vid.size() >= 16 && vid.size() <= 40 && validDevice(vid, request.resource.data);
+      allow read, delete: if isAdmin();
+    }
+    function validDevice(vid, d) {
+      return d.keys().hasOnly(['v', 'first', 'last', 'days', 'sess', 'feat', 'ans', 'ok', 'bondle', 'bbest', 'bstreak', 'notes', 'recent',
+                               'dev', 'os', 'br', 'tz', 'lang', 'app', 'ver', 'utm', 'camp', 'ref', 'src', 'srcO', 'uid', 'e', 'n'])
+          && d.v == vid
+          && d.first is int && d.last is int && d.days is int && d.sess is int
+          && d.feat is map && d.feat.size() <= 50
+          && d.ans is int && d.ok is int && d.bondle is int && d.bbest is int && d.bstreak is int && d.notes is int
+          && d.recent is list && d.recent.size() <= 30
+          && d.dev is string && d.dev.size() <= 10 && d.os is string && d.os.size() <= 12 && d.br is string && d.br.size() <= 12
+          && d.tz is string && d.tz.size() <= 60 && d.lang is string && d.lang.size() <= 20 && d.app in ['web', 'pwa'] && d.ver is string && d.ver.size() <= 8
+          && (!('utm' in d) || (d.utm is string && d.utm.size() <= 60))
+          && (!('camp' in d) || (d.camp is string && d.camp.size() <= 80))
+          && (!('ref' in d) || (d.ref is string && d.ref.size() <= 100))
+          && (!('src' in d) || (d.src is string && d.src.size() <= 30))
+          && (!('srcO' in d) || (d.srcO is string && d.srcO.size() <= 80))
+          && (!('uid' in d) || (signedIn() && d.uid == request.auth.uid))
+          && (!('e' in d) || (signedIn() && d.e == request.auth.token.email))
+          && (!('n' in d) || (d.n is string && d.n.size() <= 80));
+    }
+
+    // Feedback: anyone can send; only admins read it and mark it done.
+    match /feedback/{id} {
+      allow create: if validFeedback(request.resource.data);
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st', 'note'])
+                    && request.resource.data.st in ['new', 'read', 'done']
+                    && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 1000));
+    }
+    function validFeedback(d) {
+      return d.keys().hasOnly(['k', 'm', 't', 'st', 'v', 'ver', 'e', 'p', 'dev', 'uid'])
+          && d.k in ['bug', 'idea', 'love', 'bondle', 'other']
+          && d.m is string && d.m.size() >= 1 && d.m.size() <= 2000
+          && d.t is int && d.st == 'new'
+          && d.v is string && d.v.size() <= 40 && d.ver is string && d.ver.size() <= 8
+          && (!('e' in d) || (d.e is string && d.e.size() <= 120))
+          && (!('p' in d) || (d.p is string && d.p.size() <= 80))
+          && (!('dev' in d) || (d.dev is string && d.dev.size() <= 120))
+          && (!('uid' in d) || (signedIn() && d.uid == request.auth.uid));
+    }
+
+    // Settings the admin changes without uploading the site (the announcement bar).
+    match /config/{id} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow write: if isAdmin() && id == 'announcement'
+                   && request.resource.data.keys().hasOnly(['on', 'id', 'text', 'link', 'linkText', 'kind', 'until', 'at'])
+                   && request.resource.data.on is bool
+                   && request.resource.data.text is string && request.resource.data.text.size() <= 280;
+    }
+
+    // Bondle: days the admin set by hand (anyone can read), finished games, and each day's score counts.
+    match /bondle/{day} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+    match /bondlePlays/{id} {
+      allow create: if validPlay(id, request.resource.data);
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+    function validPlay(id, d) {
+      return d.keys().hasOnly(['d', 'n', 'v', 'tot', 'r', 'x', 'ms', 't', 'uid'])
+          && d.d is string && d.d.size() == 10 && d.v is string && d.v.size() <= 40
+          && id == d.d + '_' + d.v
+          && d.n is int && d.tot is int && d.tot >= 0 && d.tot <= 600
+          && d.r is list && d.r.size() <= 6
+          && d.x is list && d.x.size() <= 12
+          && d.ms is int && d.t is int
+          && (!('uid' in d) || (signedIn() && d.uid == request.auth.uid));
+    }
+    match /bondleDay/{day} {
+      allow get: if true;
+      allow list, delete: if isAdmin();
+      allow create: if day.size() == 10
+                    && request.resource.data.keys().hasOnly(['b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6'])
+                    && request.resource.data.size() == 1
+                    && request.resource.data[request.resource.data.keys()[0]] == 1;
+      allow update: if request.resource.data.keys().hasOnly(['b0', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6']) && bumpOne();
+    }
+    function bumpOne() {
+      let ch = request.resource.data.diff(resource.data);
+      let k = ch.affectedKeys().toList();
+      return k.size() == 1
+          && (ch.addedKeys().size() == 1
+                ? request.resource.data[k[0]] == 1
+                : request.resource.data[k[0]] == resource.data[k[0]] + 1);
+    }
+
+    // Admins can also see the Pro waitlist and who has Pro.
+    match /waitlist/{uid} {
+      allow list, get: if isAdmin();
+    }
+    match /entitlements/{uid} {
+      allow list, get: if isAdmin();
+      // Version 27: admins grant free Pro (for example to approved teachers). Payment fields stay server-only.
+      allow create: if isAdmin() && request.resource.data.keys().hasOnly(['grantUntil', 'teacher', 'grantBy', 'updated'])
+                    && request.resource.data.grantUntil is int;
+      allow update: if isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grantUntil', 'teacher', 'grantBy', 'updated'])
+                    && request.resource.data.grantUntil is int;
     }
 
     // Everything else is closed.
