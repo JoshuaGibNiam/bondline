@@ -17,13 +17,13 @@
 window.BONDLINE_PRO = {
   enforce: true,
   checkout: {
-    monthly: false,   // monthly subscription
-    semester: false,  // semester pass
-    exam: false       // exam pass
+    monthly: true,   // monthly subscription
+    semester: true,  // semester pass
+    exam: true       // exam pass
   },
   price: { monthly: 'US$4', semester: 'US$19', exam: 'US$9' },
   passDays: 150,
   examDays: 60,
-  centre: { checkout: false, price: 'US$3', minSeats: 10, days: 150 },
+  centre: { checkout: true, price: 'US$3', minSeats: 10, days: 150 },
   streak: { freeLessons: 3, freeFreezes: 1, proFreezes: 3, repairDays: 30 }
 };
