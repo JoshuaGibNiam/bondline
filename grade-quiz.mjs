@@ -1,6 +1,6 @@
 // Marks quizzes that a teacher set with "Mark on the server" (Bondline version 27).
 // The answers live in classes/{class}/keys/{assignment}, which students can't read, and only this function
-// can write a result with v: true. Uses the same Firebase service account as the Lemon Squeezy webhook;
+// can write a result with v: true. Uses the same Firebase service account as the Stripe webhook;
 // no npm packages needed. Environment variables (Netlify → Site configuration → Environment variables):
 //   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
 // Like every Netlify function, it only runs when the site is deployed from GitHub or the Netlify CLI.
