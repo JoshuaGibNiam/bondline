@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 27)
+# Bondline: organic chemistry notebook (version 29)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,33 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 29: daily practice, more ways to pay, and Stripe
+
+No Firebase rule changes. **Payments now use Stripe instead of Lemon Squeezy**: follow `STRIPE_INTEGRATION_TODO.md`. `netlify/functions/lemon-webhook.mjs` is gone; delete the old `LEMON_…` variables on Netlify.
+
+- **Daily practice (the streak).** Home card, the Streak button on the rail, the account menu, or `bondline.site/?app&streak=1`. A lesson is six questions drawn from naming, spectra, stereochemistry and the courses: up to two that the student last got wrong, one not seen for a week, and the rest new. A wrong answer comes back once at the end of the lesson.
+  - A lesson a day builds the streak. XP: 10 for a right answer, plus 2 for each answer in a run (up to +10), 5 for a retry, 15 for a perfect lesson. Levels are named Methane, Ethane, Propane and so on.
+  - **Streak freezes** are used automatically for missed days. Everyone starts with one and earns one every seven days.
+  - Sounds, vibration and confetti can be turned off with the speaker button; animations respect the device's reduced-motion setting.
+  - "Add to my calendar" downloads a daily reminder. (The app can't send notifications while it is closed.)
+  - The streak is stored with quiz progress, so it syncs between devices.
+- **Streak perks in Pro** (`streak` in `pro-config.js`): the free plan has 3 lessons a day and holds 1 freeze; Pro has no lesson limit, holds 3 freezes, and can repair a lost streak (up to 3 missed days) once every 30 days.
+- **Exam pass**: a third plan, US$9 for 60 days (`price.exam`, `examDays`).
+- **Ask a parent**: in the Pro window, **Send a link** shares `bondline.site/gift/?for=<account>&n=<first name>`. The parent picks a semester pass or an exam pass and pays; Pro goes to the student's account. Parents can't buy the monthly plan, so nobody is left with a subscription they can't manage.
+- **Checkout settings from Stripe Checkout Studio** are applied in `netlify/functions/stripe-checkout.mjs`: tax and promotion codes off, billing address collected when needed. See `STRIPE_INTEGRATION_TODO.md`.
+- **Centre licences**: Classes → Bondline for teachers now has a seat picker with the total, **Buy a licence** (card) and **Pay by invoice** (email). A purchase sets that teacher's class pass: Pro for up to that many students in each of their classes. Buying again with more than 30 days left adds seats; otherwise it starts or extends a term. Because seats are counted per class, a centre with several classes pays for its biggest class, so set the price with that in mind, or have each teacher buy their own.
+- The pricing page shows all three plans, the centre licence and the parent link. The terms, privacy and contact pages now name Stripe; please read those paragraphs before you go live.
+
+## New in version 28: Bondle is a general science puzzle
+
+No Firebase changes. Upload the folder as usual.
+
+- **General science every day.** From Bondle #7 (14 November 2026) each day has six rounds, one each from physics, chemistry, biology, earth science, space and general science. The chemistry round comes from 39 everyday chemistry prompts (the list `GEN_CHEM` in `bondle-core.js`, or add `gen:1` to a prompt). The specialist organic prompts are still in Practice → **Chemistry only**. Bondle #1 to #6 are unchanged.
+- **35 new prompts** in `bondle-science.js` (forces, volcanoes, astronauts, rockets, inventions, gemstones, body systems and more): 161 prompts and about 6,200 accepted answers in total. A prompt comes back after 12 days at the earliest. New prompts carry `n:1`; keep it on any prompt you add, so earlier days never change.
+- **More answers accepted.** As well as spellings and typos, Bondle now accepts: the question's own words repeated ("the planet Mars", "kinetic energy", "digestive system"); part of a longer answer when it points to only one answer ("Fuji", "sulfuric", "Hubble"); initials ("ISS", "BEC"); words in another order; plurals inside a name; "&", "of" and "the"; number words and Roman numerals ("Saturn five", "iron 3"); "Mt" for "Mount"; and up to three typos in long names. A vague word ("acid") or a word that is a real answer to another question ("sodium" for sodium hydroxide, "ethene" for ethane) still doesn't count.
+- **Wrong-answer list.** A prompt's `x:'a|b'` list blocks answers that must never count (for example "diesel" for a renewable fuel).
+- The admin page → Bondle still shows answers people tried that weren't accepted. Add any good ones as `|alias` in the data files.
 
 ## New in version 27: teaching tools
 
@@ -80,7 +107,7 @@ Everything is in **Classes**.
 
 ## New in version 24
 
-**Before you upload: Pro is now switched on.** `pro-config.js` has `enforce: true`, so units 4 onwards of every course, mock exams and the full weak-spot list need Pro. There are no checkout links in `pro-config.js` yet, so people see a **Notify me** waitlist button instead of a Buy button. Paste your two Lemon Squeezy links into `checkout` when you're ready to sell. To go back to "free while in preview", set `enforce: false`.
+**Before you upload: Pro is now switched on.** `pro-config.js` has `enforce: true`, so units 4 onwards of every course, mock exams and the full weak-spot list need Pro. There are no checkout links in `pro-config.js` yet, so people see a **Notify me** waitlist button instead of a Buy button. Set the plans in `checkout` to `true` when you're ready to sell (see Turning on payments). To go back to "free while in preview", set `enforce: false`.
 
 - **Four more courses:** AP Chemistry (6 units: CED Units 1–2 and the start of 3), IB Diploma Chemistry (18 units, SL and HL), JEE Main (20 units) and NEET UG (20 units). All seven courses now share one set of lessons (`PU_UNITS` plus the per-course maps in `PU_EXT` in `app.js`). A section or question tagged `only:'sjn'` appears only in the courses whose letters it lists: `a` Cambridge, `s` STPM, `p` AP, `i` IB, `j` JEE, `n` NEET (NEET reuses the JEE syllabus points).
 - **New lessons and units:** photons and the photoelectric effect, Bohr model and quantum numbers, PES and Coulomb's law, electron affinity, formal charge and resonance, lattice energy and alloys, molecular orbital theory, sp³d/sp³d² and dipole moments, types of solid, reaction intermediates and hyperconjugation, conformations, the peroxide effect, alkynes, aromaticity, NCERT halogen, alcohol, ether, phenol, carbonyl, acid and amine chemistry, IHD. New units: *Purifying and analysing organic compounds*, *Biomolecules* and *Named reactions* (JEE and NEET). 110 new questions (302 in the shared lessons).
@@ -177,39 +204,7 @@ Until you set up payments (below), the Pro window shows **Notify me** buttons. S
 
 ### Turning on payments (when you're ready)
 
-Payments use **Lemon Squeezy** as merchant of record: it charges the card, adds and pays sales tax/VAT, and sends receipts. A small server function, `netlify/functions/lemon-webhook.mjs`, tells Bondline who has paid.
-
-**Step 1: deploy from GitHub instead of drag and drop.** Netlify only runs server functions for sites deployed from Git or the Netlify CLI. Put this folder in a GitHub repository, then in Netlify open **Site configuration → Build & deploy → Link repository** and pick it. There's no build command; `netlify.toml` already says to publish the folder as it is. After that, every push to GitHub updates the site.
-
-**Step 2: create the products in Lemon Squeezy.** Sign up at lemonsqueezy.com, finish the store activation (it asks for your website, which needs the `/terms/` and `/pricing/` pages, already included), then create one product, **Bondline Pro**, with two variants:
-- *Monthly*: subscription, US$4, billed every month.
-- *Semester pass*: single payment, US$19.
-
-For each variant, set the **Confirmation modal → Button link** (the "redirect after purchase" setting) to `https://bondline.site/?app&pro=thanks`.
-
-**Step 3: get a Firebase service-account key.** In Firebase → Project settings → **Service accounts** → **Generate new private key**. A JSON file downloads. Keep it secret; never put it in the folder or on GitHub.
-
-**Step 4: add environment variables in Netlify** (Site configuration → Environment variables):
-
-| Name | Value |
-|---|---|
-| `LEMON_WEBHOOK_SECRET` | A long random password you make up (you'll paste the same one into Lemon Squeezy) |
-| `FIREBASE_PROJECT_ID` | `project_id` from the JSON file |
-| `FIREBASE_CLIENT_EMAIL` | `client_email` from the JSON file |
-| `FIREBASE_PRIVATE_KEY` | `private_key` from the JSON file, the whole thing, including the BEGIN and END lines |
-
-Redeploy afterwards (Deploys → Trigger deploy) so the function sees them.
-
-**Step 5: create the webhook in Lemon Squeezy.** Settings → **Webhooks** → add:
-- URL: `https://bondline.site/api/lemon-webhook`
-- Signing secret: the same value as `LEMON_WEBHOOK_SECRET`
-- Events: `order_created`, `order_refunded`, `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`, `subscription_paused`, `subscription_unpaused`
-
-**Step 6: paste the checkout links** into `pro-config.js` (Products → each variant → Share → copy the checkout link) and push to GitHub. The Pro window now shows **Continue to checkout**. Bondline adds the person's account ID to the link, so their payment is matched to their account automatically.
-
-**Step 7: test it.** Turn on Lemon Squeezy's **Test mode**, buy with the test card `4242 4242 4242 4242`, and check that Pro switches on within a few seconds and that Firestore has a document in `entitlements`. Lemon Squeezy's webhook page shows each delivery and its response. Turn test mode off when it works.
-
-**Step 8: start charging.** In `pro-config.js`, change `enforce: false` to `enforce: true`. Mock exams and the full weak-spot list then need Pro; everything else stays free. Change the prices in `pro-config.js` too if you change them in Lemon Squeezy.
+Payments use **Stripe** hosted Checkout. Every step (products, environment variables, the webhook, testing and going live) is in **[STRIPE_INTEGRATION_TODO.md](STRIPE_INTEGRATION_TODO.md)**.
 
 To give someone Pro for free (a tester, a lecturer), add a document in Firestore at `entitlements/<their user ID>` with a number field `grantUntil` set to a date in milliseconds (for example `1830297600000` is 1 January 2028).
 

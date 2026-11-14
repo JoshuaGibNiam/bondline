@@ -7233,7 +7233,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='27';
+const APP_VER='29';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -7754,13 +7754,12 @@ function proRender(){const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=
    <div class="pro-plans">${plan('monthly','Monthly',PRO_CFG.price.monthly,'per month','Cancel any time. Pro stays on until the end of the month you paid for.','')}${plan('semester','Semester pass',PRO_CFG.price.semester,'once',`${Math.round(PRO_CFG.passDays/30)} months of Pro. No subscription, nothing renews.`,'Best for exam season')}</div>
    <p class="pro-free"><b>Everything else stays free.</b> Notes, drawing, the reaction library, flashcards, naming, spectra and synthesis practice, sync and classes are free and always will be.</p>
    ${!u&&FB&&FB.cfg&&(sells||!act)?`<p class="hm-muted">Pro is linked to your Bondline account, so sign in first. <button class="linkbtn" data-proact="signin">Sign in</button></p>`:''}
-   <p class="hm-muted pro-legal">Payments are handled by Lemon Squeezy, our reseller, who adds any sales tax and sends your receipt. See the <a href="/terms/#pro" target="_blank" rel="noopener">terms and refund policy</a>. If you’re under 18, ask a parent or guardian before you buy. Questions: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>`;
+   <p class="hm-muted pro-legal">Payments are handled securely by Stripe, which sends your receipt. We never see your card details. See the <a href="/terms/#pro" target="_blank" rel="noopener">terms and refund policy</a>. If you’re under 18, ask a parent or guardian before you buy. Questions: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>`;
 }
 async function proAct(a,btn){const[k,plan]=a.split(':'),u=FB&&FB.user;
   if(k==='signin'){closePro();return openSettings('#setAcctSec')}
   if(k==='buy'){if(!u){closePro();toast('Sign in first, so Pro is linked to your account.');return openSettings('#setAcctSec')}
-    const base=PRO_CFG.checkout[plan];if(!base)return;const q=new URLSearchParams();q.set('checkout[custom][uid]',u.uid);q.set('checkout[custom][plan]',plan);if(u.email)q.set('checkout[email]',u.email);if(u.displayName)q.set('checkout[name]',u.displayName);
-    btn.disabled=true;btn.textContent='Opening checkout…';v18set('bondline.proPending',{t:Date.now(),plan});location.href=base+(base.includes('?')?'&':'?')+q.toString();return}
+    if(!PRO_CFG.checkout[plan])return;v18set('bondline.proPending',{t:Date.now(),plan});return v29Checkout({plan,uid:u.uid,email:u.email||''},btn)}
   if(k==='wait'){const rec={plan,t:Date.now()};
     if(u&&FB.db){try{await FB.db.collection('waitlist').doc(u.uid).set({plan,email:String(u.email||'').slice(0,190),t:Date.now()});v18set('bondline.waitlist',rec);proRender();toast('You’re on the list. We’ll email you before Pro launches.')}catch(e){toast('Couldn’t join the list just now. Please try again.')}}
     else{v18set('bondline.waitlist',rec);proRender();location.href='mailto:bondlinenotes@gmail.com?subject='+encodeURIComponent('Bondline Pro: tell me when it launches')+'&body='+encodeURIComponent('Please email me when Bondline Pro launches. Plan I’m interested in: '+(plan==='semester'?'semester pass':'monthly'))}}
@@ -10468,7 +10467,7 @@ async function fb22send(e){
   catch(x){b.disabled=false;b.textContent='Send feedback';err.innerHTML=`That didn’t send${navigator.onLine?'':' (you seem to be offline)'}. Try again, or email <a href="mailto:bondlinenotes@gmail.com?subject=${encodeURIComponent('Bondline feedback')}&body=${encodeURIComponent(msg)}">bondlinenotes@gmail.com</a>.`;err.hidden=false}
 }
 
-/* ---------- Bondle: a daily chemistry puzzle ---------- */
+/* ---------- Bondle: a daily science puzzle ---------- */
 // Six rounds a day. Each round is a category; any correct answer scores, rarer ones score more.
 // The day's prompts come from bondle-data.js (picked by date in bondle-core.js), or from
 // bondle/{date} in Firestore if the admin page set that day by hand.
@@ -10640,14 +10639,14 @@ async function bx22pct(R){
   const me=Math.min(6,Math.floor(R.rec.tot/100)),below=b.slice(0,me).reduce((a,x)=>a+x,0),same=Math.max(0,b[me]-1);
   el().innerHTML=n<=1?'You’re the first to finish today’s Bondle! 🥇':`You beat about <b>${Math.round(100*(below+same/2)/Math.max(1,n-1))}%</b> of today’s ${n} players`;
 }
-function syncBx22(){const b=$('#railBondle');if(!b)return;const t=bx22today();b.classList.toggle('has-new',!(t.rec&&t.rec.done));b.title=t.rec&&t.rec.done?`Bondle #${t.idx+1}: ${t.rec.tot} kJ/mol today`:`Bondle #${t.idx+1}: today’s chemistry puzzle`}
+function syncBx22(){const b=$('#railBondle');if(!b)return;const t=bx22today();b.classList.toggle('has-new',!(t.rec&&t.rec.done));b.title=t.rec&&t.rec.done?`Bondle #${t.idx+1}: ${t.rec.tot} kJ/mol today`:`Bondle #${t.idx+1}: today’s science puzzle`}
 function bx22homeCard(){
   const hp=$('#homePage');if(!hp||!hp.querySelector('.h7'))return;const old=hp.querySelector('.bx-home');if(old)old.remove();
   const t=bx22today(),r=t.rec,s=t.s,yk=dayKey(Date.now()-864e5),streak=s.last===yk||s.last===t.k?s.streak:0;
   const fills=r?r.r.map(x=>x.t):[];
   const state=r&&r.done?`<div class="bx-hs"><b>${r.tot}</b> kJ/mol <span class="bx-he">${esc(bx22emo(r))}</span></div><small>Next puzzle in ${bx22next().slice(0,5).replace(':','h ')}m${streak>1?` · ${streak}-day streak`:''}</small>`
     :r?`<div class="bx-hs">Round ${r.r.length+1} of 6</div><small>The clock is running. Jump back in.</small>`
-    :`<div class="bx-hs">Today’s chemistry puzzle</div><small>Six rounds. Rarer answers score more.${streak?` · ${streak}-day streak`:''}</small>`;
+    :`<div class="bx-hs">Today’s science puzzle</div><small>Six rounds. Rarer answers score more.${streak?` · ${streak}-day streak`:''}</small>`;
   const card=document.createElement('section');card.className='bx-home';card.setAttribute('aria-label','Bondle');
   card.innerHTML=`${BX_HEX('bx-home-hex',fills.length?fills:[1,2,3,4,5,0],r&&!r.done?fills.length:-1)}<div class="bx-ht"><div class="bx-hk">Bondle #${t.idx+1}</div>${state}</div><button class="btn${r&&r.done?'':' primary'}" data-bxhome>${r&&r.done?'See results':r?'Continue':'Play'}</button>`;
   card.addEventListener('click',e=>{if(e.target.closest('button')||e.target===card||e.target.closest('.bx-ht'))openBondle()});
@@ -10658,11 +10657,11 @@ function bx22homeCard(){
 function wireV22(){
   // Rail button for Bondle, before Tools.
   const rt=$('#railTools');
-  if(rt&&!$('#railBondle')){rt.insertAdjacentHTML('beforebegin',`<button class="rail-b bx-rail" id="railBondle" type="button" title="Bondle: today’s chemistry puzzle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l7.3 4.2v8.4L12 20.4l-7.3-4.2V7.8z" stroke-dasharray="2.2 2.2"/><circle cx="12" cy="3.6" r="1.7" class="bx-rd"/><circle cx="19.3" cy="7.8" r="1.7" class="bx-rd"/><circle cx="19.3" cy="16.2" r="1.7" class="bx-rd"/><circle cx="12" cy="20.4" r="1.7" class="bx-rd"/><circle cx="4.7" cy="16.2" r="1.7" class="bx-rd"/><circle cx="4.7" cy="7.8" r="1.7" class="bx-rd"/><path d="M12 9.2l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z" class="bx-rd"/></svg><span>Bondle</span></button>`);
+  if(rt&&!$('#railBondle')){rt.insertAdjacentHTML('beforebegin',`<button class="rail-b bx-rail" id="railBondle" type="button" title="Bondle: today’s science puzzle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l7.3 4.2v8.4L12 20.4l-7.3-4.2V7.8z" stroke-dasharray="2.2 2.2"/><circle cx="12" cy="3.6" r="1.7" class="bx-rd"/><circle cx="19.3" cy="7.8" r="1.7" class="bx-rd"/><circle cx="19.3" cy="16.2" r="1.7" class="bx-rd"/><circle cx="12" cy="20.4" r="1.7" class="bx-rd"/><circle cx="4.7" cy="16.2" r="1.7" class="bx-rd"/><circle cx="4.7" cy="7.8" r="1.7" class="bx-rd"/><path d="M12 9.2l.9 1.9 1.9.9-1.9.9-.9 1.9-.9-1.9-1.9-.9 1.9-.9z" class="bx-rd"/></svg><span>Bondle</span></button>`);
     $('#railBondle').addEventListener('click',openBondle)}
   // Account menu: feedback (and the admin dashboard on the admin's own devices).
   { const _rm=renderAcctMenu;renderAcctMenu=function(){_rm();const m=$('#acctMenu'),sep=m.querySelector('[data-mi="settings"]');
-      const html=menuItem('bondle',ico('<path d="M12 3.2l7.6 4.4v8.8L12 20.8l-7.6-4.4V7.6z"/><path d="M9.3 12.2l1.9 1.9 3.6-3.7"/>'),'Bondle','Today’s chemistry puzzle')+menuItem('feedback',ico('<path d="M4.5 5.5h15v10h-8l-4.5 3.5v-3.5H4.5z"/><path d="M8.5 9.5h7M8.5 12h4.5"/>'),'Send feedback','Bugs, ideas, anything')+(v17ls('bondline.admin')==='1'?menuItem('admin',ico('<rect x="4" y="11" width="3.5" height="8.5" rx="1"/><rect x="10.25" y="7" width="3.5" height="12.5" rx="1"/><rect x="16.5" y="4" width="3.5" height="15.5" rx="1"/>'),'Admin dashboard','Visitors, users and feedback'):'');
+      const html=menuItem('bondle',ico('<path d="M12 3.2l7.6 4.4v8.8L12 20.8l-7.6-4.4V7.6z"/><path d="M9.3 12.2l1.9 1.9 3.6-3.7"/>'),'Bondle','Today’s science puzzle')+menuItem('feedback',ico('<path d="M4.5 5.5h15v10h-8l-4.5 3.5v-3.5H4.5z"/><path d="M8.5 9.5h7M8.5 12h4.5"/>'),'Send feedback','Bugs, ideas, anything')+(v17ls('bondline.admin')==='1'?menuItem('admin',ico('<rect x="4" y="11" width="3.5" height="8.5" rx="1"/><rect x="10.25" y="7" width="3.5" height="12.5" rx="1"/><rect x="16.5" y="4" width="3.5" height="15.5" rx="1"/>'),'Admin dashboard','Visitors, users and feedback'):'');
       if(sep)sep.insertAdjacentHTML('beforebegin',html);else m.insertAdjacentHTML('beforeend',html)} }
   { const _mg=menuGo;menuGo=function(k){if(k==='feedback'||k==='bondle'||k==='admin'){closeMenus();if(isMob())$('#side').classList.remove('open');return k==='feedback'?openFeedback():k==='bondle'?openBondle():(location.href='/admin/')}act22feat('menu:'+k);_mg(k)} }
   // Command palette.
@@ -12245,6 +12244,10 @@ function wireV27(){
     ['Co-teachers and class notebooks','Invite another teacher to share a class, and link shared notebooks so every student is added automatically.'],
     ['Class-only accounts','Students without an email address, or under 13, can join a class or live quiz with just a first name.'],
     ['Free Pro for teachers','Verified teachers get Bondline Pro free. Tuition centres can add class passes for their students.']]});
+  CHANGELOG.unshift({v:'28',d:'13 November 2026',t:'Bondle is now a general science puzzle',items:[
+  ['One round from every science','From Bondle #7, each day has one category from physics, chemistry, biology, earth science, space and general science. The specialist chemistry categories are in Practice → Chemistry only.'],
+  ['35 new categories','Forces, volcanoes, astronauts, rockets, inventions, gemstones, body systems, “-ologies” and more.'],
+  ['More answers accepted','Short forms now count: symbols and formulas, initials (ISS, LED), a surname or part of a name (“Fuji” for Mount Fuji), plurals, extra words (“the planet Mars”, “kinetic energy”) and more typos.']]});
 }
 const TC_TEST=/[?&]bltest\b/.test(location.search);
 const TC_Q=new URLSearchParams(location.search);
@@ -12258,6 +12261,247 @@ function v27AfterBoot(){
   TC.lpName=v18get('bondline.tc.liveName','');
   if(TC_TEST)Object.assign(window.__bl||(window.__bl={}),{TC,tcItems,tcItem,tcCusItem,tcBankItem,tcMark,tcParsePaste,tcParseNum,tcCleanQ,tcQReady,trStart,qeOpen,lhSetup,lhCreate,lpJoin,lpOpen,tcWsPrint,tcWsDialog,tcSubmit,CL,clRender,clOpenClass,tcSrcBank,TC_SRC,tcKeyOf,tcSeeded,APP_VER,tcClassOnlyDlg,tcNbSync,tcPassCheck,proUntil,proActive,PRO,COURSES,allDecks})}
 
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();
+
+/* =====================================================================================
+   version 29: daily practice streak, exam pass, centre licences and "ask a parent"
+   ===================================================================================== */
+{ const c=window.BONDLINE_PRO||{};
+  if(!PRO_CFG.price.exam)PRO_CFG.price.exam='US$9';
+  PRO_CFG.examDays=+c.examDays||60;
+  PRO_CFG.centre=Object.assign({checkout:'',price:'US$3',minSeats:10,days:150},c.centre||{});
+  PRO_CFG.streak=Object.assign({freeLessons:3,freeFreezes:1,proFreezes:3,repairDays:30},c.streak||{}); }
+proSells=function(){return !!(PRO_CFG.checkout.monthly||PRO_CFG.checkout.semester||PRO_CFG.checkout.exam)};
+PRO_FEATS.push(['Streak perks','Hold up to three streak freezes, repair a broken streak once a month, and do as many daily lessons as you like.']);
+
+/* ---------- the streak store ----------
+   Kept inside the quiz progress record (App.quiz.q._streak), so it syncs between devices with
+   no change to the database rules. days: {'2026-11-14': {n: lessons, x: XP, f: 1 if frozen}}. */
+const SK={run:null,ac:null,view:'hub',note:''};
+const SK_MS=[3,7,14,30,50,100,150,200,365,500,730,1000];
+const SK_LV=['Methane','Ethane','Propane','Butane','Pentane','Hexane','Heptane','Octane','Nonane','Decane','Undecane','Dodecane','Tridecane','Tetradecane','Pentadecane','Hexadecane','Heptadecane','Octadecane','Nonadecane','Icosane'];
+const SK_LEN=6;
+const SK_FLAME='<svg class="sk-fl" viewBox="0 0 24 24" aria-hidden="true"><path class="sk-fo" d="M12.3 1.8c.6 3.6 5.9 6 5.9 11.6a6.2 6.2 0 0 1-12.4 0c0-2.3.9-3.9 2.1-5.2.3 1.7 1 2.7 2 3.2-.4-3.6.6-7 2.4-9.6z"/><path class="sk-fi" d="M12.2 11.2c.4 1.7 2.6 2.7 2.6 5a2.8 2.8 0 0 1-5.6 0c0-1 .4-1.8 1-2.4.1.8.5 1.2.9 1.4-.1-1.5.3-2.9 1.1-4z"/></svg>';
+const SK_ICE='<svg class="sk-ice" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5v19M3.8 7.2l16.4 9.6M20.2 7.2L3.8 16.8M9.5 4.3L12 6.6l2.5-2.3M9.5 19.7l2.5-2.3 2.5 2.3M4 10.6l3.2-.9-.8-3.2M20 13.4l-3.2.9.8 3.2M20 10.6l-3.2-.9.8-3.2M4 13.4l3.2.9-.8 3.2"/></svg>';
+function skDef(){return{days:{},fz:1,fzAt:0,rep:0,ms:[],snd:1,areas:null,xp:0,best:0,lost:null}}
+function skGet(){const r=App.quiz&&App.quiz.q&&App.quiz.q._streak;const s=Object.assign(skDef(),r&&r.s?JSON.parse(JSON.stringify(r.s)):{});if(!s.days||typeof s.days!=='object')s.days={};if(!Array.isArray(s.ms))s.ms=[];return s}
+function skPut(s){const ks=Object.keys(s.days).sort();while(ks.length>420)delete s.days[ks.shift()];s.best=Math.max(s.best||0,skLen(s).n);
+  if(!App.quiz||!App.quiz.q)return;App.quiz.q._streak={c:0,w:0,at:Date.now(),s};saveQuiz();skSync()}
+function skNoon(t){const d=new Date(t||Date.now());d.setHours(12,0,0,0);return +d}
+function skCap(){return proOpen()?PRO_CFG.streak.proFreezes:PRO_CFG.streak.freeFreezes}
+// Current streak: days with a finished lesson, counted back from today (or yesterday). Frozen days bridge the gap but don't add to the count.
+function skLen(s,now){let t=skNoon(now),n=0;const d0=s.days[dayKey(t)],today=!!(d0&&d0.n>0);
+  if(!(d0&&(d0.n>0||d0.f)))t-=DAY;
+  for(let i=0;i<4000;i++){const d=s.days[dayKey(t)];if(!d||!(d.n>0||d.f))break;if(d.n>0)n++;t-=DAY}
+  return{n,today}}
+function skLastDone(s){const ks=Object.keys(s.days).filter(k=>s.days[k].n>0).sort();return ks.length?ks[ks.length-1]:''}
+function skMissing(s){const last=skLastDone(s);if(!last)return[];const out=[];const[y,m,d]=last.split('-').map(Number);let t=+new Date(y,m-1,d,12)+DAY;const end=skNoon()-DAY;
+  for(;t<=end+1e3&&out.length<60;t+=DAY){const k=dayKey(t),r=s.days[k];if(!r||!(r.n>0||r.f))out.push(k)}return out}
+// Called when the app opens: spend streak freezes on missed days, or note a lost streak (for the repair offer).
+function skTick(){if(!App.quiz||!App.quiz.q)return;const s=skGet(),miss=skMissing(s);if(!miss.length)return;
+  const last=skLastDone(s),was=(()=>{const[y,m,d]=last.split('-').map(Number);return skLen(s,+new Date(y,m-1,d,12)).n})();
+  if(was>0&&miss.length<=s.fz){miss.forEach(k=>{s.days[k]={n:0,x:0,f:1}});s.fz-=miss.length;s.lost=null;skPut(s);
+    SK.note=`${miss.length>1?miss.length+' streak freezes':'A streak freeze'} kept your ${was}-day streak safe.`;toast(SK.note)}
+  else if(was>=2&&(!s.lost||s.lost.from!==last)){s.lost={n:was,from:last,at:Date.now(),miss:miss.length};skPut(s)}}
+function skCanRepair(s){return !!(s.lost&&s.lost.n>=2&&skMissing(s).length&&skMissing(s).length<=3&&skLastDone(s)===s.lost.from&&Date.now()-(s.rep||0)>PRO_CFG.streak.repairDays*DAY)}
+function skRepair(){const s=skGet();if(!skCanRepair(s))return;if(!proOpen())return openPro('streak');
+  skMissing(s).forEach(k=>{s.days[k]={n:0,x:0,f:1,r:1}});s.rep=Date.now();const n=s.lost.n;s.lost=null;skPut(s);skSfx('streak');skBurst();toast(`Streak repaired. Your ${n}-day streak is back.`);skHub()}
+function skMerge(a,b,bNewer){const base=JSON.parse(JSON.stringify(bNewer?b:a)),other=bNewer?a:b;base.days=base.days||{};
+  for(const[k,r]of Object.entries(other.days||{})){const l=base.days[k];if(!l||((r.n||0)>(l.n||0)))base.days[k]=r;else if((r.x||0)>(l.x||0)&&(r.n||0)===(l.n||0))l.x=r.x}
+  base.xp=Math.max(a.xp||0,b.xp||0);base.best=Math.max(a.best||0,b.best||0);base.rep=Math.max(a.rep||0,b.rep||0);base.fzAt=Math.max(a.fzAt||0,b.fzAt||0);
+  base.ms=[...new Set([...(a.ms||[]),...(b.ms||[])])].sort((x,y)=>x-y);return base}
+function skLevel(xp){const lv=Math.floor(Math.sqrt((xp||0)/60)),lo=60*lv*lv,hi=60*(lv+1)*(lv+1);return{lv:lv+1,name:SK_LV[Math.min(lv,SK_LV.length-1)],lo,hi,p:(xp-lo)/(hi-lo)}}
+function skToday(s){return s.days[dayKey(skNoon())]||{n:0,x:0}}
+function skLeft(s){return proOpen()?99:Math.max(0,PRO_CFG.streak.freeLessons-(skToday(s).n||0))}
+function skAreas(s){const all=Object.keys(AREAS),pick=(s.areas||[]).filter(a=>AREAS[a]);return pick.length?pick:all}
+
+/* ---------- sound, haptics, confetti ---------- */
+function skAC(){try{if(!SK.ac)SK.ac=new (window.AudioContext||window.webkitAudioContext)();if(SK.ac.state==='suspended')SK.ac.resume()}catch(e){}return SK.ac}
+function skNote(f,at,dur,type,vol){const ac=SK.ac;if(!ac)return;try{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+at;o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol||.16,t+.012);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+.03)}catch(e){}}
+function skSfx(kind,combo){try{if(navigator.vibrate)navigator.vibrate(kind==='bad'?[28,50,28]:kind==='ok'?12:kind==='tap'?5:[14,40,14,40,30])}catch(e){}
+  if(!skGet().snd||!skAC())return;const up=Math.pow(2,Math.min(combo||0,7)/12);
+  if(kind==='ok'){skNote(587*up,0,.16,'sine',.17);skNote(880*up,.085,.26,'sine',.17);skNote(1760*up,.085,.2,'triangle',.04)}
+  else if(kind==='bad'){skNote(233,0,.2,'triangle',.15);skNote(175,.13,.3,'triangle',.15)}
+  else if(kind==='tap')skNote(520,0,.05,'sine',.05)
+  else if(kind==='done')[523,659,784,1047].forEach((f,i)=>{skNote(f,i*.1,.34,'sine',.15);skNote(f*2,i*.1,.2,'triangle',.03)})
+  else if(kind==='streak'){[392,523,659,784,1047,1319].forEach((f,i)=>skNote(f,i*.075,.4,'sine',.13));skNote(1568,.5,.8,'sine',.1);skNote(2093,.5,.8,'triangle',.04)}}
+function skCalm(){try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}}
+function skBurst(big){if(skCalm())return;const sc=$('#skScrim');if(!sc)return;let cv=sc.querySelector('.sk-cv');if(!cv){cv=document.createElement('canvas');cv.className='sk-cv';sc.appendChild(cv)}
+  const W=cv.width=sc.clientWidth,H=cv.height=sc.clientHeight,x=cv.getContext('2d'),cols=['#ff9a1f','#ff5a1f','#ffd43b','#4cc9f0','#a3e635','#f472b6'],n=big?150:80;
+  const P=Array.from({length:n},()=>{const a=-Math.PI/2+(Math.random()-.5)*1.9,v=7+Math.random()*(big?13:9);return{x:W/2+(Math.random()-.5)*W*.3,y:H*.42,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:3+Math.random()*5,c:cols[Math.random()*cols.length|0],s:Math.random()*6,w:(Math.random()-.5)*.4,q:Math.random()<.5}});
+  const t0=performance.now();cancelAnimationFrame(SK.raf);(function step(now){const t=(now-t0)/1000;x.clearRect(0,0,W,H);
+    for(const p of P){p.vy+=.32;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.s+=p.w;x.save();x.translate(p.x,p.y);x.rotate(p.s);x.globalAlpha=Math.max(0,1-t/2.2);x.fillStyle=p.c;p.q?x.fillRect(-p.r,-p.r*.45,p.r*2,p.r*.9):(x.beginPath(),x.arc(0,0,p.r*.6,0,7),x.fill());x.restore()}
+    if(t<2.2)SK.raf=requestAnimationFrame(step);else x.clearRect(0,0,W,H)})(t0)}
+function skCount(el,from,to,ms,fmt){if(!el)return;if(skCalm()||from===to){el.textContent=fmt?fmt(to):to;return}const t0=performance.now();(function f(now){const p=Math.min(1,(now-t0)/ms),e=1-Math.pow(1-p,3);el.textContent=fmt?fmt(Math.round(from+(to-from)*e)):Math.round(from+(to-from)*e);if(p<1)requestAnimationFrame(f)})(t0)}
+
+/* ---------- building a lesson ---------- */
+function skBuild(){const s=skGet(),P=exPool(skAreas(s)),Q=App.quiz.q,now=Date.now(),wrong=[],due=[],fresh=[],rest=[];
+  for(const p of P){const r=Q[p.q.id];if(!r)fresh.push(p);else if(r.last===0)wrong.push(p);else if(now-(r.at||0)>6*DAY)due.push(p);else rest.push(p)}
+  const spread=(L,n)=>{const g={};for(const p of L)(g[p.area+':'+p.q.t]=g[p.area+':'+p.q.t]||[]).push(p);const G=shuffle(Object.values(g).map(x=>shuffle(x))),out=[];let i=0;while(out.length<n&&G.some(x=>x.length)){const x=G[i%G.length];if(x.length)out.push(x.pop());i++}return out};
+  const rev=new Set();let list=[...spread(wrong,2),...spread(due,1)];list.forEach(p=>rev.add(p.q.id));
+  for(const L of[fresh,due,rest,wrong]){if(list.length>=SK_LEN+3)break;const have=new Set(list.map(p=>p.q.id));list=list.concat(spread(L.filter(p=>!have.has(p.q.id)),SK_LEN+3-list.length))}
+  const items=[];for(const p of shuffle(list)){if(items.length>=SK_LEN)break;let it=null;try{it=AREAS[p.area].item(p.q)}catch(e){}if(it&&it.ans>=0&&it.opts&&it.opts.length>1){it.rev=rev.has(p.q.id);items.push(it)}}
+  return items}
+function skStart(){const s=skGet();if(!skLeft(s)){openPro('streak');return}
+  let items=[];try{items=skBuild()}catch(e){console.warn(e)}
+  if(items.length<2){toast('Couldn’t build a lesson just now. Try again in a moment.');return}
+  skAC();SK.run={items,queue:items.map((_,i)=>i),retry:{},done:0,total:items.length,combo:0,best:0,xp:0,ok:0,miss:0,pick:null,shown:false,quit:false,first:!skLen(s).today,before:skLen(s).n};
+  try{act22feat('streak:start')}catch(e){}skLesson()}
+const SK_PRAISE=['Nice!','Correct!','Spot on!','Exactly right.','Great!','Yes!','Clean.'];
+function skLesson(){const R=SK.run;if(!R)return skHub();SK.view='lesson';const it=R.items[R.queue[0]],p=R.pick,shown=R.shown,ok=p===it.ans;
+  const cls=k=>!shown?'':k===it.ans?' right':p===k?' wrong':'';
+  const opts=it.kind==='struct'?`<div class="qz-sopts sk-opts" role="group" aria-label="Structures">${it.opts.map((o,k)=>`<button class="qz-sopt sk-o${cls(k)}" data-sko="${k}" aria-label="Option ${k+1}"${shown?' disabled':''}><span class="qz-key">${k+1}</span>${o}</button>`).join('')}</div>`
+    :`<div class="qz-opts sk-opts" role="group" aria-label="Answers">${it.opts.map((o,k)=>`<button class="qz-opt sk-o${cls(k)}" data-sko="${k}"${shown?' disabled':''}><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div>`;
+  const praise=R.combo>=5?`${R.combo} in a row. On fire!`:R.combo>=3?`${R.combo} in a row!`:SK_PRAISE[(R.done+R.miss)%SK_PRAISE.length];
+  const fb=shown?`<div class="sk-fb ${ok?'ok':'bad'}" role="status"><div class="sk-fbt"><b>${ok?praise:'Not quite'}</b>${ok?`<span class="sk-xp">+${R.gain} XP</span>`:`<span>Answer: <b>${it.answer}</b></span>`}${it.why?`<p>${it.why}</p>`:''}${!ok&&R.retry[R.queue[0]]===1?'<small>You’ll see this one again at the end.</small>':''}</div><button class="btn primary sk-next" data-sk="next" id="skNext">${R.queue.length>1?'Continue':'Finish'}</button></div>`:'';
+  $('#skBody').innerHTML=`<div class="sk-top"><button class="sk-x" data-sk="quit" aria-label="Leave the lesson"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><div class="sk-prog" role="progressbar" aria-valuemin="0" aria-valuemax="${R.total}" aria-valuenow="${R.done}"><i style="width:${Math.max(4,100*R.done/R.total)}%"></i></div><span class="sk-combo${R.combo>=2?' on':''}" aria-label="${R.combo} in a row">${SK_FLAME}<b>${R.combo}</b></span></div>
+   ${R.quit?`<div class="sk-quit"><span>Leave now? This lesson won’t count.</span><button class="btn small" data-sk="stay">Keep going</button><button class="btn small" data-sk="leave">Leave</button></div>`:''}
+   <div class="sk-q${shown?' shown':''}"><div class="sk-topic">${esc(exTopicTitle(it))}${it.rev?'<span class="sk-rev">Review</span>':''}${R.retry[R.queue[0]]===2?'<span class="sk-rev">Try again</span>':''}</div><p class="qz-prompt">${it.prompt}</p>${it.fig||''}${opts}</div>${fb}`;
+  if(shown)setTimeout(()=>{const b=$('#skNext');if(b)b.focus({preventScroll:true})},60);else $('#skBody').scrollTop=0}
+function skPick(k){const R=SK.run;if(!R||R.shown)return;const idx=R.queue[0],it=R.items[idx];if(k<0||k>=it.opts.length)return;R.pick=k;R.shown=true;const ok=k===it.ans,again=R.retry[idx]===2;
+  try{exRecord(it,ok)}catch(e){}
+  if(ok){R.combo++;R.best=Math.max(R.best,R.combo);R.gain=again?5:10+2*Math.min(R.combo-1,5);R.xp+=R.gain;R.done++;if(!again)R.ok++;skSfx('ok',R.combo-1)}
+  else{R.combo=0;if(!again){R.miss++;R.retry[idx]=1}else R.done++;skSfx('bad')}
+  skLesson()}
+function skNext(){const R=SK.run;if(!R||!R.shown)return;const idx=R.queue.shift();if(R.retry[idx]===1){R.retry[idx]=2;R.queue.push(idx)}R.pick=null;R.shown=false;R.quit=false;
+  if(R.queue.length)return skLesson();skFinish()}
+function skFinish(){const R=SK.run,s=skGet(),k=dayKey(skNoon()),d=s.days[k]&&s.days[k].n>0?s.days[k]:{n:0,x:0};
+  const perfect=R.miss===0;if(perfect)R.xp+=15;d.n++;d.x=(d.x||0)+R.xp;delete d.f;s.days[k]=d;const lv0=skLevel(s.xp);s.xp=(s.xp||0)+R.xp;s.lost=null;
+  const len=skLen(s).n;R.len=len;R.perfect=perfect;R.lvUp=skLevel(s.xp).lv>lv0.lv?skLevel(s.xp):null;R.xp0=s.xp-R.xp;
+  if(R.first){if(SK_MS.includes(len)&&!s.ms.includes(len)){s.ms.push(len);R.ms=len}
+    if(len>0&&len%7===0&&s.fzAt!==len){s.fzAt=len;if(s.fz<skCap()){s.fz++;R.fz=true}}}
+  skPut(s);try{act22feat('streak:done')}catch(e){}SK.view='done';skSfx('done');skDone()}
+function skWeek(s,pop){const now=skNoon(),dow=(new Date(now).getDay()+6)%7,L=['M','T','W','T','F','S','S'];
+  return`<div class="sk-week" aria-label="This week">${L.map((l,i)=>{const t=now+(i-dow)*DAY,r=s.days[dayKey(t)],st=r&&r.n>0?'done':r&&r.f?'ice':i<dow?'miss':i===dow?'today':'';return`<span class="sk-d ${st}${pop&&i===dow?' sk-pop':''}"><i>${st==='done'?'<svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-6.5"/></svg>':st==='ice'?SK_ICE:''}</i><small>${l}</small></span>`}).join('')}</div>`}
+function skDone(){const R=SK.run,s=skGet(),acc=Math.round(100*R.ok/R.total);
+  $('#skBody').innerHTML=`<div class="sk-end"><div class="sk-endh"><span class="sk-big">${R.perfect?'Perfect lesson!':'Lesson complete'}</span><small>${R.perfect?'Every answer right first time. +15 bonus XP.':acc>=70?'Good work. The ones you missed will come back tomorrow.':'Tough set. You’ll see these again until they stick.'}</small></div>
+   <div class="sk-tiles"><div class="sk-tile xp"><small>XP earned</small><b id="skXp">0</b></div><div class="sk-tile ac"><small>Accuracy</small><b id="skAc">0%</b></div><div class="sk-tile co"><small>Best run</small><b>${R.best}</b></div></div>
+   ${R.lvUp?`<p class="sk-lvup">Level ${R.lvUp.lv} reached: <b>${R.lvUp.name}</b></p>`:''}
+   <button class="btn primary sk-wide" data-sk="${R.first?'flame':'hub'}" id="skNext">Continue</button></div>`;
+  skCount($('#skXp'),0,R.xp,800);skCount($('#skAc'),0,acc,800,v=>v+'%');if(R.perfect)skBurst();setTimeout(()=>{const b=$('#skNext');if(b)b.focus({preventScroll:true})},60)}
+function skFlame(){const R=SK.run,s=skGet(),n=R.len;SK.view='flame';
+  const msg=R.ms?`${n} days. That’s a milestone!`:n===1?'You’ve started a streak. Come back tomorrow to make it 2.':`${n} days in a row. Keep it going tomorrow.`;
+  $('#skBody').innerHTML=`<div class="sk-end sk-flame"><div class="sk-hero go">${SK_FLAME}<b id="skN">${R.before}</b></div><span class="sk-big">${n}-day streak</span><small>${msg}</small>${skWeek(s,true)}
+   ${R.fz?`<p class="sk-got">${SK_ICE}<span>You earned a <b>streak freeze</b>. It protects your streak if you miss a day.</span></p>`:''}
+   <button class="btn primary sk-wide" data-sk="hub" id="skNext">Continue</button>${navigator.share?'<button class="linkbtn" data-sk="share">Share my streak</button>':''}</div>`;
+  setTimeout(()=>{skSfx('streak');skCount($('#skN'),R.before,n,R.before===n?0:500);skBurst(!!R.ms)},350);setTimeout(()=>{const b=$('#skNext');if(b)b.focus({preventScroll:true})},60)}
+
+/* ---------- the hub ---------- */
+function skHub(){SK.view='hub';SK.run=null;const s=skGet(),L=skLen(s),lv=skLevel(s.xp),td=skToday(s),left=skLeft(s),pro=proOpen(),rep=skCanRepair(s),late=new Date().getHours()>=18;
+  const sub=L.today?`Done for today. ${td.x||0} XP earned.`:rep?`You lost your ${s.lost.n}-day streak.`:L.n?(late?`Your streak ends at midnight. One lesson keeps it.`:`One lesson today keeps your streak.`):'Six questions, about three minutes. Start your streak today.';
+  const next=SK_MS.find(m=>m>L.n)||0;
+  $('#skBody').innerHTML=`<div class="sk-top"><button class="sk-x" data-sk="close" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button><b class="sk-title">Daily practice</b><button class="sk-x${s.snd?'':' off'}" data-sk="snd" aria-label="Sound ${s.snd?'on':'off'}" aria-pressed="${!!s.snd}"><svg viewBox="0 0 16 16"><path d="M2.5 6.2h2.3L8 3.5v9L4.8 9.8H2.5z"/>${s.snd?'<path d="M10.3 5.6a3.3 3.3 0 0 1 0 4.8M12 3.9a5.7 5.7 0 0 1 0 8.2"/>':'<path d="M10.5 6l3.5 4M14 6l-3.5 4"/>'}</svg></button></div>
+   <div class="sk-hub"><div class="sk-hero${L.today?' lit':L.n?'':' cold'}">${SK_FLAME}<b>${L.n}</b></div><span class="sk-big">${L.n===1?'1 day':L.n+' days'}</span><small>${sub}</small>${skWeek(s)}
+    ${rep?`<button class="btn sk-wide" data-sk="repair">${SK_ICE} Repair my ${s.lost.n}-day streak${pro?'':' '+PRO_BADGE}</button>`:''}
+    <button class="btn primary sk-wide sk-go" data-sk="start"${left?'':' data-lock="1"'}>${L.today?(left?'Practise again':'More lessons with Pro'):'Start today’s lesson'}</button>
+    ${L.today&&!pro?`<small class="sk-lim">${left?`${left} more lesson${left>1?'s':''} today on the free plan.`:'You’ve done today’s free lessons. Your streak is safe.'}</small>`:''}
+    <div class="sk-stats"><div><b>${lv.lv}</b><small>${lv.name}</small></div><div><b>${s.xp||0}</b><small>total XP</small></div><div><b>${Math.max(s.best||0,L.n)}</b><small>best streak</small></div><div class="fz"><b>${SK_ICE}${s.fz}<i>/${skCap()}</i></b><small>freezes</small></div></div>
+    <div class="sk-lv" aria-label="Level progress"><i style="width:${Math.round(100*lv.p)}%"></i></div><small class="sk-lvt">${lv.hi-(s.xp||0)} XP to level ${lv.lv+1}${next?` · next milestone: ${next} days`:''}</small>
+    <details class="sk-set"><summary>Lesson settings</summary>
+     <p>Practise from</p><div class="qz-chips">${Object.keys(AREAS).map(a=>`<button class="qz-chip${skAreas(s).includes(a)?' on':''}" data-ska="${a}" aria-pressed="${skAreas(s).includes(a)}"><span>${esc(AREAS[a].full)}</span></button>`).join('')}</div>
+     <p>Daily reminder</p><div class="sk-rem"><input type="time" id="skTime" value="20:00" aria-label="Reminder time"><button class="btn small" data-sk="ics">Add to my calendar</button></div>
+     <p class="hm-muted">A streak freeze is used automatically when you miss a day. You earn one every 7 days${pro?`, and can hold ${skCap()}`:`. <button class="linkbtn" data-sk="pro">Pro</button> holds ${PRO_CFG.streak.proFreezes}, repairs a lost streak and has no daily lesson limit`}.</p></details></div>`;
+  skSync()}
+function skIcs(){const v=($('#skTime')&&$('#skTime').value)||'20:00',[h,m]=v.split(':'),d=new Date(),p=n=>String(n).padStart(2,'0'),day=`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`;
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bondline//Daily practice//EN','BEGIN:VEVENT',`UID:bondline-streak-${Date.now()}@bondline.site`,`DTSTAMP:${day}T000000Z`,`DTSTART:${day}T${p(h)}${p(m)}00`,'DURATION:PT5M','RRULE:FREQ=DAILY','SUMMARY:Bondline: keep your streak','DESCRIPTION:Six questions\\, about three minutes. https://bondline.site/?app&streak=1','URL:https://bondline.site/?app&streak=1','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Bondline: keep your streak','TRIGGER:PT0M','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download='bondline-daily-practice.ics';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);toast('Open the file to add a daily reminder to your calendar.')}
+function openStreak(){closeMenus();if(isMob())$('#side').classList.remove('open');let sc=$('#skScrim');
+  if(!sc){sc=document.createElement('div');sc.id='skScrim';sc.className='sk-scrim';sc.hidden=true;sc.innerHTML='<div class="sk-m" role="dialog" aria-modal="true" aria-label="Daily practice"><div id="skBody"></div></div>';document.body.appendChild(sc);
+    sc.addEventListener('click',skClick);sc.addEventListener('keydown',skKey)}
+  skTick();sc.hidden=false;document.body.classList.add('sk-lock');try{act22feat('streak:open')}catch(e){}
+  if(SK.run&&SK.view==='lesson')skLesson();else skHub();const f=sc.querySelector('.sk-go')||sc.querySelector('button');if(f)f.focus({preventScroll:true})}
+function closeStreak(){const sc=$('#skScrim');if(sc)sc.hidden=true;document.body.classList.remove('sk-lock');SK.run=null;skSync()}
+function skClick(e){const o=e.target.closest('[data-sko]');if(o)return skPick(+o.dataset.sko);
+  const a=e.target.closest('[data-ska]');if(a){const s=skGet();let L=skAreas(s).slice();const k=a.dataset.ska;L=L.includes(k)?L.filter(x=>x!==k):L.concat(k);if(!L.length)return toast('Keep at least one section.');s.areas=L.length===Object.keys(AREAS).length?null:L;skPut(s);a.classList.toggle('on',L.includes(k));a.setAttribute('aria-pressed',L.includes(k));return}
+  const b=e.target.closest('[data-sk]');if(!b)return;const k=b.dataset.sk,R=SK.run;
+  if(k==='close')return closeStreak();
+  if(k==='start'){skSfx('tap');return skStart()}
+  if(k==='next')return skNext();
+  if(k==='flame')return skFlame();
+  if(k==='hub')return skHub();
+  if(k==='quit'){if(R&&(R.done||R.miss)){R.quit=true;return skLesson()}return skHub()}
+  if(k==='stay'){R.quit=false;return skLesson()}
+  if(k==='leave')return skHub();
+  if(k==='snd'){const s=skGet();s.snd=s.snd?0:1;skPut(s);if(s.snd)skSfx('ok');return skHub()}
+  if(k==='repair')return skRepair();
+  if(k==='pro')return openPro('streak');
+  if(k==='ics')return skIcs();
+  if(k==='share'){const n=R?R.len:skLen(skGet()).n;navigator.share({title:'Bondline',text:`I’m on a ${n}-day organic chemistry streak on Bondline.`,url:'https://bondline.site/'}).catch(()=>{})}}
+function skKey(e){if(e.key==='Escape'){e.stopPropagation();if(SK.view==='lesson'&&SK.run){const R=SK.run;if(R.quit)return skHub();if(R.done||R.miss){R.quit=true;return skLesson()}return skHub()}return SK.view==='hub'?closeStreak():skHub()}
+  if(e.metaKey||e.ctrlKey||e.altKey||e.target.closest('input'))return;
+  if(SK.view==='lesson'&&SK.run&&!SK.run.shown&&/^[1-9]$/.test(e.key)){e.preventDefault();skPick(+e.key-1)}}
+/* ---------- home card and rail button ---------- */
+function skHomeCard(){const hp=$('#homePage');if(!hp||!hp.querySelector('.h7'))return;const old=hp.querySelector('.sk-home');if(old)old.remove();if(!App.quiz||!App.quiz.q)return;
+  const s=skGet(),L=skLen(s),td=skToday(s),late=new Date().getHours()>=18,risk=!L.today&&L.n>0&&late;
+  const card=document.createElement('section');card.className='sk-home'+(L.today?' lit':risk?' risk':'');card.setAttribute('aria-label','Daily practice');
+  card.innerHTML=`<span class="sk-hf${L.n||L.today?'':' cold'}">${SK_FLAME}<b>${L.n}</b></span><div class="sk-ht"><div class="sk-hk">Daily practice${L.n?` · ${L.n}-day streak`:''}</div><div class="sk-hs">${L.today?`Done for today <span>+${td.x||0} XP</span>`:risk?'Your streak ends at midnight':L.n?'Keep your streak going':'Start a streak today'}</div>${skWeek(s)}</div><button class="btn${L.today?'':' primary'}">${L.today?'Practise more':'Start'}</button>`;
+  card.addEventListener('click',()=>openStreak());
+  const hero=hp.querySelector('.h7-hero');if(hero)hero.insertAdjacentElement('afterend',card);else hp.querySelector('.h7').prepend(card)}
+function skSync(){const b=$('#railStreak');if(b&&App.quiz&&App.quiz.q){const L=skLen(skGet());b.classList.toggle('lit',L.today);b.classList.toggle('has-new',!L.today);const n=b.querySelector('.sk-rn');if(n)n.textContent=L.n||'';b.title=L.today?`${L.n}-day streak. Done for today.`:L.n?`${L.n}-day streak. Do today’s lesson to keep it.`:'Daily practice: start a streak'}
+  if(App.mode==='home')try{skHomeCard()}catch(e){}}
+
+/* ---------- Pro: exam pass, ask a parent, centre licences ---------- */
+function v29ParentLink(){const u=FB&&FB.user;if(!u)return'';const n=String(u.displayName||'').trim().split(/\s+/)[0]||'';return`${location.origin}/gift/?for=${encodeURIComponent(u.uid)}${n?'&n='+encodeURIComponent(n.slice(0,30)):''}`}
+async function v29AskParent(){const u=FB&&FB.user;if(!u){closePro();toast('Sign in first, so Pro is linked to your account.');return openSettings('#setAcctSec')}
+  const url=v29ParentLink(),text='Could you get me Bondline Pro for my chemistry revision? You can pay here and it switches on for my account:';
+  v18set('bondline.proPending',{t:Date.now(),plan:'parent'});try{act22feat('pro:parent')}catch(e){}
+  if(navigator.share){try{await navigator.share({title:'Bondline Pro',text,url});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(text+' '+url);toast('Link copied. Send it to your parent.')}catch(e){prompt('Copy this link and send it to your parent:',url)}}
+// Ask the server to start a Stripe Checkout, then go there. The server knows the prices; the app only names the plan.
+async function v29Checkout(body,btn){const t=btn&&btn.textContent;if(btn){btn.disabled=true;btn.textContent='Opening checkout…'}
+  try{const r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),j=await r.json().catch(()=>({}));
+    if(r.ok&&j.url){location.href=j.url;return}toast(j.error||'Couldn’t open the checkout. Please try again.')}
+  catch(e){toast('Couldn’t reach the checkout. Check your connection and try again.')}
+  if(btn){btn.disabled=false;btn.textContent=t}}
+function v29Money(price,n){const m=String(price).match(/^(.*?)(\d+(?:\.\d+)?)(.*)$/);if(!m)return price+' × '+n;const v=+m[2]*n;return m[1]+(Number.isInteger(v)?v:v.toFixed(2))+m[3]}
+function v29Licence(){const side=document.querySelector('#classPage .tc-tpside');if(!side||side.dataset.v29)return;side.dataset.v29='1';const C=PRO_CFG.centre,mo=Math.round(C.days/30),u=FB&&FB.user;
+  side.innerHTML=`<h2>Tuition centres and schools</h2><p>A <b>centre licence</b> gives the students in your classes Bondline Pro while they’re enrolled: every course unit, mock exams and weak-spot practice at home.</p>
+   <div id="lcNow"></div>
+   <label class="cl-f">Students per class <small>the size of your biggest class</small><input id="lcN" type="number" inputmode="numeric" min="${C.minSeats}" max="1000" value="${Math.max(C.minSeats,30)}"></label>
+   <p class="lc-sum"><b id="lcTot"></b> <span>for ${mo} months · ${esc(C.price)} a student</span></p>
+   <div class="lc-row">${C.checkout?`<button class="btn primary" data-lc="buy">Buy a licence</button>`:''}<a class="btn" id="lcMail" href="#">${C.checkout?'Pay by invoice':'Ask for a quote'}</a></div>
+   <p class="hm-muted">Covers every class you teach, up to that many students in each. Pay by card, or ask for an invoice and pay by bank transfer.</p>`;
+  const upd=()=>{const n=Math.max(C.minSeats,Math.min(1000,parseInt($('#lcN').value,10)||0));$('#lcTot').textContent=v29Money(C.price,n);
+    $('#lcMail').href='mailto:bondlinenotes@gmail.com?subject='+encodeURIComponent('Bondline centre licence: '+n+' students')+'&body='+encodeURIComponent(`We’d like a Bondline centre licence.\n\nStudents per class: ${n}\nNumber of classes: \nSchool or centre: \nCountry: \nPay by: invoice / bank transfer\nBondline account email: ${u&&u.email||''}`);return n};
+  upd();$('#lcN').addEventListener('input',upd);
+  side.addEventListener('click',e=>{const b=e.target.closest('[data-lc]');if(!b)return;if(!u||u.isAnonymous)return toast('Sign in with your teacher account first.');const n=upd();
+    try{act22feat('pro:centre')}catch(e){}v29Checkout({plan:'centre',uid:u.uid,email:u.email||'',seats:n},b)});
+  if(u&&FB.db)FB.db.collection('passes').doc(u.uid).get().then(d=>{const p=d.exists?d.data():null,el=$('#lcNow');if(el&&p&&+p.seats>0&&+p.until>Date.now())el.innerHTML=`<p class="lc-now">${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}<span>Your licence: <b>${+p.seats} students per class</b> until ${esc(v18Date(+p.until))}.</span></p>`}).catch(()=>{})}
+
+function wireV29(){
+  // Pro window: a third plan (exam pass), and a link a parent can pay from.
+  { const _pr=proRender;proRender=function(){_pr();const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=proActive(),e=PRO.ent||{},wl=v18get('bondline.waitlist',null),wk=Math.round(PRO_CFG.examDays/7);
+      const plans=B.querySelector('.pro-plans');
+      if(plans&&!plans.querySelector('[data-x29]')){plans.classList.add('pro-plans3');
+        plans.insertAdjacentHTML('beforeend',`<div class="pro-plan" data-x29><span class="pro-tag pro-tag2">Exam soon?</span><b class="pro-pn">Exam pass</b><div class="pro-pr"><b>${esc(PRO_CFG.price.exam)}</b><span>once</span></div><small>${wk} weeks of Pro for the run-up to your exam. No subscription, nothing renews.</small>${act?'':PRO_CFG.checkout.exam?`<button class="btn" data-proact="buy:exam">${u?'Continue to checkout':'Sign in to buy'}</button>`:`<button class="btn" data-proact="wait:exam"${wl?' disabled':''}>${wl?'You’re on the list':'Notify me'}</button>`}</div>`);
+        if(!act&&proSells())plans.insertAdjacentHTML('afterend',`<div class="pro-parent"><div><b>Is a parent paying?</b><small>Send them a link. They pay on their own phone, and Pro switches on for your account.</small></div><button class="btn small" data-proact="parent">${u?'Send a link':'Sign in first'}</button></div>`)}
+      if(act&&e.passPlan==='exam'&&+e.passUntil>Date.now()&&!(+e.subUntil>Date.now())){const sm=B.querySelector('.pro-status small');if(sm)sm.textContent=sm.textContent.replace('Semester pass','Exam pass')}
+      if(proWhy==='streak'&&!act&&PRO_CFG.enforce&&!B.querySelector('.pro-why'))B.insertAdjacentHTML('afterbegin','<p class="pro-why">Extra lessons, more streak freezes and streak repair are part of Bondline Pro.</p>')} }
+  { const _pa=proAct;proAct=async function(a,btn){if(a==='parent')return v29AskParent();return _pa(a,btn)} }
+  // Teachers: buy a centre licence on the teacher plan page.
+  { const _tp=tpRender;tpRender=function(){_tp();try{v29Licence()}catch(e){console.warn(e)}} }
+  // Streak: keep it in sync across devices, and show it on Home, the rail, the menu and the command palette.
+  { const _mq=mergeQuiz;mergeQuiz=function(remote){const loc=App.quiz&&App.quiz.q&&App.quiz.q._streak;_mq(remote);const rem=remote&&remote.q&&remote.q._streak;
+      if(rem&&rem.s&&loc&&loc.s){const newer=(rem.at||0)>(loc.at||0);App.quiz.q._streak={c:0,w:0,at:Math.max(rem.at||0,loc.at||0),s:skMerge(loc.s,rem.s,newer)}}
+      try{skTick();skSync()}catch(e){}} }
+  const rb=$('#railBondle')||$('#railTools');
+  if(rb&&!$('#railStreak')){rb.insertAdjacentHTML('beforebegin',`<button class="rail-b sk-rail" id="railStreak" type="button" title="Daily practice">${SK_FLAME}<i class="sk-rn"></i><span>Streak</span></button>`);$('#railStreak').addEventListener('click',openStreak)}
+  { const _rm=renderAcctMenu;renderAcctMenu=function(){_rm();const m=$('#acctMenu'),at=m.querySelector('[data-mi="bondle"]')||m.querySelector('[data-mi="settings"]');const html=menuItem('streak',ico('<path d="M12.3 2.5c.6 3.4 5.4 5.6 5.4 10.9a5.7 5.7 0 0 1-11.4 0c0-2.1.8-3.6 1.9-4.8.3 1.6.9 2.5 1.9 3-.4-3.4.5-6.6 2.2-9.1z"/>'),'Daily practice','Six questions a day, and a streak');if(at)at.insertAdjacentHTML('beforebegin',html);else m.insertAdjacentHTML('beforeend',html)} }
+  { const _mg=menuGo;menuGo=function(k){if(k==='streak'){closeMenus();return openStreak()}_mg(k)} }
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();I.push({label:'Daily practice: today’s lesson',kind:'Practice',fn:openStreak,kw:'streak daily practice lesson duolingo xp flame freeze habit'});return I} }
+  { const _rh=renderHome;renderHome=function(){_rh();try{skHomeCard()}catch(e){console.warn(e)}} }
+  setTimeout(()=>{try{skTick();skSync();if(V18_Q.get('streak'))openStreak()}catch(e){console.warn(e)}},900);
+  if(/[?&]bltest\b/.test(location.search))window.__sk={open:openStreak,get:skGet,put:skPut,tick:skTick,len:skLen,canRepair:skCanRepair,noon:skNoon,dayKey,DAY,run:()=>SK.run};
+  setInterval(()=>{try{if(!document.hidden){skTick();skSync()}}catch(e){}},15*60e3);
+  CHANGELOG.unshift({v:'29',d:'14 November 2026',t:'Daily practice and your streak',items:[
+    ['A lesson a day','Six questions in about three minutes, picked for you: the ones you got wrong come back, and new topics are mixed in. Open it from Home or the Streak button.'],
+    ['Streaks, XP and levels','Finish a lesson each day to build your streak. Earn XP for right answers and runs of right answers, and climb from Methane upwards.'],
+    ['Streak freezes','Miss a day and a freeze keeps your streak safe. You earn one every seven days.'],
+    ['Exam pass','A one-off pass for the weeks before your exam, next to the monthly plan and the semester pass.'],
+    ['Ask a parent','Send a parent a link from the Pro window. They pay on their own phone and Pro switches on for you.'],
+    ['Centre licences','Teachers can buy Pro for their classes from Classes → Bondline for teachers, by card or by invoice.']]});
+}
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();
 boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

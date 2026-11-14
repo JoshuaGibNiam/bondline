@@ -3163,7 +3163,7 @@ Lignin=5
 Tannin=5
 Quinone=5`},
 
-{id:'fuel',lv:2,q:'Name a renewable or alternative fuel',a:`
+{id:'fuel',x:'diesel|petrol|gasoline|coal|oil|crude oil|natural gas|kerosene|gas',lv:2,q:'Name a renewable or alternative fuel',a:`
 Hydrogen=1
 Ethanol|bioethanol=1
 Biodiesel=1

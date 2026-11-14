@@ -587,7 +587,7 @@ service cloud.firestore {
     }
 
     // ---------- Bondline Pro ----------
-    // entitlements/{uid} is written only by Bondline's server (the Lemon Squeezy webhook),
+    // entitlements/{uid} is written only by Bondline's server (the Stripe webhook),
     // which uses a service account and so bypasses these rules. People can read only their own.
     match /entitlements/{uid} {
       allow get: if isOwner(uid);
