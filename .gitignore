@@ -1,0 +1,8 @@
+# Never commit secrets. Stripe and Firebase secrets belong in Netlify environment variables.
+.env
+.env.*
+*service-account*.json
+*firebase-adminsdk*.json
+node_modules/
+.netlify/
+.DS_Store

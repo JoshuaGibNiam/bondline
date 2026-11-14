@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>About Bondline · Organic Chemistry Notebook</title>
+<meta name="description" content="Bondline is a free organic chemistry notebook made in Malaysia: notes, curly-arrow mechanisms, 3D models and practice in one place.">
+<link rel="canonical" href="https://bondline.site/about/">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="About Bondline · Organic Chemistry Notebook">
+<meta property="og:description" content="Bondline is a free organic chemistry notebook made in Malaysia: notes, curly-arrow mechanisms, 3D models and practice in one place.">
+<meta property="og:image" content="https://bondline.site/og-image.png">
+<meta name="theme-color" content="#0a0f17">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+@font-face{font-family:'Bricolage Grotesque';font-weight:400;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/source-serif-4-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
+:root{--k:#0a0f17;--pp:#f3f4f7;--ink:#121a24;--mut:#5a6878;--line:#d8dfe8;--bl:#1f5fd1;--rd:#ff5a5f;color-scheme:light}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--pp);color:var(--ink);font:17px/1.65 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--bl)}
+header{background:var(--k);color:#fff;padding:22px max(16px,5vw) clamp(60px,10vh,110px);position:relative;overflow:hidden}
+header nav{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em}
+.brand svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.brand svg .c{stroke:var(--rd)}
+.open{color:#0a0f17;background:#fff;text-decoration:none;font-weight:700;font-size:14.5px;padding:10px 18px;border-radius:999px;transition:background .3s,color .3s}
+.open:hover{background:var(--rd);color:#fff}
+.label{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:clamp(60px,10vh,110px) 0 14px}
+h1{font-size:clamp(46px,8vw,120px);line-height:.92;letter-spacing:-.055em;margin:0}
+h1 em{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--rd)}
+.updated{color:#c7d0dd;margin:22px 0 0}
+main{display:grid;grid-template-columns:240px minmax(0,760px);gap:clamp(30px,6vw,90px);padding:clamp(50px,8vh,90px) max(16px,5vw) 90px}
+.toc{position:sticky;top:24px;align-self:start;font-size:14.5px}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
+.toc li{counter-increment:t}
+.toc a{color:var(--mut);text-decoration:none;display:block;padding:2px 0;transition:color .2s,transform .2s}
+.toc a::before{content:counter(t,decimal-leading-zero) "  ";font-family:"JetBrains Mono",monospace;font-size:12px}
+.toc a:hover{color:var(--ink);transform:translateX(3px)}
+article h2{font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.1;margin:56px 0 14px;scroll-margin-top:24px}
+article h2:first-child{margin-top:0}
+article h3{font-size:19px;margin:26px 0 6px}
+article p,article li{color:#2b3644}
+article ul{padding-left:22px}
+article li{margin:6px 0}
+.summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px}
+.summary ul{margin:10px 0 0}
+table{width:100%;border-collapse:collapse;font-size:15.5px;margin:14px 0}
+th,td{text-align:left;vertical-align:top;padding:12px 12px 12px 0;border-top:1px solid var(--line)}
+th{font-weight:700;width:34%}
+mark{background:#fff3a3;padding:0 4px;border-radius:4px}
+@media (max-width:860px){main{grid-template-columns:1fr}.toc{position:static}}
+@media (prefers-reduced-motion:no-preference){
+  h1,.updated,.label{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.label{animation-delay:.05s}h1{animation-delay:.1s}.updated{animation-delay:.25s}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin:18px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink);transition:border-color .2s,transform .2s}
+a.card:hover{border-color:var(--bl);transform:translateY(-2px)}
+.card b{font-size:17px}.card span{color:var(--mut);font-size:15px;line-height:1.5}
+.card .k{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--bl)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--k);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 20px;border-radius:999px;border:0;transition:background .3s}
+.btn:hover{background:var(--rd)}
+.btn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.alt:hover{border-color:var(--ink);background:#fff}
+.row{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
+.plan{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;position:relative;display:flex;flex-direction:column;gap:8px}
+.plan.best{border:2px solid var(--bl)}
+.plan .tag{position:absolute;top:-12px;left:20px;background:var(--bl);color:#fff;font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:999px}
+.plan .pr{font-size:44px;font-weight:700;letter-spacing:-.04em;line-height:1}.plan .pr small{font-size:16px;color:var(--mut);font-weight:400;letter-spacing:0}
+.plan ul{margin:6px 0 0;padding-left:20px}
+.note{background:#e8f1ff;border:1px solid #c6dafc;border-radius:16px;padding:16px 20px;margin:18px 0}
+table.cmp td:nth-child(n+2),table.cmp th:nth-child(n+2){text-align:center;width:22%}
+table.cmp th{width:auto}
+.yes{color:#16824a;font-weight:700}.no{color:#a0aab6}
+dl.faq dt{font-weight:700;margin-top:18px}dl.faq dd{margin:4px 0 0;color:#2b3644}
+@media (max-width:700px){.plans{grid-template-columns:1fr}}
+
+.bf{background:#0a0f17;color:#8b97a8;padding:56px max(20px,5vw) calc(26px + env(safe-area-inset-bottom,0px));font:15px/1.55 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;border-top:1px solid #1c2633}
+.bf a{color:#c7d0dd;text-decoration:none;transition:color .2s}.bf a:hover,.bf a:focus-visible{color:#fff}
+.bf a:focus-visible{outline:2px solid #ff5a5f;outline-offset:3px;border-radius:4px}
+.bf-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr);gap:40px;max-width:1200px;margin:0 auto}
+.bf-logo{display:inline-flex;align-items:center;gap:10px;color:#fff!important;font-weight:700;font-size:20px;letter-spacing:-.02em}
+.bf-logo svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bf-logo svg .c{stroke:#ff5a5f}
+.bf-brand p{margin:12px 0 10px;max-width:340px}
+.bf-mail{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13.5px}
+.bf-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.bf-col h2{font:600 12.5px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:6px 0 14px}
+.bf-col ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.bf-base{max-width:1200px;margin:44px auto 0;padding-top:20px;border-top:1px solid #1c2633;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;font-size:13.5px}
+@media (max-width:760px){.bf-in{grid-template-columns:1fr;gap:32px}.bf-cols{grid-template-columns:1fr 1fr}.bf{padding-top:44px}}
+</style>
+</head>
+<body>
+<header>
+  <nav><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="open" href="/?app">Open the notebook</a></nav>
+  <p class="label">About</p>
+  <h1>Orgo in <em>one place.</em></h1>
+  <p class="updated">A free organic chemistry notebook, made in Malaysia</p>
+</header>
+
+<main>
+  <aside class="toc" aria-label="Contents"><ol><li><a href="#what">What Bondline is</a></li><li><a href="#who">Who makes it</a></li><li><a href="#principles">What we promise</a></li><li><a href="#lecturers">For lecturers</a></li><li><a href="#contact">Get in touch</a></li></ol></aside>
+  <article>
+
+    <h2 id="what">What Bondline is</h2>
+    <p>Bondline is a notebook made for organic chemistry. Instead of switching between a notes app, a drawing program, a question bank and a stack of spectra, you write notes, draw structures and curly-arrow mechanisms, and practise, all in one place. It runs in any browser, installs like an app on phones and laptops, and works offline.</p>
+    <div class="cards">
+      <div class="card"><span class="k">Notes</span><b>Write and draw</b><span>Type a name to get the structure, draw mechanisms with curly arrows, and watch reactions in 3D.</span></div>
+      <div class="card"><span class="k">Practice</span><b>Learn by doing</b><span>IUPAC naming quizzes, stereochemistry lessons with interactive 3D models, 350 spectroscopy questions, 27 synthesis problems, mechanism practice and flashcards.</span></div>
+      <div class="card"><span class="k">Reference</span><b>Look things up</b><span>A library of 41 reaction mechanisms, a reaction predictor, a glossary and IR, NMR and pK<sub>a</sub> tables.</span></div>
+      <div class="card"><span class="k">Classes</span><b>Teach with it</b><span>Lecturers set naming, spectra, mechanism or synthesis work and see how the class is doing.</span></div>
+    </div>
+
+    <h2 id="who">Who makes it</h2>
+    <p>Bondline is made by an independent developer in Malaysia. There's no big company or investors behind it: just the aim of making organic chemistry easier to learn and less of a juggling act.</p>
+
+    <h2 id="principles">What we promise</h2>
+    <ul>
+      <li><b>The core stays free.</b> Notes, drawing, the reaction library, practice, sync and classes are free. <a href="/pricing/">Bondline Pro</a> adds optional extras for exam season.</li>
+      <li><b>Your notes are yours.</b> No ads, no tracking cookies, and we don't sell or share your data. You can use Bondline without an account at all. See the <a href="/privacy/">privacy policy</a>.</li>
+      <li><b>It works anywhere.</b> On a phone in the library, a laptop in a lecture, or offline on the train.</li>
+    </ul>
+
+    <h2 id="lecturers">For lecturers and teachers</h2>
+    <p>Bondline's <b>Classes</b> let you set work and follow your students' progress for free. Write your own quizzes (multiple choice, true or false, short answer and numbers, with structures and equations) or pick from over a thousand of Bondline's questions across seven syllabuses. Set them as practice or timed tests, print them as worksheets with answer keys, or play them live on the projector while students answer on their phones.</p>
+    <p>Students join with a code, and students without an email address can join with just a first name. You see each student's scores, which questions the class got wrong and which topics are weakest, never their private notes. Invite a co-teacher to share a class, and link a shared notebook so every student gets your notes. <b>Lecture mode</b> turns any note into slides, with curly arrows appearing one click at a time, and notes export to PowerPoint.</p>
+    <p>Verified teachers get Bondline Pro free; ask from Classes in the app. Tuition centres can add class passes so their students get Pro too.</p>
+    <p>If you'd like to try Bondline with a course, need a department setup, or have ideas for questions and topics, we'd love to hear from you.</p>
+    <div class="row"><a class="btn" href="mailto:bondlinenotes@gmail.com?subject=Bondline for my course">Email us about your course</a><a class="btn alt" href="/?app">Open the notebook</a></div>
+
+    <h2 id="contact">Get in touch</h2>
+    <p>Questions, bug reports and ideas are all welcome at <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>. See the <a href="/contact/">contact page</a> for the quickest way to reach us about each topic.</p>
+
+  </article>
+</main>
+
+<footer class="bf">
+  <div class="bf-in">
+    <div class="bf-brand"><a class="bf-logo" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><p>A free notebook for organic chemistry: notes, curly-arrow mechanisms, spectra and naming practice.</p><a class="bf-mail" href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a></div>
+    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Learn</h2><ul><li><a href="/guides/organic-functional-groups/">Functional groups</a></li><li><a href="/guides/how-to-name-organic-compounds/">How to name compounds</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2</a></li><li><a href="/guides/r-and-s-configuration/">R and S</a></li><li><a href="/guides/how-to-study-organic-chemistry/">How to study organic chemistry</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
+  </div>
+  <div class="bf-base"><span>© 2026 Bondline · Made in Malaysia</span><a href="/contact/">Questions? Get in touch</a></div>
+</footer>
+<script src="/assets/track.js" defer></script>
+</body>
+</html>

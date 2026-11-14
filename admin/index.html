@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Bondline Admin</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <form class="card login-card" id="loginForm" autocomplete="on">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline <span>Admin</span></div>
+    <label for="user">Username or email</label>
+    <input id="user" name="username" autocomplete="username" required autocapitalize="off" spellcheck="false" value="admin">
+    <label for="pass">Password</label>
+    <input id="pass" name="password" type="password" autocomplete="current-password" required>
+    <p class="err" id="loginErr" role="alert" hidden></p>
+    <button class="btn primary wide" type="submit" id="loginBtn">Sign in</button>
+    <button class="btn wide" type="button" id="googleBtn">Sign in with Google</button>
+    <p class="fine">Only accounts listed as admins in Firebase can open the dashboard.</p>
+  </form>
+</div>
+
+<div id="denied" class="login" hidden>
+  <div class="card login-card">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline <span>Admin</span></div>
+    <h2>This account isn’t an admin yet</h2>
+    <p>Signed in as <b id="deniedWho"></b>. To make it an admin, open the Firebase console → <b>Firestore Database</b> → <b>Start collection</b> called <code>admins</code>, and add a document whose ID is:</p>
+    <p class="uidbox"><code id="deniedUid"></code> <button class="btn small" id="copyUid" type="button">Copy</button></p>
+    <p>Give it one field, for example <code>role</code> = <code>owner</code>, save, then reload this page.</p>
+    <button class="btn" id="deniedOut" type="button">Sign out</button>
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline <span>Admin</span></div>
+    <nav class="tabs" id="tabs" role="tablist">
+      <button role="tab" data-tab="overview" class="on">Overview</button>
+      <button role="tab" data-tab="users">Users</button>
+      <button role="tab" data-tab="activity">Activity</button>
+      <button role="tab" data-tab="feedback">Feedback <i id="fbBadge" hidden></i></button>
+      <button role="tab" data-tab="bondle">Bondle</button>
+      <button role="tab" data-tab="announce">Announcement</button>
+      <button role="tab" data-tab="teachers">Teachers <i id="tBadge" hidden></i></button>
+    </nav>
+    <div class="who"><select id="range" aria-label="Time range"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><button class="btn small" id="refresh" type="button" title="Reload data">Refresh</button><a class="btn small" href="/?app">Open app</a><button class="btn small" id="signOut" type="button">Sign out</button></div>
+  </header>
+  <main id="view" class="view"></main>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script src="/firebase-config.js"></script>
+<script src="/vendor/firebase-app-compat.js"></script>
+<script src="/vendor/firebase-auth-compat.js"></script>
+<script src="/vendor/firebase-firestore-compat.js"></script>
+<script src="/bondle-core.js"></script>
+<script src="/bondle-data.js"></script>
+<script src="/bondle-science.js"></script>
+<script src="/admin/admin.js"></script>
+</body>
+</html>

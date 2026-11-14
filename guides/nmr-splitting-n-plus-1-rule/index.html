@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1H NMR Splitting Patterns and the n+1 Rule, with Examples</title>
+<meta name="description" content="How to read splitting in ¹H NMR: the n+1 rule, Pascal's triangle, common patterns like the ethyl quartet and triplet, and why OH peaks are singlets.">
+<link rel="canonical" href="https://bondline.site/guides/nmr-splitting-n-plus-1-rule/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Bondline">
+<meta property="og:title" content="1H NMR Splitting Patterns and the n+1 Rule, with Examples">
+<meta property="og:description" content="How to read splitting in ¹H NMR: the n+1 rule, Pascal&#x27;s triangle, common patterns like the ethyl quartet and triplet, and why OH peaks are singlets.">
+<meta property="og:url" content="https://bondline.site/guides/nmr-splitting-n-plus-1-rule/">
+<meta property="og:image" content="https://bondline.site/og-image.png">
+<meta property="og:image:alt" content="Bondline, the free organic chemistry notebook">
+<meta property="og:locale" content="en_GB">
+<meta property="article:modified_time" content="2026-11-03">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="1H NMR Splitting Patterns and the n+1 Rule, with Examples">
+<meta name="twitter:description" content="How to read splitting in ¹H NMR: the n+1 rule, Pascal&#x27;s triangle, common patterns like the ethyl quartet and triplet, and why OH peaks are singlets.">
+<meta name="theme-color" content="#0a0f17">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Article", "headline": "¹H NMR splitting and the n+1 rule", "description": "How to read splitting in ¹H NMR: the n+1 rule, Pascal's triangle, common patterns like the ethyl quartet and triplet, and why OH peaks are singlets.", "url": "https://bondline.site/guides/nmr-splitting-n-plus-1-rule/", "mainEntityOfPage": "https://bondline.site/guides/nmr-splitting-n-plus-1-rule/", "datePublished": "2026-11-03", "dateModified": "2026-11-03", "author": {"@type": "Organization", "name": "Bondline", "url": "https://bondline.site/"}, "publisher": {"@type": "Organization", "name": "Bondline", "logo": {"@type": "ImageObject", "url": "https://bondline.site/icons/icon-512.png"}}, "image": "https://bondline.site/og-image.png", "inLanguage": "en", "about": "Spectroscopy", "educationalLevel": "Upper secondary and undergraduate", "isPartOf": {"@type": "CollectionPage", "name": "Organic chemistry guides", "url": "https://bondline.site/guides/"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Bondline", "item": "https://bondline.site/?about"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://bondline.site/guides/"}, {"@type": "ListItem", "position": 3, "name": "¹H NMR splitting and the n+1 rule"}]}]}</script>
+</head>
+<body>
+<header class="top">
+  <nav class="nav" aria-label="Site"><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="l" href="/guides/">Guides</a><a class="l" href="/reactions/">Reactions</a><a class="open" href="/?app">Open the notebook</a></nav>
+  <p class="crumb"><a href="/?about">Bondline</a> / <a href="/guides/">Guides</a></p>
+  <h1>¹H NMR splitting and the n+1 rule</h1>
+  <p class="lede">Each signal in a ¹H NMR spectrum is split by the hydrogens on neighbouring carbons. Counting the peaks tells you how many neighbours there are.</p>
+  <p class="meta">Spectroscopy · Updated 3 November 2026</p>
+</header>
+<main class="wrap">
+  <article>
+
+<h2>The n+1 rule</h2>
+<p>A set of equivalent hydrogens with <b>n</b> hydrogens on adjacent carbons is split into <b>n + 1</b> peaks.</p>
+<div class="tbl"><table>
+<thead><tr><th>Neighbouring H (n)</th><th>Peaks</th><th>Name</th><th>Relative heights</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>1</td><td>singlet (s)</td><td>1</td></tr>
+<tr><td>1</td><td>2</td><td>doublet (d)</td><td>1 : 1</td></tr>
+<tr><td>2</td><td>3</td><td>triplet (t)</td><td>1 : 2 : 1</td></tr>
+<tr><td>3</td><td>4</td><td>quartet (q)</td><td>1 : 3 : 3 : 1</td></tr>
+<tr><td>4</td><td>5</td><td>quintet</td><td>1 : 4 : 6 : 4 : 1</td></tr>
+<tr><td>6</td><td>7</td><td>septet</td><td>1 : 6 : 15 : 20 : 15 : 6 : 1</td></tr>
+</tbody></table></div>
+<p>The heights come from Pascal's triangle.</p>
+
+<h2>Three things that don't split</h2>
+<ul>
+<li><b>Equivalent hydrogens don't split each other.</b> The six H in ethane give one singlet.</li>
+<li><b>OH and NH hydrogens</b> usually appear as broad singlets and don't split their neighbours, because they swap quickly between molecules. Shaking with D₂O makes them disappear.</li>
+<li><b>Hydrogens more than three bonds apart</b> (H–C–C–H is three bonds) usually don't split each other.</li>
+</ul>
+
+<h2>Patterns worth recognising</h2>
+<div class="tbl"><table>
+<thead><tr><th>You see</th><th>It suggests</th></tr></thead>
+<tbody>
+<tr><td>Quartet (2H) + triplet (3H)</td><td>An ethyl group, CH₂CH₃</td></tr>
+<tr><td>Septet (1H) + doublet (6H)</td><td>An isopropyl group, CH(CH₃)₂</td></tr>
+<tr><td>Singlet (9H)</td><td>A tert-butyl group, C(CH₃)₃</td></tr>
+<tr><td>Singlet (3H) near 2.1 ppm</td><td>CH₃ next to C=O, with no neighbours</td></tr>
+<tr><td>Singlet (3H) near 3.3–3.9 ppm</td><td>OCH₃</td></tr>
+</tbody></table></div>
+
+<h2>Worked example: ethanol</h2>
+<div class="figs"><figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 114 65" width="114" height="65" role="img" aria-label="ethanol"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="41" x2="51.98" y2="26"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="26" x2="71.98" y2="37.55"/></g><text x="73.6" y="45.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>OH</tspan></text></svg></div><figcaption><b>ethanol, CH₃CH₂OH</b></figcaption></figure></div>
+<ul>
+<li><b>CH₃ at about 1.2 ppm: triplet, 3H.</b> Its neighbour, the CH₂, has 2 H → 2 + 1 = 3 peaks.</li>
+<li><b>CH₂ at about 3.7 ppm: quartet, 2H.</b> Its neighbour, the CH₃, has 3 H → 4 peaks. (The OH doesn't split it.) It's further downfield because it's next to oxygen.</li>
+<li><b>OH, about 2–5 ppm: broad singlet, 1H.</b> Its position depends on concentration.</li>
+</ul>
+
+<h2>Worked example: propan-2-ol</h2>
+<div class="figs"><figure class="mol"><div class="sv"><svg style="max-width:100%;height:auto" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 100 95" width="100" height="95" role="img" aria-label="propan-2-ol"><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="26" y1="73" x2="51.98" y2="58"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="77.96" y2="73"/></g><g style="stroke:#111111;stroke-width:1.6;stroke-linecap:round;fill:none"><line x1="51.98" y1="58" x2="51.98" y2="35.4"/></g><text x="47.63" y="32.68" style="fill:#111111;font-size:13px;font-family:Arial, Helvetica, sans-serif"><tspan>OH</tspan></text></svg></div><figcaption><b>propan-2-ol, (CH₃)₂CHOH</b></figcaption></figure></div>
+<p>The two methyl groups are equivalent: one <b>doublet</b> (6H) near 1.2 ppm, split by the single CH. The CH is split by six H, giving a <b>septet</b> (1H) near 4.0 ppm. The OH is a broad singlet.</p>
+
+<h2>Where signals appear (chemical shift)</h2>
+<div class="tbl"><table><thead><tr><th>Type of H</th><th>δ / ppm</th></tr></thead><tbody>
+<tr><td>R–CH₃, R–CH₂–R</td><td>0.9–1.7</td></tr><tr><td>H–C–C=O</td><td>2.0–2.7</td></tr><tr><td>H–C–O (alcohols, ethers, esters)</td><td>3.3–4.3</td></tr><tr><td>C=C–H (alkene)</td><td>4.5–6.5</td></tr><tr><td>Ar–H (benzene ring)</td><td>6.5–8.0</td></tr><tr><td>CHO (aldehyde)</td><td>9.0–10.0</td></tr><tr><td>COOH</td><td>10–13 (broad)</td></tr>
+</tbody></table></div>
+<p>Exact values vary with the molecule; check your course's data sheet. For functional groups, IR is often quicker: see the <a href="/guides/ir-spectroscopy-table/">IR spectroscopy table</a>.</p>
+<div class="cta"><p><b>Practise NMR problems in Bondline</b>Free, works offline, no account needed.</p><a href="/?mode=spectra">Open in Bondline</a></div><div class="rel"><h2>Related guides</h2><ul><li><a href="/guides/ir-spectroscopy-table/">IR spectroscopy table and how to read a spectrum</a></li><li><a href="/guides/13c-nmr-chemical-shifts/">¹³C NMR chemical shift table and how to use it</a></li><li><a href="/guides/mass-spectrometry-fragmentation/">Mass spectrometry: molecular ion, fragments and M+2 peaks</a></li><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li></ul></div>
+  </article>
+  <aside class="side"><h2>More guides</h2><ul><li><a href="/guides/ir-spectroscopy-table/">IR spectroscopy table and how to read a spectrum</a></li><li><a href="/guides/13c-nmr-chemical-shifts/">¹³C NMR chemical shift table and how to use it</a></li><li><a href="/guides/mass-spectrometry-fragmentation/">Mass spectrometry: molecular ion, fragments and M+2 peaks</a></li><li><a href="/guides/how-to-name-alkenes/">How to name alkenes and alkynes (IUPAC)</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2 vs E1 vs E2: how to decide</a></li><li><a href="/guides/e-z-vs-cis-trans/">E/Z vs cis/trans isomers explained</a></li><li><a href="/guides/r-and-s-configuration/">How to assign R and S configuration</a></li></ul></aside>
+</main>
+<footer class="bf">
+  <div class="bf-in">
+    <div class="bf-brand"><a class="bf-logo" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><p>A free notebook for organic chemistry: notes, curly-arrow mechanisms, spectra and naming practice.</p><a class="bf-mail" href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a></div>
+    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Learn</h2><ul><li><a href="/guides/organic-functional-groups/">Functional groups</a></li><li><a href="/guides/how-to-name-organic-compounds/">How to name compounds</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2</a></li><li><a href="/guides/r-and-s-configuration/">R and S</a></li><li><a href="/guides/how-to-study-organic-chemistry/">How to study organic chemistry</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
+  </div>
+  <div class="bf-base"><span>© 2026 Bondline · Made in Malaysia</span><a href="/contact/">Questions? Get in touch</a></div>
+</footer>
+<script src="/assets/track.js" defer></script>
+</body>
+</html>
