@@ -3,226 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Privacy Policy · Bondline</title>
-<meta name="description" content="What Bondline, the free organic chemistry notebook, stores about you, where it is kept, who can see it, and how to delete it.">
-<link rel="canonical" href="https://bondline.site/privacy/">
-<meta name="robots" content="index,follow">
-<meta name="theme-color" content="#0a0f17">
+<meta name="robots" content="noindex,nofollow">
+<title>Bondline Admin</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<style>
-@font-face{font-family:'Bricolage Grotesque';font-weight:400;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-400-normal.woff2) format('woff2')}
-@font-face{font-family:'Bricolage Grotesque';font-weight:700;font-display:swap;src:url(/fonts/bricolage-grotesque-latin-700-normal.woff2) format('woff2')}
-@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/source-serif-4-latin-400-italic.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
-:root{--k:#0a0f17;--pp:#f3f4f7;--ink:#121a24;--mut:#5a6878;--line:#d8dfe8;--bl:#1f5fd1;--rd:#ff5a5f;color-scheme:light}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--pp);color:var(--ink);font:17px/1.65 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--bl)}
-header{background:var(--k);color:#fff;padding:22px max(16px,5vw) clamp(60px,10vh,110px);position:relative;overflow:hidden}
-header nav{display:flex;justify-content:space-between;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.brand svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.brand svg .c{stroke:var(--rd)}
-.open{color:#0a0f17;background:#fff;text-decoration:none;font-weight:700;font-size:14.5px;padding:10px 18px;border-radius:999px;transition:background .3s,color .3s}
-.open:hover{background:var(--rd);color:#fff}
-.label{font-family:"JetBrains Mono",monospace;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:clamp(60px,10vh,110px) 0 14px}
-h1{font-size:clamp(46px,8vw,120px);line-height:.92;letter-spacing:-.055em;margin:0}
-h1 em{font-family:"Source Serif 4",Georgia,serif;font-weight:400;color:var(--rd)}
-.updated{color:#c7d0dd;margin:22px 0 0}
-main{display:grid;grid-template-columns:240px minmax(0,760px);gap:clamp(30px,6vw,90px);padding:clamp(50px,8vh,90px) max(16px,5vw) 90px}
-.toc{position:sticky;top:24px;align-self:start;font-size:14.5px}
-.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;counter-reset:t}
-.toc li{counter-increment:t}
-.toc a{color:var(--mut);text-decoration:none;display:block;padding:2px 0;transition:color .2s,transform .2s}
-.toc a::before{content:counter(t,decimal-leading-zero) "  ";font-family:"JetBrains Mono",monospace;font-size:12px}
-.toc a:hover{color:var(--ink);transform:translateX(3px)}
-article h2{font-size:clamp(26px,3vw,36px);letter-spacing:-.03em;line-height:1.1;margin:56px 0 14px;scroll-margin-top:24px}
-article h2:first-child{margin-top:0}
-article h3{font-size:19px;margin:26px 0 6px}
-article p,article li{color:#2b3644}
-article ul{padding-left:22px}
-article li{margin:6px 0}
-.summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px}
-.summary ul{margin:10px 0 0}
-table{width:100%;border-collapse:collapse;font-size:15.5px;margin:14px 0}
-th,td{text-align:left;vertical-align:top;padding:12px 12px 12px 0;border-top:1px solid var(--line)}
-th{font-weight:700;width:34%}
-mark{background:#fff3a3;padding:0 4px;border-radius:4px}
-@media (max-width:860px){main{grid-template-columns:1fr}.toc{position:static}}
-@media (prefers-reduced-motion:no-preference){
-  h1,.updated,.label{animation:rise .9s cubic-bezier(.16,1,.3,1) backwards}.label{animation-delay:.05s}h1{animation-delay:.1s}.updated{animation-delay:.25s}
-  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-}
-
-.bf{background:#0a0f17;color:#8b97a8;padding:56px max(20px,5vw) calc(26px + env(safe-area-inset-bottom,0px));font:15px/1.55 "Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;border-top:1px solid #1c2633}
-.bf a{color:#c7d0dd;text-decoration:none;transition:color .2s}.bf a:hover,.bf a:focus-visible{color:#fff}
-.bf a:focus-visible{outline:2px solid #ff5a5f;outline-offset:3px;border-radius:4px}
-.bf-in{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr);gap:40px;max-width:1200px;margin:0 auto}
-.bf-logo{display:inline-flex;align-items:center;gap:10px;color:#fff!important;font-weight:700;font-size:20px;letter-spacing:-.02em}
-.bf-logo svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.bf-logo svg .c{stroke:#ff5a5f}
-.bf-brand p{margin:12px 0 10px;max-width:340px}
-.bf-mail{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13.5px}
-.bf-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
-.bf-col h2{font:600 12.5px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8b97a8;margin:6px 0 14px}
-.bf-col ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
-.bf-base{max-width:1200px;margin:44px auto 0;padding-top:20px;border-top:1px solid #1c2633;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;font-size:13.5px}
-@media (max-width:760px){.bf-in{grid-template-columns:1fr;gap:32px}.bf-cols{grid-template-columns:1fr 1fr}.bf{padding-top:44px}}
-</style>
+<link rel="stylesheet" href="/admin/admin.css">
 </head>
 <body>
-<header>
-  <nav><a class="brand" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><a class="open" href="/?app">Open the notebook</a></nav>
-  <p class="label">Privacy policy</p>
-  <h1>Your notes are <em>yours.</em></h1>
-  <p class="updated">Last updated 8 November 2026 (version 4: usage statistics, feedback and Bondle)</p>
-</header>
+<div id="login" class="login" hidden>
+  <form class="card login-card" id="loginForm" autocomplete="on">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline <span>Admin</span></div>
+    <label for="user">Username or email</label>
+    <input id="user" name="username" autocomplete="username" required autocapitalize="off" spellcheck="false" value="admin">
+    <label for="pass">Password</label>
+    <input id="pass" name="password" type="password" autocomplete="current-password" required>
+    <p class="err" id="loginErr" role="alert" hidden></p>
+    <button class="btn primary wide" type="submit" id="loginBtn">Sign in</button>
+    <button class="btn wide" type="button" id="googleBtn">Sign in with Google</button>
+    <p class="fine">Only accounts listed as admins in Firebase can open the dashboard.</p>
+  </form>
+</div>
 
-<main>
-  <aside class="toc" aria-label="Contents"><ol>
-    <li><a href="#summary">In short</a></li>
-    <li><a href="#who">Who runs Bondline</a></li>
-    <li><a href="#without">Without an account</a></li>
-    <li><a href="#account">With an account</a></li>
-    <li><a href="#sharing">Sharing</a></li>
-    <li><a href="#classes">Classes</a></li>
-    <li><a href="#pro">Bondline Pro and payments</a></li>
-    <li><a href="#services">Other services</a></li>
-    <li><a href="#stats">Usage statistics and feedback</a></li>
-    <li><a href="#cookies">Cookies and storage</a></li>
-    <li><a href="#use">How data is used</a></li>
-    <li><a href="#keep">How long it's kept</a></li>
-    <li><a href="#rights">Your choices and rights</a></li>
-    <li><a href="#children">Children</a></li>
-    <li><a href="#security">Security</a></li>
-    <li><a href="#changes">Changes and contact</a></li>
-  </ol></aside>
-
-  <article>
-    <h2 id="summary">In short</h2>
-    <div class="summary"><ul>
-      <li>You can use Bondline without an account. Your notes then stay in your browser, on your device.</li>
-      <li>If you sign in, your notes and progress are stored in Google Firebase so they can sync between your devices.</li>
-      <li>Bondline has no ads and no tracking cookies, and does not sell or share your data for marketing. It keeps simple first-party usage statistics (which pages and sections get used), never the content of your notes, and you can turn them off.</li>
-      <li>If you join a class, the teacher who runs it sees your name, email address and your scores on the work they set. Never your notes.</li>
-      <li>If you buy Bondline Pro, Lemon Squeezy handles the payment. We never see your card details.</li>
-      <li>You can ask for your account and everything in it to be deleted at any time.</li>
-    </ul></div>
-
-    <h2 id="who">Who runs Bondline</h2>
-    <p>Bondline (bondline.site) is a free organic chemistry notebook run by an independent developer based in Malaysia ("we", "us"). We are responsible for the personal data described here. You can reach us at <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
-
-    <h2 id="without">If you use Bondline without an account</h2>
-    <p>Everything you create (notes, drawings, images, flashcards, comments, folders and tags, quiz and spectra progress, note history, trash and your settings) is saved in your browser's local storage on that device. It is not sent to us, and we cannot see it.</p>
-    <p>Because it lives only in that browser, clearing your browser data or uninstalling the app deletes it, and it does not appear on your other devices.</p>
-
-    <h2 id="account">If you sign in</h2>
-    <p>You can sign in with Google or with an email address and password. Sign-in is handled by Firebase Authentication, a Google service.</p>
-    <table>
-      <tr><th>Account details</th><td>Your email address, a user ID, whether your email is verified, and, if you use Google sign-in, the name on your Google account. Passwords are handled by Firebase and are never visible to us.</td></tr>
-      <tr><th>Your content</th><td>Notes, drawings, images you add, flashcards, comments, folders, tags, trash, glossary terms you add, quiz and spectra progress, and app settings, so they sync across your devices.</td></tr>
-      <tr><th>Where it's stored</th><td>Google Cloud Firestore, in the project that runs Bondline. Google's servers may be outside your country, including outside Malaysia.</td></tr>
-    </table>
-    <p>Database rules mean only you can read or change your personal notes. We can access stored data only as the administrator of the Firebase project, and only do so to run the service, fix problems, or when you ask us to.</p>
-    <p>When you first sign in on a device, the notes already saved on that device are copied into your account. Logging out removes that account's notes from the device.</p>
-
-    <h2 id="sharing">Sharing</h2>
-    <h3>Read-only links</h3>
-    <p>If you share a note, a copy of it is stored so that anyone with the link can read it. Turn sharing off to remove that copy.</p>
-    <h3>Shared notebooks</h3>
-    <p>When you create or join a shared notebook, its members can see the notebook's notes and comments, the names and email addresses of the other members and invited people, and who is currently looking at a note. The owner decides who is invited. Email addresses you invite are stored so that the invitation can be shown to that person when they sign in. Bondline does not send emails on your behalf.</p>
-
-    <h2 id="classes">Classes</h2>
-    <p>Classes let a teacher or lecturer set work and see how students do. They need an account.</p>
-    <h3>If you join a class</h3>
-    <ul>
-      <li>The class owner (your teacher) can see your <b>name</b> and <b>email address</b>, and, for each assignment they set, your <b>latest score, best score, number of attempts</b> and <b>when you last tried</b>. They can download these as a spreadsheet.</li>
-      <li>Your notes, flashcards, drawings and practice outside the class are <b>not</b> shared with the class.</li>
-      <li>Other students in the class can't see your name or scores.</li>
-      <li>Leaving the class removes you from it and deletes your scores. If your teacher removes you, your earlier scores stay visible to them until they delete them or the class.</li>
-    </ul>
-    <h3>If you run a class</h3>
-    <ul>
-      <li>Students in the class see the class name, your name and the work you set.</li>
-      <li>You decide what to set and who stays in the class. You are responsible for using students' details only for teaching, in line with your school's or university's rules.</li>
-      <li>If you teach children, follow your institution's rules on getting consent before asking them to create accounts.</li>
-      <li>Deleting the class deletes its assignments, all results and the join code.</li>
-    </ul>
-    <p>Class data is stored in Google Cloud Firestore with the rest of Bondline's account data, and database rules enforce who can see what.</p>
-
-    <h2 id="pro">Bondline Pro and payments</h2>
-    <p>Bondline Pro is optional. If you buy it, checkout happens on <b>Lemon Squeezy</b>, which sells Pro on our behalf as merchant of record. Lemon Squeezy collects your name, email address, billing country and payment details to take the payment, work out sales tax and send your receipt, under its own <a href="https://www.lemonsqueezy.com/privacy" rel="noopener">privacy policy</a>. We never see or store your card details.</p>
-    <p>Lemon Squeezy then tells Bondline that your account has Pro. We store, in your account: which plan you have, its status (for example active or cancelled), when it renews or ends, the email address you paid with, an order or subscription number, and the link to manage your subscription. Only you can read this record, and only Bondline's server can change it.</p>
-    <p>If you ask to be told when Pro launches, we store the plan you're interested in and your account email so we can email you once. To be removed from that list, email us.</p>
-    <p>Mock exam results, your weak-spot statistics and your daily activity chart are worked out on your device from your practice answers. Your practice answers sync with your account as before; exam history and the activity chart stay in your browser on that device.</p>
-
-    <h2 id="services">Other services Bondline uses</h2>
-    <ul>
-      <li><b>Google Firebase</b> (Authentication and Cloud Firestore) for sign-in and sync. Google processes this data under the <a href="https://firebase.google.com/support/privacy" rel="noopener">Firebase privacy and security terms</a>.</li>
-      <li><b>Google sign-in</b>, if you choose it. Signing in opens a Google window, where Google's own <a href="https://policies.google.com/privacy" rel="noopener">privacy policy</a> applies.</li>
-      <li><b>PubChem</b>, run by the US National Library of Medicine. When you look up a compound by name or structure, the name or SMILES you typed is sent to PubChem to fetch the answer. Nothing else from your notes is sent.</li>
-      <li><b>Lemon Squeezy</b>, if you buy Bondline Pro (see above).</li>
-      <li><b>Netlify</b>, which hosts the website and runs the small server function that records Pro purchases. Like any web host, it processes your IP address and basic request details to deliver pages and protect the site.</li>
-    </ul>
-    <p>Fonts, the drawing and maths libraries, the PowerPoint exporter and the 3D engine are all served from Bondline's own site, so loading them does not contact other companies. Exporting to PowerPoint, presenting a note and solving synthesis problems all happen on your device; nothing is uploaded. Your synthesis progress is kept in your browser on that device.</p>
-
-    <h2 id="stats">Usage statistics, feedback and Bondle</h2>
-    <p>To understand what to improve, Bondline records simple usage statistics in its own Google Firestore database. No third-party analytics company is involved, and no cookies are used.</p>
-    <table>
-      <tr><th>Page views</th><td>For each page you open: the page address, the date and time, the website or link that sent you (for example “instagram”), your device type (phone, tablet or computer), browser language and time zone, and a random ID stored in your browser so repeat visits can be counted. If you are signed in on that device, your account ID is included.</td></tr>
-      <tr><th>App usage</th><td>One record per device with counts of which sections you open (for example Naming or Spectra), how many practice questions you answered, how many notes you have (the number, not the notes), how often you use Bondline, your answer to “How did you find Bondline?” if you give one, and your Bondle scores. If you are signed in, it also holds your account ID, email address and name.</td></tr>
-      <tr><th>Bondle</th><td>When you finish a daily Bondle, the answers you typed and your score are saved so we can see which answers people try and add missing ones. A count of scores (not who scored them) is used to show how you compare with other players.</td></tr>
-      <tr><th>Feedback</th><td>If you send feedback, we store your message, the kind of feedback, and, if you choose, your email address, the part of Bondline you were in and your device type.</td></tr>
-    </table>
-    <p>Only Bondline’s administrator can read these records. They are used only to improve Bondline and to reply to you. To turn usage statistics off, open <b>Settings → Privacy</b> and untick <b>Share anonymous usage statistics</b>. They are also off if your browser sends a Global Privacy Control signal. Usage records are kept for up to 24 months; feedback until it has been dealt with. You can ask us to delete them at any time.</p>
-
-    <h2 id="cookies">Cookies and browser storage</h2>
-    <p>Bondline does not use advertising or analytics cookies. Usage statistics (above) use a random ID kept in local storage, not a cookie. It uses your browser's local storage and IndexedDB to save your notes and settings, to keep you signed in, and to make the app work offline. These are needed for the app to work. Google may set its own cookies in the sign-in window if you use Google sign-in.</p>
-
-    <h2 id="use">How your data is used</h2>
-    <p>Only to provide Bondline: to save and sync your work, sign you in, run shared notebooks and share links, keep the service secure, and answer you if you contact us. We do not sell your data, use it for advertising, or use your notes to train AI models.</p>
-    <p>We process account data because it is needed to provide the service you asked for when you created an account, and based on your consent, which you can withdraw by deleting your account. This policy is written to meet Malaysia's Personal Data Protection Act 2010 and, for users in the EU and UK, the GDPR.</p>
-
-    <h2 id="keep">How long it's kept</h2>
-    <ul>
-      <li>Content in your account stays until you delete it or ask us to delete your account.</li>
-      <li>Deleted notes stay in Trash for 30 days, then are removed.</li>
-      <li>Shared copies stay until you turn sharing off or delete the note.</li>
-      <li>Pro purchase records are kept while you have an account. Lemon Squeezy keeps its own payment records as tax law requires.</li>
-      <li>Class results stay until the student leaves, the teacher deletes them, or the class is deleted.</li>
-      <li>After an account deletion request, we delete your account and content within 30 days.</li>
-    </ul>
-
-    <h2 id="rights">Your choices and rights</h2>
-    <p>You can see and edit everything you have stored in the app itself, and export notes as PDFs. You can also ask us to:</p>
-    <ul>
-      <li>give you a copy of the personal data we hold about you;</li>
-      <li>correct it;</li>
-      <li>delete your account and all of its content;</li>
-      <li>stop processing it.</li>
-    </ul>
-    <p>Email <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a> from the address on your account and we will reply within 21 days. You can also complain to the data protection authority where you live; in Malaysia that is the Personal Data Protection Commissioner.</p>
-
-    <h2 id="children">Children</h2>
-    <p>Before anyone creates an account or signs in, Bondline asks for their month and year of birth. We use it only to check that they are 13 or older and don’t store it; the device just remembers the result. People under 13 can’t create an account, and on their device usage statistics are switched off. Bondline is made for students, including school students. If you are under 13, or under the age at which you can agree to this yourself where you live, please ask a parent or guardian before creating an account. You can still use Bondline without an account, which keeps everything on your device. If you are a parent and believe your child has given us personal data without your permission, contact us and we will delete it.</p>
-
-    <h2 id="security">Security</h2>
-    <p>All connections to Bondline use HTTPS. Database rules check every read and write so that people can reach only their own data and the notebooks they belong to, and the site refuses to run code from other sources. No system is perfectly secure, so please use a strong password and sign out on shared computers.</p>
-
-    <h2 id="changes">Changes and contact</h2>
-    <p>If this policy changes, we will update the date at the top of this page. For important changes, we will also let you know in the app. Questions or requests: <a href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a>.</p>
-  </article>
-</main>
-
-<footer class="bf">
-  <div class="bf-in">
-    <div class="bf-brand"><a class="bf-logo" href="/?about"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline</a><p>A free notebook for organic chemistry: notes, curly-arrow mechanisms, spectra and naming practice.</p><a class="bf-mail" href="mailto:bondlinenotes@gmail.com">bondlinenotes@gmail.com</a></div>
-    <nav class="bf-cols" aria-label="Footer"><div class="bf-col"><h2>Product</h2><ul><li><a href="/?app">Open the notebook</a></li><li><a href="/pricing/">Pricing</a></li><li><a href="/?app&whatsnew">What’s new</a></li><li><a href="/guides/">Guides</a></li><li><a href="/reactions/">Reaction library</a></li></ul></div><div class="bf-col"><h2>Learn</h2><ul><li><a href="/guides/organic-functional-groups/">Functional groups</a></li><li><a href="/guides/how-to-name-organic-compounds/">How to name compounds</a></li><li><a href="/guides/sn1-sn2-e1-e2/">SN1 vs SN2</a></li><li><a href="/guides/r-and-s-configuration/">R and S</a></li><li><a href="/guides/how-to-study-organic-chemistry/">How to study organic chemistry</a></li></ul></div><div class="bf-col"><h2>Bondline</h2><ul><li><a href="/about/">About</a></li><li><a href="/about/#lecturers">For lecturers</a></li><li><a href="/contact/">Contact us</a></li></ul></div><div class="bf-col"><h2>Legal</h2><ul><li><a href="/privacy/">Privacy policy</a></li><li><a href="/terms/">Terms of service</a></li><li><a href="/terms/#refunds">Refund policy</a></li></ul></div></nav>
+<div id="denied" class="login" hidden>
+  <div class="card login-card">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline <span>Admin</span></div>
+    <h2>This account isn’t an admin yet</h2>
+    <p>Signed in as <b id="deniedWho"></b>. To make it an admin, open the Firebase console → <b>Firestore Database</b> → <b>Start collection</b> called <code>admins</code>, and add a document whose ID is:</p>
+    <p class="uidbox"><code id="deniedUid"></code> <button class="btn small" id="copyUid" type="button">Copy</button></p>
+    <p>Give it one field, for example <code>role</code> = <code>owner</code>, save, then reload this page.</p>
+    <button class="btn" id="deniedOut" type="button">Sign out</button>
   </div>
-  <div class="bf-base"><span>© 2026 Bondline · Made in Malaysia</span><a href="/terms/">Terms of service</a></div>
-</footer>
-<script src="/assets/track.js" defer></script>
+</div>
+
+<div id="app" class="app" hidden>
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg>Bondline <span>Admin</span></div>
+    <nav class="tabs" id="tabs" role="tablist">
+      <button role="tab" data-tab="overview" class="on">Overview</button>
+      <button role="tab" data-tab="users">Users</button>
+      <button role="tab" data-tab="activity">Activity</button>
+      <button role="tab" data-tab="feedback">Feedback <i id="fbBadge" hidden></i></button>
+      <button role="tab" data-tab="bondle">Bondle</button>
+      <button role="tab" data-tab="announce">Announcement</button>
+      <button role="tab" data-tab="teachers">Teachers <i id="tBadge" hidden></i></button>
+    </nav>
+    <div class="who"><select id="range" aria-label="Time range"><option value="1">Today</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><button class="btn small" id="refresh" type="button" title="Reload data">Refresh</button><a class="btn small" href="/?app">Open app</a><button class="btn small" id="signOut" type="button">Sign out</button></div>
+  </header>
+  <main id="view" class="view"></main>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script src="/firebase-config.js"></script>
+<script src="/vendor/firebase-app-compat.js"></script>
+<script src="/vendor/firebase-auth-compat.js"></script>
+<script src="/vendor/firebase-firestore-compat.js"></script>
+<script src="/bondle-core.js"></script>
+<script src="/bondle-data.js"></script>
+<script src="/bondle-science.js"></script>
+<script src="/admin/admin.js"></script>
 </body>
 </html>

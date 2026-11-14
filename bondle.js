@@ -1,4 +1,4 @@
-// Bondle: the daily chemistry and science puzzle (standalone page at /bondle/).
+// Bondle: the daily science puzzle (standalone page at /bondle/).
 // The day's six prompts come from bondle-core.js (picked by date from bondle-data.js and bondle-science.js),
 // or from bondle/{date} in Firestore when the admin page set that day by hand.
 // Progress and stats live in this browser (localStorage "bondline.bondle"), shared with the Bondline app.
@@ -71,7 +71,7 @@ async function begin(kind,k){
 }
 const mk=(rec,k)=>({rec,mode:rec.past?'past':'daily',k,num:C.keyToIndex(k)+1,rounds:roundsFor(rec)});
 function persist(){const R=G.run;if(!R||R.mode==='practice')return;const s=store();s.days[R.k]=R.rec;save(s)}
-const label=R=>R.mode==='practice'?`Practice · ${({chem:'Chemistry',sci:'Science',mix:'Mixed'})[R.kind]}`:R.mode==='past'?`Bondle #${R.num} · past puzzle`:`Bondle #${R.num}`;
+const label=R=>R.mode==='practice'?`Practice · ${({chem:'Chemistry only',sci:'No chemistry',mix:'General science'})[R.kind]}`:R.mode==='past'?`Bondle #${R.num} · past puzzle`:`Bondle #${R.num}`;
 function head(R,i,cur){return`<div class="rtop">${hex('prog',R.rec.r.map(r=>r.t),cur)}<div><div class="kick">${esc(label(R))} · Round ${i+1} of ${R.rounds.length}</div><div class="run"><b>${R.rec.tot}</b> kJ/mol</div></div><button class="quit" data-go="leave" aria-label="Leave this puzzle" title="Leave">×</button></div>`}
 function round(){
   const R=G.run,rec=R.rec,i=rec.r.length;clearInterval(G.timer);
