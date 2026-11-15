@@ -62,6 +62,6 @@ export default async (req) => {
 
   const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { authorization: 'Bearer ' + key, 'content-type': 'application/x-www-form-urlencoded', 'stripe-version': env('STRIPE_API_VERSION') || '2026-10-28.endive' }, body: p });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.url) { console.error('Stripe checkout error', r.status, j?.error?.message); return json({ error: 'Couldn’t open the checkout. Please try again.' }, 502); }
+  if (!r.ok || !j.url) { console.error('Stripe checkout error', r.status, j?.error?.message); return json({ error: 'Couldn’t open the checkout. Please try again.', ...(env('CONTEXT') !== 'production' && { detail: String(j?.error?.message || r.status).slice(0, 300) }) }, 502); }
   return json({ url: j.url });
 };
