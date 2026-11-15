@@ -7233,7 +7233,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='31';
+const APP_VER='32';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -12914,6 +12914,52 @@ function wireV31(){
     ['Free questions in every unit','The first 30% of every unit’s questions are free, including units that need Pro.']]});
 }
 
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();
+// v32: phones get a tab bar at the bottom (Home, Notes, Practice, Tools, Account) in place of the floating account button.
+const MB_PRACTICE=['cards','naming','spectra','synth','orbitals','course','drills','stereo','progress','guide'];
+const MB_ICO={home:'<path d="M4 10.8L12 4.5l8 6.3V19.5h-5.2v-5h-5.6v5H4z"/>',notes:'<path d="M6.5 3.5h8l4 4v13h-12z"/><path d="M14.5 3.5v4h4M9.5 12h6M9.5 15.5h6"/>',
+  practice:'<path d="M12 3.5l7.4 4.3v8.4L12 20.5l-7.4-4.3V7.8z"/><path d="M8.6 12.2l2.3 2.3 4.5-4.6"/>',tools:'<path d="M14.7 6.3a4 4 0 00-5.4 5.1L4 16.7 7.3 20l5.3-5.3a4 4 0 005.1-5.4l-2.4 2.4-2.4-.6-.6-2.4z"/>',
+  acct:'<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.8-3.9 3.6-6 7.2-6s6.4 2.1 7.2 6"/>'};
+function mbBuild(){if($('#mbar'))return;const app=document.querySelector('.app');if(!app)return;
+  const n=document.createElement('nav');n.id='mbar';n.className='mbar';n.setAttribute('aria-label','Sections');
+  n.innerHTML=[['home','Home'],['notes','Notes'],['practice','Practice'],['tools','Tools'],['acct','Account']].map(([k,l])=>
+    `<button type="button" class="mb-b" data-mb="${k}"${k==='tools'?' aria-haspopup="menu" aria-expanded="false" aria-controls="toolsMenu"':k==='acct'?' aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"':''}><span class="mb-i"><svg viewBox="0 0 24 24" aria-hidden="true">${MB_ICO[k]}</svg></span><span class="mb-l">${l}</span><i class="mb-dot" aria-hidden="true"></i></button>`).join('');
+  n.addEventListener('click',e=>{const b=e.target.closest('[data-mb]');if(!b)return;const k=b.dataset.mb;
+    if(k==='home'||k==='notes'){closeMenus();setMode(k)}
+    else if(k==='practice'){closeMenus();if(MB_PRACTICE.includes(App.mode)){$('#main').scrollTo({top:0,behavior:'smooth'})}else{const m=v17ls('bondline.px');setMode(MB_PRACTICE.includes(m)?m:'course')}}
+    else if(k==='tools'){renderToolsMenu();toggleMenu($('#toolsMenu'),b)}
+    else if(k==='acct'){renderAcctMenu();toggleMenu($('#acctMenu'),b)}});
+  app.appendChild(n);document.body.classList.add('has-mbar')}
+function mbSync(){const b=$('#mbar');if(!b)return;const m=App.mode;
+  const cur=m==='home'?'home':m==='notes'?'notes':MB_PRACTICE.includes(m)?'practice':'';
+  b.querySelectorAll('[data-mb]').forEach(x=>{const k=x.dataset.mb;if(k==='tools'||k==='acct')return;const on=k===cur;x.classList.toggle('on',on);if(on)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+  const a=b.querySelector('[data-mb="acct"]'),src=$('#acctBtn');if(a&&src){const av=src.querySelector('.ab-av');if(av&&av.innerHTML.trim())a.querySelector('.mb-i').innerHTML=av.innerHTML;a.classList.toggle('has-new',src.classList.contains('has-new'));a.classList.toggle('pro',proActive())}}
+// Wide tables (reference tables, spectra tables) scroll sideways on narrow screens instead of being cut off.
+function mbTables(){if(innerWidth>820)return;document.querySelectorAll('#main table, .help table').forEach(t=>{if(t.closest('.tbl-x'))return;const p=t.parentElement;if(!p||t.offsetWidth<=p.clientWidth+1||/(auto|scroll)/.test(getComputedStyle(p).overflowX))return;
+  const w=document.createElement('div');w.className='tbl-x';w.tabIndex=0;w.setAttribute('role','region');w.setAttribute('aria-label','Table, scroll sideways for more');p.insertBefore(w,t);w.appendChild(t)})}
+function wireV32(){
+  mbBuild();
+  { const _sm=setMode;setMode=function(m){_sm(m);try{mbSync();requestAnimationFrame(mbTables)}catch(e){}} }
+  { const _sa=syncAcctBtn;syncAcctBtn=function(){_sa();try{mbSync()}catch(e){}} }
+  { const _sp=syncProUI;syncProUI=function(){_sp();try{mbSync()}catch(e){}} }
+  // Menus opened from the bottom bar open upwards, above the bar.
+  { const _pm=placeMenu;placeMenu=function(m,a){if(!a||!a.closest('#mbar'))return _pm(m,a);const r=a.getBoundingClientRect();m.style.visibility='hidden';m.hidden=false;
+      const bar=$('#mbar').getBoundingClientRect(),h=m.offsetHeight,w=m.offsetWidth;let x=Math.min(Math.max(8,r.left+r.width/2-w/2),innerWidth-w-8),y=Math.max(8,bar.top-h-8);
+      m.style.left=x+'px';m.style.top=y+'px';m.style.visibility=''} }
+  // Hide the bar while the on-screen keyboard is open, so there's more room to type.
+  { const vv=window.visualViewport,kb=()=>document.body.classList.toggle('kb-open',!!vv&&innerHeight-vv.height>150);if(vv)vv.addEventListener('resize',kb);
+    const ed=t=>t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)&&!/^(checkbox|radio|range|button|submit|color|file)$/.test(t.type));
+    document.addEventListener('focusin',e=>{if(matchMedia('(pointer:coarse)').matches&&ed(e.target))document.body.classList.add('typing')});
+    document.addEventListener('focusout',()=>setTimeout(()=>{if(!ed(document.activeElement))document.body.classList.remove('typing')},60)) }
+  { const mn=$('#main');if(mn&&'MutationObserver' in window){let q=0;new MutationObserver(()=>{if(q||innerWidth>820)return;q=requestAnimationFrame(()=>{q=0;mbTables()})}).observe(mn,{childList:true,subtree:true})}
+    addEventListener('resize',()=>requestAnimationFrame(mbTables)) }
+  try{mbSync()}catch(e){}
+  CHANGELOG.unshift({v:'32',d:'15 November 2026',t:'Made for phones',items:[
+    ['A tab bar on phones','Home, Notes, Practice, Tools and your account are now one tap away at the bottom of the screen. It hides while you type.'],
+    ['Dialogs slide up from the bottom','Settings, the predictor, the glossary and other windows open as sheets that are easy to reach with your thumb.'],
+    ['Wide tables scroll sideways','Reference and spectroscopy tables no longer get cut off on narrow screens.'],
+    ['Bigger buttons and no zooming','Small buttons are easier to tap, and typing in a box no longer zooms the page on iPhone.']]});
+}
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();wireV32();
 boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

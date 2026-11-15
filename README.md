@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 31)
+# Bondline: organic chemistry notebook (version 32)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,15 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 32: made for phones
+
+No Firebase changes. Service worker version is `bondline-v32-1`.
+
+- **Tab bar on phones** (screens 820px wide or less): Home, Notes, Practice, Tools and Account sit at the bottom of the screen (`wireV32` in `app.js`, styles at the end of `extras.css`). It replaces v31's floating account button, hides while the keyboard is open, and Tools/Account menus open upwards above it.
+- **Dialogs as bottom sheets** on screens 560px wide or less (settings, predictor, glossary, trash and the rest; the command palette and study screens are unchanged).
+- **Tables**: long table cells wrap on phones, and any table wider than the screen scrolls sideways instead of being cut off.
+- **Touch**: small buttons get larger tap areas, and text boxes use at least 16px text so iPhone Safari no longer zooms in when you tap them.
 
 ## New in version 31: more questions, all of AP, exam-style questions, a 3D landing page and a calmer home
 
