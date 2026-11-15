@@ -7233,7 +7233,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='29';
+const APP_VER='30';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -12502,6 +12502,347 @@ function wireV29(){
     ['Centre licences','Teachers can buy Pro for their classes from Classes → Bondline for teachers, by card or by invoice.']]});
 }
 
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();
+/* ---------- v30: reaction drill, reaction map and route finder, printable reaction packs, achievements, exam study plan ---------- */
+// One worked example per reaction: [library id, starting material, reagents, main organic product, from group, to group].
+// The groups link reactions together for the reaction map and the route finder.
+const RX30=[
+ ['sn2','CCBr','OH⁻(aq), warm','CCO','halo','alc'],
+ ['sn1','CC(C)(C)Br','H₂O, warm','CC(C)(C)O','halo','alc'],
+ ['e2','CC(C)Br','NaOEt in ethanol, heat','C=CC','halo','alkene'],
+ ['e1','CC(C)(C)O','conc. H₂SO₄, heat','C=C(C)C','alc','alkene'],
+ ['hbr','C=CC','HBr','CC(C)Br','alkene','halo'],
+ ['br2','C=C','Br₂ in CH₂Cl₂','BrCCBr','alkene','halo'],
+ ['hydration','C=C(C)C','H₂O, dilute H₂SO₄','CC(C)(C)O','alkene','alc'],
+ ['cyanohydrin','CC=O','HCN, KCN (catalyst)','CC(O)C#N','co','cnoh'],
+ ['nabh4','CC(C)=O','NaBH₄ in methanol','CC(C)O','co','alc'],
+ ['grignard','CC(C)=O','1. CH₃MgBr, dry ether  2. H₃O⁺','CC(C)(C)O','co','alc'],
+ ['hemiacetal','CC=O','CH₃OH, trace of acid','CC(O)OC','co','hemi'],
+ ['aldol','CC=O','dilute NaOH, room temperature','CC(O)CC=O','co','aldol'],
+ ['saponification','CC(=O)OC','NaOH(aq), heat','CC(=O)[O-]','ester','carbox'],
+ ['amide','CC(=O)Cl','NH₃ (2 equivalents)','CC(N)=O','acyl','amide'],
+ ['wittig','CC=O','Ph₃P=CH₂','C=CC','co','alkene'],
+ ['dielsalder','C=CC=C.C=C','heat','C1=CCCCC1','diene','alkene'],
+ ['nitration','C1=CC=CC=C1','conc. HNO₃ + conc. H₂SO₄, below 55 °C','O=[N+]([O-])C1=CC=CC=C1','arene','nitro'],
+ ['fcacyl','C1=CC=CC=C1','CH₃COCl, AlCl₃','CC(=O)C1=CC=CC=C1','arene','co'],
+ ['acidbase','CC(=O)O','NaOH(aq)','CC(=O)[O-]','acid','carbox'],
+ ['epoxide','CC1CO1','NaOCH₃ in CH₃OH','COCC(C)O','epox','alc'],
+ ['williamson','CCO','1. NaH  2. CH₃I','CCOC','alc','ether'],
+ ['enol','CC(C)=O','trace of acid','C=C(C)O','co','enol'],
+ ['imine','CC=O','CH₃NH₂, trace of acid, remove water','CC=NC','co','imine'],
+ ['acetal','CC=O','excess CH₃OH, acid, remove water','CC(OC)OC','co','acetal'],
+ ['fischer','CC(=O)O','CH₃OH, conc. H₂SO₄, heat','CC(=O)OC','acid','ester'],
+ ['claisen','CC(=O)OC','1. NaOCH₃  2. H₃O⁺','COC(=O)CC(C)=O','ester','ketoester'],
+ ['michael','C=CC(C)=O','KCN, then H₂O','N#CCCC(C)=O','enone','nitrile'],
+ ['brbenzene','C1=CC=CC=C1','Br₂, FeBr₃','BrC1=CC=CC=C1','arene','haloarene'],
+ ['fcalkyl','C1=CC=CC=C1','(CH₃)₂CHCl, AlCl₃','CC(C)C1=CC=CC=C1','arene','alkylarene'],
+ ['epoxidation','C=C','mCPBA in CH₂Cl₂','C1CO1','alkene','epox'],
+ ['epoxideacid','CC1(C)CO1','CH₃OH, trace of acid','CC(C)(CO)OC','epox','alc'],
+ ['lialh4','CC(=O)OC','1. LiAlH₄, dry ether  2. H₃O⁺','CCO','ester','alc'],
+ ['aldolcond','CC(O)CC=O','NaOH, heat','CC=CC=O','aldol','enone'],
+ ['acylhydrolysis','CC(=O)Cl','H₂O, room temperature','CC(=O)O','acyl','acid'],
+ ['alcoholhx','CC(C)(C)O','conc. HCl, room temperature','CC(C)(C)Cl','alc','halo'],
+ ['cnsub','CCBr','KCN in ethanol, heat under reflux','CCC#N','halo','nitrile'],
+ ['nh3sub','CCBr','excess NH₃ in ethanol, sealed tube, heat','CCN','halo','amine'],
+ ['alcdehyd','CCO','conc. H₂SO₄, about 170 °C','C=C','alc','alkene'],
+ ['phenolbr','OC1=CC=CC=C1','bromine water','OC1=C(Br)C=C(Br)C=C1Br','phenol','haloarene'],
+ ['diazocoupling','OC1=CC=CC=C1','C₆H₅N₂⁺Cl⁻, NaOH(aq), below 10 °C','OC1=CC=C(N=NC2=CC=CC=C2)C=C1','phenol','azo'],
+ ['cannizzaro','O=CC1=CC=CC=C1','conc. NaOH, then H₃O⁺','O=C(O)C1=CC=CC=C1.OCC1=CC=CC=C1','co','acid']];
+// Common steps that aren't in the library yet. They make the route finder useful; they have no mechanism page.
+const RX30X=[
+ ['x:oxalc','Oxidation of a secondary alcohol','Oxidation and reduction','CC(C)O','K₂Cr₂O₇, H₂SO₄, heat (or PCC)','CC(C)=O','alc','co','Primary alcohols give aldehydes (distil off as they form, or use PCC) and then carboxylic acids; tertiary alcohols are not oxidised.'],
+ ['x:oxald','Oxidation of an aldehyde','Oxidation and reduction','CC=O','K₂Cr₂O₇, H₂SO₄, heat under reflux','CC(=O)O','co','acid','Aldehydes are oxidised to carboxylic acids; ketones are not. This is the basis of the Tollens’ and Fehling’s tests.'],
+ ['x:h2','Hydrogenation of an alkene','Oxidation and reduction','C=CC','H₂, Ni catalyst, heat (or Pd/C)','CCC','alkene','alkane','Syn addition of H₂ across the double bond on the metal surface.'],
+ ['x:nitrored','Reduction of a nitroarene','Oxidation and reduction','O=[N+]([O-])C1=CC=CC=C1','Sn, conc. HCl, heat; then NaOH(aq)','NC1=CC=CC=C1','nitro','amine','The route to phenylamine (aniline), and from there to diazonium salts and azo dyes.'],
+ ['x:cnred','Reduction of a nitrile','Oxidation and reduction','CC#N','1. LiAlH₄, dry ether  2. H₂O','CCN','nitrile','amine','Adds one carbon to an amine chain when combined with a halogenoalkane → nitrile step.'],
+ ['x:radical','Free-radical halogenation','Substitution','CC','Cl₂, UV light','CCCl','alkane','halo','A chain reaction: initiation, propagation and termination. Gives a mixture of products.'],
+ ['x:cnhyd','Hydrolysis of a nitrile','Acyl substitution','CC#N','dilute H₂SO₄ (or HCl), heat under reflux','CC(=O)O','nitrile','acid','Goes through the amide. With NaOH instead, the carboxylate salt forms.'],
+ ['x:esterhyd','Acid hydrolysis of an ester','Acyl substitution','CC(=O)OC','dilute H₂SO₄, heat under reflux','CC(=O)O','ester','acid','The reverse of Fischer esterification, so it is reversible. Base hydrolysis (saponification) goes to completion.'],
+ ['x:socl2','Acyl chloride from a carboxylic acid','Acyl substitution','CC(=O)O','SOCl₂ (or PCl₅)','CC(=O)Cl','acid','acyl','SOCl₂ is convenient because the by-products, SO₂ and HCl, are gases.'],
+ ['x:acidify','Acidifying a carboxylate','Acids and bases','CC(=O)[O-]','dilute HCl (H₃O⁺)','CC(=O)O','carbox','acid','The stronger acid (H₃O⁺) protonates the carboxylate ion.']];
+const RXG={alkane:'Alkane',alkene:'Alkene',diene:'Diene',halo:'Haloalkane',alc:'Alcohol',ether:'Ether',epox:'Epoxide',co:'Aldehyde or ketone',hemi:'Hemiacetal',acetal:'Acetal',imine:'Imine',enol:'Enol',
+  aldol:'β-Hydroxy carbonyl',enone:'α,β-Unsaturated carbonyl',cnoh:'Hydroxynitrile',nitrile:'Nitrile',amine:'Amine',acid:'Carboxylic acid',carbox:'Carboxylate salt',ester:'Ester',ketoester:'β-Keto ester',
+  acyl:'Acyl chloride',amide:'Amide',arene:'Benzene (arene)',nitro:'Nitroarene',haloarene:'Haloarene',alkylarene:'Alkylbenzene',phenol:'Phenol',azo:'Azo compound'};
+const RX_FREE=['Substitution','Elimination','Addition to alkenes'];
+const RX={e:null,drill:null,tab:'explore',g:'alc',from:'alkene',to:'ester',pk:null};
+function rxE(){if(RX.e)return RX.e;
+  RX.e=RX30.filter(x=>RXN_BY[x[0]]).map(([id,s,r,p,f,t])=>{const R=RXN_BY[id];return{id,lib:id,name:R.name,cat:R.cat,s,r,p,f,t,cond:R.cond||''}})
+    .concat(RX30X.map(([id,name,cat,s,r,p,f,t,cond])=>({id,lib:'',name,cat,s,r,p,f,t,cond})));return RX.e}
+const rxCats=()=>[...new Set(rxE().map(e=>e.cat))];
+const rxMol=(s,k)=>`<span class="rx-mol">${smilesSVG(s,k||.8)}</span>`;
+function rxScheme(e,hide,k){const q='<span class="rx-q" aria-label="unknown">?</span>';
+  return`<div class="rx-scheme">${hide==='s'?q:rxMol(e.s,k)}<span class="rx-arr"><small>${hide==='r'?'?':esc(e.r)}</small><i aria-hidden="true"></i></span>${hide==='p'?q:rxMol(e.p,k)}</div>`}
+function v30Mark(k){const A=achGet();if(A.flags[k])return;A.flags[k]=Date.now();achPut(A);achSoon()}
+
+/* ---------- reaction drill (Practice → Drills) ---------- */
+function rxPicked(){const all=rxCats();let p=v18get('bondline.rxcats',null);if(!Array.isArray(p)||!p.length)p=RX_FREE.slice();p=p.filter(c=>all.includes(c));if(!proOpen())p=p.filter(c=>RX_FREE.includes(c));return p.length?p:RX_FREE.slice()}
+function rxPickOpts(pool,ans,key,same,n){const seen=new Set([ans[key]]),out=[];
+  const ok=x=>!seen.has(x[key])&&!(x.f===ans.f&&x.t===ans.t)&&x.name!==ans.name;
+  for(const x of shuffle(pool.filter(x=>same(x)&&ok(x)))){if(out.length>=n)break;if(seen.has(x[key]))continue;seen.add(x[key]);out.push(x)}
+  for(const x of shuffle(pool.filter(ok))){if(out.length>=n)break;if(seen.has(x[key]))continue;seen.add(x[key]);out.push(x)}
+  return out}
+function rxDrill(){DR.view='rxn';const cats=rxPicked(),all=rxE(),pool=all.filter(e=>cats.includes(e.cat));
+  const last=RX.drill&&RX.drill.e;let e=pool[Math.floor(Math.random()*pool.length)];if(pool.length>1&&last&&e.id===last.id)e=pool.find(x=>x.id!==last.id&&Math.random()<.5)||pool.find(x=>x.id!==last.id);
+  const kinds=['name','reag','prod','sub'];let kind=kinds[Math.floor(Math.random()*4)];
+  const key={name:'name',reag:'r',prod:'p',sub:'s'}[kind],same={name:x=>x.cat===e.cat,reag:x=>x.f===e.f||x.t===e.t,prod:x=>x.f===e.f,sub:x=>x.t===e.t}[kind];
+  const wrong=rxPickOpts(all,e,key,same,3);if(wrong.length<3)kind='name';
+  const opts=shuffle([e,...(wrong.length<3?rxPickOpts(all,e,'name',x=>x.cat===e.cat,3):wrong)]);
+  RX.drill={e,kind,opts,right:opts.indexOf(e),done:false};
+  const ask={name:'Which reaction is this?',reag:'Which reagents and conditions are needed?',prod:'What is the main organic product?',sub:'What was the starting material?'}[kind];
+  const hide={name:'',reag:'r',prod:'p',sub:'s'}[kind];
+  const optHtml=(kind==='prod'||kind==='sub')
+    ?`<div class="dr-mgrid">${opts.map((o,k)=>`<button class="dr-mol" data-dro="rx:${k}" data-rxo="${k}"><span class="nm-struct">${smilesSVG(kind==='prod'?o.p:o.s,.7)}</span></button>`).join('')}</div>`
+    :`<div class="qz-opts rx-opts">${opts.map((o,k)=>`<button class="qz-opt" data-dro="rx:${k}" data-rxo="${k}"><span class="rx-k">${k+1}</span><span>${esc(kind==='name'?o.name:o.r)}</span></button>`).join('')}</div>`;
+  const chips=rxCats().map(c=>{const on=cats.includes(c),lk=!RX_FREE.includes(c)&&!proOpen();return`<button class="qz-chip${on?' on':''}" data-rxcat="${esc(c)}" aria-pressed="${on}">${esc(c)}${lk?PRO_BADGE:''}</button>`}).join('');
+  $('#drPage').innerHTML=`<article class="nm-lesson dr">${drHead('rxn',ask)}
+   <details class="rx-cats"${v18get('bondline.rxcats',null)?'':' open'}><summary>Reaction types <small>${cats.length} of ${rxCats().length}</small></summary><div class="qz-chips">${chips}</div>${proOpen()?'':`<p class="hm-muted">Substitution, elimination and addition are free. <button class="linkbtn" data-rxpro="1">Unlock every reaction type with Pro</button></p>`}</details>
+   <div class="rx-card">${rxScheme(e,hide,.95)}<p class="hm-muted rx-cat">${esc(e.cat)}</p></div>${optHtml}<div class="qz-fb" id="rxFb" hidden></div></article>`;
+  drDone()}
+function rxAnswer(k){const D=RX.drill;if(!D||D.done)return;D.done=true;const ok=k===D.right,e=D.e;drTally('rxn',ok);
+  document.querySelectorAll('#drPage [data-rxo]').forEach((b,j)=>{b.disabled=true;if(j===D.right)b.classList.add('right');else if(j===k)b.classList.add('wrong')});
+  const fb=$('#rxFb');fb.hidden=false;fb.className='qz-fb '+(ok?'ok':'bad');
+  fb.innerHTML=`<p class="qz-verdict">${ok?'Correct.':'Not quite.'} <b>${esc(e.name)}</b>: ${esc(RXG[e.f])} → ${esc(RXG[e.t])}.</p>${rxScheme(e,'',.7)}${e.cond?`<p class="qz-why">${esc(e.cond)}</p>`:''}
+   <div class="qz-next"><button class="btn primary" data-drnew="rxn">Next reaction</button>${e.lib?`<button class="btn" data-drlib="${esc(e.lib)}">See the mechanism</button>`:''}<button class="btn" data-rxmap="${esc(e.f)}">On the reaction map</button></div>`;
+  drSide();achSoon()}
+function rxCatToggle(c){if(!RX_FREE.includes(c)&&!proOpen())return openPro('rxdrill');const cur=rxPicked(),i=cur.indexOf(c);if(i>=0){if(cur.length===1)return toast('Keep at least one reaction type.');cur.splice(i,1)}else cur.push(c);v18set('bondline.rxcats',cur);rxDrill()}
+
+/* ---------- reaction map, route finder and printable packs (one window, three tabs) ---------- */
+function v30Modal(id,kicker,title,cls){let sc=$('#'+id);
+  if(!sc){sc=document.createElement('div');sc.id=id;sc.className='scrim v17-scrim';sc.hidden=true;
+    sc.innerHTML=`<div class="wn v30-m ${cls||''}" role="dialog" aria-modal="true" aria-labelledby="${id}T"><header class="wn-h"><div><div class="hm-kicker">${kicker}</div><h2 id="${id}T">${title}</h2></div><button class="sf-b" data-v30close aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header><div class="wn-body" id="${id}B"></div></div>`;
+    document.body.appendChild(sc);
+    sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('[data-v30close]'))v30Close(id)});
+    sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();v30Close(id)}})}
+  sc.hidden=false;document.body.classList.add('sk-lock');return $('#'+id+'B')}
+function v30Close(id){const sc=$('#'+id);if(sc)sc.hidden=true;document.body.classList.remove('sk-lock')}
+function rxGroups(){const E=rxE(),n={};E.forEach(e=>{n[e.f]=(n[e.f]||0)+1;n[e.t]=(n[e.t]||0)+1});return Object.keys(RXG).filter(g=>n[g]).sort((a,b)=>RXG[a].localeCompare(RXG[b]))}
+function openMap(tab,g){closeMenus();if(isMob())$('#side').classList.remove('open');if(g&&RXG[g])RX.g=g;if(tab)RX.tab=tab;v30Modal('rmScrim','Reactions','Reaction map','rm-m');rmRender();try{act22feat('map:'+RX.tab)}catch(e){}}
+function rmRender(){const B=$('#rmScrimB');if(!B)return;const T=RX.tab;
+  const tabs=[['explore','Explore'],['route','Route finder'],['print','Print a pack']];
+  const body=T==='route'?rmRoute():T==='print'?rmPrint():rmExplore();
+  B.innerHTML=`<div class="rm-tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${T===k}" class="${T===k?'on':''}" data-rmtab="${k}">${l}${k!=='explore'&&!proOpen()?PRO_BADGE:''}</button>`).join('')}</div>${body}`;
+  B.scrollTop=0}
+function rmCard(e,dir){const other=dir==='in'?e.f:e.t;
+  return`<div class="rm-card"><div class="rm-ch"><b>${esc(e.name)}</b>${e.lib?'':'<small class="rm-tag">Not in the library yet</small>'}</div>${rxScheme(e,'',.55)}
+   <div class="rm-cb"><button class="linkbtn" data-rmg="${other}">${dir==='in'?'From':'To'}: ${esc(RXG[other])} →</button>${e.lib?`<button class="linkbtn" data-rmlib="${esc(e.lib)}">Mechanism</button>`:''}</div></div>`}
+function rmExplore(){const g=RX.g,E=rxE(),ins=E.filter(e=>e.t===g),outs=E.filter(e=>e.f===g);
+  return`<p class="hm-muted">Pick a functional group to see how to make it and what it turns into. ${E.length} reactions link ${rxGroups().length} groups.</p>
+   <div class="qz-chips rm-groups">${rxGroups().map(k=>`<button class="qz-chip${k===g?' on':''}" data-rmg="${k}" aria-pressed="${k===g}">${esc(RXG[k])}</button>`).join('')}</div>
+   <div class="rm-x"><section><h3>Made from <small>${ins.length}</small></h3>${ins.map(e=>rmCard(e,'in')).join('')||'<p class="hm-muted">Nothing in Bondline’s reaction set makes this yet.</p>'}</section>
+    <div class="rm-node" aria-hidden="true"><span>${esc(RXG[g])}</span></div>
+    <section><h3>Turns into <small>${outs.length}</small></h3>${outs.map(e=>rmCard(e,'out')).join('')||'<p class="hm-muted">This is the end of the line in Bondline’s reaction set.</p>'}</section></div>`}
+// Every shortest route between two groups (up to 4), as lists of steps. Each step can have several reactions.
+function rxRoutes(a,b){if(a===b)return[];const E=rxE(),adj={};E.forEach(e=>{(adj[e.f]=adj[e.f]||new Set()).add(e.t)});
+  const dist={[a]:0},par={},q=[a];while(q.length){const u=q.shift();for(const v of adj[u]||[]){if(dist[v]==null){dist[v]=dist[u]+1;par[v]=[u];q.push(v)}else if(dist[v]===dist[u]+1)par[v].push(u)}}
+  if(dist[b]==null)return[];const out=[];(function walk(v,path){if(out.length>=4)return;if(v===a){out.push([a,...path]);return}for(const u of par[v])walk(u,[v,...path])})(b,[]);
+  return out.map(nodes=>nodes.slice(1).map((t,i)=>({f:nodes[i],t,rx:E.filter(e=>e.f===nodes[i]&&e.t===t)})))}
+function rmRoute(){const G=rxGroups(),sel=(id,v)=>`<select id="${id}">${G.map(k=>`<option value="${k}"${k===v?' selected':''}>${esc(RXG[k])}</option>`).join('')}</select>`;
+  const head=`<p class="hm-muted">Choose a starting group and a target. Bondline finds the shortest routes through the reactions it knows, with reagents for each step: a first draft for any synthesis question.</p>
+   <div class="rm-pick"><label>Start with ${sel('rmFrom',RX.from)}</label><button class="sf-b" data-rmswap aria-label="Swap start and target" title="Swap">⇄</button><label>Make ${sel('rmTo',RX.to)}</label><button class="btn primary" data-rmgo>Find routes</button></div>`;
+  if(!proOpen())return head+`<div class="rm-lock"><p><b>The route finder is part of Bondline Pro.</b> It plans multi-step syntheses from ${rxE().length} reactions, with the reagents for every step.</p><button class="btn primary" data-rxpro="route">See Pro</button></div>`;
+  if(!RX.ran)return head;
+  if(RX.from===RX.to)return head+'<p class="hm-muted">Pick two different groups.</p>';
+  const R=rxRoutes(RX.from,RX.to);
+  if(!R.length)return head+`<div class="rm-lock"><p><b>No route from ${esc(RXG[RX.from])} to ${esc(RXG[RX.to])}</b> in Bondline’s reaction set yet. Try the reverse direction, or a nearby group.</p></div>`;
+  return head+`<p class="rm-sum">${R.length===1?'One shortest route':`${R.length} shortest routes`}, ${R[0].length} step${R[0].length>1?'s':''} each.</p>`+R.map((steps,i)=>`<section class="rm-route"><h3>Route ${i+1}: ${[steps[0].f,...steps.map(s=>s.t)].map(k=>esc(RXG[k])).join(' → ')}</h3>
+    <ol>${steps.map(s=>`<li><div class="rm-sh"><b>${esc(RXG[s.f])} → ${esc(RXG[s.t])}</b></div>${s.rx.map((e,j)=>`<div class="rm-alt">${j?'<span class="rm-or">or</span>':''}<span class="rm-an">${esc(e.name)}</span><span class="rm-ar">${esc(e.r)}</span>${e.lib?`<button class="linkbtn" data-rmlib="${esc(e.lib)}">Mechanism</button>`:''}</div>`).join('')}
+      <details><summary>Example</summary>${rxScheme(s.rx[0],'',.55)}</details></li>`).join('')}</ol></section>`).join('')+
+   '<p class="hm-muted">Examples use small molecules. In a real synthesis, check that no other group in your molecule reacts with the same reagent.</p>'}
+function rmPrint(){const cats=RX.pk||(RX.pk=rxCats().slice()),lay=v18get('bondline.rxpack','sheet');
+  return`<p class="hm-muted">Print the reactions as a revision sheet, or as flashcards to cut out. Print flashcards double-sided, flipping on the long edge, so each answer lands on the back of its card.</p>
+   <h3 class="rm-h">Reaction types</h3><div class="qz-chips">${rxCats().map(c=>`<button class="qz-chip${cats.includes(c)?' on':''}" data-rmpk="${esc(c)}" aria-pressed="${cats.includes(c)}">${esc(c)} <small>${rxE().filter(e=>e.cat===c).length}</small></button>`).join('')}</div>
+   <h3 class="rm-h">Layout</h3><div class="rm-lay">${[['sheet','Summary sheet','Every reaction with its reagents and conditions, grouped by type'],['cards','Flashcards','Eight cards a page: reaction on the front, product and conditions on the back'],['both','Both','The summary sheet, then the flashcards']].map(([k,t,d])=>`<label class="rm-lo${lay===k?' on':''}"><input type="radio" name="rmLay" value="${k}"${lay===k?' checked':''}><b>${t}</b><small>${d}</small></label>`).join('')}</div>
+   <div class="nm-actions">${proOpen()?`<button class="btn primary" data-rmprint${cats.length?'':' disabled'}>Print or save as PDF</button>`:`<button class="btn primary" data-rxpro="print">Printable packs are part of Pro</button>`}<span class="hm-muted">${rxE().filter(e=>cats.includes(e.cat)).length} reactions</span></div>`}
+function rxPrintPack(){if(!proOpen())return openPro('print');const cats=RX.pk||rxCats(),lay=v18get('bondline.rxpack','sheet'),E=rxE().filter(e=>cats.includes(e.cat));if(!E.length)return;
+  const date=new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});let html='';
+  if(lay!=='cards')html+=`<div class="print-root rp-root"><header class="rp-h"><h1>Organic reactions: summary sheet</h1><p>${esc(cats.join(' · '))} · ${E.length} reactions · bondline.site · ${esc(date)}</p></header>
+    ${cats.filter(c=>E.some(e=>e.cat===c)).map(c=>`<h2 class="rp-c">${esc(c)}</h2>${E.filter(e=>e.cat===c).map(e=>`<div class="rp-row pu"><div class="rp-n"><b>${esc(e.name)}</b><small>${esc(RXG[e.f])} → ${esc(RXG[e.t])}</small></div>${rxScheme(e,'',.5)}<div class="rp-cond">${esc(e.cond)}</div></div>`).join('')}`).join('')}</div>`;
+  if(lay!=='sheet'){const pages=[];for(let i=0;i<E.length;i+=8)pages.push(E.slice(i,i+8));
+    pages.forEach((pg,pi)=>{const pad=pg.concat(Array(8-pg.length).fill(null));
+      html+=`<div class="print-root rp-cards"><div class="rp-grid">${pad.map(e=>e?`<div class="rp-card"><small class="rp-k">${esc(e.cat)}</small>${rxScheme(e,'p',.65)}<span class="rp-hint">Product? Name?</span></div>`:'<div class="rp-card rp-empty"></div>').join('')}</div><p class="rp-foot">Fronts · page ${pi+1} of ${pages.length}</p></div>`;
+      // Backs: swap the two columns in each row so that a long-edge flip lines each answer up with its card.
+      const back=[];for(let r=0;r<4;r++)back.push(pad[r*2+1],pad[r*2]);
+      html+=`<div class="print-root rp-cards"><div class="rp-grid">${back.map(e=>e?`<div class="rp-card rp-back"><b>${esc(e.name)}</b>${rxMol(e.p,.65)}<small>${esc(e.r)}</small><span class="rp-cond">${esc(e.cond.length>150?e.cond.slice(0,147)+'…':e.cond)}</span></div>`:'<div class="rp-card rp-empty"></div>').join('')}</div><p class="rp-foot">Backs · page ${pi+1} of ${pages.length}</p></div>`})}
+  v30Mark('print');tcPrintHTML(html,'Bondline reactions')}
+function rmClick(e){const t=e.target;
+  const tb=t.closest('[data-rmtab]');if(tb){RX.tab=tb.dataset.rmtab;return rmRender()}
+  const g=t.closest('[data-rmg]');if(g){RX.g=g.dataset.rmg;RX.tab='explore';return rmRender()}
+  const lb=t.closest('[data-rmlib]');if(lb){v30Close('rmScrim');return openLibrary(lb.dataset.rmlib)}
+  const pr=t.closest('[data-rxpro]');if(pr){v30Close('rmScrim');return openPro(pr.dataset.rxpro==='1'?'rxdrill':pr.dataset.rxpro)}
+  if(t.closest('[data-rmswap]')){RX.from=$('#rmTo').value;RX.to=$('#rmFrom').value;return rmRender()}
+  if(t.closest('[data-rmgo]')){if(!proOpen()){v30Close('rmScrim');return openPro('route')}RX.from=$('#rmFrom').value;RX.to=$('#rmTo').value;RX.ran=true;if(RX.from!==RX.to)v30Mark('route');return rmRender()}
+  const pk=t.closest('[data-rmpk]');if(pk){const c=pk.dataset.rmpk,i=RX.pk.indexOf(c);if(i>=0)RX.pk.splice(i,1);else RX.pk.push(c);return rmRender()}
+  if(t.closest('[data-rmprint]'))return rxPrintPack()}
+function rmChange(e){if(e.target.name==='rmLay'){v18set('bondline.rxpack',e.target.value);rmRender()}else if(e.target.id==='rmFrom'||e.target.id==='rmTo'){RX.from=$('#rmFrom').value;RX.to=$('#rmTo').value}}
+
+/* ---------- achievements ---------- */
+// Badges look like element tiles. Each test gets the stats object from achStats() and returns [current, target].
+const ACH=[
+ ['first','H','First answer','Answer your first practice question.',S=>[S.ans,1]],
+ ['ans100','He','Century','Answer 100 practice questions.',S=>[S.ans,100]],
+ ['ans1000','Kc','Kilo-answer','Answer 1,000 practice questions.',S=>[S.ans,1000]],
+ ['acc','Ac','Sharp shooter','Get 80% right over 50 or more answers.',S=>[S.ans>=50&&S.acc>=.8?1:0,1]],
+ ['st3','Li','On a roll','Keep a 3-day streak of daily practice.',S=>[S.best,3]],
+ ['st7','N','Week of bonds','Keep a 7-day streak.',S=>[S.best,7]],
+ ['st30','Zn','Month of mechanisms','Keep a 30-day streak.',S=>[S.best,30]],
+ ['lv5','B','Pentane','Reach level 5 (Pentane) in daily practice.',S=>[S.lv,5]],
+ ['run10','Ne','Ten in a row','Get 10 right in a row in any drill.',S=>[S.run,10]],
+ ['rx25','Rx','Reaction regular','Get 25 right in the reaction drill.',S=>[S.rx,25]],
+ ['mock','Mo','Exam ready','Score 80% or more in a mock exam.',S=>[S.mock>=80?1:0,1]],
+ ['mock100','Au','Full marks','Score 100% in a mock exam.',S=>[S.mock>=100?1:0,1]],
+ ['unit','U','Unit complete','Master 80% of a course unit’s questions.',S=>[S.units,1]],
+ ['units10','Ce','Ten units','Complete 10 course units.',S=>[S.units,10]],
+ ['name50','Np','Namer','Master 50 IUPAC naming questions.',S=>[S.nm,50]],
+ ['notes5','No','Notebook','Write 5 notes of your own.',S=>[S.notes,5]],
+ ['draw10','Cu','Arrow pusher','Draw 10 structures or mechanisms in your notes.',S=>[S.draw,10]],
+ ['cards20','Cd','Card shark','Make 20 flashcards.',S=>[S.cards,20]],
+ ['route','Rn','Route planner','Plan a synthesis with the route finder.',S=>[S.f.route?1:0,1]],
+ ['print','Pt','Paper trail','Print a reaction pack.',S=>[S.f.print?1:0,1]],
+ ['plan','Pl','Planner','Make an exam study plan.',S=>[S.f.plan?1:0,1]],
+ ['plan5','Pd','Plan keeper','Finish every task in your study plan on 5 days.',S=>[S.planFull,5]]];
+function achGet(){const r=App.quiz&&App.quiz.q&&App.quiz.q._ach;const s=Object.assign({got:{},flags:{}},r&&r.s?JSON.parse(JSON.stringify(r.s)):{});s.got=s.got||{};s.flags=s.flags||{};return s}
+function achPut(s){if(!App.quiz||!App.quiz.q)return;App.quiz.q._ach={c:0,w:0,at:Date.now(),s};saveQuiz()}
+function achStats(){let ans=0,ok=0;for(const[k,r]of Object.entries(App.quiz.q||{})){if(k[0]==='_'||!r)continue;ans+=(r.c||0)+(r.w||0);ok+=r.c||0}
+  const sk=skGet(),dr=v18get('bondline.drills',{});for(const a of Object.values(dr)){ans+=a.n||0;ok+=a.ok||0}
+  const _u=0,ex=v18get('bondline.exams',[]),own=App.notes.filter(n=>!n.example);
+  let units=0;const seen=new Set();for(const c of CO_IDS)for(const u of COURSES[c].units){if(seen.has(u.id))continue;seen.add(u.id);const s=coStats(u.id,c);if(s.n&&s.m>=Math.ceil(.8*s.n))units++}
+  const P=plGet();
+  return{ans,acc:ans?ok/ans:0,best:Math.max(sk.best||0,skLen(sk).n),lv:skLevel(sk.xp||0).lv,run:Math.max(0,...Object.values(dr).map(a=>a.best||0)),rx:(dr.rxn||{}).ok||0,
+    mock:ex.length?Math.max(...ex.map(e=>Math.round(100*e.score/e.len))):0,units,nm:NM_BANK.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,
+    notes:own.length,draw:own.reduce((s,n)=>s+n.blocks.filter(b=>b.type==='scheme').length,0),cards:allDecks().reduce((s,x)=>s+x.d.cards.filter(c=>(c.f||'').trim()).length,0),
+    f:achGet().flags,planFull:P?(P.full||[]).length:0}}
+let achT=0;function achSoon(){clearTimeout(achT);achT=setTimeout(achCheck,1200)}
+function achCheck(){if(!App.quiz||!App.quiz.q)return;let S;try{S=achStats()}catch(e){return}const A=achGet(),fresh=[];
+  for(const[id,,t,,test]of ACH){if(A.got[id])continue;const[c,n]=test(S);if(c>=n){A.got[id]=Date.now();fresh.push(t)}}
+  // The first check after updating only records what's already been earned, so nobody gets a pile of old badges at once.
+  const first=!A.flags.seeded||RX.silent;RX.silent=false;if(!A.flags.seeded)A.flags.seeded=1;if(!fresh.length&&!first)return;achPut(A);if(!first&&fresh.length)achPop(fresh)}
+function achPop(list){let el=$('#achPop');if(!el){el=document.createElement('button');el.id='achPop';el.className='ach-pop';el.type='button';el.addEventListener('click',()=>{el.classList.remove('on');openAch()});document.body.appendChild(el)}
+  const id=ACH.find(a=>a[2]===list[0]);el.innerHTML=`<span class="ach-t sm">${esc(id?id[1]:'★')}</span><span><small>Achievement unlocked</small><b>${esc(list[0])}${list.length>1?` and ${list.length-1} more`:''}</b></span>`;
+  el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('on'),5000);try{skAC();skSfx('streak')}catch(e){}}
+function openAch(){closeMenus();if(isMob())$('#side').classList.remove('open');achCheck();const B=v30Modal('achScrim','Your progress','Achievements','ach-m'),A=achGet(),S=achStats(),n=ACH.filter(a=>A.got[a[0]]).length;
+  B.innerHTML=`<p class="hm-muted">${n} of ${ACH.length} earned. They’re saved with your quiz progress, so they follow you to every device you sign in on.</p>
+   <div class="nm-meter ach-meter" aria-hidden="true"><i style="width:${Math.round(100*n/ACH.length)}%"></i></div>
+   <div class="ach-grid">${ACH.map(([id,sym,t,d,test])=>{const at=A.got[id],[c,m]=test(S);return`<div class="ach${at?' got':''}"><span class="ach-t">${esc(sym)}</span><b>${esc(t)}</b><small>${esc(d)}</small><em>${at?`Earned ${esc(relDay(at))}`:m>1?`${Math.min(c,m)} / ${m}`:'Not yet'}</em></div>`}).join('')}</div>`;
+  try{act22feat('ach:open')}catch(e){}}
+
+/* ---------- exam study plan (Pro) ---------- */
+function plGet(){const r=App.quiz&&App.quiz.q&&App.quiz.q._plan;return r&&r.s&&r.s.exam?JSON.parse(JSON.stringify(r.s)):null}
+function plPut(P){if(!App.quiz||!App.quiz.q)return;App.quiz.q._plan={c:0,w:0,at:Date.now(),s:P||{}};saveQuiz()}
+function plDays(P){const[y,m,d]=P.exam.split('-').map(Number);return Math.round((+new Date(y,m-1,d,12)-skNoon())/DAY)}
+const plUnitDone=(u,c)=>{const s=coStats(u.id,c);return s.n>0&&s.m>=Math.ceil(.8*s.n)};
+// Lays out every day from today to the exam. Recomputed from real progress each day, so the plan catches up or eases off by itself.
+function plLayout(P){const K=COURSES[P.course]||COURSES.icho,days=plDays(P),cap={20:1,40:2,60:3}[P.mins]||2;
+  const todo=K.units.filter(u=>!plUnitDone(u,K.id));const rev=days>=14?7:days>=6?Math.ceil(days/3):days,study=Math.max(0,days-rev);
+  const rate=study?Math.ceil(todo.length/study):0,out=[];let ui=0;
+  for(let i=0;i<Math.max(0,days);i++){const T=[['lesson','Daily practice lesson']];
+    if(i<study){const take=todo.slice(ui,ui+rate);ui+=take.length;take.forEach(u=>T.push(['u:'+u.id,`Unit ${u.n}: ${u.title}`]));if(!take.length)T.push(['fix','Fix my weak spots']);if(i%7===6)T.push(['mock','Mock exam'])}
+    else{const j=i-study;if(i===days-1)T.push(['cards','Light review: flashcards']);else if(j%2===0)T.push(['mock','Mock exam']);else T.push(['fix','Fix my weak spots']);if(i!==days-1)T.push(['rxn','Reaction drill: 10 questions'])}
+    out.push({k:dayKey(skNoon()+i*DAY),T})}
+  return{K,days,rate,cap,todo,study,rev,out,onTrack:rate<=cap}}
+function plToday(P){const k=dayKey(skNoon());if(P.today&&P.today.k===k)return P.today.T;const L=plLayout(P),T=(L.out[0]||{T:[['lesson','Daily practice lesson'],['cards','Light review: flashcards']]}).T;
+  const ds=allDecks().reduce((s,x)=>s+deckStats(x.d).due,0);if(ds&&!T.some(t=>t[0]==='cards'))T.push(['cards',`Review ${ds} due flashcard${ds>1?'s':''}`]);
+  P.today={k,T};plPut(P);return T}
+function plAuto(id,P){const k=dayKey(skNoon());if(id==='lesson')return (skToday(skGet()).n||0)>0;
+  if(id.startsWith('u:')){const K=COURSES[P.course],u=K&&K.uby[id.slice(2)];return !!(u&&plUnitDone(u,K.id))}
+  if(id==='mock')return v18get('bondline.exams',[]).some(e=>dayKey(e.t)===k);return false}
+function plIsDone(id,P){return plAuto(id,P)||((P.done||{})[dayKey(skNoon())]||[]).includes(id)}
+function plSync(P){const T=plToday(P),k=dayKey(skNoon());if(T.length&&T.every(t=>plIsDone(t[0],P))){P.full=P.full||[];if(!P.full.includes(k)){P.full.push(k);plPut(P);achSoon()}}}
+function openPlan(edit){closeMenus();if(isMob())$('#side').classList.remove('open');const B=v30Modal('plScrim','Bondline Pro','Exam study plan','pl-m');plRender(edit);try{act22feat('plan:open')}catch(e){}}
+function plRender(edit){const B=$('#plScrimB');if(!B)return;const P=plGet();
+  if(!proOpen()){B.innerHTML=`<div class="pl-intro"><p>Tell Bondline when your exam is and which course you’re taking. It spreads the units you haven’t finished over the days you have left, saves the last week for mock exams and weak spots, and gives you a short list for each day.</p><ul class="pro-feats"><li>${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}<span><b>Adapts as you go</b>Finish units early and the plan moves on; fall behind and it spreads the rest out.</span></li><li>${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}<span><b>Ticks itself off</b>Daily lessons, finished units and mock exams are checked off automatically.</span></li></ul><button class="btn primary" data-plpro>Get Pro to make a plan</button></div>`;return}
+  if(!P||edit){const d=new Date(Date.now()+42*DAY),def=P?P.exam:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,cur=P?P.course:(v18get('bondline.course','')||'cie'),mins=P?P.mins:40;
+    B.innerHTML=`<p class="hm-muted">${P?'Change your exam date, course or daily time. Your progress is kept.':'Three questions, and Bondline lays out every day until your exam.'}</p>
+     <label class="cl-f">When is your exam?<input type="date" id="plDate" value="${def}" min="${dayKey(Date.now()+DAY)}"></label>
+     <label class="cl-f">Which course?<select id="plCourse">${CO_IDS.map(c=>`<option value="${c}"${c===cur?' selected':''}>${esc(COURSES[c].name)}</option>`).join('')}</select></label>
+     <div class="cl-f"><span>Time each day</span><div class="rm-lay pl-mins">${[[20,'About 20 min','One unit a day'],[40,'About 40 min','Up to two units'],[60,'An hour or more','Up to three units']].map(([v,t,s])=>`<label class="rm-lo${mins===v?' on':''}"><input type="radio" name="plMins" value="${v}"${mins===v?' checked':''}><b>${t}</b><small>${s}</small></label>`).join('')}</div></div>
+     <div class="nm-actions"><button class="btn primary" data-plsave>${P?'Save changes':'Make my plan'}</button>${P?'<button class="btn" data-plcancel>Cancel</button>':''}</div>`;return}
+  const L=plLayout(P),T=plToday(P);plSync(P);const done=T.filter(t=>plIsDone(t[0],P)).length;
+  if(L.days<0){B.innerHTML=`<p><b>Your exam on ${esc(v18Date(+new Date(P.exam+'T12:00')))} has passed.</b> We hope it went well.</p><div class="nm-actions"><button class="btn primary" data-pledit>Plan the next one</button><button class="btn" data-pldel>Delete this plan</button></div>`;return}
+  const tot=L.K.units.length,fin=tot-L.todo.length;
+  const st=L.days===0?'Your exam is today. Good luck!':!L.todo.length?'Every unit is done. The plan is all revision from here.':L.onTrack?`On track: about ${L.rate} unit${L.rate>1?'s':''} a day for the next ${L.study} days, then ${L.rev} days of revision.`:`Behind: you’d need ${L.rate} units a day to finish before the revision week. Allow more time each day, or skip units you already know.`;
+  const week=L.out.slice(1,8);
+  B.innerHTML=`<div class="pl-top"><div class="pl-days"><b>${Math.max(0,L.days)}</b><span>day${L.days===1?'':'s'} to go</span></div><div class="pl-tt"><b>${esc(L.K.name)}</b><small>Exam ${esc(v18Date(+new Date(P.exam+'T12:00')))}</small><div class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*fin/tot)}%"></i></div><small>${fin} of ${tot} units complete</small></div></div>
+   <p class="pl-st ${L.onTrack||!L.todo.length?'ok':'bad'}">${esc(st)}</p>
+   <h3 class="rm-h">Today <small>${done} of ${T.length} done</small></h3>
+   <ul class="pl-list">${T.map(([id,label])=>{const a=plAuto(id,P),d=plIsDone(id,P);return`<li class="${d?'done':''}"><label><input type="checkbox" data-pltick="${esc(id)}"${d?' checked':''}${a?' disabled title="Ticked automatically"':''}><span>${esc(label)}</span></label><button class="btn small" data-plgo="${esc(id)}">${d?'Again':'Start'}</button></li>`}).join('')}</ul>
+   ${week.length?`<h3 class="rm-h">Coming up</h3><div class="pl-week">${week.map(d=>{const[y,m,dd]=d.k.split('-').map(Number),dt=new Date(y,m-1,dd);return`<div class="pl-wd"><b>${dt.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}</b><span>${d.T.slice(1).map(t=>esc(t[1])).join(' · ')||'Daily lesson'}</span></div>`}).join('')}</div>`:''}
+   <div class="nm-actions"><button class="btn" data-pledit>Change plan</button><button class="linkbtn" data-pldel>Delete plan</button></div>
+   <p class="hm-muted">The plan updates each day from your progress: finished units drop out and the rest are spread over the days left.</p>`}
+function plGo(id){const P=plGet();v30Close('plScrim');
+  if(id==='lesson')return openStreak();
+  if(id.startsWith('u:')){setMode('course');return coUnit(id.slice(2))}
+  if(id==='mock'){setMode('progress');return exSetup()}
+  if(id==='fix'){setMode('progress');return exFix()}
+  if(id==='rxn'){setMode('drills');return drStart('rxn')}
+  if(id==='cards'){const ds=allDecks();if(!ds.length){setMode('cards');return toast('Make a flashcard deck first: Cards → New deck.')}return startStudy(ds.map(x=>x.b),false)}}
+function plClick(e){const t=e.target;
+  if(t.closest('[data-plpro]')){v30Close('plScrim');return openPro('plan')}
+  if(t.closest('[data-plsave]')){const v=$('#plDate').value,c=$('#plCourse').value,m=+((document.querySelector('[name="plMins"]:checked')||{}).value||40);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(v))return toast('Choose your exam date.');const old=plGet()||{};const P={exam:v,course:c,mins:m,made:old.made||Date.now(),done:old.done||{},full:old.full||[]};
+    if(plDays(P)<1)return toast('Pick a date after today.');plPut(P);v30Mark('plan');toast('Your study plan is ready.');try{act22feat('plan:make')}catch(e){}return plRender()}
+  if(t.closest('[data-plcancel]'))return plRender();
+  if(t.closest('[data-pledit]'))return plRender(true);
+  const dl=t.closest('[data-pldel]');if(dl){if(Date.now()-(RX.delAt||0)>4000){RX.delAt=Date.now();return toast('Press Delete plan again to delete it.')}RX.delAt=0;plPut(null);toast('Study plan deleted.');return plRender()}
+  const g=t.closest('[data-plgo]');if(g)return plGo(g.dataset.plgo)}
+function plChange(e){const tk=e.target.closest('[data-pltick]');if(tk){const P=plGet();if(!P)return;const k=dayKey(skNoon());P.done=P.done||{};const L=P.done[k]=P.done[k]||[],id=tk.dataset.pltick;
+    if(tk.checked){if(!L.includes(id))L.push(id)}else P.done[k]=L.filter(x=>x!==id);const ks=Object.keys(P.done).sort();while(ks.length>120)delete P.done[ks.shift()];plPut(P);plSync(plGet());return plRender()}
+  if(e.target.name==='plMins')document.querySelectorAll('.pl-mins .rm-lo').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked))}
+function plHomeCard(){const hp=$('#homePage');if(!hp||!hp.querySelector('.h7'))return;const old=hp.querySelector('.pl-home');if(old)old.remove();const P=plGet();if(!P||!proOpen())return;const days=plDays(P);if(days<0)return;
+  const T=plToday(P),d=T.filter(t=>plIsDone(t[0],P)).length,card=document.createElement('section');card.className='pl-home';card.setAttribute('aria-label','Exam study plan');
+  card.innerHTML=`<span class="pl-hd"><b>${days}</b><small>day${days===1?'':'s'}</small></span><div class="sk-ht"><div class="sk-hk">Exam plan · ${esc((COURSES[P.course]||{}).short||'')}</div><div class="sk-hs">${d===T.length?'Today’s plan is done':`${d} of ${T.length} done today`}</div></div><button class="btn${d===T.length?'':' primary'}">Open plan</button>`;
+  card.addEventListener('click',()=>openPlan());const sk=hp.querySelector('.sk-home'),hero=hp.querySelector('.h7-hero');if(sk)sk.insertAdjacentElement('afterend',card);else if(hero)hero.insertAdjacentElement('afterend',card);else hp.querySelector('.h7').prepend(card)}
+
+function wireV30(){
+  DR_LIST.push({id:'rxn',t:'Reactions: reagents and products',d:'Name the reaction, pick the reagents, or predict the product or starting material, for every reaction in the library and more.'});
+  { const _ds=drStart;drStart=function(id){if(id==='rxn'){DR.view='rxn';stDisposeViews();return rxDrill()}return _ds(id)} }
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest('#drPage'))return;
+    const o=t.closest('[data-rxo]');if(o)return rxAnswer(+o.dataset.rxo);
+    const c=t.closest('[data-rxcat]');if(c)return rxCatToggle(c.dataset.rxcat);
+    if(t.closest('[data-rxpro]'))return openPro('rxdrill');
+    const m=t.closest('[data-rxmap]');if(m)return openMap('explore',m.dataset.rxmap)});
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;if(t.closest('#rmScrim .wn'))rmClick(e);else if(t.closest('#plScrim .wn'))plClick(e)});
+  document.addEventListener('change',e=>{const t=e.target;if(!t.closest)return;if(t.closest('#rmScrim'))rmChange(e);else if(t.closest('#plScrim'))plChange(e)});
+  // Pro: list the new features and explain why a window opened.
+  PRO_FEATS.push(['Reaction drill, every type','All 50 reactions in the reagents-and-products drill. Substitution, elimination and addition stay free.'],['Route finder','Plan multi-step syntheses between any two functional groups, with reagents for every step.'],['Printable reaction packs','Summary sheets and cut-out flashcards for any set of reactions, ready to print or save as PDF.'],['Exam study plan','A day-by-day plan to your exam date that adapts to your progress.']);
+  { const _pr=proRender;proRender=function(){_pr();const B=$('#proBody');if(!B||proActive()||!PRO_CFG.enforce||B.querySelector('.pro-why'))return;const w={rxdrill:'Every reaction type in the reaction drill is part of Bondline Pro.',route:'The route finder is part of Bondline Pro.',print:'Printable reaction packs are part of Bondline Pro.',plan:'The exam study plan is part of Bondline Pro.'}[proWhy];if(w)B.insertAdjacentHTML('afterbegin',`<p class="pro-why">${w}</p>`)} }
+  // Menus and the command palette.
+  { const _tm=renderToolsMenu;renderToolsMenu=function(){_tm();const m=$('#toolsMenu'),at=m.querySelector('[data-mi="prac"]');const h=menuItem('rxmap',ico('<circle cx="5.5" cy="6" r="2.2"/><circle cx="18.5" cy="6" r="2.2"/><circle cx="12" cy="18" r="2.2"/><path d="M7.7 6h8.6M6.6 8l4.3 8M17.4 8l-4.3 8"/>'),'Reaction map','How functional groups connect, and synthesis routes');if(at)at.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h)} }
+  { const _rm=renderAcctMenu;renderAcctMenu=function(){_rm();const m=$('#acctMenu'),at=m.querySelector('[data-mi="settings"]');
+      const h=menuItem('plan',ico('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M8.5 14.5l2 2 4-4"/>'),'Exam study plan',plGet()?`${Math.max(0,plDays(plGet()))} days to your exam`:'A day-by-day plan to your exam',proOpen()?'':PRO_BADGE)+
+        menuItem('ach',ico('<circle cx="12" cy="9" r="5.5"/><path d="M8.6 13.4L7 21l5-2.6 5 2.6-1.6-7.6"/>'),'Achievements',`${ACH.filter(a=>achGet().got[a[0]]).length} of ${ACH.length} earned`);
+      if(at)at.insertAdjacentHTML('beforebegin',h);else m.insertAdjacentHTML('beforeend',h)} }
+  { const _mg=menuGo;menuGo=function(k){if(k==='rxmap')return openMap('explore');if(k==='ach')return openAch();if(k==='plan')return openPlan();_mg(k)} }
+  { const _ci=cmdItems;cmdItems=function(){const I=_ci();
+      I.push({label:'Reaction map',kind:'Chemistry',fn:()=>openMap('explore'),kw:'functional groups interconversion map connections'},
+        {label:'Route finder: plan a synthesis',kind:'Chemistry',fn:()=>openMap('route'),kw:'synthesis route retrosynthesis multi-step plan reagents pro'},
+        {label:'Print reaction flashcards or a summary sheet',kind:'Chemistry',fn:()=>openMap('print'),kw:'print pdf cheat sheet flashcards reactions pack pro'},
+        {label:'Reaction drill: reagents and products',kind:'Practice',fn:()=>{setMode('drills');drStart('rxn')},kw:'reactions reagents products predict drill quiz'},
+        {label:'Achievements',kind:'Practice',fn:openAch,kw:'badges trophies awards achievements'},
+        {label:'Exam study plan',kind:'Practice',fn:()=>openPlan(),kw:'exam date countdown schedule revision timetable planner pro'});return I} }
+  // The reaction library gets a link to the map.
+  { const h=document.querySelector('#rxnScrim .dlg-h'),cl=$('#rxnClose');if(h&&cl&&!$('#rxnMapBtn')){cl.insertAdjacentHTML('beforebegin','<button class="btn small" id="rxnMapBtn">Reaction map</button>');$('#rxnMapBtn').addEventListener('click',()=>{closeLibrary();openMap('explore')})} }
+  // Home: the exam plan card. Progress: links to achievements and the plan.
+  { const _rh=renderHome;renderHome=function(){_rh();try{plHomeCard()}catch(e){console.warn(e)}achSoon()} }
+  { const _pg=pgHome;pgHome=function(){_pg();const h=$('#progPage .pg-cta');if(h&&!$('#progPage .v30-links')){h.insertAdjacentHTML('afterend',`<div class="v30-links"><button class="btn" data-v30="plan">${ico('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')} Exam study plan${proOpen()?'':PRO_BADGE}</button><button class="btn" data-v30="ach">${ico('<circle cx="12" cy="9" r="5.5"/><path d="M8.6 13.4L7 21l5-2.6 5 2.6-1.6-7.6"/>')} Achievements · ${ACH.filter(a=>achGet().got[a[0]]).length}/${ACH.length}</button></div>`);
+      $('#progPage .v30-links').addEventListener('click',e=>{const b=e.target.closest('[data-v30]');if(b)b.dataset.v30==='plan'?openPlan():openAch()})}} }
+  // Keep achievements and the plan when progress syncs from another device.
+  { const _mq=mergeQuiz;mergeQuiz=function(remote){const la=App.quiz&&App.quiz.q&&App.quiz.q._ach,lp=App.quiz&&App.quiz.q&&App.quiz.q._plan;_mq(remote);const ra=remote&&remote.q&&remote.q._ach,rp=remote&&remote.q&&remote.q._plan;if(remote&&remote.q&&!ra)RX.silent=true;
+      if(la&&la.s&&ra&&ra.s){const s={got:Object.assign({},ra.s.got,la.s.got),flags:Object.assign({},ra.s.flags,la.s.flags)};for(const k in ra.s.got)if(la.s.got&&la.s.got[k])s.got[k]=Math.min(la.s.got[k],ra.s.got[k]);App.quiz.q._ach={c:0,w:0,at:Math.max(la.at||0,ra.at||0),s}}
+      if(lp&&lp.s&&rp&&rp.s&&lp.s.exam&&rp.s.exam&&lp.s.exam===rp.s.exam){const n=(rp.at||0)>(lp.at||0)?rp:lp,o=n===rp?lp:rp,s=JSON.parse(JSON.stringify(n.s));s.full=[...new Set([...(s.full||[]),...(o.s.full||[])])];
+        s.done=s.done||{};for(const[k,v]of Object.entries(o.s.done||{}))s.done[k]=[...new Set([...(s.done[k]||[]),...v])];App.quiz.q._plan={c:0,w:0,at:n.at,s}}
+      achSoon()} }
+  { const _la=logAns;logAns=function(ok){_la(ok);achSoon()} }
+  { const _sp=skPut;skPut=function(s){_sp(s);achSoon()} }
+  setTimeout(()=>{try{achCheck();if(V18_Q.get('map'))openMap(V18_Q.get('map')==='route'?'route':V18_Q.get('map')==='print'?'print':'explore');if(V18_Q.get('plan'))openPlan();if(V18_Q.get('ach'))openAch()}catch(e){console.warn(e)}},1100);
+  if(/[?&]bltest\b/.test(location.search))window.__v30={setMode,drStart,rxE,rxRoutes,achStats,achGet,ACH,plGet,plLayout,openMap,openAch,openPlan,rxDrill,proOpen};
+  CHANGELOG.unshift({v:'30',d:'15 November 2026',t:'Reaction map, route finder, achievements and study plans',items:[
+    ['Reaction drill','A new drill in Practice → Drills: name the reaction, choose the reagents, or predict the product or starting material.'],
+    ['Reaction map','See how every functional group is made and what it turns into. Open it from Tools or the reaction library.'],
+    ['Route finder (Pro)','Pick a starting group and a target, and get the shortest routes with reagents for every step.'],
+    ['Printable reaction packs (Pro)','Print a summary sheet or cut-out flashcards for any set of reactions, or save them as a PDF.'],
+    ['Achievements','22 badges for streaks, mock exams, course units, drills and more. Find them in the account menu.'],
+    ['Exam study plan (Pro)','Enter your exam date and course for a daily plan that adapts as you go.']]});
+}
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();
 boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

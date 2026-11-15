@@ -2,7 +2,10 @@
 //
 // enforce: false = every Pro feature is free for everyone (preview).
 //          true  = mock exams, the full weak-spot list, every course unit after the first three,
-//                  and the streak perks (extra daily lessons, more freezes, streak repair) need Pro.
+//                  the streak perks (extra daily lessons, more freezes, streak repair), and (from version 30)
+//                  the reaction drill beyond substitution/elimination/addition, the route finder,
+//                  printable reaction packs and the exam study plan need Pro.
+//          The reaction map and achievements are free for everyone.
 //          Notes, drawing, practice, the daily lesson, sync and classes are never locked.
 // checkout: which plans are on sale. Payments go through Stripe; the price IDs live on Netlify
 //          (STRIPE_PRICE_MONTHLY and so on, see the README), not in this file. Change a plan to true

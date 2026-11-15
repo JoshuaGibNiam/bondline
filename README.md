@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 29)
+# Bondline: organic chemistry notebook (version 30)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,18 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 30: reaction drill, reaction map, achievements and study plans
+
+No Firebase changes and no new settings. Upload the folder as usual. Service worker version is `bondline-v30-1`.
+
+- **Reaction drill** (Practice → Drills → Reactions: reagents and products). Four kinds of question: name the reaction, choose the reagents, predict the product, or find the starting material. It uses every library reaction plus 10 common steps that aren't in the library yet (oxidation, hydrogenation, nitrile hydrolysis, SOCl₂ and so on): 51 in total. Substitution, elimination and addition are free; the other types need Pro.
+- **Reaction map** (Tools → Reaction map, the button in the reaction library, or `?app&map=1`). Pick a functional group to see what makes it and what it turns into. Free.
+- **Route finder (Pro)**: the map's second tab. Pick a starting group and a target to get every shortest route (up to four), with reagents for each step. `?app&map=route`.
+- **Printable reaction packs (Pro)**: the map's third tab. A summary sheet, cut-out flashcards (eight a page, with the backs mirrored for long-edge double-sided printing), or both. `?app&map=print`.
+- **Achievements**: 22 badges drawn as element tiles (account menu, Progress page, or `?app&ach=1`). They're saved with quiz progress, so they sync. The first time version 30 runs, badges already earned are recorded quietly, without a pop-up for each one. Free.
+- **Exam study plan (Pro)**: account menu, Progress page, or `?app&plan=1`. The student sets an exam date, a course and a daily time. Bondline spreads the unfinished units over the days left, keeps the last week for mock exams and weak spots, and recalculates each day. Daily lessons, finished units and mock exams tick themselves off. A Home card shows the countdown.
+- Reaction examples and groups are in `RX30` and `RX30X` in `app.js`. To add a reaction to the drill and map, add a row there.
 
 ## New in version 29: daily practice, more ways to pay, and Stripe
 
