@@ -126,7 +126,7 @@ Refunds of invoice payments are not undone automatically; change the teacher's s
 2. The app sends `/api/checkout` the plan and the Bondline account ID. The server picks the Stripe price, so a buyer can't change the price.
 3. The buyer pays on Stripe's hosted page and comes back to Bondline.
 4. Stripe calls `/api/stripe-webhook`. It records `entitlements/{uid}` (monthly, semester or exam pass) or `passes/{uid}` (centre licence) in Firestore.
-5. The app checks every few seconds after returning, and Pro switches on. Renewals, cancellations and full refunds update the same records.
+5. The app checks every few seconds after returning, and Pro switches on. Renewals, cancellations and refunds (of at least half the payment, which includes refunds minus the Stripe fee) update the same records.
 
 ## Testing
 

@@ -101,9 +101,11 @@ export default async (req) => {
     return ok();
   }
 
-  // ---- a full refund or an opened dispute on a one-off payment takes the pass or licence away again ----
+  // ---- a refund or an opened dispute on a one-off payment takes the pass or licence away again ----
+  // Refunds are the amount paid minus Stripe's fee (see the terms), so Stripe reports them as partial (o.refunded is false).
+  // Any refund of at least half the payment counts; a small goodwill refund leaves Pro on.
   // (A dispute pulls the money back at once, so access goes too. If you win the dispute, re-grant by hand in the admin page.)
-  if ((type === 'charge.refunded' && o.refunded) || type === 'charge.dispute.created') {
+  if ((type === 'charge.refunded' && (o.refunded || (+o.amount_refunded || 0) >= (+o.amount || 0) / 2)) || type === 'charge.dispute.created') {
     return ok(await undoPayment(String(o.payment_intent || ''), type === 'charge.refunded' ? (o.metadata || {}) : {}, now));
   }
 

@@ -7233,7 +7233,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='30';
+const APP_VER='31';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -8972,6 +8972,8 @@ const CO_UNITS_B=[
 
 /* ---------- v21: Courses tab (IChO); v23: three courses ---------- */
 const CO_UNITS=[...CO_UNITS_A,...CO_UNITS_B];
+/* v31: extra IChO questions and olympiad problems from course-x5.js, appended so existing ids never change. */
+(()=>{const X=window.BL_COURSE_X;if(!X||!X.ic)return;CO_UNITS.forEach(u=>{const x=X.ic[u.id];if(!x)return;if(x.qs)u.qs.push(...x.qs);if(x.xp&&x.xp.length)u.xp=(u.xp||[]).concat(x.xp)})})();
 CO_UNITS.forEach((u,i)=>{u.n=i+1;u.qs.forEach((q,k)=>{q.id='ic-'+u.id+'-'+(k+1);q.t=u.id})});
 const CO_BANK=CO_UNITS.flatMap(u=>u.qs),CO_BY=Object.fromEntries(CO_BANK.map(q=>[q.id,q])),CO_UBY=Object.fromEntries(CO_UNITS.map(u=>[u.id,u]));
 const CO_TOPICS=CO_UNITS.map(u=>({id:u.id,title:`${u.n}. ${u.title}`}));
@@ -10116,18 +10118,24 @@ for(const[id,x]of Object.entries(PU_EXT)){const u=PU_UNITS.find(v=>v.id===id);if
   if(x.qtag)for(const[k,v]of Object.entries(x.qtag))if(u.qs[k])u.qs[k].only=v;
   (x.sec||[]).forEach(([after,s])=>{let i=after==null?u.sections.length:u.sections.findIndex(t=>t.h===after)+1;if(i<=0)i=u.sections.length;u.sections.splice(i,0,s)});
   if(x.qs)u.qs.push(...x.qs)}
+/* v31: extra questions, exam-style written questions and the rest of AP Chemistry, from course-x1.js to course-x4.js. */
+(()=>{const X=window.BL_COURSE_X;if(!X)return;for(const u of PU_UNITS){const x=X.pu&&X.pu[u.id];if(!x)continue;if(x.qs)u.qs.push(...x.qs);if(x.xp)u.xp=(u.xp||[]).concat(x.xp)}
+  for(const u of X.units||[])if(!PU_UNITS.some(v=>v.id===u.id))PU_UNITS.push(u)})();
 PU_UNITS.forEach(u=>u.qs.forEach((q,k)=>{q.id=u.id+'-'+(k+1);q.t=u.id}));
+// v31: the first 30% of every unit's questions are free; the rest need Pro.
+const CO_FREE_SHARE=.3;
+[...PU_UNITS,...CO_UNITS].forEach(u=>{const n=Math.ceil(CO_FREE_SHARE*u.qs.length);u.qs.forEach((q,k)=>{q.fr=k<n})});
 const PU_BANK=PU_UNITS.flatMap(u=>u.qs),PU_BY=Object.fromEntries(PU_BANK.map(q=>[q.id,q])),PU_UBY=Object.fromEntries(PU_UNITS.map(u=>[u.id,u]));
 const PU_TOPICS=PU_UNITS.map(u=>({id:u.id,title:u.title}));
 const coOnly=(x,t)=>!x.only||x.only.includes(t);
 function coTrack(t,ids,groups){
   const t2=t==='n'?'j':t;const units=ids.map((id,i)=>{const b=PU_UBY[id];return{id,n:i+1,free:i<3,title:b.title,lede:b.lede,ref:b.ref[t]||b.ref[t2]||'',syl:b.syl[t]||b.syl[t2]||[],
-    sections:b.sections.filter(s=>coOnly(s,t)),tools:b.tools,prob:b.prob,qs:b.qs.filter(q=>coOnly(q,t))}});
+    sections:b.sections.filter(s=>coOnly(s,t)),tools:b.tools,prob:b.prob,xp:(b.xp||[]).filter(x=>coOnly(x,t)),qs:b.qs.filter(q=>coOnly(q,t))}});
   return{units,groups:groups.map(([h,a,z])=>[h,u=>u.n>a&&u.n<=z])}}
 const PU_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-deriv','pu-amine','pu-amino','pu-poly','pu-synth','pu-spec'];
 const CIE_T=coTrack('a',PU_ORDER,[['Atoms, orbitals and bonding',0,6],['Organic chemistry',6,22]]);
 const STPM_T=coTrack('s',PU_ORDER.filter(id=>id!=='pu-spec'),[['First term: atoms and bonding',0,6],['Third term: organic chemistry',6,21]]);
-const AP_T=coTrack('p',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf'],[['Unit 1: atomic structure and properties',0,3],['Units 2 and 3: bonding and intermolecular forces',3,6]]);
+const AP_T=coTrack('p',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf',...((window.BL_COURSE_X||{}).apOrder||[]).filter(id=>PU_UBY[id])],[['Unit 1: atomic structure and properties',0,3],['Units 2 and 3: bonding and intermolecular forces',3,6],['Units 3 and 4: gases, solutions and reactions',6,8],['Units 5 to 9: kinetics, thermodynamics, equilibrium, acids and bases',8,13]]);
 const IB_T=coTrack('i',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-carbonyl','pu-acid','pu-deriv','pu-poly','pu-spec'],[['Structure 1 and 2: atoms and bonding',0,6],['Structure 3 and Reactivity 3: organic chemistry',6,18]]);
 const JN_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-purify','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-amine','pu-bio','pu-named'];
 const JN_GROUPS=[['Atomic structure, bonding and periodicity',0,6],['Organic chemistry',6,20]];
@@ -10150,10 +10158,10 @@ const COURSES={
     lede:n=>`${n} units covering the atoms and bonding part of the first term and all of the organic chemistry in the third term of STPM Chemistry. Each unit has the syllabus points, lessons, an exam-style question with worked answers, and a quiz.`,
     note:['How this course fits the syllabus.','Units 1–6 cover first-term atomic structure, electronic configuration and chemical bonding. Units 7–21 cover the third term: hydrocarbons, haloalkanes, hydroxy compounds, carbonyls, carboxylic acids and their derivatives, amines, amino acids, proteins and polymers. A unit counts as complete when you have mastered 80% of its questions. The rest of the first and second terms (physical and inorganic chemistry) is coming in a later update.'],
     src:'Based on the STPM Chemistry (962) syllabus from Majlis Peperiksaan Malaysia. Not affiliated with or endorsed by MPM.'},STPM_T),
-  ap:coMk({id:'ap',short:'AP',name:'AP Chemistry',sub:'Units 1–3: atoms, bonding, IMFs',h1:'AP Chemistry: atoms, bonding and intermolecular forces',
-    sylH:'Course and Exam Description topics',probK:'Free-response-style question',lastKey:'bondline.co.last.ap',sylKey:'bondline.co.syl.ap',kick:u=>u.ref,
-    lede:n=>`${n} units covering the start of AP Chemistry: atomic structure, electron configurations and photoelectron spectroscopy (Unit 1), bonding, Lewis structures, formal charge and VSEPR (Unit 2), and intermolecular forces and solids (the start of Unit 3). Each unit has the CED topics, lessons, a free-response-style question with worked answers, and a quiz.`,
-    note:['How this course fits the syllabus.','AP Chemistry is mostly general and physical chemistry, with almost no organic chemistry. These units cover Unit 1, Unit 2 and the first topics of Unit 3 of the College Board’s Course and Exam Description. Gases, solutions, reactions, kinetics, thermodynamics, equilibrium and acids and bases are coming in a later update. In free-response answers, justify trends with Coulomb’s law: charge, distance and shielding.'],
+  ap:coMk({id:'ap',short:'AP',name:'AP Chemistry',sub:'All nine units of the course',h1:'AP Chemistry',
+    sylH:'Course and Exam Description topics',probK:'Free-response question (long, 10 points)',lastKey:'bondline.co.last.ap',sylKey:'bondline.co.syl.ap',kick:u=>u.ref,
+    lede:n=>`${n} units covering the whole AP Chemistry course: atomic structure and periodicity, bonding, intermolecular forces, gases and solutions, reactions and stoichiometry, kinetics, thermochemistry, equilibrium, acids and bases, and thermodynamics and electrochemistry. Each unit has the CED topics, lessons, free-response questions with scoring guidelines, and a quiz.`,
+    note:['How this course fits the exam.','The AP exam has 60 multiple-choice questions and 7 free-response questions (3 long, worth 10 points each, and 4 short, worth 4 points each), each section worth half the score. Units 3 and 8 carry the most weight. In free-response answers, show your setup and units, and justify claims with particle-level reasoning: Coulomb’s law, intermolecular forces, or Q compared with K.'],
     src:'Based on the AP Chemistry Course and Exam Description. AP is a trademark registered by the College Board, which is not affiliated with, and does not endorse, Bondline.'},AP_T),
   ib:coMk({id:'ib',short:'IB',name:'IB Chemistry',sub:'Diploma Programme, SL and HL',h1:'IB Diploma Chemistry (first exams 2025)',
     sylH:'Syllabus understandings (IB 2025)',probK:'Exam-style question',lastKey:'bondline.co.last.ib',sylKey:'bondline.co.syl.ib',kick:u=>u.ref,
@@ -10229,20 +10237,21 @@ function coUnit(id){
   const chk=coChecks()[id]||[];
   const syl=`<section class="co-syl"><h2>${esc(K.sylH)}</h2><p class="co-sylh">Tick each one when you could explain it to a friend.</p><ul>${u.syl.map((s,i)=>`<li><label><input type="checkbox" data-cosyl="${i}"${chk.includes(i)?' checked':''}${coLocked(u)?' disabled':''}><span>${esc(s)}</span></label></li>`).join('')}</ul></section>`;
   if(coLocked(u)){
-    $('#coPage').innerHTML=`<article class="nm-lesson co-unit">${head}${syl}<section class="co-gate"><h2>This unit is part of Bondline Pro</h2><p>Units 1–3 of the ${esc(K.name)} course are free. Pro unlocks all ${K.units.length} units: ${K.units.reduce((s,x)=>s+x.sections.length,0)} lesson sections, ${K.units.length} worked problems and ${K.bank.length} questions, plus every other course, mock exams and weak-spot practice.</p><div class="nm-actions"><button class="btn primary" data-copro="1">See Bondline Pro</button><button class="btn" data-counit="${u1.id}">Go to Unit 1 (free)</button></div></section></article>`;
+    $('#coPage').innerHTML=`<article class="nm-lesson co-unit">${head}${syl}<section class="co-gate"><h2>This unit is part of Bondline Pro</h2><p>Units 1–3 of the ${esc(K.name)} course are free. Pro unlocks all ${K.units.length} units: ${K.units.reduce((s,x)=>s+x.sections.length,0)} lesson sections, ${K.units.length} worked problems and ${K.bank.length} questions, plus every other course, mock exams and weak-spot practice.</p><div class="nm-actions"><button class="btn primary" data-copro="1">See Bondline Pro</button>${coFreeN(u)?`<button class="btn" data-coquiz="${u.id}">Try ${coFreeN(u)} free questions</button>`:''}<button class="btn" data-counit="${u1.id}">Go to Unit 1 (free)</button></div></section></article>`;
     return coDone()}
   $('#coPage').innerHTML=`<article class="nm-lesson st-lesson co-unit">${head}${syl}
    ${u.sections.map(s=>`<section class="nm-sec"><h2>${esc(s.h)}</h2>${s.html}</section>`).join('')}
    ${u.tools&&u.tools.length?`<section class="nm-sec"><h2>Practise in Bondline</h2><div class="co-tools">${u.tools.map(coTool).join('')}</div></section>`:''}
    <section class="nm-sec co-prob"><div class="co-pk">${esc(K.probK)}</div><h2>${esc(u.prob.title)}</h2><p>${u.prob.stem}</p><ol class="co-parts">${u.prob.parts.map(([q,a])=>`<li><p>${q}</p><details><summary>Show answer</summary><div class="co-ans">${a}</div></details></li>`).join('')}</ol><p class="co-tip">Try each part on paper before opening its answer.</p></section>
-   <div class="nm-actions"><button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${u.qs.length} questions</button>${next?`<button class="btn" data-counit="${next.id}">Next: Unit ${next.n}</button>`:`<button class="btn" data-cohome="1">Back to the course</button>`}${prev?`<button class="linkbtn" data-counit="${prev.id}">Previous unit</button>`:''}</div></article>`;
+   ${coXp(u,K)}
+   <div class="nm-actions">${coQuizBtn(u)}${next?`<button class="btn" data-counit="${next.id}">Next: Unit ${next.n}</button>`:`<button class="btn" data-cohome="1">Back to the course</button>`}${prev?`<button class="linkbtn" data-counit="${prev.id}">Previous unit</button>`:''}</div></article>`;
   stMount($('#coPage'));coDone()}
 
 /* ---------- quiz ---------- */
 function coBuild(q){return{prompt:q.prompt,fig:stFig(q.fig),opts:shuffle(q.opts.slice()),ans:q.opts[0],why:q.why}}
 function coStart(cfg){
-  const c=coFind(cfg.unit);if(c)coSet(c);const u=C().uby[cfg.unit];if(!u)return coHome();if(coLocked(u))return coUnit(u.id);
-  let pool=cfg.ids?cfg.ids.map(id=>CO_ALLQ[id]).filter(Boolean):u.qs.slice();if(!pool.length)return;
+  const c=coFind(cfg.unit);if(c)coSet(c);const u=C().uby[cfg.unit];if(!u)return coHome();
+  let pool=cfg.ids?cfg.ids.map(id=>CO_ALLQ[id]).filter(Boolean):u.qs.slice();if(!proOpen())pool=pool.filter(q=>q.fr);if(!pool.length)return openPro(CO.c||'icho');
   if(!cfg.ids){const w=q=>{const r=App.quiz.q[q.id];return!r?0:r.last===0?1:2};pool=[0,1,2].flatMap(k=>shuffle(pool.filter(q=>w(q)===k)))}else pool=shuffle(pool);
   stDisposeViews();CO.unit=u.id;CO.qz={cfg,items:pool.map(q=>({q,b:coBuild(q)})),i:0,score:0,answered:false,results:[]};CO.view='quiz';coRenderQ()}
 function coRenderQ(){
@@ -12833,7 +12842,7 @@ function wireV30(){
   { const _la=logAns;logAns=function(ok){_la(ok);achSoon()} }
   { const _sp=skPut;skPut=function(s){_sp(s);achSoon()} }
   setTimeout(()=>{try{achCheck();if(V18_Q.get('map'))openMap(V18_Q.get('map')==='route'?'route':V18_Q.get('map')==='print'?'print':'explore');if(V18_Q.get('plan'))openPlan();if(V18_Q.get('ach'))openAch()}catch(e){console.warn(e)}},1100);
-  if(/[?&]bltest\b/.test(location.search))window.__v30={setMode,drStart,rxE,rxRoutes,achStats,achGet,ACH,plGet,plLayout,openMap,openAch,openPlan,rxDrill,proOpen};
+  if(/[?&]bltest\b/.test(location.search))window.__v30={setMode,drStart,COURSES,CO_IDS,AREAS,coUnit,coGoCourse,exPool,rxE,rxRoutes,achStats,achGet,ACH,plGet,plLayout,openMap,openAch,openPlan,rxDrill,proOpen};
   CHANGELOG.unshift({v:'30',d:'15 November 2026',t:'Reaction map, route finder, achievements and study plans',items:[
     ['Reaction drill','A new drill in Practice → Drills: name the reaction, choose the reagents, or predict the product or starting material.'],
     ['Reaction map','See how every functional group is made and what it turns into. Open it from Tools or the reaction library.'],
@@ -12843,6 +12852,68 @@ function wireV30(){
     ['Exam study plan (Pro)','Enter your exam date and course for a daily plan that adapts as you go.']]});
 }
 
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();
+/* ---------- v31: more course questions (30% free), exam-style written questions, the rest of AP, reactions in mock exams ---------- */
+function coFreeN(u){return u.qs.filter(q=>q.fr).length}
+function coQuizBtn(u){const n=u.qs.length;if(proOpen())return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${n} questions</button>`;
+  const f=coFreeN(u);return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${f} free questions</button>${n>f?`<button class="btn" data-copro="1">${n-f} more with Pro${PRO_BADGE}</button>`:''}`}
+// The label for each written question depends on the course, so the same question can be "Section B" for STPM and "Paper 2" for IB.
+const XPK={struct:{cie:'Structured question · Paper 2 and 4 style',stpm:'Section B · structured question',ib:'Paper 2 · short-answer question',ap:'Free response · short answer'},
+  essay:{stpm:'Section C · essay question'},data:{ib:'Paper 1B · data-based question'},nvt:{jee:'Section B · numerical value (integer answer)'},
+  'frq-short':{ap:'Free response · short (4 points)'},'frq-long':{ap:'Free response · long (10 points)'},olymp:{icho:'Olympiad-style theory problem'}};
+function coXpLabel(f,c){const m=XPK[f]||{};return m[c]||Object.values(m)[0]||'Exam-style question'}
+function coXp(u,K){const L=u.xp||[];if(!L.length)return'';
+  const card=x=>{const tot=x.parts.reduce((s,p)=>s+(p[2]||0),0),nvt=x.fmt==='nvt';
+    return`<section class="nm-sec co-prob co-xp"><div class="co-pk">${esc(coXpLabel(x.fmt,K.id))}${tot&&!nvt?` · ${tot} marks`:''}</div><h2>${esc(x.title)}</h2>${x.stem?`<p>${x.stem}</p>`:''}
+     <ol class="co-parts" type="a">${x.parts.map(([q,a,m])=>`<li><p>${q}${m&&!nvt?` <span class="co-mk">[${m}]</span>`:''}</p><details><summary>${nvt?'Show answer':'Show mark scheme'}</summary><div class="co-ans">${a}</div></details></li>`).join('')}</ol>
+     ${nvt?'<p class="co-tip">As in JEE Main Section B: +4 for the correct integer, no negative marking.</p>':'<p class="co-tip">Write your answer first, then mark it against the scheme. Each [1] is one marking point.</p>'}</section>`};
+  const shown=proOpen()?L:(u.free?L.slice(0,1):[]),hid=L.length-shown.length;
+  return`<h2 class="co-gh co-xph">Exam-style questions</h2>${shown.map(card).join('')}${hid?`<section class="co-gate co-xplock"><h2>${hid} ${shown.length?'more ':''}exam-style question${hid>1?'s':''} with Pro</h2><p>Written in the format of the ${esc(K.name)} exam, with full mark schemes.</p><button class="btn primary" data-copro="1">See Bondline Pro</button></section>`:''}`}
+
+// Reactions as a Progress area, so they appear in mock exams, weak spots and daily practice.
+function rxBank(){if(RX.bank)return RX.bank;const cats=rxCats();RX.bank=rxE().flatMap(e=>['name','prod','reag'].map(k=>({id:'rx-'+e.id.replace(':','-')+'-'+k,t:'rxc'+cats.indexOf(e.cat),e,k})));return RX.bank}
+function rxItem(q){const e=q.e,key={name:'name',reag:'r',prod:'p'}[q.k],same={name:x=>x.cat===e.cat,reag:x=>x.f===e.f||x.t===e.t,prod:x=>x.f===e.f}[q.k];
+  const w=rxPickOpts(rxE(),e,key,same,3);if(w.length<3)return null;const opts=shuffle([e,...w]),st=q.k==='prod';
+  return{area:'rxn',id:q.id,t:q.t,kind:st?'struct':'text',prompt:{name:'Which reaction is this?',reag:'Which reagents and conditions are needed?',prod:'What is the main organic product?'}[q.k],
+    fig:rxScheme(e,q.k==='reag'?'r':q.k==='prod'?'p':'',.8),opts:opts.map(o=>st?smilesSVG(o.p,.8):esc(q.k==='name'?o.name:o.r)),ans:opts.indexOf(e),answer:esc(q.k==='name'||st?e.name:e.r),why:esc(e.cond||'')}}
+
+
+// v31 home: the streak, Bondle, study and plan cards share one row (two columns on wide screens).
+function v31Row(){const h=document.querySelector('#homePage .h7');if(!h)return;const cards=[...h.querySelectorAll(':scope > .sk-home, :scope > .bx-home, :scope > .sd-home, :scope > .pl-home')];
+  let row=h.querySelector(':scope > .h7-row');if(!cards.length&&!row)return;
+  if(!row){row=document.createElement('div');row.className='h7-row';cards[0].insertAdjacentElement('beforebegin',row)}
+  const order=['sk-home','pl-home','bx-home','sd-home'];cards.forEach(c=>row.appendChild(c));
+  [...row.children].sort((a,b)=>order.findIndex(k=>a.classList.contains(k))-order.findIndex(k=>b.classList.contains(k))).forEach(c=>row.appendChild(c));
+  if(!row.children.length)row.remove()}
+// v31: on phones the account button lives in the side drawer, so add a floating one at the bottom right.
+function v31Acct(){let b=$('#v31Acct');if(!b){b=document.createElement('button');b.id='v31Acct';b.className='v31-acct';b.type='button';b.setAttribute('aria-haspopup','menu');b.setAttribute('aria-label','Account, settings and help');
+    b.addEventListener('click',()=>{renderAcctMenu();toggleMenu($('#acctMenu'),b)});document.body.appendChild(b)}
+  const src=document.querySelector('#acctBtn .ab-av');b.innerHTML=src?src.innerHTML:ico('<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.8-3.9 3.6-6 7.2-6s6.4 2.1 7.2 6"/>');
+  b.classList.toggle('pro',proActive());b.title=($('#acctBtn')||{}).title||'Account'}
+function wireV31(){
+  AREA_LABEL.rxn='Reactions';
+  { const _rh=renderHome;renderHome=function(){_rh();try{v31Row()}catch(e){console.warn(e)}} }
+  { const _sk=skHomeCard;skHomeCard=function(){_sk();try{v31Row()}catch(e){}} }
+  { const _pl=plHomeCard;plHomeCard=function(){_pl();try{v31Row()}catch(e){}} }
+  { const hp=$('#homePage');if(hp&&'MutationObserver' in window)new MutationObserver(()=>{const h=hp.querySelector('.h7');if(h&&h.querySelector(':scope > .sk-home, :scope > .bx-home, :scope > .sd-home, :scope > .pl-home'))v31Row()}).observe(hp,{childList:true,subtree:true}) }
+  { const _sa=syncAcctBtn;syncAcctBtn=function(){_sa();try{v31Acct()}catch(e){}} }
+  { const _sp=syncProUI;syncProUI=function(){_sp();try{v31Acct()}catch(e){}} }
+  try{v31Acct()}catch(e){}
+  AREAS.rxn={label:'Reactions',full:'Reactions and reagents',topics:()=>rxCats().map((c,i)=>({id:'rxc'+i,title:c})),
+    bank:()=>proOpen()?rxBank():rxBank().filter(q=>RX_FREE.includes(q.e.cat)),byId:id=>rxBank().find(q=>q.id===id),item:q=>rxItem(q),
+    go:()=>{setMode('drills');drStart('rxn')}};
+  // Free users practise only the free 30% of course questions in daily practice.
+  { const _ep=exPool;exPool=function(areas){const P=_ep(areas);return proOpen()?P:P.filter(p=>!(p.area==='pu'||p.area==='icho')||p.q.fr)} }
+  {const nu=CO_IDS.reduce((t,c)=>t+COURSES[c].units.length,0),nq=CO_BANK.length+PU_BANK.length;
+    PRO_FEATS[0]=['Every course in full',`All ${nu} units of the ${CO_IDS.length} courses, ${nq} questions and exam-style written questions with mark schemes. Units 1–3 of each course, and 30% of every unit’s questions, are free for everyone.`]}
+  PRO_FEATS.push(['Exam-style written questions','Structured, essay, data-based and numerical-answer questions in the format of your exam (A Level, STPM, IB, AP, JEE and IChO), with mark schemes.']);
+  CHANGELOG.unshift({v:'31',d:'15 November 2026',t:'Hundreds of new questions, all of AP Chemistry, and exam-style questions',items:[
+    ['About 550 new questions','Every course unit now has around twice as many quiz questions.'],
+    ['All of AP Chemistry','Seven new units: gases and solutions, reactions, kinetics, thermochemistry, equilibrium, acids and bases, and thermodynamics with electrochemistry.'],
+    ['Exam-style questions','Written questions in the format of your exam, with mark schemes: Paper 2 and 4 for A Level, Sections B and C for STPM, Paper 1B and Paper 2 for IB, free response for AP, numerical-value questions for JEE, and olympiad problems for IChO.'],
+    ['Reactions in mock exams','Mock exams, weak-spot practice and daily practice now include reaction questions.'],
+    ['Free questions in every unit','The first 30% of every unit’s questions are free, including units that need Pro.']]});
+}
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();
 boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

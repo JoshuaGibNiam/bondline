@@ -636,3 +636,49 @@
 #printArea .rp-empty{border-color:transparent}
 #printArea .rp-foot{font-size:7pt;color:#888;text-align:center;margin:1mm 0 0}
 @media print{#printArea .rp-cards{page-break-after:always;break-after:page}#printArea .rp-row{break-inside:avoid}}
+
+/* ---------- v31: calmer home page with soft accent colours ---------- */
+#homePage{--h-peach:#e0814f;--h-lav:#7d6fcf;--h-sage:#4f9a86;--h-sky:#4a86c5;--h-rose:#d0627a;--h-sand:#c99a3c;
+  background:radial-gradient(900px 420px at 85% -60px,color-mix(in srgb,var(--h-peach) 7%,transparent),transparent 70%),radial-gradient(800px 500px at -10% 30%,color-mix(in srgb,var(--h-sage) 6%,transparent),transparent 70%)}
+#homePage .h7{gap:clamp(18px,3.2vh,28px)}
+#homePage .h7-hero h1{background:linear-gradient(100deg,var(--ink) 55%,color-mix(in srgb,var(--h-rose) 70%,var(--ink)));-webkit-background-clip:text;background-clip:text;color:transparent}
+#homePage .h7-search{border-color:color-mix(in srgb,var(--h-sage) 22%,var(--line))}
+#homePage .h7-search:focus-within{border-color:var(--h-sage);box-shadow:0 0 0 4px color-mix(in srgb,var(--h-sage) 16%,transparent)}
+#homePage .h7-chip.primary,#homePage .h7-quick .h7-chip:first-child{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+#homePage .h7-quick .h7-chip:nth-child(2) svg{color:var(--h-lav)}#homePage .h7-quick .h7-chip:nth-child(3) svg{color:var(--h-peach)}
+/* each card gets its own hue: a soft tint, a matching button and a coloured icon */
+#homePage .sk-home,#homePage .bx-home,#homePage .sd-home,#homePage .pl-home{--hc:var(--h-peach);margin:0;border-radius:20px;border:1px solid color-mix(in srgb,var(--hc) 24%,var(--line));
+  background:linear-gradient(115deg,color-mix(in srgb,var(--hc) 13%,var(--surface)),var(--surface) 75%);box-shadow:0 10px 28px -24px color-mix(in srgb,var(--hc) 70%,transparent)}
+#homePage .bx-home{--hc:var(--h-lav)}#homePage .sd-home{--hc:var(--h-sage)}#homePage .pl-home{--hc:var(--h-sky)}
+#homePage .sk-home .btn.primary,#homePage .bx-home .btn.primary,#homePage .sd-home .btn.primary,#homePage .pl-home .btn.primary{background:var(--hc);border-color:var(--hc);color:#fff}
+#homePage .sk-home .btn.primary:hover,#homePage .bx-home .btn.primary:hover,#homePage .sd-home .btn.primary:hover,#homePage .pl-home .btn.primary:hover{background:color-mix(in srgb,var(--hc) 85%,#000)}
+#homePage .sk-hk,#homePage .bx-hk,#homePage .sd-hk,#homePage .pl-home .sk-hk{color:color-mix(in srgb,var(--hc) 80%,var(--ink))}
+#homePage .pl-hd b{color:var(--hc)}
+#homePage .sd-gring .fg{stroke:var(--h-sage)}
+/* the streak, Bondle and study cards sit side by side on wide screens */
+@media (min-width:1100px){
+  #homePage .h7-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  #homePage .h7-row>section{min-width:0;align-self:stretch;margin:0!important;height:auto}
+  #homePage .h7-row>section:first-child:nth-last-child(odd){grid-column:1/-1}
+}
+#homePage .h7-row{display:flex;flex-direction:column;gap:12px}
+@media (min-width:1100px){#homePage .h7-row{display:grid;align-items:stretch}}
+#homePage .h7-next{--hc:var(--h-rose);border-color:color-mix(in srgb,var(--hc) 20%,var(--line));background:linear-gradient(160deg,color-mix(in srgb,var(--hc) 7%,var(--surface)),var(--surface) 60%)}
+#homePage .h7-next::before{background:linear-gradient(var(--h-rose),var(--h-peach))!important}
+#homePage .h7-next .h7-nk{color:var(--h-rose)}
+#homePage .h7-next .btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+#homePage .h7-bar>i,#homePage .h7-bar i{background:linear-gradient(90deg,var(--h-sage),var(--h-sky))}
+/* account button on phones: always visible in the top bar */
+.v31-acct{display:none}
+@media (max-width:820px){
+  .v31-acct{display:grid;place-items:center;position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;width:50px;height:50px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:0 10px 30px -12px rgba(0,0,0,.35);cursor:pointer;padding:0}
+  .v31-acct svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+  .v31-acct .acct-av{width:34px;height:34px;font-size:14px}
+  .v31-acct.pro::after{content:"";position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--curl));box-shadow:0 0 0 2px var(--surface)}
+  body.sk-lock .v31-acct,body.printing .v31-acct{display:none}
+}
+/* v31 course: exam-style questions */
+.co-xph{margin-top:34px}
+.co-mk{color:var(--muted);font-weight:600;white-space:nowrap}
+.co-xp .co-pk{color:var(--curl)}
+.co-xplock{margin-top:14px}

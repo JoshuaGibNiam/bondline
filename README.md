@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 30)
+# Bondline: organic chemistry notebook (version 31)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,20 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 31: more questions, all of AP, exam-style questions, a 3D landing page and a calmer home
+
+No Firebase changes. Deploy from GitHub as usual (the webhook change below needs the functions). Service worker version is `bondline-v31-1`.
+
+- **About 550 new course questions** in `course-x1.js` to `course-x5.js` (loaded before `app.js`). Course units now have roughly 16–32 questions each. New questions are appended to each unit, so existing question ids and saved progress don’t change.
+- **30% free.** The first 30% of every unit’s questions are free (`CO_FREE_SHARE` in `app.js`), in every unit, including Pro units, which now show a “Try N free questions” button. Units 1–3 keep their free lessons. Naming, spectra, stereochemistry and the drills stay fully free, as the pricing page promises. Daily practice for free users only uses free course questions.
+- **All of AP Chemistry.** Seven new AP units (Unit 3 continued to Unit 9) with lessons, a 10-point free-response question, a 4-point one and 15–16 multiple-choice questions each.
+- **Exam-style written questions** (`xp` in the data files), labelled in each exam’s own format: A Level Paper 2/4 structured, STPM Section B structured and Section C essay, IB Paper 2 and Paper 1B data-based, AP free response, JEE Main Section B numerical value, and IChO olympiad problems. Each part shows its marks and a mark scheme. Free users see the first one in units 1–3; the rest need Pro. NEET is all MCQs, so NEET gets statement-type MCQs instead.
+- **Reactions in mock exams**: a new Progress area (`AREAS.rxn`) built from the reaction drill, used by mock exams, weak spots and daily practice.
+- **Landing page: a scroll-driven 3D story** (`landing3d.js`, three.js loaded only when needed): a molecule assembles, SN2 plays in 3D, a C=O bond vibrates with its IR peak, and particles form the Bondline logo. Falls back to plain text with reduced motion or no WebGL. The landing numbers and FAQ now mention Pro honestly.
+- **Home page**: softer background and a different calm accent colour for each card (streak, exam plan, Bondle, study time, tour); the cards sit two to a row on wide screens.
+- **Account button on phones**: a floating button at the bottom right opens the account menu on every page.
+- **Refunds minus the transaction fee.** The terms (version 2), pricing page and gift page now say refunds within 14 days are the amount paid minus the payment processing fee (full refunds for our mistakes, such as double charges). Because these refunds are partial, `stripe-webhook.mjs` now removes the pass when at least half of a payment is refunded (not only full refunds). To refund, use **Refund** in the Stripe dashboard and enter the amount minus the Stripe fee shown on the payment. For a monthly plan, also cancel the subscription.
 
 ## New in version 30: reaction drill, reaction map, achievements and study plans
 
