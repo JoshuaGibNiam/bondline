@@ -32,7 +32,7 @@ export default async (req) => {
   const t = +parts.t || 0;
   const dig = crypto.createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex');
   const good = sigs.some(s => s.length === dig.length && crypto.timingSafeEqual(Buffer.from(dig), Buffer.from(s)));
-  if (!t || !good || Math.abs(Date.now() / 1000 - t) > 300) return new Response('Invalid signature', { status: 401 });
+  if (!t || !good || Math.abs(Date.now() / 1000 - t) > 300) return new Response('Invalid signature' + (env('CONTEXT') !== 'production' ? ` [secret length ${secret.length}, starts whsec_: ${secret.startsWith('whsec_')}, signature header: ${!!req.headers.get('stripe-signature')}, v1 matches: ${good}, age seconds: ${Math.round(Date.now() / 1000 - t)}]` : ''), { status: 401 });
   let ev;
   try { ev = JSON.parse(raw); } catch { return new Response('Bad JSON', { status: 400 }); }
   const type = ev?.type || '', o = ev?.data?.object || {}, now = Date.now();
