@@ -7,7 +7,32 @@ const C=window.BondleCore,BANK=window.BONDLE_BANK||[],CFG=window.BONDLINE_FIREBA
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const COLORS=['var(--muted)','#3b9ae1','#22a06b','#f0663c','#9b5de5','#e6b400'];
-const TOPIC_EMO={chem:'⚗️',phys:'🧲',bio:'🧬',earth:'🌍',space:'🪐',sci:'🔬'};
+const IC={none:'<circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/>',
+ drop:'<path d="M12 3.5c3.2 4.4 6 7.5 6 10.9a6 6 0 01-12 0c0-3.4 2.8-6.5 6-10.9z"/><path d="M9 15a3 3 0 002.4 2.6"/>',
+ tube:'<path d="M8 3h8M9.5 3v14.5a2.5 2.5 0 005 0V3"/><path d="M9.5 12h5"/>',
+ flask:'<path d="M9.5 3h5M10.5 3v6.2L5.2 18.4A1.8 1.8 0 006.8 21h10.4a1.8 1.8 0 001.6-2.6l-5.3-9.2V3"/><path d="M7.6 15h8.8"/>',
+ gem:'<path d="M7 4h10l4 5-9 11L3 9z"/><path d="M3 9h18M10 4L8 9l4 11 4-11-2-5"/>',
+ atom:'<circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><ellipse cx="12" cy="12" rx="9.5" ry="3.7"/><ellipse cx="12" cy="12" rx="9.5" ry="3.7" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.7" transform="rotate(120 12 12)"/>',
+ beaker:'<path d="M5 3h14M6.5 3v15a3 3 0 003 3h5a3 3 0 003-3V3"/><path d="M6.5 12.5h11"/><circle cx="10" cy="16.8" r=".9" fill="currentColor" stroke="none"/><circle cx="13.6" cy="15.4" r=".7" fill="currentColor" stroke="none"/>',
+ bolt:'<path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z"/>',
+ dna:'<path d="M8 2.5c0 5 8 5 8 9.5s-8 4.5-8 9.5M16 2.5c0 5-8 5-8 9.5s8 4.5 8 9.5"/><path d="M9.3 5.6h5.4M9.3 18.4h5.4"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/>',
+ planet:'<circle cx="12" cy="12" r="5.3"/><ellipse cx="12" cy="12" rx="10.5" ry="3.2" transform="rotate(-20 12 12)"/>',
+ lens:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L21 21M7.8 9a3 3 0 012.7-2.2"/>',
+ scope:'<path d="M4 9l11-5 2 4.5-11 5z"/><path d="M11 12l-3 9M12.5 11.5l3 9.5M17 8.5l3-1.3"/>',
+ clock:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.6 2.4M10 2.5h4"/>',
+ star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+ flame:'<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.1 0-4.2 3.6-5.9 4.4-10.4 2.6 1.7 4.3 4.2 4.6 6.6.9-.7 1.4-1.8 1.5-3 1.6 1.6 2.5 4 2.5 6.6 0 3.6-2.6 6.3-6.5 6.3z"/>',
+ trophy:'<path d="M8 4h8v5a4 4 0 01-8 0zM12 13v4M8.5 20.5h7M9.5 17h5M8 6H4.5a3 3 0 003.6 4M16 6h3.5a3 3 0 01-3.6 4"/>'};
+const svgI=(k,cls)=>`<svg class="ic${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]||''}</svg>`;
+const TIER_IC=['none','drop','tube','flask','gem','atom'];
+const TOPIC_IC={chem:'beaker',phys:'bolt',bio:'dna',earth:'globe',space:'planet',sci:'lens'};
+const badge=(n,sz)=>`<span class="tb t${n}${sz?' '+sz:''}" style="--c:${COLORS[n]}" aria-hidden="true">${svgI(TIER_IC[n]||'none')}</span>`;
+const badges=(rec,sz)=>rec.r.map(r=>badge(r.t,sz||'s')).join('');
+const fmtT=ms=>{const s=Math.round((ms||0)/1000);return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
+const ansMs=rec=>rec.r.reduce((a,r)=>a+(r.d||0),0);
+const LIMIT=30;
+const hardPref=()=>ls.raw('bondline.bondleHard')==='1';
 const DAY=864e5;
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},raw(k){try{return localStorage.getItem(k)}catch(e){return null}},rawSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
 const dayKey=t=>C.dayKey(t);
@@ -29,7 +54,7 @@ async function fget(path,ms){try{const d=await Promise.race([req('GET','/'+path)
 const DEF={days:{},played:0,streak:0,maxStreak:0,best:0,sum:0,last:'',hist:[0,0,0,0,0,0,0]};
 const store=()=>Object.assign({},DEF,ls.get('bondline.bondle',{})||{});
 function save(s){const ks=Object.keys(s.days).sort();while(ks.length>60)delete s.days[ks.shift()];ls.set('bondline.bondle',s)}
-const limit=()=>ls.raw('bondline.bondleTime')==='60'?60:30;
+const limit=()=>LIMIT;
 const todayKey=()=>dayKey(Date.now());
 const G={run:null,timer:0,over:{}};
 const byId=()=>{const m={};BANK.forEach(p=>m[p.id]=p);return m};
@@ -37,7 +62,7 @@ function roundsFor(rec){const m=byId();(rec.custom||[]).forEach(p=>m[p.id]=p);re
 const emo=rec=>rec.r.map(r=>C.TIERS[r.t].emo).join('');
 const hex=(cls,fills,cur)=>{const P=[[50,6],[88,28],[88,72],[50,94],[12,72],[12,28]];
   return`<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><path class="hx-ring" d="M50 6L88 28V72L50 94L12 72V28Z"/><path class="hx-in" d="M50 22L74 36V64L50 78L26 64V36Z"/>${P.map(([x,y],i)=>{const f=fills&&fills[i];return`<circle class="hx-d${i===cur?' cur':''}${f!=null?' on':''}" cx="${x}" cy="${y}" r="${i===cur?8:7}"${f!=null?` style="fill:${COLORS[f]}"`:''}/>`}).join('')}</svg>`};
-const topicChip=p=>{const t=C.topic(p);return`<span class="topic t-${t}">${TOPIC_EMO[t]||''} ${esc(C.TOPICS[t]||'Science')}</span>`};
+const topicChip=p=>{const t=C.topic(p);return`<span class="topic t-${t}">${svgI(TOPIC_IC[t]||'lens')} ${esc(C.TOPICS[t]||'Science')}</span>`};
 function countdown(){const n=new Date();n.setHours(24,0,0,0);const s=Math.max(0,Math.round((n-Date.now())/1000));return`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 async function override(k){if(k in G.over)return G.over[k];const d=await fget('bondle/'+k,3500);if(d===null)return null;G.over[k]=d&&Array.isArray(d.rounds)&&d.rounds.length?d:false;return G.over[k]}
 const game=()=>$('#game');
@@ -52,41 +77,41 @@ async function intro(){
    <div class="kick">Bondle #${idx+1}</div>
    <h2 class="big">Six rounds. Find the rarest answer.</h2>
    ${ov&&ov.theme?`<div class="theme">${esc(String(ov.theme).slice(0,80))}</div>`:''}
-   <p class="today">Today: ${topics.map(t=>`<span class="topic t-${t}">${TOPIC_EMO[t]} ${esc(C.TOPICS[t])}</span>`).join(' ')}</p>
+   <ol class="lineup" aria-label="Today’s rounds">${day.rounds.map((p,i)=>{const t=C.topic(p);return`<li class="t-${t}"><span class="lu-i">${svgI(TOPIC_IC[t]||'lens')}</span><b>${esc(C.TOPICS[t]||'Science')}</b><small>Round ${i+1}</small></li>`}).join('')}</ol>
    <ul class="tiers compact">${tierList()}</ul>
-   <div class="go"><button class="btn primary huge" data-go="start">Play today’s Bondle</button><label class="chk"><input type="checkbox" data-extra${limit()===60?' checked':''}> Extra time (60 s)</label></div>
-   ${s.played?`<div class="mini"><span><b>${streak}</b> day streak</span><span><b>${s.played}</b> played</span><span><b>${s.best}</b> best</span>${y&&y.done&&!y.past?`<span>Yesterday <b>${y.tot}</b> ${esc(emo(y))}</span>`:''}</div>`:''}
+   <div class="rules-strip"><span>${svgI('clock')} <b>${LIMIT} s</b> per round, same clock for everyone</span><span>${svgI('trophy')} Ties broken by <b>answer time</b></span></div>
+   <div class="go"><button class="btn primary huge" data-go="start">Play today’s Bondle</button><label class="chk hard"><input type="checkbox" data-hard${hardPref()?' checked':''}> <span>${svgI('star')} <b>Hard mode</b> <small>one try per round, ★ on your share</small></span></label></div>
+   ${s.played?`<div class="mini"><span><b>${streak}</b> day streak</span><span><b>${s.played}</b> played</span><span><b>${s.best}</b> best</span>${y&&y.done&&!y.past?`<span>Yesterday <b>${y.tot}</b> <span class="brow">${badges(y)}</span></span>`:''}</div>`:''}
    <p class="fine">One go per day. The clock keeps running if you leave the page mid-round.</p></div>`;
 }
-const tierList=()=>C.TIERS.slice(1).map(T=>`<li style="--c:${COLORS[T.n]}"><i aria-hidden="true">${T.emo}</i><b>${esc(T.name)}</b><small>${T.pts} kJ/mol</small></li>`).join('');
+const tierList=()=>C.TIERS.slice(1).map(T=>`<li style="--c:${COLORS[T.n]}">${badge(T.n)}<b>${esc(T.name)}</b><small>${T.pts} kJ/mol</small></li>`).join('');
 async function begin(kind,k){
   clearInterval(G.timer);
   if(kind==='practice'){const rounds=C.practice(BANK,(Date.now()^Math.floor(Math.random()*1e9))>>>0,k||'mix');
-    G.run={rec:{ids:rounds.map(p=>p.id),r:[],tot:0,done:false,began:Date.now()},mode:'practice',kind:k||'mix',k:'practice',num:0,rounds};return round()}
+    G.run={rec:{ids:rounds.map(p=>p.id),r:[],tot:0,done:false,began:Date.now(),hard:hardPref()},mode:'practice',kind:k||'mix',k:'practice',num:0,rounds};return round()}
   k=k||todayKey();const s=store(),past=k!==todayKey();
   if(s.days[k]){G.run=mk(s.days[k],k);return s.days[k].done?results():round()}
   const ov=await override(k),day=C.daily(BANK,C.keyToIndex(k),ov||null),ids=new Set(BANK.map(p=>p.id));
-  const rec={ids:day.rounds.map(p=>p.id),custom:day.rounds.filter(p=>!ids.has(p.id)).map(p=>({id:p.id,lv:p.lv,t:p.t,q:p.q,h:p.h||'',f:p.f||'',a:p.a})),theme:day.theme||'',r:[],x:[],tot:0,done:false,began:Date.now()};
+  const rec={ids:day.rounds.map(p=>p.id),custom:day.rounds.filter(p=>!ids.has(p.id)).map(p=>({id:p.id,lv:p.lv,t:p.t,q:p.q,h:p.h||'',f:p.f||'',a:p.a})),theme:day.theme||'',r:[],x:[],tot:0,done:false,began:Date.now(),hard:hardPref()};
   if(past)rec.past=true;s.days[k]=rec;save(s);G.run=mk(rec,k);round();
 }
 const mk=(rec,k)=>({rec,mode:rec.past?'past':'daily',k,num:C.keyToIndex(k)+1,rounds:roundsFor(rec)});
 function persist(){const R=G.run;if(!R||R.mode==='practice')return;const s=store();s.days[R.k]=R.rec;save(s)}
-const label=R=>R.mode==='practice'?`Practice · ${({chem:'Chemistry only',sci:'No chemistry',mix:'General science'})[R.kind]}`:R.mode==='past'?`Bondle #${R.num} · past puzzle`:`Bondle #${R.num}`;
-function head(R,i,cur){return`<div class="rtop">${hex('prog',R.rec.r.map(r=>r.t),cur)}<div><div class="kick">${esc(label(R))} · Round ${i+1} of ${R.rounds.length}</div><div class="run"><b>${R.rec.tot}</b> kJ/mol</div></div><button class="quit" data-go="leave" aria-label="Leave this puzzle" title="Leave">×</button></div>`}
+const label=R=>(R.rec&&R.rec.hard?'★ ':'')+(R.mode==='practice'?`Practice · ${({chem:'Chemistry only',sci:'No chemistry',mix:'General science'})[R.kind]}`:R.mode==='past'?`Bondle #${R.num} · past puzzle`:`Bondle #${R.num}`);
+function head(R,i,cur){return`<div class="rtop">${hex('prog',R.rec.r.map(r=>r.t),cur)}<div><div class="kick">${esc(label(R))} · Round ${i+1} of ${R.rounds.length}</div><div class="run"><b>${R.rec.tot}</b> kJ/mol</div></div>${cur>=0?`<div class="ring" role="timer" aria-label="Time left"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="rg-bg" cx="22" cy="22" r="19"/><circle class="rg-fg" id="rg" cx="22" cy="22" r="19" pathLength="100"/></svg><span id="sec">${LIMIT}</span></div>`:''}<button class="quit" data-go="leave" aria-label="Leave this puzzle" title="Leave">×</button></div>`}
 function round(){
   const R=G.run,rec=R.rec,i=rec.r.length;clearInterval(G.timer);
   if(i>=R.rounds.length)return finish();
   const p=R.rounds[i],lim=limit();
-  if(rec.sti!==i||!rec.st){rec.st=Date.now();rec.sti=i;rec.tries=2;rec.lim=lim;persist()}
+  if(rec.sti!==i||!rec.st){rec.st=Date.now();rec.sti=i;rec.tries=rec.hard?1:2;rec.lim=lim;persist()}
   game().innerHTML=`<div class="round">${head(R,i,i)}
    ${topicChip(p)}<h2 class="q" id="q">${esc(p.q)}</h2>${p.h?`<p class="hint">${esc(p.h)}</p>`:''}
-   <div class="timer" role="timer" aria-label="Time left"><i id="bar"></i><span id="sec"></span></div>
    <form class="answer" id="form" autocomplete="off"><input id="in" type="text" maxlength="80" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-labelledby="q" placeholder="Type your answer"><button class="btn primary" type="submit">Bond</button></form>
-   <div class="tries" id="tries">${rec.tries===2?'Two tries. Go rare, or play it safe.':'One try left.'}</div><div class="msg" id="msg" aria-live="polite"></div></div>`;
+   <div class="tries" id="tries">${rec.hard?'Hard mode: one try. Make it count.':rec.tries===2?'Two tries. Go rare, or play it safe.':'One try left.'}</div><div class="msg" id="msg" aria-live="polite"></div></div>`;
   const inp=$('#in');setTimeout(()=>inp.focus({preventScroll:true}),30);
   if(isMob())game().scrollIntoView({block:'start',behavior:'smooth'});
-  const tick=()=>{const L=(rec.lim||lim)*1000,left=Math.max(0,L-(Date.now()-rec.st)),bar=$('#bar');if(!bar){clearInterval(G.timer);return}
-    bar.style.width=(100*left/L)+'%';bar.classList.toggle('low',left<8000);$('#sec').textContent=Math.ceil(left/1000)+' s';if(left<=0){clearInterval(G.timer);resolve(null,inp.value.trim(),'time')}};
+  const tick=()=>{const L=Math.min(rec.lim||LIMIT,LIMIT)*1000,left=Math.max(0,L-(Date.now()-rec.st)),rg=$('#rg');if(!rg){clearInterval(G.timer);return}
+    rg.style.strokeDashoffset=String(100-100*left/L);rg.parentNode.parentNode.classList.toggle('low',left<8000);$('#sec').textContent=Math.ceil(left/1000);if(left<=0){clearInterval(G.timer);resolve(null,inp.value.trim(),'time')}};
   tick();G.timer=setInterval(tick,100);
 }
 function guess(){
@@ -100,11 +125,11 @@ function guess(){
   resolve(null,v);
 }
 function resolve(m,v,why){
-  clearInterval(G.timer);const R=G.run,rec=R.rec,i=rec.r.length,p=R.rounds[i],T=C.TIERS[m?m.tier:0];
-  rec.r.push({q:p.id,a:String(v||'').slice(0,60),m:m?m.name:'',t:m?m.tier:0,p:T.pts});rec.tot+=T.pts;rec.st=null;persist();
+  clearInterval(G.timer);const R=G.run,rec=R.rec,i=rec.r.length,p=R.rounds[i],T=C.TIERS[m?m.tier:0],d=Math.max(0,Math.min(LIMIT*1000,Date.now()-(rec.st||Date.now())));
+  rec.r.push({q:p.id,a:String(v||'').slice(0,60),m:m?m.name:'',t:m?m.tier:0,p:T.pts,d});rec.tot+=T.pts;rec.st=null;persist();
   const rarer=C.parse(p).filter(a=>a.tier>(m?m.tier:0)&&a.tier>=4).sort((a,b)=>b.tier-a.tier||Math.random()-.5).slice(0,3),last=rec.r.length>=R.rounds.length;
   game().innerHTML=`<div class="round after">${head(R,i,-1)}${topicChip(p)}<h2 class="q sm">${esc(p.q)}</h2>
-   <div class="verdict t${T.n}" style="--c:${COLORS[T.n]}"><span class="ve" aria-hidden="true">${T.emo}</span><div><div class="vt">${m?esc(T.name):why==='time'?'Time’s up':'No bond'}</div><div class="vs">${m?`<b>${esc(m.name)}</b>${C.norm(m.name)!==C.norm(v)?` <small>(you typed “${esc(v.slice(0,40))}”)</small>`:''}`:v?`“${esc(v.slice(0,40))}” isn’t on our list`:'No answer'}</div></div><span class="vp">+${T.pts}</span></div>
+   <div class="verdict t${T.n}" style="--c:${COLORS[T.n]}">${badge(T.n,'l')}<div><div class="vt">${m?esc(T.name):why==='time'?'Time’s up':'No bond'}</div><div class="vtime">${svgI('clock')} ${(d/1000).toFixed(1)} s</div><div class="vs">${m?`<b>${esc(m.name)}</b>${C.norm(m.name)!==C.norm(v)?` <small>(you typed “${esc(v.slice(0,40))}”)</small>`:''}`:v?`“${esc(v.slice(0,40))}” isn’t on our list`:'No answer'}</div></div><span class="vp">+${T.pts}</span></div>
    ${rarer.length?`<p class="deeper">${m&&m.tier===5?'Also one in a mole:':'Deeper cuts:'} ${rarer.map(a=>`<b>${esc(a.name)}</b>`).join(', ')}</p>`:m&&m.tier===5?'<p class="deeper">That’s as rare as it gets. ⚛️</p>':''}
    ${p.f?`<p class="fact">${esc(p.f)}</p>`:''}
    <button class="btn primary huge" data-go="next" id="next">${last?'See my results':'Next round'} →</button></div>`;
@@ -116,7 +141,7 @@ function burst(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)retur
     s.style.cssText=`--x:${Math.cos(a)*d}px;--y:${Math.sin(a)*d-40}px;--r:${Math.random()*360}deg;color:${COLORS[1+(i%5)]};animation-delay:${Math.random()*80}ms`;g.appendChild(s);setTimeout(()=>s.remove(),1300)}}
 function finish(){
   const R=G.run,rec=R.rec;if(rec.done)return results();rec.done=true;rec.end=Date.now();
-  if(R.mode==='daily'){const s=store(),y=dayKey(Date.now()-DAY);s.days[R.k]=rec;s.played++;s.sum+=rec.tot;s.best=Math.max(s.best,rec.tot);
+  if(R.mode==='daily'){const s=store(),y=dayKey(Date.now()-DAY);R.pb=s.played>0&&rec.tot>s.best;s.days[R.k]=rec;s.played++;s.sum+=rec.tot;s.best=Math.max(s.best,rec.tot);
     s.streak=(s.last===y?s.streak:0)+1;s.last=R.k;s.maxStreak=Math.max(s.maxStreak||0,s.streak);const b=Math.min(6,Math.floor(rec.tot/100));s.hist[b]=(s.hist[b]||0)+1;save(s);
     if(statsOn())report(R).catch(()=>{})}
   else persist();
@@ -129,7 +154,8 @@ async function report(R){
 }
 function shareText(R){const rec=R.rec,b=C.bondFor(rec.tot);
   const line=rec.tot>=600?'Perfect bond! 6 × One in a Mole':rec.tot===0?'Inert as a noble gas':`Stronger than ${b[2]} (${b[0]})`;
-  return`Bondle #${R.num} · ${rec.tot} kJ/mol${R.mode==='past'?' (late)':''}\n${emo(rec)}\n${line}\nbondline.site/bondle`}
+  const rank=R.pct==null?'':R.pct==='first'?' · First to finish':` · Top ${Math.max(1,100-R.pct)}%`;
+  return`Bondle #${R.num}${rec.hard?' ★ Hard':''} · ${rec.tot} kJ/mol${R.mode==='past'?' (late)':''}\n${emo(rec)}\n⏱ ${fmtT(ansMs(rec))}${R.mode==='daily'?rank:''}\n${line}\nbondline.site/bondle`}
 async function share(){const R=G.run;if(!R)return;const txt=shareText(R);
   try{if(navigator.share&&isMob()){await navigator.share({text:txt});return}}catch(e){if(e&&e.name==='AbortError')return}
   try{await navigator.clipboard.writeText(txt);toast('Copied! Paste it anywhere to share.')}catch(e){prompt('Copy your result:',txt)}}
@@ -137,13 +163,14 @@ function results(){
   const R=G.run,rec=R.rec,s=store();clearInterval(G.timer);const b=C.bondFor(rec.tot);
   const bond=rec.tot>=600?'A perfect bond. Six answers, all One in a Mole.':rec.tot===0?'Inert as a noble gas. Tomorrow’s another reaction.':`Stronger than ${esc(b[2])} (${esc(b[1])}, ${b[0]} kJ/mol).`;
   const row=(r,i)=>{const p=R.rounds[i];if(!p)return'';const T=C.TIERS[r.t],all=C.parse(p),groups=[5,4,3,2,1].map(t=>({t,a:all.filter(a=>a.tier===t)})).filter(g=>g.a.length);
-    return`<li class="rr"><div class="rrh"><span class="rre" style="--c:${COLORS[r.t]}">${T.emo}</span><div class="rrq"><b>${esc(p.q)}</b><small>${r.m?`${esc(r.m)} · ${esc(T.name)}`:r.a?`“${esc(r.a)}” · not on the list`:'No answer'}</small></div><span class="rrp">${r.p}</span></div>
-     <details><summary>All ${all.length} answers</summary>${groups.map(g=>`<div class="ag"><span class="agt" style="--c:${COLORS[g.t]}">${C.TIERS[g.t].emo} ${esc(C.TIERS[g.t].name)}</span><span class="agl">${g.a.map(a=>esc(a.name)).join(' · ')}</span></div>`).join('')}</details></li>`};
+    return`<li class="rr"><div class="rrh">${badge(r.t)}<div class="rrq"><b>${esc(p.q)}</b><small>${r.m?`${esc(r.m)} · ${esc(T.name)}`:r.a?`“${esc(r.a)}” · not on the list`:'No answer'}</small></div><span class="rrp">${r.p}${r.d!=null?`<small>${(r.d/1000).toFixed(1)} s</small>`:''}</span></div>
+     <details><summary>All ${all.length} answers</summary>${groups.map(g=>`<div class="ag"><span class="agt" style="--c:${COLORS[g.t]}">${badge(g.t,'xs')} ${esc(C.TIERS[g.t].name)}</span><span class="agl">${g.a.map(a=>esc(a.name)).join(' · ')}</span></div>`).join('')}</details></li>`};
   const isDaily=R.mode==='daily';
   game().innerHTML=`<div class="res">
    <div class="kick">${esc(label(R))}${R.mode!=='practice'?' · '+esc(fmtDay(R.k)):''}</div>
    <div class="score">${hex('bighex',rec.r.map(r=>r.t),-1)}<div class="total"><b>${rec.tot}</b><span>kJ/mol</span></div></div>
-   <p class="bond">${bond}</p><div class="emo" aria-label="Your rounds">${emo(rec)}</div>
+   ${R.pb?`<div class="pb">${svgI('trophy')} New personal best</div>`:''}<p class="bond">${bond}</p><div class="brow big" role="img" aria-label="Your rounds: ${esc(rec.r.map(r=>C.TIERS[r.t].name).join(', '))}">${badges(rec,'m')}</div>
+   <div class="chips">${rec.hard?`<span class="chip hard">${svgI('star')} Hard mode</span>`:''}<span class="chip">${svgI('clock')} ${fmtT(ansMs(rec))} answer time</span></div>
    <div class="acts">${R.mode==='practice'?`<button class="btn primary" data-practice="${R.kind}">Another practice round</button>`:`<button class="btn primary" data-go="share">Share</button>`}${s.days[todayKey()]?'':'<button class="btn" data-go="today">Play today’s Bondle</button>'}${R.mode!=='practice'?'<button class="btn" data-practice="mix">Practice round</button>':''}</div>
    ${isDaily?`<p class="pct" id="pct"></p><div class="stats4">${stat4(s)}</div><div class="next">Next Bondle in <b id="cd2">${countdown()}</b></div>`:''}
    <h3 class="rh">Your rounds</h3><ol class="rl">${rec.r.map(row).join('')}</ol>
@@ -155,13 +182,14 @@ async function percentile(R){if(!statsOn())return;let d=null;
   for(let i=0;i<2;i++){d=await fget('bondleDay/'+R.k,4000);if(d&&Object.keys(d).length)break;await new Promise(r=>setTimeout(r,1500))}
   const el=$('#pct');if(!el||!d)return;const b=[0,1,2,3,4,5,6].map(i=>+d['b'+i]||0),n=b.reduce((a,x)=>a+x,0);if(!n)return;
   const me=Math.min(6,Math.floor(R.rec.tot/100)),below=b.slice(0,me).reduce((a,x)=>a+x,0),same=Math.max(0,b[me]-1);
+  R.pct=n<=1?'first':Math.round(100*(below+same/2)/Math.max(1,n-1));
   el.innerHTML=n<=1?'You’re the first to finish today’s Bondle! 🥇':`You beat about <b>${Math.round(100*(below+same/2)/Math.max(1,n-1))}%</b> of today’s ${n} players`}
 
 /* ---------- side panels and dialogs ---------- */
 function days(){
   const s=store(),out=[];
   for(let i=1;i<=7;i++){const k=dayKey(Date.now()-i*DAY),idx=C.keyToIndex(k);if(idx<0)break;const r=s.days[k];
-    out.push(`<li><span class="dn">#${idx+1}</span><span class="dd">${esc(shortDay(k))}</span>${r&&r.done?`<span class="ds"><b>${r.tot}</b> ${esc(emo(r))}</span><button class="link" data-past="${k}">Review</button>`:r?`<span class="ds">In progress</span><button class="link" data-past="${k}">Continue</button>`:`<span class="ds muted">Not played</span><button class="btn small" data-past="${k}">Play</button>`}</li>`)}
+    out.push(`<li><span class="dn">#${idx+1}</span><span class="dd">${esc(shortDay(k))}</span>${r&&r.done?`<span class="ds"><b>${r.tot}</b>${r.hard?' ★':''} <span class="brow">${badges(r,'xs')}</span></span><button class="link" data-past="${k}">Review</button>`:r?`<span class="ds">In progress</span><button class="link" data-past="${k}">Continue</button>`:`<span class="ds muted">Not played</span><button class="btn small" data-past="${k}">Play</button>`}</li>`)}
   $('#days').innerHTML=out.join('')||'<li class="note">Past puzzles appear here from tomorrow.</li>';
   if(!out.length)$('#past').classList.add('empty');
 }
@@ -186,7 +214,7 @@ document.addEventListener('click',e=>{
   if(e.target.matches('dialog.dlg'))e.target.close();
 });
 document.addEventListener('submit',e=>{if(e.target.id==='form'){e.preventDefault();guess()}});
-document.addEventListener('change',e=>{if(e.target.matches('[data-extra],#extra')){const on=e.target.checked;ls.rawSet('bondline.bondleTime',on?'60':'30');$$('[data-extra],#extra').forEach(x=>x.checked=on)}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-hard]')){ls.rawSet('bondline.bondleHard',e.target.checked?'1':null)}});
 
 /* ---------- start ---------- */
 function start(){
@@ -195,7 +223,7 @@ function start(){
 }
 function boot(){
   if(!C||!BANK.length){game().innerHTML='<p class="ns">Bondle couldn’t load. Refresh the page to try again.</p>';return}
-  $('#tiers').innerHTML=tierList();$('#tiers2').innerHTML=tierList();$('#extra').checked=limit()===60;
+  $('#tiers').innerHTML=tierList();$('#tiers2').innerHTML=tierList();$$('[data-ic]').forEach(x=>x.innerHTML=svgI(x.dataset.ic));
   meta();setInterval(()=>{const c=$('#cd'),c2=$('#cd2');if(c)c.textContent=countdown();if(c2)c2.textContent=countdown();
     if(G.day&&G.day!==todayKey()){G.day=todayKey();meta();if(!G.run||G.run.mode!=='practice'){G.run=null;start()}days()}},1000);G.day=todayKey();
   const q=new URLSearchParams(location.search);

@@ -24,6 +24,16 @@ To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
 
+## New in version 33
+
+- **Full papers in exam format** (Pro): timed papers that copy each exam's structure, timing and marking, built from Bondline's own questions. Cambridge 9701 Papers 1 and 2, STPM 962/3 (Sections A, B and C), the full AP exam (Section I then Section II, each with its own clock), IB Papers 1A and 2 (SL and HL), the JEE Main chemistry section (20 MCQ + 5 integer answers, +4/−1 in both sections) and NEET chemistry (45 MCQ, +4/−1), plus an IChO-style problem set. Formats were checked against the official specifications in November 2026; the sources are listed in a comment at the top of the v32 section of `app.js`. Written sections are scaled to the real section marks (for example STPM Section B to 14 and Section C to 26). History is kept in `bondline.papers`.
+- **Self-marking**: written answers are marked point by point. Mark schemes are split on their `[n]` and `(n point)` tokens; parts without tokens get a 0–n stepper. Works in full papers and on every unit's exam-style questions (`bondline.xpmarks`).
+- **Predicted grade**: a weighted average of the last three papers for a course, turned into a rough grade for A Level, AP and IB, labelled as an estimate. STPM, JEE and NEET show the score only (no published boundaries or percentiles to map to).
+- **Progress report** for parents and tutors: print or copy as text, last 7, 30 or 90 days.
+- **Unit revision packs**: printable syllabus checklist, lessons, worked problem, exam questions and a 12-question quiz with an answer key.
+- **Past paper finder** at `/past-papers/`: each exam's format and links to official sources only (no papers are hosted). Deep link `/?app&papers=<course>` opens the full papers window.
+- **Bondle redrawn**: drawn icon set and hexagon tier badges instead of emoji, a ring timer, a round lineup on the intro. Extra time (60 s) is gone: everyone gets the same 30-second clock, also in the in-app Bondle. New Hard mode (one try per round, ★ on the share), answer time recorded per round as the tiebreak and in the share text, "Top N%" rank in the share when known, and a personal-best badge.
+- JEE numerical-value tip corrected: NTA's 2026 rules give −1 for a wrong numerical answer.
 ## New in version 32: made for phones
 
 No Firebase changes. Service worker version is `bondline-v32-1`.

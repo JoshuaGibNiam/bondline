@@ -7233,7 +7233,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='32';
+const APP_VER='33';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -10487,7 +10487,7 @@ function bx22store(){const s=v18get('bondline.bondle',null);return s&&typeof s==
 function bx22save(s){const ks=Object.keys(s.days).sort();while(ks.length>45)delete s.days[ks.shift()];v18set('bondline.bondle',s)}
 function bx22today(){const k=dayKey(Date.now()),s=bx22store();return{k,idx:bx22idx(k),rec:s.days[k]||null,s}}
 function bx22load(){if(BX.ready)return BX.ready;BX.ready=(async()=>{if(!window.BondleCore)await loadScript('bondle-core.js');if(!window.BONDLE_BANK)await loadScript('bondle-data.js')})();BX.ready.catch(()=>{BX.ready=null});return BX.ready}
-function bx22limit(){return v17ls('bondline.bondleTime')==='60'?60:30}
+function bx22limit(){return 30}
 const BX_HEX=(cls,fills,cur)=>{const P=[[50,6],[88,28],[88,72],[50,94],[12,72],[12,28]];
   return`<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><path class="bx-hx-ring" d="M50 6L88 28V72L50 94L12 72V28Z"/><path class="bx-hx-in" d="M50 22L74 36V64L50 78L26 64V36Z"/>${P.map(([x,y],i)=>{const f=fills&&fills[i];return`<circle class="bx-hx-d${i===cur?' cur':''}${f!=null?' on':''}" cx="${x}" cy="${y}" r="${i===cur?8:7}" style="${f!=null?`fill:${BX_COLORS[f]}`:''}"/>`}).join('')}</svg>`};
 function bx22rounds(rec){const C=window.BondleCore,by={};(window.BONDLE_BANK||[]).forEach(p=>by[p.id]=p);(rec.custom||[]).forEach(p=>by[p.id]=p);return rec.ids.map(id=>by[id]).filter(Boolean)}
@@ -10504,7 +10504,6 @@ function bx22scrim(){let sc=$('#bxScrim');if(sc)return sc;
       fb:()=>{const R=BX.run;bx22close();openFeedback('bondle',R&&b.dataset.q?`Bondle #${R.num}, “${b.dataset.q}”: `:'')},intro:()=>bx22intro(),reload:()=>{BX.run=null;openBondle()}}[a]||(()=>{}))()});
   sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();bx22close()}});
   sc.addEventListener('submit',e=>{if(e.target.id==='bxForm'){e.preventDefault();bx22guess()}});
-  sc.addEventListener('change',e=>{if(e.target.id==='bxTime'){v17ls('bondline.bondleTime',e.target.checked?'60':'30')}});
   return sc}
 function bx22close(){const sc=$('#bxScrim');if(sc)sc.hidden=true;clearInterval(BX.timer);document.body.classList.remove('sk-lock');syncBx22();if(App.mode==='home')renderHome()}
 
@@ -10533,7 +10532,7 @@ async function bx22intro(){
    ${ov&&ov.theme?`<div class="bx-theme">${esc(String(ov.theme).slice(0,80))}</div>`:''}
    <ol class="bx-rules"><li>Each round asks you to <b>name something</b> in a chemistry category.</li><li>Any correct answer scores, but <b>rarer answers score more</b>. The obvious one earns the least.</li><li>You have <b>${bx22limit()} seconds</b> and <b>two tries</b> per round. Your total is your bond strength, in kJ/mol.</li></ol>
    <div class="bx-ladder">${C.TIERS.slice(1).map(T=>`<span class="bx-tier" style="--c:${BX_COLORS[T.n]}"><i>${T.emo}</i><b>${esc(T.name)}</b><small>${T.pts}</small></span>`).join('')}</div>
-   <div class="bx-go"><button class="btn primary bx-big" data-bx="start">Play Bondle #${t.idx+1}</button><label class="bx-time"><input type="checkbox" id="bxTime"${bx22limit()===60?' checked':''}> Extra time (60 s)</label></div>
+   <div class="bx-go"><button class="btn primary bx-big" data-bx="start">Play Bondle #${t.idx+1}</button></div>
    ${s.played?`<div class="bx-mini"><span><b>${s.played}</b> played</span><span><b>${s.last===yk?s.streak:0}</b> day streak</span><span><b>${s.best}</b> best</span>${y&&y.done?`<span>Yesterday: <b>${y.tot}</b> ${esc(bx22emo(y))}</span>`:''}</div>`:''}
    <p class="bx-fine">One go per day; the clock keeps running if you close the window. New puzzle at midnight.</p>
    <button class="linkbtn bx-prac-l" data-bx="practice">Or warm up with a practice round</button></div>`;
@@ -10553,7 +10552,7 @@ function bx22round(){
   const R=BX.run,rec=R.rec,i=rec.r.length,body=$('#bxBody');clearInterval(BX.timer);
   if(i>=R.rounds.length){bx22finish();return}
   const p=R.rounds[i],lim=bx22limit();
-  if(rec.sti!==i||!rec.st){rec.st=Date.now();rec.sti=i;rec.tries=2;rec.lim=lim;bx22persist()}
+  if(rec.sti!==i||!rec.st){rec.st=Date.now();rec.sti=i;rec.tries=rec.hard?1:2;rec.lim=lim;bx22persist()}
   const fills=rec.r.map(r=>r.t);
   body.innerHTML=`<div class="bx-round">
    <div class="bx-top">${BX_HEX('bx-prog',fills,i)}<div class="bx-tt"><div class="bx-kick">${R.practice?'Practice · ':''}Round ${i+1} of ${R.rounds.length}</div><div class="bx-run"><b>${rec.tot}</b> kJ/mol</div></div></div>
@@ -10563,7 +10562,7 @@ function bx22round(){
    <div class="bx-tries" id="bxTries">${rec.tries===2?'Two tries. Go rare, or play it safe.':'One try left.'}</div>
    <div class="bx-msg" id="bxMsg" aria-live="polite"></div></div>`;
   const inp=$('#bxIn');setTimeout(()=>inp.focus(),30);
-  const tick=()=>{const L=(rec.lim||lim)*1000,left=Math.max(0,L-(Date.now()-rec.st)),bar=$('#bxBar'),sec=$('#bxSec');if(!bar){clearInterval(BX.timer);return}
+  const tick=()=>{const L=Math.min(rec.lim||30,30)*1000,left=Math.max(0,L-(Date.now()-rec.st)),bar=$('#bxBar'),sec=$('#bxSec');if(!bar){clearInterval(BX.timer);return}
     bar.style.width=(100*left/L)+'%';bar.classList.toggle('low',left<8000);sec.textContent=Math.ceil(left/1000)+' s';if(left<=0){clearInterval(BX.timer);bx22resolve(null,inp.value.trim(),'time')}};
   tick();BX.timer=setInterval(tick,100);
 }
@@ -12842,7 +12841,7 @@ function wireV30(){
   { const _la=logAns;logAns=function(ok){_la(ok);achSoon()} }
   { const _sp=skPut;skPut=function(s){_sp(s);achSoon()} }
   setTimeout(()=>{try{achCheck();if(V18_Q.get('map'))openMap(V18_Q.get('map')==='route'?'route':V18_Q.get('map')==='print'?'print':'explore');if(V18_Q.get('plan'))openPlan();if(V18_Q.get('ach'))openAch()}catch(e){console.warn(e)}},1100);
-  if(/[?&]bltest\b/.test(location.search))window.__v30={setMode,drStart,COURSES,CO_IDS,AREAS,coUnit,coGoCourse,exPool,rxE,rxRoutes,achStats,achGet,ACH,plGet,plLayout,openMap,openAch,openPlan,rxDrill,proOpen};
+  if(/[?&]bltest\b/.test(location.search))window.__v30={ppById,ppBuild,ppPoints,ppInt,ppStart,ppOpen,ppPredict,ppReport,ppPack,xpMarkOpen,PP_DEF,PP,setMode,drStart,COURSES,CO_IDS,AREAS,coUnit,coGoCourse,exPool,rxE,rxRoutes,achStats,achGet,ACH,plGet,plLayout,openMap,openAch,openPlan,rxDrill,proOpen};
   CHANGELOG.unshift({v:'30',d:'15 November 2026',t:'Reaction map, route finder, achievements and study plans',items:[
     ['Reaction drill','A new drill in Practice → Drills: name the reaction, choose the reagents, or predict the product or starting material.'],
     ['Reaction map','See how every functional group is made and what it turns into. Open it from Tools or the reaction library.'],
@@ -12865,7 +12864,7 @@ function coXp(u,K){const L=u.xp||[];if(!L.length)return'';
   const card=x=>{const tot=x.parts.reduce((s,p)=>s+(p[2]||0),0),nvt=x.fmt==='nvt';
     return`<section class="nm-sec co-prob co-xp"><div class="co-pk">${esc(coXpLabel(x.fmt,K.id))}${tot&&!nvt?` · ${tot} marks`:''}</div><h2>${esc(x.title)}</h2>${x.stem?`<p>${x.stem}</p>`:''}
      <ol class="co-parts" type="a">${x.parts.map(([q,a,m])=>`<li><p>${q}${m&&!nvt?` <span class="co-mk">[${m}]</span>`:''}</p><details><summary>${nvt?'Show answer':'Show mark scheme'}</summary><div class="co-ans">${a}</div></details></li>`).join('')}</ol>
-     ${nvt?'<p class="co-tip">As in JEE Main Section B: +4 for the correct integer, no negative marking.</p>':'<p class="co-tip">Write your answer first, then mark it against the scheme. Each [1] is one marking point.</p>'}</section>`};
+     ${nvt?'<p class="co-tip">As in JEE Main Section B: +4 for the correct integer, −1 for a wrong one, 0 if you leave it blank.</p>':'<p class="co-tip">Write your answer first, then mark it against the scheme. Each [1] is one marking point.</p>'}</section>`};
   const shown=proOpen()?L:(u.free?L.slice(0,1):[]),hid=L.length-shown.length;
   return`<h2 class="co-gh co-xph">Exam-style questions</h2>${shown.map(card).join('')}${hid?`<section class="co-gate co-xplock"><h2>${hid} ${shown.length?'more ':''}exam-style question${hid>1?'s':''} with Pro</h2><p>Written in the format of the ${esc(K.name)} exam, with full mark schemes.</p><button class="btn primary" data-copro="1">See Bondline Pro</button></section>`:''}`}
 
@@ -12960,6 +12959,306 @@ function wireV32(){
     ['Bigger buttons and no zooming','Small buttons are easier to tap, and typing in a box no longer zooms the page on iPhone.']]});
 }
 
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();wireV32();
-boot().then(()=>{v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
+
+/* ---------- v33: full papers in exam format, self-marking, grade estimates, reports and revision packs ---------- */
+// Formats checked against the official specifications (November 2026):
+// Cambridge 9701: Paper 1 40 MCQ / 40 marks / 1 h 15 min; Paper 2 AS structured, 60 marks / 1 h 15 min. No negative marking.
+// STPM 962 (from STPM 2026): each paper 60 marks / 1 h 30 min: A 20 MCQ (20), B 2 structured (14), C 2 essays, answer both (26).
+// AP: Section I 60 MCQ / 90 min (50%); Section II 3 long (10 points) + 4 short (4 points) FRQ / 105 min (50%).
+// IB (first exams 2025): Paper 1 SL 1 h 30 / 55 marks (1A 30 MCQ + 1B 25), HL 2 h / 75 (40 MCQ + 35); Paper 2 SL 1 h 30 / 50, HL 2 h 30 / 90.
+// JEE Main (NTA bulletin 2026): chemistry 20 MCQ + 5 numerical, +4 / −1 in both sections, 100 marks; the paper is 3 h for three subjects.
+// NEET UG (2026): chemistry 45 MCQ, +4 / −1, 180 marks; the paper is 180 min for 180 questions.
+const PP_AS=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-halo','pu-oh','pu-carbonyl','pu-acid','pu-poly','pu-spec'];
+const PP={run:null,tick:null,view:null,last:null};
+const PP_DEF={
+  cie:[{id:'cie-p1',name:'Paper 1: Multiple choice',code:'9701 Paper 1',units:PP_AS,fmt:'40 multiple-choice questions · 40 marks · 1 hour 15 minutes · no negative marking',
+        blocks:[{secs:75*60,secs2:[{name:'Multiple choice',kind:'mcq',n:40,mk:1}]}]},
+       {id:'cie-p2',name:'Paper 2: AS Level structured questions',code:'9701 Paper 2',units:PP_AS,fmt:'Structured questions · 60 marks · 1 hour 15 minutes',
+        blocks:[{secs:75*60,secs2:[{name:'Structured questions',kind:'written',fmts:['struct'],target:60,scaleTo:60}]}]}],
+  stpm:[{id:'stpm-3',name:'962/3: Organic chemistry',code:'STPM 962/3',units:u=>u.n>=7,fmt:'Section A 20 MCQ (20 marks) · Section B 2 structured (14) · Section C 2 essays, answer both (26) · 60 marks · 1 hour 30 minutes',
+        blocks:[{secs:90*60,secs2:[{name:'Section A',kind:'mcq',n:20,mk:1},{name:'Section B',kind:'written',fmts:['struct'],count:2,scaleTo:14},{name:'Section C',kind:'written',fmts:['essay'],count:2,scaleTo:26}]}]}],
+  ap:[{id:'ap-full',name:'Full exam: Sections I and II',code:'AP Chemistry',fmt:'Section I: 60 MCQ in 90 minutes (50%) · Section II: 3 long and 4 short free-response questions in 105 minutes (50%) · 3 hours 15 minutes',
+        blocks:[{name:'Section I',secs:90*60,secs2:[{name:'Multiple choice',kind:'mcq',n:60,mk:1,scaleTo:50}]},
+                {name:'Section II',secs:105*60,secs2:[{name:'Long free response',kind:'written',src:'approb',count:3,each:10,group:'frq'},{name:'Short free response',kind:'written',fmts:['frq-short'],count:4,each:4,group:'frq'}],scaleGroup:{frq:50}}]},
+      {id:'ap-1',name:'Section I only',code:'AP Chemistry',fmt:'60 multiple-choice questions · 90 minutes',blocks:[{secs:90*60,secs2:[{name:'Multiple choice',kind:'mcq',n:60,mk:1}]}]},
+      {id:'ap-2',name:'Section II only',code:'AP Chemistry',fmt:'3 long (10 points) and 4 short (4 points) free-response questions · 105 minutes',
+        blocks:[{secs:105*60,secs2:[{name:'Long free response',kind:'written',src:'approb',count:3,each:10},{name:'Short free response',kind:'written',fmts:['frq-short'],count:4,each:4}]}]}],
+  ib:[{id:'ib-1a-sl',name:'Paper 1A (SL)',code:'IB Paper 1A',fmt:'30 multiple-choice questions · 30 marks. On the real paper, 1A and 1B share 1 hour 30 minutes; we give 1A 45 minutes',
+        blocks:[{secs:45*60,secs2:[{name:'Paper 1A',kind:'mcq',n:30,mk:1}]}]},
+      {id:'ib-1a-hl',name:'Paper 1A (HL)',code:'IB Paper 1A',fmt:'40 multiple-choice questions · 40 marks. On the real paper, 1A and 1B share 2 hours; we give 1A 60 minutes',
+        blocks:[{secs:60*60,secs2:[{name:'Paper 1A',kind:'mcq',n:40,mk:1}]}]},
+      {id:'ib-2-sl',name:'Paper 2 (SL)',code:'IB Paper 2',fmt:'Short-answer and extended-response questions · 50 marks · 1 hour 30 minutes',
+        blocks:[{secs:90*60,secs2:[{name:'Paper 2',kind:'written',fmts:['struct','data'],target:50,scaleTo:50}]}]},
+      {id:'ib-2-hl',name:'Paper 2 (HL)',code:'IB Paper 2',fmt:'Short-answer and extended-response questions · 90 marks · 2 hours 30 minutes',
+        blocks:[{secs:150*60,secs2:[{name:'Paper 2',kind:'written',fmts:['struct','data'],target:90,scaleTo:90}]}]}],
+  jee:[{id:'jee-chem',name:'Chemistry section',code:'JEE Main Paper 1',fmt:'Section A: 20 MCQ · Section B: 5 numerical-value questions, all compulsory · +4 correct, −1 wrong in both sections, 0 unanswered · 100 marks · 60 minutes (one third of the 3-hour paper)',
+        blocks:[{secs:60*60,secs2:[{name:'Section A',kind:'mcq',n:20,mk:4,neg:1},{name:'Section B',kind:'nvt',n:5,mk:4,neg:1}]}]}],
+  neet:[{id:'neet-chem',name:'Chemistry section',code:'NEET UG',fmt:'45 compulsory MCQs · +4 correct, −1 wrong, 0 unanswered · 180 marks · 45 minutes (the paper gives 180 minutes for 180 questions)',
+        blocks:[{secs:45*60,secs2:[{name:'Chemistry',kind:'mcq',n:45,mk:4,neg:1}]}]}],
+  icho:[{id:'icho-set',name:'Theory problem set',code:'IChO style',fmt:'4 olympiad-style theory problems · 2 hours. IChO has no fixed paper: the real theory exam is 5 hours with about 8–9 problems',
+        blocks:[{secs:120*60,secs2:[{name:'Theory problems',kind:'written',src:'olymp',count:4}]}]}]};
+const ppAll=()=>Object.entries(PP_DEF).flatMap(([c,L])=>L.map(p=>Object.assign({c},p)));
+const ppById=id=>ppAll().find(p=>p.id===id);
+
+// Marking points: split a mark scheme on its [n] or (n point) tokens.
+function ppPoints(a,m){a=String(a||'');const pts=[];
+  if(/\[\d+\]/.test(a)){const re=/\[(\d+)\]/g;let last=0,x;while((x=re.exec(a))){const t=a.slice(last,x.index).replace(/^[\s;,.]+/,'').trim();pts.push({t:t||'Marking point',v:+x[1]});last=re.lastIndex}
+    const tail=a.slice(last).replace(/^[\s;,.]+/,'').trim();if(tail&&pts.length)pts[pts.length-1].t+=' '+tail;return pts}
+  if(/\bpoints?\b/.test(a)&&/\(\s*\d/.test(a)){const re=/\(([^()]*\bpoints?\b[^()]*)\)/g;let last=0,x;
+    while((x=re.exec(a))){const n=(x[1].match(/\d+(?=\s*points?\b)/g)||['1']).reduce((s,k)=>s+ +k,0);const t=a.slice(last,x.index).replace(/^[\s;,.]+/,'').trim();
+      if(n>1&&/,/.test(x[1])){x[1].split(/,|\band\b/).forEach(seg=>{const k=+((seg.match(/\d+(?=\s*points?\b)/)||[0])[0]);if(k)pts.push({t:(t?t+' ':'')+'('+seg.trim().replace(/^\d+\s*points?\s*/,'')+')',v:k})})}
+      else pts.push({t:t||'Marking point',v:n});last=re.lastIndex}
+    if(pts.length){const tail=a.slice(last).replace(/^[\s;,.]+/,'').trim();if(tail)pts[pts.length-1].t+=' '+tail;return pts}}
+  return[{t:a,v:m||2,scale:true}]}
+const ppPartMax=(a,m)=>ppPoints(a,m).reduce((s,p)=>s+p.v,0);
+// The integer answer of a JEE numerical-value part.
+function ppInt(a){a=String(a).replace(/−/g,'-');let m=/answer is\s*(-?\d+)/i.exec(a)||/^\s*(-?\d+)\s*(?:\(|\.?\s*$)/.exec(a);if(m)return +m[1];const all=a.match(/-?\d+(?![\d.]*\d)/g);return all?+all[all.length-1]:null}
+
+function ppUnits(P){const K=COURSES[P.c];const f=P.units;return K.units.filter(u=>!f?true:Array.isArray(f)?f.includes(u.id):f(u))}
+function ppWritten(P,S,used){const K=COURSES[P.c],U=ppUnits(P);let pool=[];
+  if(S.src==='approb')pool=U.filter(u=>/^ap-/.test(u.id)&&u.prob).map(u=>({u,x:{title:u.prob.title,stem:u.prob.stem,parts:u.prob.parts.map(p=>[p[0],p[1],p[2]])},lab:'Long free response'}));
+  else if(S.src==='olymp'){pool=U.flatMap(u=>(u.xp||[]).filter(x=>x.fmt==='olymp').map(x=>({u,x,lab:'Olympiad-style problem'})));
+    const more=shuffle(U.filter(u=>u.prob).map(u=>({u,x:{title:u.prob.title,stem:u.prob.stem,parts:u.prob.parts.map(p=>[p[0],p[1],p[2]])},lab:'Olympiad-style problem'})));pool=shuffle(pool).concat(more)}
+  else pool=U.flatMap(u=>(u.xp||[]).filter(x=>S.fmts.includes(x.fmt)).map(x=>({u,x,lab:coXpLabel(x.fmt,P.c)})));
+  pool=pool.filter(o=>!used.has(o.x));if(S.src!=='olymp')pool=shuffle(pool);
+  const out=[];let marks=0;const byU=new Set();
+  const take=o=>{used.add(o.x);byU.add(o.u.id);out.push(o);marks+=o.x.parts.reduce((s,p)=>s+ppPartMax(p[1],p[2]),0)};
+  if(S.count){for(const o of pool){if(out.length>=S.count)break;if(!byU.has(o.u.id))take(o)}for(const o of pool){if(out.length>=S.count)break;if(!used.has(o.x))take(o)}}
+  else{for(const o of pool){if(marks>=S.target-2)break;const m=o.x.parts.reduce((s,p)=>s+ppPartMax(p[1],p[2]),0);if(marks+m<=S.target+4&&!byU.has(o.u.id))take(o)}}
+  return out.map(o=>({kind:'written',unit:o.u.id,un:o.u.n,ut:o.u.title,lab:o.lab,title:o.x.title,stem:o.x.stem||'',
+    parts:o.x.parts.map(p=>({q:p[0],a:p[1],pts:ppPoints(p[1],p[2])})),each:S.each||0}))}
+function ppBuild(P){const K=COURSES[P.c],U=ppUnits(P),uset=new Set(U.map(u=>u.id)),used=new Set();
+  const blocks=P.blocks.map((B,bi)=>{const items=[];
+    B.secs2.forEach((S,si)=>{let L=[];
+      if(S.kind==='mcq'){const pool=K.bank.filter(q=>uset.has(q.t));const by={};pool.forEach(q=>(by[q.t]=by[q.t]||[]).push(q));
+        const G=shuffle(Object.values(by).map(g=>shuffle(g.slice())));let i=0;while(L.length<S.n&&G.some(g=>g.length)){const g=G[i%G.length];if(g.length)L.push(g.pop());i++}
+        L=L.map(q=>{const b=coBuild(q);return{kind:'mcq',id:q.id,t:q.t,prompt:b.prompt,fig:b.fig,opts:b.opts,ans:b.opts.indexOf(b.ans),why:b.why}})}
+      else if(S.kind==='nvt'){const parts=shuffle(U.flatMap(u=>(u.xp||[]).filter(x=>x.fmt==='nvt').flatMap(x=>x.parts.map(p=>({u,x,p})))).filter(o=>ppInt(o.p[1])!=null));
+        const seen=new Set();for(const o of parts){if(L.length>=S.n)break;if(seen.has(o.u.id)&&parts.length>S.n*2)continue;seen.add(o.u.id);L.push({kind:'nvt',t:o.u.id,prompt:(o.x.stem&&!/integer/i.test(o.x.stem)?o.x.stem+' ':'')+o.p[0],ans:ppInt(o.p[1]),why:o.p[1]})}}
+      else L=ppWritten(P,S,used);
+      L.forEach(x=>{x.sec=si;items.push(x)})});
+    return{name:B.name||'',secs:B.secs,items}});
+  return blocks}
+
+function ppSecMax(P,bi,si,items){const S=P.blocks[bi].secs2[si];const it=items.filter(x=>x.sec===si);
+  if(S.kind==='mcq'||S.kind==='nvt')return it.length*S.mk;return it.reduce((s,x)=>s+(x.each||x.parts.reduce((a,p)=>a+p.pts.reduce((b,q)=>b+q.v,0),0)),0)}
+
+/* ---------- running a paper ---------- */
+function ppOpen(c){closeMenus();if(isMob())$('#side').classList.remove('open');if(PP.run&&!PP.run.done){v30Modal('ppScrim','Full papers','Full paper','pp-m');return ppRender()}
+  PP.view='pick';PP.c=c||CO.c||v18get('bondline.course','')||'cie';v30Modal('ppScrim','Full papers','Full papers in exam format','pp-m');ppPick()}
+function ppPick(){const B=$('#ppScrimB');if(!B)return;const c=PP.c,H=v18get('bondline.papers',[]);
+  B.innerHTML=`<div class="pp-sw" role="group" aria-label="Exam">${CO_IDS.map(k=>`<button class="co-swb${k===c?' on':''}" data-ppc="${k}" aria-pressed="${k===c}">${esc(COURSES[k].short)}</button>`).join('')}</div>
+   <p class="pp-lede">Each paper copies the real exam’s structure, timing and marking. The questions are Bondline’s own, written for the ${esc(COURSES[c].name)} syllabus, and come from the topics Bondline covers. Real past papers: <a href="/past-papers/" target="_blank" rel="noopener">past paper finder</a>.</p>
+   <div class="pp-list">${PP_DEF[c].map(P=>{const mine=H.filter(h=>h.pid===P.id);return`<div class="pp-card"><div><span class="pp-code">${esc(P.code)}</span><b>${esc(P.name)}</b><small>${esc(P.fmt)}</small>${mine.length?`<span class="pp-hist">Last: <b>${mine[0].pct}%</b> · best ${Math.max(...mine.map(h=>h.pct))}% · ${mine.length} taken</span>`:''}</div><button class="btn primary" data-ppgo="${P.id}">Start</button></div>`}).join('')}</div>
+   <ul class="ex-rules"><li>The clock runs from Start. When time is up, the paper is handed in automatically.</li><li>Type written answers in the boxes, or write on paper. After you hand in, you mark them yourself against the mark scheme, point by point.</li><li>Multiple-choice and numerical answers are marked for you, with the exam’s own scheme (including negative marking for JEE and NEET).</li></ul>
+   ${H.length?`<h3 class="pp-h">Your papers</h3><div class="pp-past">${H.slice(0,6).map(h=>`<div><span>${esc(h.code)} · ${esc(h.name)}</span><small>${esc(relDay(h.t))}</small><b>${h.score}/${h.max} · ${h.pct}%</b></div>`).join('')}</div>`:''}`}
+function ppStart(id){const P=ppById(id);if(!P)return;if(!proOpen())return openPro('papers');
+  const blocks=ppBuild(P);if(!blocks.some(b=>b.items.length))return toast('Not enough questions for this paper yet.');
+  PP.run={pid:id,P,blocks,bi:0,i:0,ans:blocks.map(b=>b.items.map(it=>it.kind==='written'?it.parts.map(()=>''):null)),flag:blocks.map(b=>b.items.map(()=>false)),t0:Date.now(),done:false,mark:null};
+  clearInterval(PP.tick);PP.tick=setInterval(ppTickFn,1000);ppRender();try{act22feat('paper:'+id)}catch(e){}}
+function ppLeft(){const R=PP.run;if(!R)return 0;const B=R.blocks[R.bi];return Math.max(0,B.secs-Math.floor((Date.now()-R.t0)/1000))}
+function ppTickFn(){const R=PP.run;if(!R||R.done||R.mark){clearInterval(PP.tick);return}const left=ppLeft(),c=$('#ppClock');if(c){c.textContent=fmtClock(left);c.classList.toggle('low',left<=300)}if(left<=0){clearInterval(PP.tick);ppHandIn(true)}}
+function ppRender(){const B=$('#ppScrimB');if(!B)return;const R=PP.run;if(!R)return ppPick();if(R.mark)return ppMarkView();
+  const blk=R.blocks[R.bi],it=blk.items[R.i],n=blk.items.length,S=R.P.blocks[R.bi].secs2[it.sec],a=R.ans[R.bi][R.i];
+  const done=k=>{const v=R.ans[R.bi][k];return Array.isArray(v)?v.some(x=>x.trim()):v!=null&&v!==''};
+  let body='';
+  if(it.kind==='mcq')body=`<p class="qz-prompt">${it.prompt}</p>${it.fig||''}<div class="qz-opts" role="group" aria-label="Answers">${it.opts.map((o,k)=>`<button class="qz-opt${a===k?' sel':''}" data-ppo="${k}" aria-pressed="${a===k}"><span class="qz-key">${'ABCD'[k]||k+1}</span><span>${o}</span></button>`).join('')}</div>${S.neg&&a!=null?'<button class="linkbtn pp-clr" data-ppclr="1">Clear my answer</button>':''}`;
+  else if(it.kind==='nvt')body=`<p class="qz-prompt">${it.prompt}</p><label class="pp-nvt">Your answer (an integer) <input type="text" inputmode="numeric" id="ppNvt" value="${a==null?'':esc(a)}" autocomplete="off"></label>`;
+  else body=`<div class="pp-wq"><div class="co-pk">${esc(it.lab)} · ${esc(S.name)}${it.each?` · ${it.each} points`:''}</div><h3>${esc(it.title)}</h3>${it.stem?`<p>${it.stem}</p>`:''}
+    <ol class="co-parts" type="a">${it.parts.map((p,k)=>`<li><p>${p.q} <span class="co-mk">[${p.pts.reduce((s,x)=>s+x.v,0)}]</span></p><textarea class="pp-ta" data-ppta="${k}" rows="3" placeholder="Your answer (or write it on paper)">${esc(a[k]||'')}</textarea></li>`).join('')}</ol></div>`;
+  const multi=R.blocks.length>1;
+  B.innerHTML=`<div class="pp-run"><div class="qz-top"><span><b>${esc(R.P.code)}</b> ${esc(R.P.name)}${multi?` · ${esc(blk.name)}`:''}</span><span class="qz-topic">${esc(S.name)} · question ${R.i+1} of ${n}</span><span class="ex-clock" id="ppClock">${fmtClock(ppLeft())}</span><button class="btn small" data-ppn="submit">${multi&&R.bi<R.blocks.length-1?`Hand in ${esc(blk.name)}`:'Hand in'}</button></div>
+   <div class="qz-card pp-q">${body}<div class="ex-nav"><button class="btn small" data-ppn="prev"${R.i?'':' disabled'}>← Previous</button><button class="btn small ex-flag${R.flag[R.bi][R.i]?' on':''}" data-ppn="flag">${R.flag[R.bi][R.i]?'Flagged':'Flag for review'}</button>${R.i<n-1?'<button class="btn primary small" data-ppn="next">Next →</button>':''}</div></div>
+   <div class="ex-grid pp-grid" aria-label="Questions">${blk.items.map((x,k)=>`<button class="ex-cell${k===R.i?' cur':''}${done(k)?' done':''}${R.flag[R.bi][k]?' flag':''}${k&&x.sec!==blk.items[k-1].sec?' pp-break':''}" data-ppn="${k}" title="${esc(R.P.blocks[R.bi].secs2[x.sec].name)}">${k+1}</button>`).join('')}</div></div>`;
+  B.scrollTop=0}
+function ppSave(){const R=PP.run;if(!R||R.mark)return;const it=R.blocks[R.bi].items[R.i];
+  if(it.kind==='nvt'){const x=$('#ppNvt');if(x)R.ans[R.bi][R.i]=x.value.trim()}
+  if(it.kind==='written')document.querySelectorAll('#ppScrimB [data-ppta]').forEach(t=>R.ans[R.bi][R.i][+t.dataset.ppta]=t.value)}
+function ppNav(v){const R=PP.run;if(!R)return;ppSave();const n=R.blocks[R.bi].items.length;
+  if(v==='prev'&&R.i>0)R.i--;else if(v==='next'&&R.i<n-1)R.i++;else if(v==='flag')R.flag[R.bi][R.i]=!R.flag[R.bi][R.i];else if(v==='submit')return ppHandIn(false);else if(/^\d+$/.test(v))R.i=Math.min(n-1,+v);ppRender()}
+let ppConfirmAt=0;
+function ppHandIn(auto){const R=PP.run;if(!R)return;ppSave();
+  const blk=R.blocks[R.bi],left=R.ans[R.bi].filter((v,k)=>blk.items[k].kind!=='written'&&(v==null||v==='')).length;
+  if(!auto&&Date.now()-ppConfirmAt>4000){ppConfirmAt=Date.now();return toast(left?`${left} question${left>1?'s are':' is'} unanswered. Press Hand in again to finish.`:'Press Hand in again to finish.')}
+  ppConfirmAt=0;
+  if(R.bi<R.blocks.length-1){R.bi++;R.i=0;R.t0=Date.now();clearInterval(PP.tick);PP.tick=setInterval(ppTickFn,1000);if(auto)toast('Time’s up for that section. The next section has started.');return ppRender()}
+  clearInterval(PP.tick);R.done=true;if(auto)toast('Time’s up. Your paper has been handed in.');
+  const W=[];R.blocks.forEach((b,bi)=>b.items.forEach((it,k)=>{if(it.kind==='written')W.push([bi,k])}));
+  R.mark={W,got:R.blocks.map(b=>b.items.map(it=>it.kind==='written'?it.parts.map(p=>p.pts.map(()=>0)):null))};
+  if(!W.length)return ppFinish();ppMarkView()}
+function ppMarkView(){const B=$('#ppScrimB'),R=PP.run;if(!B||!R)return;
+  B.innerHTML=`<div class="pp-mark"><p class="pp-lede"><b>Mark your written answers.</b> For each marking point, tick it only if your answer makes the same point. Be strict: examiners give the mark for the chemistry, not for the general idea.</p>
+   ${R.mark.W.map(([bi,k])=>{const it=R.blocks[bi].items[k];return`<section class="pp-mq"><div class="co-pk">${esc(it.lab)}</div><h3>${esc(it.title)}</h3>${it.stem?`<p>${it.stem}</p>`:''}
+     ${it.parts.map((p,j)=>ppMarkPart(p,R.ans[bi][k][j],R.mark.got[bi][k][j],`${bi}.${k}.${j}`,String.fromCharCode(97+j))).join('')}</section>`}).join('')}
+   <div class="nm-actions"><button class="btn primary" data-ppfin="1">Finish marking and see my result</button></div></div>`;B.scrollTop=0}
+function ppMarkPart(p,mine,got,key,lab){
+  return`<div class="pp-mp"><p class="pp-mpq"><b>(${lab})</b> ${p.q}</p><div class="pp-mine"><small>Your answer</small>${mine&&mine.trim()?esc(mine).replace(/\n/g,'<br>'):'<i>Answered on paper, or not answered.</i>'}</div>
+   <ul class="pp-pts">${p.pts.map((x,i)=>x.scale?`<li class="pp-sc"><span>${x.t}</span><span class="pp-step" role="group" aria-label="Marks for this part">${Array.from({length:x.v+1},(_,v)=>`<button class="${got[i]===v?'on':''}" data-ppsc="${key}.${i}.${v}" aria-pressed="${got[i]===v}">${v}</button>`).join('')}</span><small>of ${x.v}</small></li>`
+     :`<li><label><input type="checkbox" data-ppck="${key}.${i}"${got[i]?' checked':''}><span>${x.t}</span><b>${x.v}</b></label></li>`).join('')}</ul></div>`}
+function ppSetMark(spec,val){const R=PP.run;if(!R||!R.mark)return;const[bi,k,j,i]=spec.split('.').map(Number);const p=R.blocks[bi].items[k].parts[j].pts[i];R.mark.got[bi][k][j][i]=p.scale?val:(val?p.v:0)}
+function ppFinish(){const R=PP.run;if(!R)return;const P=R.P,secs=[];let score=0,max=0;
+  R.blocks.forEach((b,bi)=>{const PB=P.blocks[bi],grp={};
+    PB.secs2.forEach((S,si)=>{const items=b.items.map((it,k)=>({it,k})).filter(o=>o.it.sec===si);let got=0,mx=0,right=0,wrong=0,blank=0;
+      items.forEach(({it,k})=>{const a=R.ans[bi][k];
+        if(it.kind==='mcq'||it.kind==='nvt'){mx+=S.mk;const ok=it.kind==='mcq'?a===it.ans:a!==''&&a!=null&&+String(a).replace(/−/g,'-')===it.ans&&/^-?\d+$/.test(String(a).replace(/−/g,'-').trim());
+          if(a==null||a==='')blank++;else if(ok){right++;got+=S.mk}else{wrong++;got-=S.neg||0}
+          if(it.kind==='mcq'&&a!=null){const r=App.quiz.q[it.id]||{c:0,w:0};ok?r.c++:r.w++;r.last=ok?1:0;r.at=Date.now();App.quiz.q[it.id]=r;logAns(ok)}}
+        else{const g=R.mark.got[bi][k].reduce((s,pp)=>s+pp.reduce((a2,x)=>a2+x,0),0),m=it.parts.reduce((s,p)=>s+p.pts.reduce((a2,x)=>a2+x.v,0),0);
+          if(it.each){got+=m?it.each*g/m:0;mx+=it.each}else{got+=g;mx+=m}}});
+      let sGot=got,sMax=mx;if(S.scaleTo&&mx){sGot=got*S.scaleTo/mx;sMax=S.scaleTo}
+      if(S.group){grp[S.group]=grp[S.group]||{got:0,max:0,list:[]};grp[S.group].got+=sGot;grp[S.group].max+=sMax;grp[S.group].list.push(secs.length)}
+      secs.push({name:(b.name?b.name+': ':'')+S.name,raw:got,rawMax:mx,got:sGot,max:sMax,right,wrong,blank,neg:S.neg||0,scaled:!!S.scaleTo&&S.scaleTo!==mx})});
+    if(PB.scaleGroup)for(const g in PB.scaleGroup){const G=grp[g];if(!G||!G.max)continue;const f=PB.scaleGroup[g]/G.max;G.list.forEach(i=>{secs[i].got*=f;secs[i].max*=f;secs[i].scaled=true})}});
+  secs.forEach(s=>{score+=s.got;max+=s.max});
+  const pct=max?Math.max(0,Math.round(100*score/max)):0,rs=Math.round(score*10)/10;
+  const res={t:Date.now(),pid:R.pid,c:P.c,code:P.code,name:P.name,score:Math.round(score),max:Math.round(max),pct,mins:Math.round((Date.now()-R.t0)/60000),secs:secs.map(s=>[s.name,Math.round(s.got*10)/10,Math.round(s.max)])};
+  const H=v18get('bondline.papers',[]);H.unshift(res);v18set('bondline.papers',H.slice(0,40));saveQuiz();
+  PP.last={res,secs,R,rs};PP.run=null;ppResult()}
+function ppResult(){const B=$('#ppScrimB'),L=PP.last;if(!B||!L)return;const{res,secs,R}=L,P=R.P,g=ppGrade(P.c,res.pct,res.score);
+  const wrong=[];R.blocks.forEach((b,bi)=>b.items.forEach((it,k)=>{const a=R.ans[bi][k];if((it.kind==='mcq'&&a!==it.ans)||(it.kind==='nvt'&&String(a).trim()!==String(it.ans)))wrong.push({it,a,n:k+1,b:b.name})}));
+  B.innerHTML=`<div class="pp-res"><div class="pp-big"><b>${res.score}<small>/${res.max}</small></b><span>${res.pct}%</span></div>
+   ${g?`<div class="pp-grade"><span>${esc(g.label)}</span><b>${esc(g.g)}</b><small>${esc(g.note)}</small></div>`:''}
+   <div class="qz-break">${secs.map(s=>`<div class="qz-brow"><span>${esc(s.name)}${s.neg?` <small class="ex-area">${s.right} right · ${s.wrong} wrong (−${s.wrong*s.neg}) · ${s.blank} blank</small>`:''}${s.scaled?` <small class="ex-area">${Math.round(s.raw*10)/10}/${s.rawMax} raw, scaled</small>`:''}</span><span class="nm-meter"><i style="width:${s.max?Math.max(0,Math.round(100*s.got/s.max)):0}%"></i></span><b>${Math.round(s.got*10)/10}/${Math.round(s.max)}</b></div>`).join('')}</div>
+   <div class="nm-actions"><button class="btn primary" data-ppgo="${P.id}">Another ${esc(P.name)}</button><button class="btn" data-ppback="1">All papers</button><button class="btn" data-pprep="1">Progress report</button></div>
+   ${wrong.length?`<h3 class="pp-h">Review: ${wrong.length} to look at</h3><div class="ex-review">${wrong.map(({it,a,n,b})=>`<details class="ex-rv bad"><summary><span class="ex-rk">✗</span><span><b>${b?esc(b)+' ':''}Q${n}</b></span><small>${a==null||a===''?'Not answered':'Wrong'}</small></summary><div class="ex-rb"><p class="qz-prompt">${it.prompt}</p>${it.fig||''}<p><b>Answer:</b> ${it.kind==='mcq'?it.opts[it.ans]:it.ans}</p>${it.kind==='mcq'&&a!=null?`<p><b>You chose:</b> ${it.opts[a]}</p>`:it.kind==='nvt'&&a?`<p><b>You wrote:</b> ${esc(a)}</p>`:''}<p class="qz-why">${it.why}</p></div></details>`).join('')}</div>`:''}</div>`;
+  B.scrollTop=0}
+
+/* ---------- grade estimates ---------- */
+// Grade thresholds change every exam series and are not published in advance, so these are rough guides only.
+const PP_GR={
+  cie:{label:'Rough A Level grade at this level',cuts:[[80,'A*'],[70,'A'],[60,'B'],[50,'C'],[40,'D'],[30,'E']],low:'U'},
+  ap:{label:'Rough AP score at this level',cuts:[[72,'5'],[58,'4'],[43,'3'],[28,'2']],low:'1'},
+  ib:{label:'Rough IB grade at this level',cuts:[[72,'7'],[60,'6'],[48,'5'],[37,'4'],[26,'3'],[14,'2']],low:'1'}};
+function ppGrade(c,pct,score){const G=PP_GR[c];
+  if(G){const g=(G.cuts.find(([p])=>pct>=p)||[0,G.low])[1];return{label:G.label,g,note:'An estimate. Real grade thresholds change every exam series.'}}
+  if(c==='stpm')return{label:'Your percentage',g:pct+'%',note:'MPM does not publish STPM grade boundaries, so we don’t turn this into a grade.'};
+  if(c==='jee')return{label:'Chemistry score',g:score+' / 100',note:'JEE percentiles depend on your shift, so we don’t estimate one.'};
+  if(c==='neet')return{label:'Chemistry score',g:score+' / 180',note:'NEET ranks depend on everyone’s scores, so we don’t estimate one.'};
+  return null}
+// Predicted grade: a weighted average of the last three full papers for a course (newest counts most).
+function ppPredict(c){const H=v18get('bondline.papers',[]).filter(h=>h.c===c).slice(0,3);if(!H.length)return null;
+  const w=[3,2,1].slice(0,H.length),pct=Math.round(H.reduce((s,h,i)=>s+h.pct*w[i],0)/w.reduce((a,b)=>a+b,0));
+  const lo=Math.min(...H.map(h=>h.pct)),hi=Math.max(...H.map(h=>h.pct));const g=ppGrade(c,pct,Math.round(pct*(c==='neet'?1.8:1)));
+  return{pct,lo,hi,n:H.length,g,conf:H.length>=3?'Fair':H.length===2?'Low':'Very low',trend:H.length>1?H[0].pct-H[H.length-1].pct:0}}
+function ppPredictCard(c){const K=COURSES[c],p=ppPredict(c);
+  if(!p)return`<section class="pp-pred"><div><div class="co-pk">Predicted grade</div><p>Take a full paper in the ${esc(K.short)} format to get an estimate of your grade.</p></div><button class="btn primary" data-ppopen="${c}">Full papers</button></section>`;
+  return`<section class="pp-pred"><div><div class="co-pk">Predicted grade · estimate</div><p class="pp-pg"><b>${esc(p.g?p.g.g:p.pct+'%')}</b><span>${p.pct}% average${p.n>1?` (range ${p.lo}–${p.hi}%)`:''}${p.trend?` · ${p.trend>0?'up':'down'} ${Math.abs(p.trend)} points`:''}</span></p>
+   <small>Based on your last ${p.n} full paper${p.n>1?'s':''} (confidence: ${p.conf.toLowerCase()}). It covers only the topics in Bondline’s ${esc(K.short)} course, and real thresholds change every year, so treat it as a guide.</small></div><button class="btn" data-ppopen="${c}">Take a paper</button></section>`}
+
+/* ---------- self-marking for exam-style questions in units ---------- */
+function xpKey(c,u,i){return c+'|'+u+'|'+i}
+function xpMarkOpen(spec){if(!proOpen())return openPro('selfmark');const[c,uid,i]=spec.split('|'),K=COURSES[c]||C(),u=K.uby[uid];const x=u&&(u.xp||[])[+i];if(!x)return;
+  const it={title:x.title,stem:x.stem||'',lab:coXpLabel(x.fmt,c),parts:x.parts.map(p=>({q:p[0],a:p[1],pts:x.fmt==='nvt'?[{t:p[1],v:p[2]||4}]:ppPoints(p[1],p[2])}))};
+  PP.xm={spec,it,ans:it.parts.map(()=>''),got:it.parts.map(p=>p.pts.map(()=>0)),stage:'answer'};v30Modal('xmScrim','Self-marking',esc(x.title),'pp-m');xmRender()}
+function xmRender(){const B=$('#xmScrimB'),M=PP.xm;if(!B||!M)return;const it=M.it,tot=it.parts.reduce((s,p)=>s+p.pts.reduce((a,x)=>a+x.v,0),0);
+  if(M.stage==='answer'){B.innerHTML=`<div class="pp-wq"><div class="co-pk">${esc(it.lab)} · ${tot} marks</div>${it.stem?`<p>${it.stem}</p>`:''}<ol class="co-parts" type="a">${it.parts.map((p,k)=>`<li><p>${p.q} <span class="co-mk">[${p.pts.reduce((s,x)=>s+x.v,0)}]</span></p><textarea class="pp-ta" data-xmta="${k}" rows="3" placeholder="Your answer (or write it on paper)">${esc(M.ans[k])}</textarea></li>`).join('')}</ol>
+    <div class="nm-actions"><button class="btn primary" data-xm="mark">I’ve answered: show the mark scheme</button></div></div>`;return}
+  const g=M.got.reduce((s,pp)=>s+pp.reduce((a,x)=>a+x,0),0);
+  B.innerHTML=`<div class="pp-mark"><p class="pp-lede">Tick each marking point your answer makes. Be strict.</p>${it.parts.map((p,j)=>ppMarkPart(p,M.ans[j],M.got[j],'x.0.'+j,String.fromCharCode(97+j))).join('')}
+   <div class="pp-xmt"><b id="xmTot">${g}</b> / ${tot} marks</div><div class="nm-actions"><button class="btn primary" data-xm="save">Save my mark</button><button class="btn" data-xm="again">Try again</button></div></div>`}
+function xmSave(){const M=PP.xm;if(!M)return;const g=M.got.reduce((s,pp)=>s+pp.reduce((a,x)=>a+x,0),0),tot=M.it.parts.reduce((s,p)=>s+p.pts.reduce((a,x)=>a+x.v,0),0);
+  const S=v18get('bondline.xpmarks',{}),prev=S[M.spec];S[M.spec]={g,m:tot,t:Date.now(),best:Math.max(g,prev?prev.best||prev.g:0)};v18set('bondline.xpmarks',S);logAns(g>=tot/2);
+  v30Close('xmScrim');toast(`Saved: ${g} out of ${tot}.`);if(App.mode==='course'&&CO.view==='unit'&&CO.unit)coUnit(CO.unit)}
+
+/* ---------- unit revision packs ---------- */
+function ppPack(spec){if(!proOpen())return openPro('packs');const[c,uid]=spec.split('|'),K=COURSES[c]||C(),u=K.uby[uid];if(!u)return;
+  const date=new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}),qs=shuffle(u.qs.slice()).slice(0,12).map(q=>coBuild(q));
+  const html=`<div class="print-root rv-root"><header class="rp-h"><h1>${esc(K.short)} · Unit ${u.n}: ${esc(u.title)}</h1><p>Revision pack · ${esc(K.name)} · bondline.site · ${esc(date)}</p></header>
+   <h2>${esc(K.sylH)}</h2><ul class="rv-syl">${u.syl.map(s=>`<li>☐ ${esc(s)}</li>`).join('')}</ul>
+   <h2>Key ideas</h2>${u.sections.map(s=>`<section class="rv-sec"><h3>${esc(s.h)}</h3>${s.html}</section>`).join('')}
+   <h2>Worked problem: ${esc(u.prob.title)}</h2><p>${u.prob.stem}</p><ol type="a">${u.prob.parts.map(([q,a])=>`<li><p>${q}</p><p class="rv-ans"><b>Answer.</b> ${a}</p></li>`).join('')}</ol>
+   ${(u.xp||[]).length?`<h2>Exam-style questions</h2>${u.xp.map(x=>`<section class="rv-sec"><h3>${esc(coXpLabel(x.fmt,K.id))}: ${esc(x.title)}</h3>${x.stem?`<p>${x.stem}</p>`:''}<ol type="a">${x.parts.map(p=>`<li>${p[0]} ${p[2]?`<b>[${p[2]}]</b>`:''}<div class="rv-lines"></div></li>`).join('')}</ol></section>`).join('')}`:''}
+   <h2>Practice questions</h2><ol class="rv-mc">${qs.map(b=>`<li><p>${b.prompt}</p><ol type="A">${b.opts.map(o=>`<li>${o}</li>`).join('')}</ol></li>`).join('')}</ol>
+   <h2 class="rv-break">Answers</h2><ol class="rv-key">${qs.map(b=>`<li><b>${'ABCD'[b.opts.indexOf(b.ans)]}</b> ${b.why}</li>`).join('')}</ol>
+   ${(u.xp||[]).length?`<h3>Mark schemes</h3>${u.xp.map(x=>`<p><b>${esc(x.title)}</b></p><ol type="a">${x.parts.map(p=>`<li>${p[1]}</li>`).join('')}</ol>`).join('')}`:''}</div>`;
+  tcPrintHTML(html,`Bondline ${K.short} unit ${u.n} revision pack`)}
+
+/* ---------- progress report for parents and tutors ---------- */
+function ppReport(){if(!proOpen())return openPro('report');PP.view='report';v30Modal('rpScrim','For parents and tutors','Progress report','pp-m');rpRender()}
+function rpData(days){const L=v18get('bondline.daylog',{});let n=0,ok=0,act=0;for(let i=0;i<days;i++){const r=L[dayKey(Date.now()-i*DAY)];if(r&&r.n){n+=r.n;ok+=r.ok;act++}}
+  const H=v18get('bondline.papers',[]).filter(h=>Date.now()-h.t<days*DAY),X=v18get('bondline.xpmarks',{});
+  const xs=Object.entries(X).filter(([,v])=>Date.now()-v.t<days*DAY);
+  const courses=CO_IDS.map(c=>({c,K:COURSES[c],A:coAll(c)})).filter(o=>o.A.m||v18get(o.K.lastKey,null)||H.some(h=>h.c===o.c));
+  let weak=[];try{weak=insTopics().filter(x=>x.tries>=3&&x.acc<.6).sort((a,b)=>a.acc-b.acc).slice(0,6)}catch(e){}
+  return{n,ok,act,H,xs,courses,weak,st:streak()}}
+function rpHTML(days,name,print){const D=rpData(days),date=new Date().toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});
+  const acc=D.n?Math.round(100*D.ok/D.n):null;
+  const notes=[];if(D.act>=days*.5)notes.push('Studying on most days. Keep the routine.');else if(D.act)notes.push(`Active on ${D.act} of the last ${days} days. Short, regular sessions work better than occasional long ones.`);else notes.push('No practice recorded in this period.');
+  if(acc!=null)notes.push(acc>=80?'Accuracy is high: ready for harder, exam-style questions.':acc>=60?'Accuracy is reasonable. Reviewing mistakes will move it up fastest.':'Accuracy is low: slow down, read the explanations, and retry missed questions.');
+  if(D.weak.length)notes.push(`Topics to focus on: ${D.weak.slice(0,3).map(w=>w.title).join(', ')}.`);
+  if(!D.H.length)notes.push('No full papers in this period. One timed paper every week or two shows real exam readiness.');
+  return`<div class="${print?'print-root ':''}rp-rep"><header class="rp-h"><h1>Chemistry progress report${name?`: ${esc(name)}`:''}</h1><p>Last ${days} days, to ${esc(date)} · from Bondline (bondline.site)</p></header>
+   <div class="rp-tiles"><div><b>${D.act}</b><span>days active</span></div><div><b>${D.n}</b><span>questions answered</span></div><div><b>${acc==null?'–':acc+'%'}</b><span>accuracy</span></div><div><b>${D.st}</b><span>day streak now</span></div></div>
+   <h2>Courses</h2>${D.courses.length?`<table class="rp-t"><thead><tr><th>Course</th><th>Units complete</th><th>Questions mastered</th><th>Predicted grade</th></tr></thead><tbody>${D.courses.map(o=>{const p=ppPredict(o.c);return`<tr><td>${esc(o.K.name)}</td><td>${o.A.done} of ${o.K.units.length}</td><td>${o.A.m} of ${o.A.n}</td><td>${p?`${esc(p.g?p.g.g:p.pct+'%')} <small>(${p.g&&/%$/.test(p.g.g)?'':p.pct+'%, '}${p.n} paper${p.n>1?'s':''}, estimate)</small>`:'<small>No full paper yet</small>'}</td></tr>`}).join('')}</tbody></table>`:'<p>No course started yet.</p>'}
+   <h2>Full papers</h2>${D.H.length?`<table class="rp-t"><thead><tr><th>Date</th><th>Paper</th><th>Score</th><th>Time</th></tr></thead><tbody>${D.H.map(h=>`<tr><td>${esc(new Date(h.t).toLocaleDateString(undefined,{day:'numeric',month:'short'}))}</td><td>${esc(h.code)} · ${esc(h.name)}</td><td>${h.score}/${h.max} (${h.pct}%)</td><td>${h.mins} min</td></tr>`).join('')}</tbody></table>`:'<p>None in this period.</p>'}
+   ${D.xs.length?`<h2>Self-marked written questions</h2><p>${D.xs.length} question${D.xs.length>1?'s':''} marked, ${Math.round(100*D.xs.reduce((s,[,v])=>s+v.g,0)/Math.max(1,D.xs.reduce((s,[,v])=>s+v.m,0)))}% of marks overall. Written answers are marked by the student against the mark scheme.</p>`:''}
+   <h2>Topics that need work</h2>${D.weak.length?`<ul>${D.weak.map(w=>`<li>${esc(w.title)} · ${Math.round(100*w.acc)}% over ${w.tries} answers</li>`).join('')}</ul>`:'<p>No weak topics with enough answers to judge.</p>'}
+   <h2>Notes</h2><ul>${notes.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+   <p class="rp-fine">Predicted grades are estimates from timed papers in Bondline, covering only the topics in Bondline’s courses. Real grade thresholds change every exam series.</p></div>`}
+function rpRender(){const B=$('#rpScrimB');if(!B)return;const days=v18get('bondline.rpdays',30),name=v18get('bondline.rpname','');
+  B.innerHTML=`<div class="rp-ctl"><label>Student name <input type="text" id="rpName" value="${esc(name)}" maxlength="60" placeholder="Optional"></label><label>Period <select id="rpDays">${[7,30,90].map(d=>`<option value="${d}"${d===days?' selected':''}>Last ${d} days</option>`).join('')}</select></label><button class="btn primary" data-rp="print">Print or save as PDF</button><button class="btn" data-rp="copy">Copy as text</button></div>${rpHTML(days,name,false)}`}
+function rpText(){const days=v18get('bondline.rpdays',30),D=rpData(days),name=v18get('bondline.rpname','');
+  return[`Chemistry progress${name?' for '+name:''} (last ${days} days, Bondline)`,`Days active: ${D.act} · Questions: ${D.n} · Accuracy: ${D.n?Math.round(100*D.ok/D.n)+'%':'–'} · Streak: ${D.st}`,
+    ...D.courses.map(o=>{const p=ppPredict(o.c);return`${o.K.name}: ${o.A.done}/${o.K.units.length} units, ${o.A.m}/${o.A.n} questions mastered${p?`, predicted ${p.g?p.g.g:p.pct+'%'} (estimate)`:''}`}),
+    ...(D.H.length?['Papers: '+D.H.map(h=>`${h.code} ${h.pct}%`).join(', ')]:[]),...(D.weak.length?['Focus on: '+D.weak.slice(0,3).map(w=>w.title).join(', ')]:[])].join('\n')}
+
+function wireV33(){
+  AREA_LABEL.papers='Full papers';
+  PRO_FEATS.push(['Full papers in exam format','Timed papers built like the real thing: Cambridge Papers 1 and 2, STPM 962/3, the full AP exam, IB Papers 1A and 2, JEE Main and NEET chemistry, with the right marking (including −1 negative marking).'],
+    ['Self-marking and predicted grades','Mark your written answers point by point against the mark scheme, and get a grade estimate from your papers.'],
+    ['Reports and revision packs','A printable progress report for parents and tutors, and a printable revision pack for every unit.']);
+  { const _pr=proRender;proRender=function(){_pr();const B=$('#proBody');if(!B||proActive()||!PRO_CFG.enforce||B.querySelector('.pro-why'))return;const w={papers:'Full papers in your exam’s format are part of Bondline Pro.',selfmark:'Self-marking written questions is part of Bondline Pro.',packs:'Unit revision packs are part of Bondline Pro.',report:'Progress reports for parents and tutors are part of Bondline Pro.'}[proWhy];if(w)B.insertAdjacentHTML('afterbegin',`<p class="pro-why">${w}</p>`)} }
+  // Course home: full papers, predicted grade and the past paper finder.
+  { const _h=coHome;coHome=function(){_h();try{const s=$('#coPage .co-home > .nm-actions')||$('#coPage .co-stats');if(s&&CO.c&&PP_DEF[CO.c])s.insertAdjacentHTML('afterend',ppPredictCard(CO.c)+`<div class="pp-links"><button class="btn" data-ppopen="${CO.c}">Full papers ${PRO_BADGE}</button><a class="btn" href="/past-papers/#${CO.c}" target="_blank" rel="noopener">Past paper finder</a><button class="btn" data-pprep="1">Progress report ${PRO_BADGE}</button></div>`)}catch(e){console.warn(e)}} }
+  // Units: revision pack, and a self-marking button on each exam-style question.
+  { const _u=coUnit;coUnit=function(id){_u(id);try{const pg=$('#coPage'),K=C(),u=K.uby[id];if(!u||coLocked(u))return;
+      const acts=pg.querySelector('.co-unit > .nm-actions');if(acts)acts.insertAdjacentHTML('beforeend',`<button class="btn" data-pppack="${K.id}|${u.id}">Revision pack ${PRO_BADGE}</button>`);
+      const S=v18get('bondline.xpmarks',{});pg.querySelectorAll('.co-xp').forEach((sec,i)=>{const k=xpKey(K.id,u.id,i),m=S[k];const tip=sec.querySelector('.co-tip');
+        const h=`<div class="pp-xpb"><button class="btn small primary" data-xpmark="${k}">Answer and self-mark ${PRO_BADGE}</button>${m?`<span>Last mark <b>${m.g}/${m.m}</b>${m.best>m.g?` · best ${m.best}`:''}</span>`:''}</div>`;
+        tip?tip.insertAdjacentHTML('afterend',h):sec.insertAdjacentHTML('beforeend',h)})}catch(e){console.warn(e)}} }
+  // Progress page: links in the side list.
+  { const _ps=pgSide;pgSide=function(){_ps();const b=$('#progList');if(b&&!b.querySelector('[data-ppopen]'))b.insertAdjacentHTML('beforeend',`<div class="pg-sh">Exam practice</div><button class="item" data-ppopen=""><span class="t">Full papers ${PRO_BADGE}</span><span class="m">Real exam format and timing</span></button><button class="item" data-pprep="1"><span class="t">Progress report ${PRO_BADGE}</span><span class="m">For parents and tutors</span></button><a class="item" href="/past-papers/" target="_blank" rel="noopener"><span class="t">Past paper finder</span><span class="m">Official sources for every exam</span></a>`)} }
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    const o=t.closest('[data-ppopen]');if(o){e.preventDefault();return ppOpen(o.dataset.ppopen)}
+    const rp=t.closest('[data-pprep]');if(rp){e.preventDefault();v30Close('ppScrim');return ppReport()}
+    const pk=t.closest('[data-pppack]');if(pk)return ppPack(pk.dataset.pppack);
+    const xm=t.closest('[data-xpmark]');if(xm)return xpMarkOpen(xm.dataset.xpmark);
+    if(t.closest('#ppScrim')){
+      const c=t.closest('[data-ppc]');if(c){PP.c=c.dataset.ppc;return ppPick()}
+      const g=t.closest('[data-ppgo]');if(g)return ppStart(g.dataset.ppgo);
+      if(t.closest('[data-ppback]')){PP.last=null;return ppPick()}
+      const op=t.closest('[data-ppo]');if(op&&PP.run){const R=PP.run;R.ans[R.bi][R.i]=+op.dataset.ppo;return ppRender()}
+      if(t.closest('[data-ppclr]')&&PP.run){const R=PP.run;R.ans[R.bi][R.i]=null;return ppRender()}
+      const n=t.closest('[data-ppn]');if(n)return ppNav(n.dataset.ppn);
+      const sc=t.closest('[data-ppsc]');if(sc){const p=sc.dataset.ppsc.split('.');ppSetMark(p.slice(0,4).join('.'),+p[4]);sc.parentNode.querySelectorAll('button').forEach(b=>{const on=b===sc;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});return}
+      if(t.closest('[data-ppfin]'))return ppFinish()}
+    if(t.closest('#xmScrim')&&PP.xm){const M=PP.xm;const b=t.closest('[data-xm]');
+      if(b){const a=b.dataset.xm;if(a==='mark'){document.querySelectorAll('#xmScrimB [data-xmta]').forEach(x=>M.ans[+x.dataset.xmta]=x.value);M.stage='mark';return xmRender()}
+        if(a==='again'){M.stage='answer';M.got=M.it.parts.map(p=>p.pts.map(()=>0));return xmRender()}if(a==='save')return xmSave()}
+      const sc=t.closest('[data-ppsc]');if(sc){const p=sc.dataset.ppsc.split('.').map(Number);M.got[p[2]][p[3]]=p[4];sc.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===sc));$('#xmTot').textContent=M.got.reduce((s,pp)=>s+pp.reduce((a2,x)=>a2+x,0),0);return}}
+    if(t.closest('#rpScrim')){const b=t.closest('[data-rp]');if(!b)return;const days=v18get('bondline.rpdays',30),name=v18get('bondline.rpname','');
+      if(b.dataset.rp==='print'){try{v30Mark('report')}catch(e){}return tcPrintHTML(rpHTML(days,name,true),'Bondline progress report')}
+      if(b.dataset.rp==='copy'){const txt=rpText();(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Copied. Paste it into a message.'),()=>prompt('Copy the report:',txt))}}
+  });
+  document.addEventListener('change',e=>{const t=e.target;
+    if(t.closest&&t.closest('#ppScrim [data-ppck]')){ppSetMark(t.dataset.ppck,t.checked)}
+    if(t.closest&&t.closest('#xmScrim [data-ppck]')&&PP.xm){const p=t.dataset.ppck.split('.').map(Number),M=PP.xm;M.got[p[2]][p[3]]=t.checked?M.it.parts[p[2]].pts[p[3]].v:0;const x=$('#xmTot');if(x)x.textContent=M.got.reduce((s,pp)=>s+pp.reduce((a2,v)=>a2+v,0),0)}
+    if(t.id==='rpDays'){v18set('bondline.rpdays',+t.value);rpRender()}if(t.id==='rpName'){v18set('bondline.rpname',t.value.trim());rpRender()}});
+  document.addEventListener('input',e=>{const t=e.target;if(t.id==='ppNvt'&&PP.run){const R=PP.run;R.ans[R.bi][R.i]=t.value.trim();const c=document.querySelectorAll('#ppScrimB .ex-cell')[R.i];if(c)c.classList.toggle('done',!!t.value.trim())}
+    if(t.matches&&t.matches('#ppScrimB [data-ppta]')&&PP.run){const R=PP.run;R.ans[R.bi][R.i][+t.dataset.ppta]=t.value}});
+  document.addEventListener('keydown',e=>{if(!PP.run||PP.run.mark||$('#ppScrim').hidden)return;if(e.target.closest('input,textarea,select'))return;
+    const it=PP.run.blocks[PP.run.bi].items[PP.run.i];if(it.kind==='mcq'&&/^[1-4a-dA-D]$/.test(e.key)){const k=/\d/.test(e.key)?+e.key-1:'abcd'.indexOf(e.key.toLowerCase());if(k<it.opts.length){PP.run.ans[PP.run.bi][PP.run.i]=k;ppRender()}}
+    else if(e.key==='ArrowRight')ppNav('next');else if(e.key==='ArrowLeft')ppNav('prev')},true);
+  CHANGELOG.unshift({v:'33',d:'15 November 2026',t:'Full papers, self-marking, grade estimates and reports',items:[
+    ['Full papers in your exam’s format','Timed papers with the real structure, timing and marking: Cambridge Papers 1 and 2, STPM 962/3, the full AP exam, IB Papers 1A and 2, and the JEE Main and NEET chemistry sections with −1 negative marking.'],
+    ['Self-marking','Mark your written answers point by point against the mark scheme, in full papers and in every unit’s exam-style questions.'],
+    ['Predicted grade','An estimate from your last three papers, shown on each course page.'],
+    ['Progress report','A one-page report for parents and tutors, to print or copy into a message.'],
+    ['Revision packs','A printable pack for every unit: syllabus checklist, key ideas, worked problem, exam questions and an answer key.'],
+    ['Past paper finder','Where to find the real past papers for every exam, from official sources.'],
+    ['Bondle redrawn','New icons and badges, a ring timer, the same 30-second clock for everyone, Hard mode, and answer time as the tiebreak.']]});
+}
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();wireV32();wireV33();
+boot().then(()=>{try{const q=new URLSearchParams(location.search);if(q.has('papers')){const c=q.get('papers');setTimeout(()=>ppOpen(COURSES[c]?c:''),300);history.replaceState(null,'',location.pathname+'?app')}}catch(e){}v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

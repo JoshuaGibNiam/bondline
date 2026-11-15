@@ -57,9 +57,9 @@
       <h2>Practice</h2>
       <p class="sub">Unlimited random rounds, any time. Nothing is scored.</p>
       <div class="prac">
-        <button type="button" class="btn" data-practice="mix"><span aria-hidden="true">🔬</span> General science</button>
-        <button type="button" class="btn" data-practice="sci"><span aria-hidden="true">🔭</span> No chemistry</button>
-        <button type="button" class="btn" data-practice="chem"><span aria-hidden="true">⚗️</span> Chemistry only</button>
+        <button type="button" class="btn" data-practice="mix"><span class="pi" data-ic="lens"></span> General science</button>
+        <button type="button" class="btn" data-practice="sci"><span class="pi" data-ic="scope"></span> No chemistry</button>
+        <button type="button" class="btn" data-practice="chem"><span class="pi" data-ic="beaker"></span> Chemistry only</button>
       </div>
     </div>
   </section>
@@ -68,7 +68,7 @@
     <h2 id="howTitle">How Bondle works</h2>
     <div class="cols">
       <div><h3>Six rounds a day</h3><p>Every day brings six categories, one each from physics, chemistry, biology, earth science, space and general science. For example, “Name a force”, “Name a noble gas” or “Name a moon in our Solar System”.</p></div>
-      <div><h3>Rare beats obvious</h3><p>Any correct answer scores, but the obvious ones score least. You have 30 seconds and two tries per round, so go for something rare, or play it safe.</p></div>
+      <div><h3>Rare beats obvious</h3><p>Any correct answer scores, but the obvious ones score least. Everyone gets the same 30-second clock and two tries per round (one in Hard mode), and ties go to the faster player. Go rare, or play it safe.</p></div>
       <div><h3>Your bond strength</h3><p>Your total is in kJ/mol, compared with real bond energies. Beat a C–C bond (348 kJ/mol)? A perfect day is 600, almost a C=C double bond.</p></div>
     </div>
     <h3 class="tiers-h">Answer tiers</h3>
@@ -93,11 +93,11 @@
   <ol class="rules">
     <li>Each round asks you to <b>name something</b> in a science category.</li>
     <li>Any correct answer scores. <b>Rarer answers score more</b>; the obvious answer earns the least.</li>
-    <li>You have <b>30 seconds</b> (60 with Extra time) and <b>two tries</b> per round.</li>
+    <li>You have <b>30 seconds</b> and <b>two tries</b> per round (one in <b>Hard mode</b>). Everyone gets the same clock; no extra time.</li>
+    <li>Ties are broken by <b>answer time</b>, so be quick as well as rare.</li>
     <li>Your total is your <b>bond strength</b> in kJ/mol. Share it and keep your streak going.</li>
   </ol>
   <ul class="tiers" id="tiers2"></ul>
-  <label class="chk"><input type="checkbox" id="extra"> Extra time: 60 seconds per round</label>
 </dialog>
 
 <dialog id="stats" class="dlg" aria-labelledby="statsT">
