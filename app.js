@@ -7243,7 +7243,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='33';
+const APP_VER='34';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -13288,13 +13288,14 @@ function wireV33(){
     ['Bondle redrawn','New icons and badges, a ring timer, the same 30-second clock for everyone, Hard mode, and answer time as the tiebreak.']]});
 }
 
+
+wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();wireV32();wireV33();
 /* ---------- v34: diagrams in notes and questions, 1,600 more course questions, easier course switching ---------- */
+/* added after wireV33() so it sits above the v33 entry */
 CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions and 1,600 more questions',items:[
   ['Add diagram','Draw titration curves, graphs, Lewis structures and tables in any note. They print, export to PDF and PowerPoint, and show in lecture mode.'],
   ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
   ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
   ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
-
-wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();wireV32();wireV33();
 boot().then(()=>{try{const q=new URLSearchParams(location.search);if(q.has('papers')){const c=q.get('papers');setTimeout(()=>ppOpen(COURSES[c]?c:''),300);history.replaceState(null,'',location.pathname+'?app')}}catch(e){}v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

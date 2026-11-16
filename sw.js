@@ -2,7 +2,7 @@
 // Change VERSION whenever you upload new files so phones and laptops pick up the update.
 // Fonts, icons and the libraries in /vendor/ live in a separate cache (STATIC) that survives updates,
 // so an update only re-downloads the app itself. Bump STATIC only if you replace one of those files.
-const VERSION='bondline-v34-1';
+const VERSION='bondline-v34-2';
 const STATIC='bondline-static-1';
 const CORE=["./", "./index.html", "./app.js", "./boot.js", "./landing.js", "./landing3d.js", "./manifest.webmanifest", "./firebase-config.js", "./pro-config.js", "./guide-data.js", "./course-x1.js", "./course-x2.js", "./course-x3.js", "./course-x4.js", "./course-x5.js", "./course-x6.js", "./course-x7.js", "./course-x8.js", "./course-x9.js", "./course-x10.js", "./course-x11.js", "./course-x12.js", "./diagrams.js", "./bondle-core.js", "./bondle-data.js", "./bondle-science.js", "./bondle/", "./bondle/bondle.js", "./bondle/bondle.css", "./extras.css", "./assets/track.js"];
 // Needed offline from the start: sign-in/sync, 3D models, and the fonts the notebook uses.
