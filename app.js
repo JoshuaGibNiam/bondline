@@ -898,7 +898,7 @@ function skKeys(e){const s=App.sketch;if(!s||!document.contains(s.svg))return fa
   if('123'.includes(k)&&k.length===1){SKS.size=+k-1;skSave();skSyncAll();return true}
   return false}
 
-function normNote(n){n.title=n.title||'';n.tag=n.tag||'';n.updated=n.updated||Date.now();n.blocks=Array.isArray(n.blocks)?n.blocks:[];n.blocks=n.blocks.filter(b=>b&&typeof b==='object').slice(0,400);for(const b of n.blocks){b.id=String(b.id||uid()).slice(0,40);if(b.type==='scheme')b.data=normScheme(b.data);else if(b.type==='sketch')b.data=cleanSketch(b.data);else if(b.type==='cards')b.data=cleanDeck(b.data);else if(b.type==='image')b.data=cleanImage(b.data);else{b.type='text';b.html=sanitize(b.html);delete b.data}}return normOrg(n)}
+function normNote(n){n.title=n.title||'';n.tag=n.tag||'';n.updated=n.updated||Date.now();n.blocks=Array.isArray(n.blocks)?n.blocks:[];n.blocks=n.blocks.filter(b=>b&&typeof b==='object').slice(0,400);for(const b of n.blocks){b.id=String(b.id||uid()).slice(0,40);if(b.type==='scheme')b.data=normScheme(b.data);else if(b.type==='sketch')b.data=cleanSketch(b.data);else if(b.type==='cards')b.data=cleanDeck(b.data);else if(b.type==='image')b.data=cleanImage(b.data);else if(b.type==='diagram'&&window.BL_DIAG)b.data=BL_DIAG.clean(b.data);else{b.type='text';b.html=sanitize(b.html);delete b.data}}return normOrg(n)}
 
 /* ---------- built-in notes ---------- */
 function makeLibrary(){
@@ -2792,7 +2792,7 @@ function mergeQuiz(remote){if(!remote||!remote.q)return;for(const[id,r]of Object
 function topicStats(t){const qs=NM_BANK.filter(q=>q.t===t);const m=qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:qs.length}}
 function setMode(mode){
   if(!['home','notes','cards','naming','guide','spectra','orbitals','synth','classes','progress','stereo','course','drills','study'].includes(mode))mode='home';if(mode!=='notes'&&CM.open)closeComments();
-  App.mode=mode;closePop();
+  const reTap=App.mode===mode;App.mode=mode;closePop();if(mode==='course'&&reTap){try{if(CO.view!=='quiz')CO.view='pick'}catch(e){}}
   document.querySelectorAll('.mode').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
   $('#notesSide').hidden=!(mode==='notes'||mode==='home');$('#namingSide').hidden=mode!=='naming';$('#specSide').hidden=mode!=='spectra';$('#orbSide').hidden=mode!=='orbitals';$('#guideSide').hidden=mode!=='guide';$('#cardsSide').hidden=mode!=='cards';$('#synthSide').hidden=mode!=='synth';$('#classSide').hidden=mode!=='classes';$('#synthPage').hidden=mode!=='synth';$('#classPage').hidden=mode!=='classes';$('#progSide').hidden=mode!=='progress';$('#progPage').hidden=mode!=='progress';$('#stSide').hidden=mode!=='stereo';$('#stPage').hidden=mode!=='stereo';$('#coSide').hidden=mode!=='course';$('#coPage').hidden=mode!=='course';$('#drSide').hidden=mode!=='drills';$('#drPage').hidden=mode!=='drills';$('#sdSide').hidden=mode!=='study';$('#sdPage').hidden=mode!=='study';
   $('#notesPage').hidden=mode!=='notes';$('#cardsPage').hidden=mode!=='cards';$('#namingPage').hidden=mode!=='naming';$('#specPage').hidden=mode!=='spectra';$('#orbPage').hidden=mode!=='orbitals';$('#homePage').hidden=mode!=='home';$('#guidePage').hidden=mode!=='guide';$('#newNote2').hidden=['naming','spectra','orbitals','synth','classes','progress','stereo','course','drills','study'].includes(mode);
@@ -3194,7 +3194,7 @@ function deleteFolder(id){const f=folderById(id);if(!f)return;for(const c of App
 function moveNote(n,folder){n.folder=folder||'';App.noteChanged(n);renderFolders();renderList();if(App.cur===n){const s=$('#noteFolder');if(s)s.value=n.folder}}
 function inView(n){if(VIEW.tag&&!noteTags(n).includes(VIEW.tag))return false;
   if(VIEW.folder==='all')return true;if(VIEW.folder==='pinned')return!!n.pinned;if(VIEW.folder==='unfiled')return!n.folder||!folderById(n.folder);return folderDesc(VIEW.folder).has(n.folder)}
-function noteText(n){return n.title+' '+noteTags(n).join(' ')+' '+n.blocks.map(b=>b.type==='text'?plain(b.html):b.type==='scheme'?b.data.texts.map(t=>t.text).join(' ')+b.data.arrows.map(a=>a.above+' '+a.below).join(' '):b.type==='cards'?(b.data.title+' '+b.data.cards.map(c=>c.f+' '+c.b).join(' ')):'').join(' ')+' '+(n.comments||[]).map(c=>c.t+' '+c.r.map(r=>r.t).join(' ')).join(' ')}
+function noteText(n){return n.title+' '+noteTags(n).join(' ')+' '+n.blocks.map(b=>b.type==='text'?plain(b.html):b.type==='scheme'?b.data.texts.map(t=>t.text).join(' ')+b.data.arrows.map(a=>a.above+' '+a.below).join(' '):b.type==='cards'?(b.data.title+' '+b.data.cards.map(c=>c.f+' '+c.b).join(' ')):b.type==='diagram'&&window.BL_DIAG?BL_DIAG.text(b.data):'').join(' ')+' '+(n.comments||[]).map(c=>c.t+' '+c.r.map(r=>r.t).join(' ')).join(' ')}
 function sortedNotes(list){return list.sort((a,b)=>(!!b.pinned-!!a.pinned)||(VIEW.sort==='az'?(a.title||'Untitled').localeCompare(b.title||'Untitled',undefined,{numeric:true,sensitivity:'base'}):b.updated-a.updated))}
 function renderFolders(){
   const box=$('#folderTree');if(!box)return;const cnt=id=>App.notes.filter(n=>folderDesc(id).has(n.folder)).length;
@@ -4130,12 +4130,13 @@ function blockEl(b,n){
   }else if(b.type==='image'){imageBlock(b,n,sec)}
   else if(b.type==='cards'){const host=document.createElement('div');sec.appendChild(host);App.decks.push(new DeckEditor(b,host,n))}
   else if(b.type==='sketch'){const host=document.createElement('div');sec.appendChild(host);(App.sketches=App.sketches||[]).push(new Sketch(b,host,n))}
+  else if(b.type==='diagram'){const host=document.createElement('div');sec.appendChild(host);if(window.BL_DIAG)BL_DIAG.editor(host,b.data,d=>{b.data=d;App.noteChanged(n)})}
   else{const host=document.createElement('div');sec.appendChild(host);App.editors.push(new Editor(b,host,n))}
   return sec;
 }
 function openNoteKeep(n){const sc=$('#main').scrollTop;openNote(n.id);$('#main').scrollTop=sc}
 function moveBlock(n,b,dir){const i=n.blocks.indexOf(b),j=i+dir;if(j<0||j>=n.blocks.length)return;[n.blocks[i],n.blocks[j]]=[n.blocks[j],n.blocks[i]];App.noteChanged(n);openNoteKeep(n)}
-function addBlock(type){const n=App.cur;if(!n)return;if(type==='image')return pickImages();const b=type==='text'?{id:uid(),type:'text',html:''}:type==='cards'?{id:uid(),type:'cards',data:emptyDeck()}:type==='sketch'?{id:uid(),type:'sketch',data:emptySketch(520)}:{id:uid(),type:'scheme',data:emptyScheme(240)};n.blocks.push(b);App.noteChanged(n);const el=blockEl(b,n);$('#blocks').appendChild(el);if(type==='text')el.querySelector('.text-body').focus();else if(type==='sketch'){App.sketch=App.sketches[App.sketches.length-1]}else if(type==='cards'){const t=el.querySelector('.fc-title');if(t)t.focus()}else{App.setActive(App.editors[App.editors.length-1]);setCtx('struct')}el.scrollIntoView({block:'nearest',behavior:'smooth'})}
+function addBlock(type){const n=App.cur;if(!n)return;if(type==='image')return pickImages();const b=type==='diagram'?{id:uid(),type:'diagram',data:{k:''}}:type==='text'?{id:uid(),type:'text',html:''}:type==='cards'?{id:uid(),type:'cards',data:emptyDeck()}:type==='sketch'?{id:uid(),type:'sketch',data:emptySketch(520)}:{id:uid(),type:'scheme',data:emptyScheme(240)};n.blocks.push(b);App.noteChanged(n);const el=blockEl(b,n);$('#blocks').appendChild(el);if(type==='text')el.querySelector('.text-body').focus();else if(type==='sketch'){App.sketch=App.sketches[App.sketches.length-1]}else if(type==='cards'){const t=el.querySelector('.fc-title');if(t)t.focus()}else{App.setActive(App.editors[App.editors.length-1]);setCtx('struct')}el.scrollIntoView({block:'nearest',behavior:'smooth'})}
 function newNote(){if(App.mode!=='notes')setMode('notes');const n={id:uid(),title:'',tag:VIEW.tag||'',tags:VIEW.tag?[VIEW.tag]:[],folder:folderById(VIEW.folder)?VIEW.folder:'',updated:Date.now(),blocks:[{id:uid(),type:'text',html:''},{id:uid(),type:'scheme',data:emptyScheme(240)}]};App.notes.push(n);App.noteChanged(n);openNote(n.id);$('#noteTitle').focus()}
 
 /* palette */
@@ -4221,6 +4222,11 @@ async function buildPrint(note,vec){
       const cs=b.data.cards.filter(c=>c.f.trim()||c.b.trim());if(!cs.length)continue;
       const h=document.createElement('div');h.className='pu p-ch';h.textContent=(b.data.title||'Flashcards')+' ('+cs.length+')';root.appendChild(h);
       cs.forEach((c,i)=>{const r=document.createElement('div');r.className='pu p-card'+(i===0?' first':'');r.innerHTML=`<div>${sideHTML(c.f,c.ft)}</div><div>${sideHTML(c.b,c.bt)}</div>`;root.appendChild(r)});
+    }else if(b.type==='diagram'){
+      if(!window.BL_DIAG||!BL_DIAG.is(b.data))continue;const w=document.createElement('div');w.className='pu p-fig p-svg p-dg';
+      if(b.data.k==='table'){w.innerHTML=BL_DIAG.html(b.data).replace('class="dg-table"','class="dg-table" style="border-collapse:collapse"');w.querySelectorAll('td,th').forEach(c=>{c.style.border='1px solid #b8b8b8';c.style.padding='5px 9px'})}
+      else{w.innerHTML=BL_DIAG.svg(b.data,{print:true});const g=w.firstChild;if(g){const ww=+g.getAttribute('width');g.removeAttribute('width');g.removeAttribute('height');w.style.width=Math.min(700,ww*1.15)+'px'}}
+      root.appendChild(w);
     }else if(b.type==='sketch'&&vec){
       if(!b.data.strokes.length)continue;const h=sketchBounds(b.data);const w=document.createElement('div');w.className='pu p-fig p-svg';w.innerHTML=sketchSVGString({...b.data,h},skPrintCol,'#ffffff');w.firstChild.removeAttribute('width');w.firstChild.removeAttribute('height');w.style.width='100%';root.appendChild(w);
     }else if(b.type==='sketch'){
@@ -6844,6 +6850,7 @@ function noteSlides(n){
       if(cur&&cur.items.length>1&&cur.used+h>room){const last=cur.items[cur.items.length-1];if(last.k==='text'&&last.h<1.4){cur.items.pop();cur.used-=last.h;open(cur.title,true);cur.items.push(last);cur.used+=last.h}}
       need(h);cur.items.push({k:'scheme',d,w:sz.w,h:sz.h})}
     else if(b.type==='image'&&b.data&&b.data.src){need(3.6);cur.items.push({k:'image',src:b.data.src,cap:b.data.cap||'',h:3.6})}
+    else if(b.type==='diagram'&&window.BL_DIAG&&BL_DIAG.is(b.data)){need(3.8);cur.items.push({k:'diagram',data:b.data,h:3.8})}
     else if(b.type==='sketch'&&b.data&&b.data.strokes&&b.data.strokes.length){need(4.2);cur.items.push({k:'sketch',data:b.data,h:4.2})}
     else if(b.type==='cards'&&b.data&&b.data.cards){const cs=b.data.cards.filter(c=>(c.f||'').trim()||(c.b||'').trim());for(let i=0;i<cs.length;i+=6){open((b.data.title||'Flashcards')+(i?' (cont.)':''));cur.items.push({k:'cards',cards:cs.slice(i,i+6),h:room});cur.used=room}}
   }
@@ -6903,6 +6910,8 @@ async function exportPPTX(n){
           const cv=await schemeCanvas(it.d,3);if(cv){s.addImage({data:cv.toDataURL('image/png'),x:SLD.X+(SLD.CW-it.w)/2,y,w:it.w,h:it.h})}y+=it.h+0.15;
         }else if(it.k==='image'){
           try{const src=await v16DataURL(it.src);const im=new Image();im.src=src;await im.decode();const mh=it.cap?it.h-0.35:it.h;let w=Math.min(SLD.CW,mh*im.width/im.height),h=w*im.height/im.width;s.addImage({data:src,x:SLD.X+(SLD.CW-w)/2,y,w,h});if(it.cap)s.addText(it.cap,{x:SLD.X,y:y+h+0.02,w:SLD.CW,h:0.32,fontFace:F,fontSize:12,italic:true,color:MUT,align:'center'});y+=it.h}catch(e){}
+        }else if(it.k==='diagram'){
+          const cv=await BL_DIAG.canvas(it.data,2);if(cv){const r=cv.width/cv.height;let h=Math.min(it.h,SLD.CW/r),w=h*r;s.addImage({data:cv.toDataURL('image/png'),x:SLD.X+(SLD.CW-w)/2,y,w,h})}y+=it.h;
         }else if(it.k==='sketch'){
           const cv=await sketchCanvas(it.data,2);if(cv){const r=cv.width/cv.height;let h=Math.min(it.h,SLD.CW/r),w=h*r;s.addImage({data:cv.toDataURL('image/png'),x:SLD.X+(SLD.CW-w)/2,y,w,h})}y+=it.h;
         }else if(it.k==='cards'){
@@ -6951,6 +6960,7 @@ function lmRender(){
         if(bbFull&&bb){/* keep the full drawing's frame so it doesn't jump as arrows appear */const p=10;sv=sv.replace(/viewBox="[^"]*" width="[^"]*" height="[^"]*"/,`viewBox="${f(bbFull.x-p)} ${f(bbFull.y-p)} ${f(bbFull.w+2*p)} ${f(bbFull.h+2*p)}"`)}
         body+=`<figure class="lm-fig${vis}" style="height:${(it.h*96).toFixed(0)}px">${sv}</figure>`}
       else if(it.k==='image')body+=`<figure class="lm-fig lm-img${vis}" style="height:${(it.h*96).toFixed(0)}px"><img src="${esc(it.src)}" alt="${esc(it.cap)}">${it.cap?`<figcaption>${esc(it.cap)}</figcaption>`:''}</figure>`;
+      else if(it.k==='diagram')body+=`<figure class="lm-fig lm-sk lm-dg${vis}" style="height:${(it.h*96).toFixed(0)}px">${it.data.k==='table'?BL_DIAG.html(it.data):BL_DIAG.svg(it.data,{print:true})}</figure>`;
       else if(it.k==='sketch')body+=`<figure class="lm-fig lm-sk${vis}" style="height:${(it.h*96).toFixed(0)}px">${sketchSVGString({...it.data,h:sketchBounds(it.data)},skPrintCol,'#ffffff')}</figure>`;
       else if(it.k==='cards')body+=`<div class="lm-cards${vis}">${it.cards.map(c=>`<div><b>${esc(c.f)}</b><span>${esc(c.b)}</span></div>`).join('')}</div>`;
     });close();
@@ -8405,7 +8415,7 @@ function stSetup(topics){
   sync();renderStSide();$('#main').scrollTop=0;$('#side').classList.remove('open');
 }
 const ST_FIXED=[['R','S'],['E','Z'],['Chiral','Achiral'],['Yes','No'],['D','L']];
-function stFig(f){if(!f)return'';
+function stFig(f){if(!f)return'';if(window.BL_DIAG&&BL_DIAG.is(f))return BL_DIAG.html(f);
   if(f.k==='smi')return`<div class="qz-struct">${smilesSVG(f.s,1.2)}<button class="linkbtn nm-3d" data-3d="${esc(f.s)}" data-name="">View in 3D</button></div>`;
   if(f.k==='pair')return`<div class="st-pair">${[['A',f.a],['B',f.b]].map(([n,s])=>`<figure><span class="st-pl">${n}</span>${smilesSVG(s,1.05)}<button class="linkbtn nm-3d" data-3d="${esc(s)}" data-name="Structure ${n}">View ${n} in 3D</button></figure>`).join('')}</div>`;
   if(f.k==='fischer')return`<div class="qz-struct st-fi">${stFischerSVG(f.g)}</div>`;
@@ -8973,8 +8983,8 @@ const CO_UNITS_B=[
 /* ---------- v21: Courses tab (IChO); v23: three courses ---------- */
 const CO_UNITS=[...CO_UNITS_A,...CO_UNITS_B];
 /* v31: extra IChO questions and olympiad problems from course-x5.js, appended so existing ids never change. */
-(()=>{const X=window.BL_COURSE_X;if(!X||!X.ic)return;CO_UNITS.forEach(u=>{const x=X.ic[u.id];if(!x)return;if(x.qs)u.qs.push(...x.qs);if(x.xp&&x.xp.length)u.xp=(u.xp||[]).concat(x.xp)})})();
-CO_UNITS.forEach((u,i)=>{u.n=i+1;u.qs.forEach((q,k)=>{q.id='ic-'+u.id+'-'+(k+1);q.t=u.id})});
+(()=>{const X=window.BL_COURSE_X;if(!X||!X.ic)return;CO_UNITS.forEach(u=>{const x=X.ic[u.id];if(!x)return;if(x.qs)u.qs.push(...x.qs);if(x.xp&&x.xp.length)u.xp=(u.xp||[]).concat(x.xp);if(x.dq)u.dq=(u.dq||[]).concat(x.dq)})})();
+CO_UNITS.forEach((u,i)=>{u.n=i+1;u.qs.forEach((q,k)=>{q.id='ic-'+u.id+'-'+(k+1);q.t=u.id});(u.dq=u.dq||[]).forEach((q,k)=>{q.id='ic-'+u.id+'-d'+(k+1);q.t=u.id})});
 const CO_BANK=CO_UNITS.flatMap(u=>u.qs),CO_BY=Object.fromEntries(CO_BANK.map(q=>[q.id,q])),CO_UBY=Object.fromEntries(CO_UNITS.map(u=>[u.id,u]));
 const CO_TOPICS=CO_UNITS.map(u=>({id:u.id,title:`${u.n}. ${u.title}`}));
 
@@ -10119,18 +10129,18 @@ for(const[id,x]of Object.entries(PU_EXT)){const u=PU_UNITS.find(v=>v.id===id);if
   (x.sec||[]).forEach(([after,s])=>{let i=after==null?u.sections.length:u.sections.findIndex(t=>t.h===after)+1;if(i<=0)i=u.sections.length;u.sections.splice(i,0,s)});
   if(x.qs)u.qs.push(...x.qs)}
 /* v31: extra questions, exam-style written questions and the rest of AP Chemistry, from course-x1.js to course-x4.js. */
-(()=>{const X=window.BL_COURSE_X;if(!X)return;for(const u of PU_UNITS){const x=X.pu&&X.pu[u.id];if(!x)continue;if(x.qs)u.qs.push(...x.qs);if(x.xp)u.xp=(u.xp||[]).concat(x.xp)}
-  for(const u of X.units||[])if(!PU_UNITS.some(v=>v.id===u.id))PU_UNITS.push(u)})();
-PU_UNITS.forEach(u=>u.qs.forEach((q,k)=>{q.id=u.id+'-'+(k+1);q.t=u.id}));
+(()=>{const X=window.BL_COURSE_X;if(!X)return;for(const u of X.units||[])if(!PU_UNITS.some(v=>v.id===u.id))PU_UNITS.push(u);
+  for(const u of PU_UNITS){const x=X.pu&&X.pu[u.id];if(!x)continue;if(x.qs)u.qs.push(...x.qs);if(x.xp)u.xp=(u.xp||[]).concat(x.xp);if(x.dq)u.dq=(u.dq||[]).concat(x.dq)}})();
+PU_UNITS.forEach(u=>{u.qs.forEach((q,k)=>{q.id=u.id+'-'+(k+1);q.t=u.id});(u.dq=u.dq||[]).forEach((q,k)=>{q.id=u.id+'-d'+(k+1);q.t=u.id})});
 // v31: the first 30% of every unit's questions are free; the rest need Pro.
 const CO_FREE_SHARE=.3;
-[...PU_UNITS,...CO_UNITS].forEach(u=>{const n=Math.ceil(CO_FREE_SHARE*u.qs.length);u.qs.forEach((q,k)=>{q.fr=k<n})});
+[...PU_UNITS,...CO_UNITS].forEach(u=>{const n=Math.ceil(CO_FREE_SHARE*u.qs.length);u.qs.forEach((q,k)=>{q.fr=k<n});const m=Math.ceil(CO_FREE_SHARE*u.dq.length);u.dq.forEach((q,k)=>{q.fr=k<m})});
 const PU_BANK=PU_UNITS.flatMap(u=>u.qs),PU_BY=Object.fromEntries(PU_BANK.map(q=>[q.id,q])),PU_UBY=Object.fromEntries(PU_UNITS.map(u=>[u.id,u]));
 const PU_TOPICS=PU_UNITS.map(u=>({id:u.id,title:u.title}));
 const coOnly=(x,t)=>!x.only||x.only.includes(t);
 function coTrack(t,ids,groups){
   const t2=t==='n'?'j':t;const units=ids.map((id,i)=>{const b=PU_UBY[id];return{id,n:i+1,free:i<3,title:b.title,lede:b.lede,ref:b.ref[t]||b.ref[t2]||'',syl:b.syl[t]||b.syl[t2]||[],
-    sections:b.sections.filter(s=>coOnly(s,t)),tools:b.tools,prob:b.prob,xp:(b.xp||[]).filter(x=>coOnly(x,t)),qs:b.qs.filter(q=>coOnly(q,t))}});
+    sections:b.sections.filter(s=>coOnly(s,t)),tools:b.tools,prob:b.prob,xp:(b.xp||[]).filter(x=>coOnly(x,t)),qs:b.qs.filter(q=>coOnly(q,t)),dq:(b.dq||[]).filter(q=>coOnly(q,t))}});
   return{units,groups:groups.map(([h,a,z])=>[h,u=>u.n>a&&u.n<=z])}}
 const PU_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-deriv','pu-amine','pu-amino','pu-poly','pu-synth','pu-spec'];
 const CIE_T=coTrack('a',PU_ORDER,[['Atoms, orbitals and bonding',0,6],['Organic chemistry',6,22]]);
@@ -10178,7 +10188,7 @@ const COURSES={
     lede:n=>`${n} units covering atomic structure, chemical bonding and periodicity, and all of the organic chemistry in the NEET UG syllabus, following the NCERT Class 11 and 12 textbooks, including biomolecules and a unit of every named reaction. Each unit has the syllabus points, lessons, a NEET-style question with worked answers, and a quiz.`,
     note:['How this course fits the syllabus.','NEET UG chemistry follows NCERT closely, so read the NCERT text alongside each unit. Units 1–6 cover atomic structure, chemical bonding and periodicity; units 7–20 cover all the organic units, including biomolecules, which carries extra weight for medicine. The other physical and inorganic chemistry units are coming in a later update.'],
     src:'Based on the NEET UG syllabus published by the National Medical Commission, and the NCERT Chemistry textbooks for Classes 11 and 12. Not affiliated with or endorsed by NMC, NTA or NCERT.'},NEET_T)};
-const CO_IDS=Object.keys(COURSES),CO_ALLQ=Object.assign({},CO_BY,PU_BY);
+const CO_IDS=Object.keys(COURSES),CO_ALLQ=Object.assign({},CO_BY,PU_BY,Object.fromEntries([...CO_UNITS,...PU_UNITS].flatMap(u=>u.dq||[]).map(q=>[q.id,q])));
 
 const CO={c:'',view:null,unit:null,qz:null};
 const C=()=>COURSES[CO.c]||COURSES.icho;
@@ -10200,6 +10210,7 @@ function coSide(){const box=$('#coList');if(!box)return;const K=C(),cur=CO.view=
    ${pick?'':`<button class="item${cur==='home'?' on':''}" data-cohome="1"><span class="t">${esc(K.name)}</span><span class="m">${esc(K.sub)}</span></button>
    ${K.groups.map(([h,f])=>`<div class="pg-sh">${esc(h)}</div>${K.units.filter(f).map(item).join('')}`).join('')}`}`}
 
+function coCrumb(K,unit){return`<nav class="co-crumb" aria-label="Breadcrumb"><button class="co-crb" data-copick="1">All courses</button><span aria-hidden="true">›</span>${unit?`<button class="co-crb" data-cohome="1">${esc(K.name)}</button>`:`<span class="co-crc">${esc(K.name)}</span>`}<label class="co-crsel"><span class="sr-only">Switch course</span><select data-cosel="1" aria-label="Switch course">${CO_IDS.map(c=>`<option value="${c}"${c===K.id?' selected':''}>${esc(COURSES[c].short)}</option>`).join('')}</select></label></nav>`}
 function coOpen(){if(!CO.c)CO.c=v18get('bondline.course','');if(CO.view==='quiz'&&CO.qz)return coRenderQ();if(CO.view==='unit'&&CO.unit)return coUnit(CO.unit);if(!CO.c||CO.view==='pick')return coPick();coHome()}
 function coDone(){$('#main').scrollTop=0;$('#side').classList.remove('open');coSide()}
 
@@ -10217,7 +10228,7 @@ function coHome(){
   if(!CO.c)return coPick();
   const K=C();CO.view='home';const A=coAll(),last=v18get(K.lastKey,null),lu=last&&K.uby[last],u1=K.units[0];
   const card=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="co-card${lk?' locked':''}" data-counit="${u.id}"><span class="co-cn">${u.n}</span><span class="co-ct"><b>${esc(u.title)}</b><small>${esc(u.lede)}</small></span><span class="co-cm">${coBadge(u)}<span>${s.seen?`${s.m}/${s.n}`:`${s.n} questions`}</span>${coMeter(s)}</span></button>`};
-  $('#coPage').innerHTML=`<article class="nm-lesson co-home"><header class="nm-head"><div class="nm-kicker">Course</div><h1>${esc(K.h1)}</h1>
+  $('#coPage').innerHTML=`<article class="nm-lesson co-home">${coCrumb(K,false)}<header class="nm-head"><div class="nm-kicker">Course</div><h1>${esc(K.h1)}</h1>
    <p class="nm-lede">${esc(K.lede(K.units.length))}</p></header>
    <div class="co-stats"><div><b>${A.done}</b><span>of ${K.units.length} units complete</span></div><div><b>${A.m}</b><span>of ${A.n} questions mastered</span></div></div>
    <div class="nm-actions">${lu?`<button class="btn primary" data-counit="${lu.id}">Continue: Unit ${lu.n}</button><button class="btn" data-counit="${u1.id}">Start from Unit 1</button>`:`<button class="btn primary" data-counit="${u1.id}">Start Unit 1</button>`}<button class="linkbtn" data-copick="1">Other courses</button></div>
@@ -10233,7 +10244,7 @@ function coUnit(id){
   const c=coFind(id);if(!c)return coHome();coSet(c);const K=C(),u=K.uby[id];
   CO.view='unit';CO.unit=id;v18set(K.lastKey,id);const next=K.units[u.n],prev=K.units[u.n-2],u1=K.units[0];
   const kick=K.kick(u);
-  const head=`<header class="nm-head"><div class="nm-kicker">${esc(K.short)} · Unit ${u.n} of ${K.units.length}${kick?' · '+esc(kick):''} ${coBadge(u)}</div><h1>${esc(u.title)}</h1><p class="nm-lede">${esc(u.lede)}</p></header>`;
+  const head=coCrumb(K,true)+`<header class="nm-head"><div class="nm-kicker">${esc(K.short)} · Unit ${u.n} of ${K.units.length}${kick?' · '+esc(kick):''} ${coBadge(u)}</div><h1>${esc(u.title)}</h1><p class="nm-lede">${esc(u.lede)}</p></header>`;
   const chk=coChecks()[id]||[];
   const syl=`<section class="co-syl"><h2>${esc(K.sylH)}</h2><p class="co-sylh">Tick each one when you could explain it to a friend.</p><ul>${u.syl.map((s,i)=>`<li><label><input type="checkbox" data-cosyl="${i}"${chk.includes(i)?' checked':''}${coLocked(u)?' disabled':''}><span>${esc(s)}</span></label></li>`).join('')}</ul></section>`;
   if(coLocked(u)){
@@ -10248,17 +10259,33 @@ function coUnit(id){
   stMount($('#coPage'));coDone()}
 
 /* ---------- quiz ---------- */
-function coBuild(q){return{prompt:q.prompt,fig:stFig(q.fig),opts:shuffle(q.opts.slice()),ans:q.opts[0],why:q.why}}
+function coBuild(q){const why=q.why+(q.whyFig?stFig(q.whyFig):'');if(q.draw)return{prompt:q.prompt,fig:stFig(q.fig),draw:true,why};return{prompt:q.prompt,fig:stFig(q.fig),opts:shuffle(q.opts.slice()),ans:q.opts[0],why}}
 function coStart(cfg){
   const c=coFind(cfg.unit);if(c)coSet(c);const u=C().uby[cfg.unit];if(!u)return coHome();
-  let pool=cfg.ids?cfg.ids.map(id=>CO_ALLQ[id]).filter(Boolean):u.qs.slice();if(!proOpen())pool=pool.filter(q=>q.fr);if(!pool.length)return openPro(CO.c||'icho');
-  if(!cfg.ids){const w=q=>{const r=App.quiz.q[q.id];return!r?0:r.last===0?1:2};pool=[0,1,2].flatMap(k=>shuffle(pool.filter(q=>w(q)===k)))}else pool=shuffle(pool);
+  const dq=(u.dq||[]).filter(q=>proOpen()||q.fr);
+  let pool=cfg.ids?cfg.ids.map(id=>CO_ALLQ[id]).filter(Boolean):cfg.draw?dq.slice():u.qs.slice();if(!proOpen())pool=pool.filter(q=>q.fr);if(!pool.length)return openPro(CO.c||'icho');
+  if(cfg.draw)pool=shuffle(pool);else if(!cfg.ids){const w=q=>{const r=App.quiz.q[q.id];return!r?0:r.last===0?1:2};pool=[0,1,2].flatMap(k=>shuffle(pool.filter(q=>w(q)===k)))}else pool=shuffle(pool);
+  if(!cfg.ids&&!cfg.draw&&dq.length){/* two or three drawing questions, spread through the quiz */const k=Math.min(dq.length,pool.length>=20?3:2),pick=shuffle(dq.slice()).slice(0,k);pick.forEach((q,i)=>pool.splice(Math.min(pool.length,Math.round((i+1)*pool.length/(k+1))+i),0,q))}
   stDisposeViews();CO.unit=u.id;CO.qz={cfg,items:pool.map(q=>({q,b:coBuild(q)})),i:0,score:0,answered:false,results:[]};CO.view='quiz';coRenderQ()}
 function coRenderQ(){
   const Z=CO.qz,it=Z.items[Z.i],b=it.b,n=Z.items.length,u=coU(it.q.t);
   $('#coPage').innerHTML=`<section class="qz co-qz"><div class="qz-top"><span><b>Question ${Z.i+1}</b> of ${n}</span><span class="qz-topic">Unit ${u.n?u.n+': ':''}${esc(u.title)}</span><span class="qz-score">Score ${Z.score}</span><button class="linkbtn" id="coQuit">End quiz</button></div>
-   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*Z.i/n)}%"></i></div><div class="qz-card"><p class="qz-prompt">${b.prompt}</p>${b.fig}<div class="qz-opts${b.opts.length===2?' two':''}" role="group" aria-label="Answers">${b.opts.map((o,k)=>`<button class="qz-opt" data-cok="${k}"><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div><div class="qz-fb" id="coFb" hidden></div></div></section>`;
-  Z.answered=false;$('#coQuit').onclick=()=>coFinish(true);coDone()}
+   <div class="qz-bar" aria-hidden="true"><i style="width:${Math.round(100*Z.i/n)}%"></i></div><div class="qz-card"><p class="qz-prompt">${b.draw?`<span class="co-dtag">${esc(BL_DIAG.label(coDrawKind(it.q)))}</span> `:''}${b.prompt}</p>${b.fig}${b.draw?`<div class="co-draw" id="coDraw"></div><div class="qz-next"><button class="btn primary" id="coCheck">Check my answer</button><button class="linkbtn" id="coShow">Show the answer</button></div>`:`<div class="qz-opts${b.opts.length===2?' two':''}" role="group" aria-label="Answers">${b.opts.map((o,k)=>`<button class="qz-opt" data-cok="${k}"><span class="qz-key">${k+1}</span><span>${o}</span></button>`).join('')}</div>`}<div class="qz-fb" id="coFb" hidden></div></div></section>`;
+  Z.answered=false;$('#coQuit').onclick=()=>coFinish(true);if(b.draw)coDrawMount(it);coDone()}
+function coDrawKind(q){const m=Array.isArray(q.model)?q.model[0]:q.model;return m&&m.k||'graph'}
+function coDrawMount(it){const q=it.q,k=coDrawKind(q);it.ans=BL_DIAG.clean(q.start?JSON.parse(JSON.stringify(q.start)):BL_DIAG.empty(k));if(it.ans.k!==k)it.ans=BL_DIAG.empty(k);
+  const st=q.start&&q.start.k==='table'?BL_DIAG.clean(q.start):null;BL_DIAG.editor($('#coDraw'),it.ans,d=>{it.ans=d},{lock:true,fixed:st?(i,j)=>!!(st.rows[i]&&st.rows[i][j]):null});
+  $('#coCheck').onclick=()=>coDrawCheck(false);$('#coShow').onclick=()=>coDrawCheck(true)}
+function coDrawCheck(give){const Z=CO.qz;if(!Z||Z.answered)return;const it=Z.items[Z.i],q=it.q,b=it.b;const r=give?{auto:true,ok:false,msg:''}:BL_DIAG.check(q.model,it.ans,q.start);
+  const models=(Array.isArray(q.model)?q.model:[q.model]),mh=`<div class="co-dmodel"><h3>Model answer</h3>${models.map(m=>BL_DIAG.html(m)).join('')}</div>`;
+  const fb=$('#coFb');fb.hidden=false;$('#coCheck').disabled=true;$('#coShow').hidden=true;
+  if(r.auto){coDrawRecord(r.ok);fb.className='qz-fb '+(r.ok?'ok':'bad');fb.innerHTML=`<p class="qz-verdict">${give?'Here is the answer.':r.ok?'Correct.':'Not quite.'} ${esc(r.msg)}</p>${mh}<p class="qz-why">${b.why}</p>${coNextBtn()}`;coWireNext()}
+  else{fb.className='qz-fb';fb.innerHTML=`<p class="qz-verdict">Compare your drawing with the model answer.</p>${mh}<p class="qz-why">${b.why}</p><div class="qz-next"><button class="btn primary" data-self="1">I got it right</button><button class="btn" data-self="0">I missed something</button></div>`;
+    fb.querySelectorAll('[data-self]').forEach(x=>x.onclick=()=>{coDrawRecord(x.dataset.self==='1');x.parentNode.outerHTML=coNextBtn();coWireNext()})}
+  fb.scrollIntoView({block:'nearest',behavior:'smooth'})}
+function coDrawRecord(ok){const Z=CO.qz,it=Z.items[Z.i];const r=App.quiz.q[it.q.id]||{c:0,w:0};ok?r.c++:r.w++;r.last=ok?1:0;r.at=Date.now();App.quiz.q[it.q.id]=r;if(ok)Z.score++;Z.results.push({q:it.q,ok});Z.answered=true;saveQuiz();logAns(ok);$('.co-qz .qz-score').textContent='Score '+Z.score}
+const coNextBtn=()=>{const Z=CO.qz;return`<div class="qz-next"><button class="btn primary" id="coNext">${Z.i===Z.items.length-1?'See results':'Next question'}</button><span class="qz-hint">or press Enter</span></div>`};
+function coWireNext(){$('#coNext').onclick=coNext;setTimeout(()=>{const x=$('#coNext');if(x)x.focus({preventScroll:true})},50)}
 function coAnswer(k){
   const Z=CO.qz;if(!Z||Z.answered)return;const it=Z.items[Z.i],b=it.b;if(k<0||k>=b.opts.length)return;const ok=b.opts[k]===b.ans;
   document.querySelectorAll('#coPage [data-cok]').forEach((el,j)=>{el.disabled=true;if(b.opts[j]===b.ans)el.classList.add('right');else if(j===k)el.classList.add('wrong')});
@@ -10273,12 +10300,12 @@ function coFinish(early){
   const pct=n?Math.round(100*sc/n):0,msg=pct===100?'Perfect score.':pct>=80?'Strong work.':pct>=50?'Good progress. Reread the sections behind the questions you missed, then try again.':'Keep going. Work through the unit’s problem, then try the quiz again.';
   $('#coPage').innerHTML=`<section class="qz-sum"><header class="nm-head"><div class="nm-kicker">Unit ${u.n} quiz</div><h1>${sc} out of ${n}</h1><p class="nm-lede">${msg}</p></header>
    <div class="qz-break"><div class="qz-brow"><span>Unit ${u.n} mastered</span><span class="nm-meter"><i style="width:${Math.round(100*s.m/s.n)}%"></i></span><b>${s.m}/${s.n}</b></div></div>
-   ${missed.length?`<div class="co-missed"><h2>To review</h2>${missed.map(r=>`<div class="co-mi"><p>${r.q.prompt}</p><p class="co-mia"><b>${r.q.opts[0]}</b>. ${r.q.why}</p></div>`).join('')}</div>`:''}
+   ${missed.length?`<div class="co-missed"><h2>To review</h2>${missed.map(r=>r.q.draw?`<div class="co-mi"><p>${r.q.prompt}</p>${(Array.isArray(r.q.model)?r.q.model:[r.q.model]).map(m=>BL_DIAG.html(m)).join('')}<p class="co-mia">${r.q.why}</p></div>`:`<div class="co-mi"><p>${r.q.prompt}</p><p class="co-mia"><b>${r.q.opts[0]}</b>. ${r.q.why}</p></div>`).join('')}</div>`:''}
    <div class="nm-actions">${missed.length?`<button class="btn primary" id="coRetry">Retry the ${missed.length} I missed</button>`:''}${next?`<button class="btn${missed.length?'':' primary'}" data-counit="${next.id}">Next: Unit ${next.n}</button>`:''}<button class="btn" data-counit="${uid}">Back to the unit</button></div></section>`;
   if(missed.length)$('#coRetry').onclick=()=>coStart({unit:uid,ids:missed.map(r=>r.q.id)});
   CO.qz=null;coDone()}
 function coKey(e){if(App.mode!=='course'||!CO.qz||CO.view!=='quiz')return;if(e.target.closest('input,textarea,select,[contenteditable="true"]')||e.metaKey||e.ctrlKey||e.altKey)return;if(document.querySelector('.scrim:not([hidden])'))return;
-  if(/^[1-4]$/.test(e.key)&&!CO.qz.answered){e.preventDefault();coAnswer(+e.key-1)}else if(e.key==='Enter'&&CO.qz.answered&&!e.target.closest('button')){e.preventDefault();coNext()}}
+  if(/^[1-4]$/.test(e.key)&&!CO.qz.answered&&!CO.qz.items[CO.qz.i].b.draw){e.preventDefault();coAnswer(+e.key-1)}else if(e.key==='Enter'&&CO.qz.answered&&!e.target.closest('button')){e.preventDefault();coNext()}}
 
 function exItemCo(q,area){const b=coBuild(q);return{area:area||'icho',id:q.id,t:q.t,kind:'text',prompt:b.prompt,fig:b.fig,opts:b.opts,ans:b.opts.indexOf(b.ans),answer:b.ans,why:b.why}}
 function coGo(spec){const i=spec.indexOf('|'),k=spec.slice(0,i),a=spec.slice(i+1);
@@ -10303,11 +10330,12 @@ function wireV21(){
     const un=t.closest('[data-counit]');if(un)return coUnit(un.dataset.counit);
     if(t.closest('[data-cohome]'))return coHome();
     const q=t.closest('[data-coquiz]');if(q)return coStart({unit:q.dataset.coquiz});
+    const dr=t.closest('[data-codraw]');if(dr)return coStart({unit:dr.dataset.codraw,draw:true});
     const k=t.closest('[data-cok]');if(k)return coAnswer(+k.dataset.cok);
     const g=t.closest('[data-cgo]');if(g)return coGo(g.dataset.cgo);
     if(t.closest('[data-copro]'))return openPro(CO.c||'icho')};
   $('#coPage').addEventListener('click',click);$('#coSide').addEventListener('click',click);
-  $('#coPage').addEventListener('change',e=>{const c=e.target.closest('[data-cosyl]');if(!c||!CO.unit)return;const all=coChecks(),cur=new Set(all[CO.unit]||[]),i=+c.dataset.cosyl;c.checked?cur.add(i):cur.delete(i);all[CO.unit]=[...cur].sort((a,b)=>a-b);v18set(C().sylKey,all)});
+  $('#coPage').addEventListener('change',e=>{const sel=e.target.closest('[data-cosel]');if(sel)return coGoCourse(sel.value);const c=e.target.closest('[data-cosyl]');if(!c||!CO.unit)return;const all=coChecks(),cur=new Set(all[CO.unit]||[]),i=+c.dataset.cosyl;c.checked?cur.add(i):cur.delete(i);all[CO.unit]=[...cur].sort((a,b)=>a-b);v18set(C().sylKey,all)});
   document.addEventListener('keydown',coKey);
   { const _ci=cmdItems;cmdItems=function(){const I=_ci();
     I.push({label:'All courses',kind:'Go to',fn:()=>{setMode('course');coPick()},kw:'courses course syllabus icho a level alevel stpm cambridge 9701 962'});
@@ -12853,8 +12881,9 @@ function wireV30(){
 
 /* ---------- v31: more course questions (30% free), exam-style written questions, the rest of AP, reactions in mock exams ---------- */
 function coFreeN(u){return u.qs.filter(q=>q.fr).length}
-function coQuizBtn(u){const n=u.qs.length;if(proOpen())return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${n} questions</button>`;
-  const f=coFreeN(u);return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${f} free questions</button>${n>f?`<button class="btn" data-copro="1">${n-f} more with Pro${PRO_BADGE}</button>`:''}`}
+function coDrawBtn(u){const d=(u.dq||[]).length;if(!d)return'';const f=proOpen()?d:(u.dq||[]).filter(q=>q.fr).length;return f?`<button class="btn" data-codraw="${u.id}">Drawing practice · ${f}</button>`:''}
+function coQuizBtn(u){const n=u.qs.length;if(proOpen())return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${n} questions</button>`+coDrawBtn(u);
+  const f=coFreeN(u);return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${f} free questions</button>${coDrawBtn(u)}${n>f?`<button class="btn" data-copro="1">${n-f} more with Pro${PRO_BADGE}</button>`:''}`}
 // The label for each written question depends on the course, so the same question can be "Section B" for STPM and "Paper 2" for IB.
 const XPK={struct:{cie:'Structured question · Paper 2 and 4 style',stpm:'Section B · structured question',ib:'Paper 2 · short-answer question',ap:'Free response · short answer'},
   essay:{stpm:'Section C · essay question'},data:{ib:'Paper 1B · data-based question'},nvt:{jee:'Section B · numerical value (integer answer)'},
@@ -12924,7 +12953,7 @@ function mbBuild(){if($('#mbar'))return;const app=document.querySelector('.app')
     `<button type="button" class="mb-b" data-mb="${k}"${k==='tools'?' aria-haspopup="menu" aria-expanded="false" aria-controls="toolsMenu"':k==='acct'?' aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu"':''}><span class="mb-i"><svg viewBox="0 0 24 24" aria-hidden="true">${MB_ICO[k]}</svg></span><span class="mb-l">${l}</span><i class="mb-dot" aria-hidden="true"></i></button>`).join('');
   n.addEventListener('click',e=>{const b=e.target.closest('[data-mb]');if(!b)return;const k=b.dataset.mb;
     if(k==='home'||k==='notes'){closeMenus();setMode(k)}
-    else if(k==='practice'){closeMenus();if(MB_PRACTICE.includes(App.mode)){$('#main').scrollTo({top:0,behavior:'smooth'})}else{const m=v17ls('bondline.px');setMode(MB_PRACTICE.includes(m)?m:'course')}}
+    else if(k==='practice'){closeMenus();if(App.mode==='course'&&CO.view!=='quiz'){setMode('course')}else if(MB_PRACTICE.includes(App.mode)){$('#main').scrollTo({top:0,behavior:'smooth'})}else{const m=v17ls('bondline.px');setMode(MB_PRACTICE.includes(m)?m:'course')}}
     else if(k==='tools'){renderToolsMenu();toggleMenu($('#toolsMenu'),b)}
     else if(k==='acct'){renderAcctMenu();toggleMenu($('#acctMenu'),b)}});
   app.appendChild(n);document.body.classList.add('has-mbar')}
@@ -13258,6 +13287,13 @@ function wireV33(){
     ['Past paper finder','Where to find the real past papers for every exam, from official sources.'],
     ['Bondle redrawn','New icons and badges, a ring timer, the same 30-second clock for everyone, Hard mode, and answer time as the tiebreak.']]});
 }
+
+/* ---------- v34: diagrams in notes and questions, 1,600 more course questions, easier course switching ---------- */
+CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions and 1,600 more questions',items:[
+  ['Add diagram','Draw titration curves, graphs, Lewis structures and tables in any note. They print, export to PDF and PowerPoint, and show in lecture mode.'],
+  ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
+  ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
+  ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
 
 wireV13();wireSpectra();wireOrbitals();wireV16();wireV17();wireV18();wireV19();wireV21();wireV22();wireV24();wireV25();wireV26();wireV27();wireV29();wireV30();wireV31();wireV32();wireV33();
 boot().then(()=>{try{const q=new URLSearchParams(location.search);if(q.has('papers')){const c=q.get('papers');setTimeout(()=>ppOpen(COURSES[c]?c:''),300);history.replaceState(null,'',location.pathname+'?app')}}catch(e){}v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
