@@ -51,12 +51,16 @@ Netlify runs server functions only for sites deployed from Git or the Netlify CL
 ### 2. Create the products in Stripe
 In **Product catalogue**, create these and copy each **Price ID**:
 
-| Product | Type | Price |
-|---|---|---|
-| Bondline Pro monthly | Recurring, monthly | US$4 |
-| Semester pass | One-off | US$19 |
-| Exam pass | One-off | US$9 |
-| Centre licence | One-off, per student | US$3 |
+Each product has two prices: the launch price (on sale until 29 November 2026, 11:59 pm Malaysia time) and the full price after that. Add both to the same product.
+
+| Product | Type | Launch price | Full price |
+|---|---|---|---|
+| Bondline Pro monthly | Recurring, monthly | US$4 | US$8 |
+| Semester pass | One-off | US$19 | US$38 |
+| Exam pass | One-off | US$9 | US$18 |
+| Centre licence | One-off, per student | US$3 | US$6 |
+
+The checkout switches to the full prices by itself when the sale ends. Monthly subscribers who joined at US$4 stay on US$4, because a Stripe subscription keeps the price it started with.
 
 ### 3. Environment variables (Netlify → Site configuration → Environment variables)
 Server-only variables. None of these go in the browser or in any file in the repository.
@@ -68,6 +72,8 @@ Server-only variables. None of these go in the browser or in any file in the rep
 | `STRIPE_PRICE_SEMESTER` | Price ID of the semester pass |
 | `STRIPE_PRICE_EXAM` | Price ID of the exam pass |
 | `STRIPE_PRICE_CENTRE` | Price ID of the centre licence |
+| `STRIPE_PRICE_MONTHLY_LATER`, `STRIPE_PRICE_SEMESTER_LATER`, `STRIPE_PRICE_EXAM_LATER`, `STRIPE_PRICE_CENTRE_LATER` | Price IDs of the full prices, used once the sale ends. A plan without one keeps its launch price. |
+| `SALE_ENDS` | Optional. When the launch prices end, e.g. `2026-11-29T23:59:59+08:00` (the default). If you change it, change `sale.ends` in `pro-config.js` to match. |
 | `STRIPE_WEBHOOK_SECRET` | From step 4 (`whsec_…`) |
 | `STRIPE_PORTAL_URL` | Optional: Settings → Billing → Customer portal link, shown as "Manage subscription" |
 | `FIREBASE_PROJECT_ID` | From a Firebase service-account key (Project settings → Service accounts → Generate new private key) |

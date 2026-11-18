@@ -7525,7 +7525,8 @@ function v17AfterBoot(){syncAcctBtn();syncPractice();
 
 /* ---------- v18: Progress (weak spots), mock exams, Bondline Pro ---------- */
 const V18_Q=new URLSearchParams(location.search);
-const PRO_CFG=(()=>{const c=window.BONDLINE_PRO||{};return{enforce:!!c.enforce,checkout:Object.assign({monthly:'',semester:''},c.checkout||{}),price:Object.assign({monthly:'US$4',semester:'US$19'},c.price||{}),passDays:c.passDays||150}})();
+const PRO_CFG=(()=>{const c=window.BONDLINE_PRO||{};return{enforce:!!c.enforce,checkout:Object.assign({monthly:'',semester:''},c.checkout||{}),price:Object.assign({monthly:'US$4',semester:'US$19'},c.price||{}),was:c.was||{},saleOn:!!c.saleOn,saleText:c.saleText||'',passDays:c.passDays||150}})();
+function proWas(k){return PRO_CFG.saleOn&&PRO_CFG.was[k]?`<s class="pro-was" aria-label="was ${esc(PRO_CFG.was[k])}">${esc(PRO_CFG.was[k])}</s>`:''}
 const PRO={ent:null,uid:null,poll:null};
 function v18get(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
 function v18set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -7757,10 +7758,11 @@ function proRender(){const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=
     status=`<div class="pro-status"><span class="pro-ok">${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}</span><div><b>You have Bondline Pro</b><small>${sub?(cancelled?`Cancelled. Pro stays on until ${v18Date(+e.subUntil)}.`:`Monthly plan, renews around ${v18Date(+e.subUntil-3*DAY)}.`):+e.passUntil>Date.now()?`Semester pass, runs until ${v18Date(+e.passUntil)}.`:`Until ${v18Date(proUntil())}.`}</small></div>${e.portal?`<a class="btn small" href="${esc(e.portal)}" target="_blank" rel="noopener">Manage subscription</a>`:''}</div>`}
   else if(!PRO_CFG.enforce)status=`<div class="pro-status prev"><span class="pro-ok">${ico('<path d="M12 3.5l2.2 5.1 5.3.5-4 3.6 1.2 5.3L12 15.3 7.3 18l1.2-5.3-4-3.6 5.3-.5z"/>')}</span><div><b>Free while Pro is in preview</b><small>Every Pro feature is unlocked for everyone right now. ${sells?'You can still subscribe early to support Bondline.':'Join the list and we’ll email you before anything changes.'}</small></div></div>`;
   else if(why)status=`<p class="pro-why">${why}</p>`;
-  const plan=(k,name,price,per,sub,tag)=>`<div class="pro-plan${k==='semester'?' best':''}">${tag?`<span class="pro-tag">${tag}</span>`:''}<b class="pro-pn">${name}</b><div class="pro-pr"><b>${esc(price)}</b><span>${per}</span></div><small>${sub}</small>
+  const plan=(k,name,price,per,sub,tag)=>`<div class="pro-plan${k==='semester'?' best':''}">${tag?`<span class="pro-tag">${tag}</span>`:''}<b class="pro-pn">${name}</b><div class="pro-pr">${proWas(k)}<b>${esc(price)}</b><span>${per}</span></div><small>${sub}</small>
     ${act?'':sells&&PRO_CFG.checkout[k]?`<button class="btn${k==='semester'?' primary':''}" data-proact="buy:${k}">${u?'Continue to checkout':'Sign in to buy'}</button>`:`<button class="btn${k==='semester'?' primary':''}" data-proact="wait:${k}"${wl?' disabled':''}>${wl?'You’re on the list':'Notify me'}</button>`}</div>`;
   B.innerHTML=`${status}
    <ul class="pro-feats">${PRO_FEATS.map(([a,b])=>`<li>${ico('<path d="M5 12.5l4.2 4.2L19 7"/>')}<span><b>${a}</b>${b}</span></li>`).join('')}</ul>
+   ${PRO_CFG.saleOn&&!act?`<p class="pro-sale"><b>${esc(PRO_CFG.saleText)}.</b> Every plan is half price. Subscribe monthly before then and you keep ${esc(PRO_CFG.price.monthly)} a month.</p>`:''}
    <div class="pro-plans">${plan('monthly','Monthly',PRO_CFG.price.monthly,'per month','Cancel any time. Pro stays on until the end of the month you paid for.','')}${plan('semester','Semester pass',PRO_CFG.price.semester,'once',`${Math.round(PRO_CFG.passDays/30)} months of Pro. No subscription, nothing renews.`,'Best for exam season')}</div>
    <p class="pro-free"><b>Everything else stays free.</b> Notes, drawing, the reaction library, flashcards, naming, spectra and synthesis practice, sync and classes are free and always will be.</p>
    ${!u&&FB&&FB.cfg&&(sells||!act)?`<p class="hm-muted">Pro is linked to your Bondline account, so sign in first. <button class="linkbtn" data-proact="signin">Sign in</button></p>`:''}
@@ -12494,7 +12496,7 @@ function v29Licence(){const side=document.querySelector('#classPage .tc-tpside')
   side.innerHTML=`<h2>Tuition centres and schools</h2><p>A <b>centre licence</b> gives the students in your classes Bondline Pro while they’re enrolled: every course unit, mock exams and weak-spot practice at home.</p>
    <div id="lcNow"></div>
    <label class="cl-f">Students per class <small>the size of your biggest class</small><input id="lcN" type="number" inputmode="numeric" min="${C.minSeats}" max="1000" value="${Math.max(C.minSeats,30)}"></label>
-   <p class="lc-sum"><b id="lcTot"></b> <span>for ${mo} months · ${esc(C.price)} a student</span></p>
+   <p class="lc-sum"><b id="lcTot"></b> <span>for ${mo} months · ${PRO_CFG.saleOn&&PRO_CFG.was.centre?`<s>${esc(PRO_CFG.was.centre)}</s> `:''}${esc(C.price)} a student${PRO_CFG.saleOn&&PRO_CFG.was.centre?` (${esc(PRO_CFG.saleText.replace(/^./,m=>m.toLowerCase()))})`:''}</span></p>
    <div class="lc-row">${C.checkout?`<button class="btn primary" data-lc="buy">Buy a licence</button>`:''}<a class="btn" id="lcMail" href="#">${C.checkout?'Pay by invoice':'Ask for a quote'}</a></div>
    <p class="hm-muted">Covers every class you teach, up to that many students in each. Pay by card, or ask for an invoice and pay by bank transfer.</p>`;
   const upd=()=>{const n=Math.max(C.minSeats,Math.min(1000,parseInt($('#lcN').value,10)||0));$('#lcTot').textContent=v29Money(C.price,n);
@@ -12509,7 +12511,7 @@ function wireV29(){
   { const _pr=proRender;proRender=function(){_pr();const B=$('#proBody');if(!B)return;const u=FB&&FB.user,act=proActive(),e=PRO.ent||{},wl=v18get('bondline.waitlist',null),wk=Math.round(PRO_CFG.examDays/7);
       const plans=B.querySelector('.pro-plans');
       if(plans&&!plans.querySelector('[data-x29]')){plans.classList.add('pro-plans3');
-        plans.insertAdjacentHTML('beforeend',`<div class="pro-plan" data-x29><span class="pro-tag pro-tag2">Exam soon?</span><b class="pro-pn">Exam pass</b><div class="pro-pr"><b>${esc(PRO_CFG.price.exam)}</b><span>once</span></div><small>${wk} weeks of Pro for the run-up to your exam. No subscription, nothing renews.</small>${act?'':PRO_CFG.checkout.exam?`<button class="btn" data-proact="buy:exam">${u?'Continue to checkout':'Sign in to buy'}</button>`:`<button class="btn" data-proact="wait:exam"${wl?' disabled':''}>${wl?'You’re on the list':'Notify me'}</button>`}</div>`);
+        plans.insertAdjacentHTML('beforeend',`<div class="pro-plan" data-x29><span class="pro-tag pro-tag2">Exam soon?</span><b class="pro-pn">Exam pass</b><div class="pro-pr">${proWas('exam')}<b>${esc(PRO_CFG.price.exam)}</b><span>once</span></div><small>${wk} weeks of Pro for the run-up to your exam. No subscription, nothing renews.</small>${act?'':PRO_CFG.checkout.exam?`<button class="btn" data-proact="buy:exam">${u?'Continue to checkout':'Sign in to buy'}</button>`:`<button class="btn" data-proact="wait:exam"${wl?' disabled':''}>${wl?'You’re on the list':'Notify me'}</button>`}</div>`);
         if(!act&&proSells())plans.insertAdjacentHTML('afterend',`<div class="pro-parent"><div><b>Is a parent paying?</b><small>Send them a link. They pay on their own phone, and Pro switches on for your account.</small></div><button class="btn small" data-proact="parent">${u?'Send a link':'Sign in first'}</button></div>`)}
       if(act&&e.passPlan==='exam'&&+e.passUntil>Date.now()&&!(+e.subUntil>Date.now())){const sm=B.querySelector('.pro-status small');if(sm)sm.textContent=sm.textContent.replace('Semester pass','Exam pass')}
       if(proWhy==='streak'&&!act&&PRO_CFG.enforce&&!B.querySelector('.pro-why'))B.insertAdjacentHTML('afterbegin','<p class="pro-why">Extra lessons, more streak freezes and streak repair are part of Bondline Pro.</p>')} }

@@ -6,10 +6,16 @@
 //   STRIPE_PRICE_SEMESTER    price ID of the semester pass (one-off)
 //   STRIPE_PRICE_EXAM        price ID of the exam pass (one-off)
 //   STRIPE_PRICE_CENTRE      price ID of the centre licence, priced per student (one-off)
+//   SALE_ENDS                optional, when the launch prices end (default 2026-11-29T23:59:59+08:00, the same as
+//                            sale.ends in pro-config.js). From then on each plan uses its _LATER price ID below.
+//   STRIPE_PRICE_MONTHLY_LATER, STRIPE_PRICE_SEMESTER_LATER, STRIPE_PRICE_EXAM_LATER, STRIPE_PRICE_CENTRE_LATER
+//                            price IDs of the full prices (US$8, US$38, US$18, US$6). A plan without one keeps its
+//                            launch price after the sale ends.
 //   CENTRE_MIN_SEATS         optional, smallest centre licence (default 10)
 //   STRIPE_API_VERSION       optional, the Stripe API version to use (default 2026-10-28.endive, so checkout behaves the same on every account)
 // Checkout settings (ui_mode, address collection, tax, promotion codes and so on) come from Stripe Checkout Studio.
 // See STRIPE_INTEGRATION_TODO.md.
+const SALE_ENDS = '2026-11-29T23:59:59+08:00';
 const env = k => (process.env[k] || '').trim();
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
 
@@ -22,7 +28,9 @@ export default async (req) => {
   let b;
   try { b = await req.json(); } catch { return json({ error: 'Bad request' }, 400); }
   const plan = String(b?.plan || ''), uid = String(b?.uid || ''), from = b?.from === 'gift' ? 'gift' : 'app';
-  const price = { monthly: env('STRIPE_PRICE_MONTHLY'), semester: env('STRIPE_PRICE_SEMESTER'), exam: env('STRIPE_PRICE_EXAM'), centre: env('STRIPE_PRICE_CENTRE') }[plan];
+  const KEY = { monthly: 'STRIPE_PRICE_MONTHLY', semester: 'STRIPE_PRICE_SEMESTER', exam: 'STRIPE_PRICE_EXAM', centre: 'STRIPE_PRICE_CENTRE' }[plan];
+  const saleOver = Date.now() >= Date.parse(env('SALE_ENDS') || SALE_ENDS);
+  const price = KEY && ((saleOver && env(KEY + '_LATER')) || env(KEY));
   if (!price) return json({ error: 'That plan is not on sale yet.' }, 400);
   if (!/^[A-Za-z0-9_-]{6,128}$/.test(uid)) return json({ error: 'No Bondline account on this order.' }, 400);
   // A parent pays once; they shouldn't end up with a subscription on a card the student can't manage.
