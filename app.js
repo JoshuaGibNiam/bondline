@@ -7243,7 +7243,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='37';
+const APP_VER='38';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -10153,12 +10153,12 @@ function coTrack(t,ids,groups){
     sections:b.sections.filter(s=>coOnly(s,t)),tools:b.tools,prob:b.prob,xp:(b.xp||[]).filter(x=>coOnly(x,t)),qs:b.qs.filter(q=>coOnly(q,t)),dq:(b.dq||[]).filter(q=>coOnly(q,t))}});
   return{units,groups:groups.map(([h,a,z])=>[h,u=>u.n>a&&u.n<=z])}}
 const PU_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-deriv','pu-amine','pu-amino','pu-poly','pu-synth','pu-spec'];
-const CIE_T=coTrack('a',PU_ORDER,[['Atoms, orbitals and bonding',0,6],['Organic chemistry',6,22]]);
-const STPM_T=coTrack('s',PU_ORDER.filter(id=>id!=='pu-spec'),[['First term: atoms and bonding',0,6],['Third term: organic chemistry',6,21]]);
+const CIE_T=coTrack('a',[...PU_ORDER,'pu-mole','pu-states','pu-energy','pu-redox','pu-equil','pu-kin','pu-lattice','pu-electro','pu-acidbase','pu-period','pu-g2','pu-g17','pu-ns','pu-trans'],[['Atoms, orbitals and bonding',0,6],['Organic chemistry',6,22],['Physical chemistry',22,31],['Inorganic chemistry',31,36]]);
+const STPM_T=coTrack('s',[...PU_ORDER.filter(id=>id!=='pu-spec'),'pu-mole','pu-states','pu-energy','pu-lattice','pu-redox','pu-electro','pu-equil','pu-acidbase','pu-kin','pu-solutions','pu-period','pu-g2','pu-pblock','pu-g17','pu-trans'],[['First term: atoms and bonding',0,6],['Third term: organic chemistry',6,21],['Physical chemistry',21,31],['Inorganic chemistry',31,36]]);
 const AP_T=coTrack('p',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf',...((window.BL_COURSE_X||{}).apOrder||[]).filter(id=>PU_UBY[id])],[['Unit 1: atomic structure and properties',0,3],['Units 2 and 3: bonding and intermolecular forces',3,6],['Units 3 and 4: gases, solutions and reactions',6,8],['Units 5 to 9: kinetics, thermodynamics, equilibrium, acids and bases',8,13]]);
-const IB_T=coTrack('i',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-carbonyl','pu-acid','pu-deriv','pu-poly','pu-spec'],[['Structure 1 and 2: atoms and bonding',0,6],['Structure 3 and Reactivity 3: organic chemistry',6,18]]);
-const JN_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-purify','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-amine','pu-bio','pu-named'];
-const JN_GROUPS=[['Atomic structure, bonding and periodicity',0,6],['Organic chemistry',6,20]];
+const IB_T=coTrack('i',['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-carbonyl','pu-acid','pu-deriv','pu-poly','pu-spec','pu-mole','pu-states','pu-energy','pu-lattice','pu-kin','pu-equil','pu-acidbase','pu-redox','pu-electro','pu-period','pu-trans'],[['Structure 1 and 2: atoms and bonding',0,6],['Structure 3 and Reactivity 3: organic chemistry',6,18],['Reactivity 1 to 3: physical chemistry',18,27],['Structure 3.1: the periodic table',27,29]]);
+const JN_ORDER=['pu-atom','pu-orb','pu-ie','pu-bond','pu-shape','pu-imf','pu-org','pu-purify','pu-iso','pu-alkane','pu-alkene','pu-arene','pu-halo','pu-oh','pu-phenol','pu-carbonyl','pu-acid','pu-amine','pu-bio','pu-named','pu-mole','pu-energy','pu-lattice','pu-solutions','pu-equil','pu-acidbase','pu-redox','pu-electro','pu-kin','pu-period','pu-pblock','pu-trans','pu-coord'];
+const JN_GROUPS=[['Atomic structure, bonding and periodicity',0,6],['Organic chemistry',6,20],['Physical chemistry',20,29],['Inorganic chemistry',29,33]];
 const JEE_T=coTrack('j',JN_ORDER,JN_GROUPS),NEET_T=coTrack('n',JN_ORDER,JN_GROUPS);
 const coMk=(o,T)=>Object.assign(o,{units:T.units,groups:T.groups,bank:T.units.flatMap(u=>u.qs),uby:Object.fromEntries(T.units.map(u=>[u.id,u]))});
 const COURSES={
@@ -10171,12 +10171,12 @@ const COURSES={
   cie:coMk({id:'cie',short:'A Level',name:'Cambridge A Level',sub:'9701: atoms, bonding and organic',h1:'Cambridge A Level Chemistry (9701)',
     sylH:'Syllabus points (9701)',probK:'Exam-style question',lastKey:'bondline.co.last.cie',sylKey:'bondline.co.syl.cie',kick:u=>u.ref,
     lede:n=>`${n} units covering atomic structure, orbitals and bonding, and all of the organic chemistry in Cambridge International AS & A Level Chemistry, for exams in 2025 to 2027. Each unit has the syllabus points, lessons, an exam-style question with worked answers, and a quiz.`,
-    note:['How this course fits the syllabus.','Units 1–6 cover AS topics 1–3 (atomic structure, electrons in orbitals, ionisation energies, bonding, shapes and intermolecular forces). Units 7–22 cover every organic topic: AS 13–22 and A Level 29–37. Each unit shows its syllabus references, and lessons that are only in the A Level part say so. A unit counts as complete when you have mastered 80% of its questions. Physical and inorganic chemistry are coming in a later update.'],
+    note:['How this course fits the syllabus.','Units 1–6 cover AS topics 1–3 (atomic structure, electrons in orbitals, ionisation energies, bonding, shapes and intermolecular forces). Units 7–22 cover every organic topic: AS 13–22 and A Level 29–37. Units 23–36 cover the physical and inorganic topics (AS 2 and 4–12, A Level 23–28) as lessons with a worked exam-style question; their practice questions are coming in a later update. Each unit shows its syllabus references, and lessons that are only in the A Level part say so. A unit counts as complete when you have mastered 80% of its questions.'],
     src:'Based on the Cambridge International AS & A Level Chemistry 9701 syllabus for 2025–2027. Not affiliated with or endorsed by Cambridge University Press & Assessment.'},CIE_T),
   stpm:coMk({id:'stpm',short:'STPM',name:'STPM Chemistry',sub:'962: atoms, bonding and organic',h1:'STPM Chemistry (962)',
     sylH:'Syllabus points (STPM 962)',probK:'Exam-style question',lastKey:'bondline.co.last.stpm',sylKey:'bondline.co.syl.stpm',kick:u=>u.ref,
     lede:n=>`${n} units covering the atoms and bonding part of the first term and all of the organic chemistry in the third term of STPM Chemistry. Each unit has the syllabus points, lessons, an exam-style question with worked answers, and a quiz.`,
-    note:['How this course fits the syllabus.','Units 1–6 cover first-term atomic structure, electronic configuration and chemical bonding. Units 7–21 cover the third term: hydrocarbons, haloalkanes, hydroxy compounds, carbonyls, carboxylic acids and their derivatives, amines, amino acids, proteins and polymers. A unit counts as complete when you have mastered 80% of its questions. The rest of the first and second terms (physical and inorganic chemistry) is coming in a later update.'],
+    note:['How this course fits the syllabus.','Units 1–6 cover first-term atomic structure, electronic configuration and chemical bonding. Units 7–21 cover the third term: hydrocarbons, haloalkanes, hydroxy compounds, carbonyls, carboxylic acids and their derivatives, amines, amino acids, proteins and polymers. Units 22–36 cover physical and inorganic chemistry (the rest of the first and second terms) as lessons with a worked exam-style question; their practice questions are coming in a later update. A unit counts as complete when you have mastered 80% of its questions.'],
     src:'Based on the STPM Chemistry (962) syllabus from Majlis Peperiksaan Malaysia. Not affiliated with or endorsed by MPM.'},STPM_T),
   ap:coMk({id:'ap',short:'AP',name:'AP Chemistry',sub:'All nine units of the course',h1:'AP Chemistry',
     sylH:'Course and Exam Description topics',probK:'Free-response question (long, 10 points)',lastKey:'bondline.co.last.ap',sylKey:'bondline.co.syl.ap',kick:u=>u.ref,
@@ -10186,17 +10186,17 @@ const COURSES={
   ib:coMk({id:'ib',short:'IB',name:'IB Chemistry',sub:'Diploma Programme, SL and HL',h1:'IB Diploma Chemistry (first exams 2025)',
     sylH:'Syllabus understandings (IB 2025)',probK:'Exam-style question',lastKey:'bondline.co.last.ib',sylKey:'bondline.co.syl.ib',kick:u=>u.ref,
     lede:n=>`${n} units covering Structure 1 to 3 (atoms, bonding and the classification of organic compounds) and the organic parts of Reactivity 1 to 3, including spectroscopy, for SL and HL. Each unit has the syllabus understandings, lessons, an exam-style question with worked answers, and a quiz.`,
-    note:['How this course fits the syllabus.','Units 1–6 cover Structure 1 and 2: the nuclear atom, electron configurations, ionisation energies, and the ionic, covalent and metallic models. Units 7–18 cover the organic chemistry spread across Structure 2.4, Structure 3.2 and Reactivity 1.3, 3.1, 3.2, 3.3 and 3.4. Points marked (HL) are for Higher Level only. Energetics, kinetics, equilibrium, acids and bases, and redox are coming in a later update.'],
+    note:['How this course fits the syllabus.','Units 1–6 cover Structure 1 and 2: the nuclear atom, electron configurations, ionisation energies, and the ionic, covalent and metallic models. Units 7–18 cover the organic chemistry spread across Structure 2.4, Structure 3.2 and Reactivity 1.3, 3.1, 3.2, 3.3 and 3.4. Units 19–29 cover the moles, gases, energetics, kinetics, equilibrium, acids and bases, redox and the periodic table, as lessons with a worked exam-style question; their practice questions are coming in a later update. Points marked (HL) are for Higher Level only.'],
     src:'Based on the IB Diploma Programme Chemistry guide (first assessment 2025). Not affiliated with or endorsed by the International Baccalaureate Organization.'},IB_T),
   jee:coMk({id:'jee',short:'JEE',name:'JEE Main Chemistry',sub:'Atomic structure, bonding and organic',h1:'JEE Main Chemistry',
     sylH:'JEE Main syllabus points',probK:'JEE-style question',lastKey:'bondline.co.last.jee',sylKey:'bondline.co.syl.jee',kick:u=>u.ref,
     lede:n=>`${n} units covering atomic structure, chemical bonding and periodicity, and all of the organic chemistry in the JEE Main syllabus, following the NCERT Class 11 and 12 textbooks, including a unit of every named reaction. Each unit has the syllabus points, lessons, a JEE-style question with worked answers, and a quiz.`,
-    note:['How this course fits the syllabus.','Units 1–6 cover the NTA units Atomic structure, Chemical bonding and molecular structure, and Classification of elements and periodicity. Units 7–20 cover the seven organic units: purification and characterisation, basic principles, hydrocarbons, and compounds containing halogens, oxygen and nitrogen, plus biomolecules, ending with a revision unit of named reactions. JEE Advanced asks about the same topics in more depth. The other physical and inorganic chemistry units are coming in a later update.'],
+    note:['How this course fits the syllabus.','Units 1–6 cover the NTA units Atomic structure, Chemical bonding and molecular structure, and Classification of elements and periodicity. Units 7–20 cover the seven organic units: purification and characterisation, basic principles, hydrocarbons, and compounds containing halogens, oxygen and nitrogen, plus biomolecules, ending with a revision unit of named reactions. Units 21–33 cover the physical and inorganic units (basic concepts, thermodynamics, solutions, equilibrium, redox and electrochemistry, kinetics, periodicity, p-block, d- and f-block, coordination compounds) as lessons with a worked JEE-style question; their practice questions are coming later. JEE Advanced asks about the same topics in more depth.'],
     src:'Based on the JEE Main syllabus published by the National Testing Agency, and the NCERT Chemistry textbooks for Classes 11 and 12. Not affiliated with or endorsed by NTA or NCERT.'},JEE_T),
   neet:coMk({id:'neet',short:'NEET',name:'NEET UG Chemistry',sub:'Atomic structure, bonding and organic',h1:'NEET UG Chemistry',
     sylH:'NEET UG syllabus points',probK:'NEET-style question',lastKey:'bondline.co.last.neet',sylKey:'bondline.co.syl.neet',kick:u=>u.ref,
     lede:n=>`${n} units covering atomic structure, chemical bonding and periodicity, and all of the organic chemistry in the NEET UG syllabus, following the NCERT Class 11 and 12 textbooks, including biomolecules and a unit of every named reaction. Each unit has the syllabus points, lessons, a NEET-style question with worked answers, and a quiz.`,
-    note:['How this course fits the syllabus.','NEET UG chemistry follows NCERT closely, so read the NCERT text alongside each unit. Units 1–6 cover atomic structure, chemical bonding and periodicity; units 7–20 cover all the organic units, including biomolecules, which carries extra weight for medicine. The other physical and inorganic chemistry units are coming in a later update.'],
+    note:['How this course fits the syllabus.','NEET UG chemistry follows NCERT closely, so read the NCERT text alongside each unit. Units 1–6 cover atomic structure, chemical bonding and periodicity; units 7–20 cover all the organic units, including biomolecules, which carries extra weight for medicine. Units 21–33 cover physical and inorganic chemistry as lessons with a worked question; their practice questions are coming later.'],
     src:'Based on the NEET UG syllabus published by the National Medical Commission, and the NCERT Chemistry textbooks for Classes 11 and 12. Not affiliated with or endorsed by NMC, NTA or NCERT.'},NEET_T)};
 const CO_IDS=Object.keys(COURSES),CO_ALLQ=Object.assign({},CO_BY,PU_BY,Object.fromEntries([...CO_UNITS,...PU_UNITS].flatMap(u=>u.dq||[]).map(q=>[q.id,q])));
 
@@ -10208,13 +10208,13 @@ const coU=id=>C().uby[id]||PU_UBY[id]||CO_UBY[id];
 const coLocked=u=>!u.free&&!proOpen();
 const coLv=u=>u.lv==='core'?'Core':'Advanced';
 function coStats(uid,c){const u=(c?COURSES[c]:C()).uby[uid];const qs=u?u.qs:[];return{m:qs.filter(q=>(App.quiz.q[q.id]||{}).last===1).length,n:qs.length,seen:qs.filter(q=>App.quiz.q[q.id]).length}}
-function coAll(c){const K=c?COURSES[c]:C();const m=K.bank.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:K.bank.length,done:K.units.filter(u=>{const s=coStats(u.id,K.id);return s.m>=Math.ceil(.8*s.n)}).length}}
+function coAll(c){const K=c?COURSES[c]:C();const m=K.bank.filter(q=>(App.quiz.q[q.id]||{}).last===1).length;return{m,n:K.bank.length,done:K.units.filter(u=>{const s=coStats(u.id,K.id);return s.n&&s.m>=Math.ceil(.8*s.n)}).length}}
 const coChecks=()=>v18get(C().sylKey,{});
 const coBadge=u=>u.free?'<span class="co-free">Free</span>':PRO_BADGE;
 const coMeter=s=>s.seen?`<span class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*s.m/s.n)}%"></i></span>`:'';
 
 function coSide(){const box=$('#coList');if(!box)return;const K=C(),cur=CO.view==='home'?'home':CO.unit,pick=CO.view==='pick'||!CO.c;
-  const item=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="item${cur===u.id&&CO.view!=='home'?' on':''}" data-counit="${u.id}"><span class="t"><span class="co-n">${u.n}</span>${esc(u.title)}</span><span class="m">${lk?'Pro':s.seen?`${s.m} of ${s.n} mastered`:u.free?'Free':`${s.n} questions`}</span>${coMeter(s)}</button>`};
+  const item=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="item${cur===u.id&&CO.view!=='home'?' on':''}" data-counit="${u.id}"><span class="t"><span class="co-n">${u.n}</span>${esc(u.title)}</span><span class="m">${lk?'Pro':!s.n?'Notes':s.seen?`${s.m} of ${s.n} mastered`:u.free?'Free':`${s.n} questions`}</span>${coMeter(s)}</button>`};
   box.innerHTML=`<button class="item${pick?' on':''}" data-copick="1"><span class="t">All courses</span><span class="m">IChO, A Level, STPM, AP, IB, JEE and NEET</span></button>
    <div class="co-sw" role="group" aria-label="Choose a course">${CO_IDS.map(c=>`<button class="co-swb${!pick&&CO.c===c?' on':''}" data-coc="${c}" aria-pressed="${!pick&&CO.c===c}">${COURSES[c].short}</button>`).join('')}</div>
    ${pick?'':`<button class="item${cur==='home'?' on':''}" data-cohome="1"><span class="t">${esc(K.name)}</span><span class="m">${esc(K.sub)}</span></button>
@@ -10237,10 +10237,10 @@ function coPick(){
 function coHome(){
   if(!CO.c)return coPick();
   const K=C();CO.view='home';const A=coAll(),last=v18get(K.lastKey,null),lu=last&&K.uby[last],u1=K.units[0];
-  const card=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="co-card${lk?' locked':''}" data-counit="${u.id}"><span class="co-cn">${u.n}</span><span class="co-ct"><b>${esc(u.title)}</b><small>${esc(u.lede)}</small></span><span class="co-cm">${coBadge(u)}<span>${s.seen?`${s.m}/${s.n}`:`${s.n} questions`}</span>${coMeter(s)}</span></button>`};
+  const card=u=>{const s=coStats(u.id),lk=coLocked(u);return`<button class="co-card${lk?' locked':''}" data-counit="${u.id}"><span class="co-cn">${u.n}</span><span class="co-ct"><b>${esc(u.title)}</b><small>${esc(u.lede)}</small></span><span class="co-cm">${coBadge(u)}<span>${!s.n?'Notes':s.seen?`${s.m}/${s.n}`:`${s.n} questions`}</span>${coMeter(s)}</span></button>`};
   $('#coPage').innerHTML=`<article class="nm-lesson co-home">${coCrumb(K,false)}<header class="nm-head"><div class="nm-kicker">Course</div><h1>${esc(K.h1)}</h1>
    <p class="nm-lede">${esc(K.lede(K.units.length))}</p></header>
-   <div class="co-stats"><div><b>${A.done}</b><span>of ${K.units.length} units complete</span></div><div><b>${A.m}</b><span>of ${A.n} questions mastered</span></div></div>
+   <div class="co-stats"><div><b>${A.done}</b><span>of ${K.units.filter(u=>u.qs.length).length} units complete</span></div><div><b>${A.m}</b><span>of ${A.n} questions mastered</span></div></div>
    <div class="nm-actions">${lu?`<button class="btn primary" data-counit="${lu.id}">Continue: Unit ${lu.n}</button><button class="btn" data-counit="${u1.id}">Start from Unit 1</button>`:`<button class="btn primary" data-counit="${u1.id}">Start Unit 1</button>`}<button class="linkbtn" data-copick="1">Other courses</button></div>
    ${coNote(K.note[0],K.note[1])}
    ${coSylCard(K)}
@@ -12918,7 +12918,7 @@ function wireV30(){
 /* ---------- v31: more course questions (30% free), exam-style written questions, the rest of AP, reactions in mock exams ---------- */
 function coFreeN(u){return u.qs.filter(q=>q.fr).length}
 function coDrawBtn(u){const d=(u.dq||[]).length;if(!d)return'';const f=proOpen()?d:(u.dq||[]).filter(q=>q.fr).length;return f?`<button class="btn" data-codraw="${u.id}">Drawing practice · ${f}</button>`:''}
-function coQuizBtn(u){const n=u.qs.length;if(proOpen())return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${n} questions</button>`+coDrawBtn(u);
+function coQuizBtn(u){const n=u.qs.length;if(!n)return`<span class="co-notes">Notes unit: practice questions for this topic are coming in a later update.</span>`;if(proOpen())return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${n} questions</button>`+coDrawBtn(u);
   const f=coFreeN(u);return`<button class="btn primary" data-coquiz="${u.id}">Unit quiz · ${f} free questions</button>${coDrawBtn(u)}${n>f?`<button class="btn" data-copro="1">${n-f} more with Pro${PRO_BADGE}</button>`:''}`}
 // The label for each written question depends on the course, so the same question can be "Section B" for STPM and "Paper 2" for IB.
 const XPK={struct:{cie:'Structured question · Paper 2 and 4 style',stpm:'Section B · structured question',ib:'Paper 2 · short-answer question',ap:'Free response · short answer'},
@@ -13333,8 +13333,12 @@ CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions an
   ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
   ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
   ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
+CHANGELOG.unshift({v:'38',d:'20 November 2026',t:'Physical and inorganic chemistry',items:[
+  ['17 new units','Moles and calculations, states of matter, energetics, lattice energy and Gibbs energy, redox, electrochemistry, equilibrium, acids and bases (with buffers and K<sub>sp</sub>), kinetics, solutions and colligative properties, periodicity, Group 2, Group 17, nitrogen and sulfur, the p-block, transition elements and coordination compounds.'.replace(/<\/?sub>/g,'')],
+  ['In every course that needs them','A Level now has 36 units, STPM 36, IB 29, and JEE and NEET 33 each, covering their physical and inorganic syllabus points. Each new unit has full lessons, worked examples and an exam-style question with answers.'],
+  ['Practice questions later','The new units are notes for now. Quizzes for them will follow in a later update.']]});
 CHANGELOG.unshift({v:'37',d:'20 November 2026',t:'More detailed lessons',items:[
-  ['Deeper lessons, syllabus point by syllabus point','Course lessons are being expanded with fuller explanations, worked examples and common mistakes, matched to each syllabus. First up: atoms, orbitals, ionisation energy, bonding, shapes and intermolecular forces, now about three times as long.'],
+  ['Deeper lessons, syllabus point by syllabus point','Every course lesson now has fuller explanations, worked examples and common mistakes, matched to each syllabus: about 21,000 new words across all 47 existing units, including full worked examples for every AP topic and an olympiad problem in every IChO unit.'],
   ['Tuned to your course','Extra sections appear only in the courses whose syllabus includes them, so A Level students don’t see JEE-only material and vice versa.'],
   ['Quizzes unchanged','Your questions, progress and mastery are exactly as they were.']]});
 CHANGELOG.unshift({v:'36',d:'20 November 2026',t:'Bondline Daily',items:[
