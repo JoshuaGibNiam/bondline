@@ -1,0 +1,104 @@
+/* Bondline version 37: deeper lessons, part 6 (IChO course units u1–u15).
+   Format as in course-deep-1.js. */
+(function(){
+const D=window.BL_DEEP=window.BL_DEEP||{};
+const {T,E,N,W,M}=window.BL_DEEP_H;
+
+D.u1=[
+ {h:'Worked problem: delocalisation and bond lengths',html:`${W('Rank the C–O bond lengths in methanol, methanoate ion (HCOO⁻) and carbon monoxide, and explain.',['Methanol: a C–O single bond, bond order 1, about 143 pm.','Methanoate: two equivalent resonance structures share one π bond over two C–O bonds, bond order 1.5, about 127 pm.','Carbon monoxide: a triple bond (one σ, two π), bond order 3, about 113 pm.','Order of length: CH₃OH &gt; HCOO⁻ &gt; CO. Higher bond order, shorter bond.'])}
+ <p><b>Rules for judging which resonance structures matter most:</b> structures with full octets beat those without; fewer formal charges beat more; negative charge on the more electronegative atom is better; and like charges should not sit on adjacent atoms. For an amide, the structure with C=N⁺ and O⁻ contributes significantly, which explains the planar, non-rotating C–N bond.</p>`},
+ {h:'Antiaromaticity and Frost circles',html:`<p>A quick way to see why 4n + 2 is special: draw the ring as a regular polygon inside a circle with one vertex pointing down (a <b>Frost circle</b>). Each vertex is a π molecular orbital energy level; the centre line is the non-bonding level. For benzene, the six levels are one at the bottom, two pairs, and one at the top. Six π electrons exactly fill the three bonding orbitals: a closed shell, extra stable.</p>
+ <p>Cyclobutadiene (4 π electrons) has one bonding level and two degenerate non-bonding levels. Its last two electrons sit unpaired in non-bonding orbitals, so it is far less stable than a diene: <b>antiaromatic</b>. Large rings such as cyclooctatetraene escape antiaromaticity by puckering into a tub shape, which breaks the conjugation.</p>
+ ${M(['Counting electrons from an sp³ carbon in the ring: a ring with a CH₂ is not fully conjugated, so it is not aromatic (cyclopentadiene).','Counting both lone pairs of furan’s oxygen: only one is in the π system.','Forgetting that the cyclopentadienyl anion (6 π) is aromatic while the cation (4 π) is antiaromatic.'])}`}
+];
+
+D.u2=[
+ {h:'Worked problem: counting all isomers',html:`${W('How many isomers (including stereoisomers) have the formula C₄H₈?',['Degree of unsaturation 1: one C=C or one ring.','Alkenes: but-1-ene; but-2-ene (cis and trans: 2); 2-methylpropene. That is 4.','Rings: cyclobutane; methylcyclopropane. That is 2.','Total: 6 isomers.'])}
+ ${W('How many stereoisomers does 2,3,4-trihydroxypentanedioic acid have?',['The molecule is symmetrical, with stereocentres at C2, C3 and C4.','When C2 and C4 have the same configuration, C3 is not a stereocentre (its two branches are identical): this gives one pair of enantiomers.','When C2 and C4 are opposite, C3 becomes a pseudo-asymmetric centre (r or s), giving two meso forms.','Total: 4 stereoisomers (2 chiral, 2 meso), not 2³ = 8.'])}`},
+ {h:'Keto–enol equilibria in numbers',html:`<p>For simple ketones the keto form dominates hugely: propanone is about 99.99997% keto. The C=O bond (about 745 kJ mol⁻¹) is much stronger than C=C (about 610), more than making up for the C–H against O–H difference.</p>
+ <p>The enol becomes important when it is stabilised. Pentane-2,4-dione is about 80% enol in the pure liquid, because the enol is conjugated with the other C=O and forms a six-membered intramolecular hydrogen bond. Phenol is 100% "enol": its keto tautomer would lose aromaticity.</p>
+ ${T([['propanone','tiny (about 10⁻⁷)','no stabilisation'],['pentane-2,4-dione','about 80% enol','conjugation and internal H bond'],['phenol','essentially 100% enol','aromaticity']],['Compound','Enol content','Reason'])}`}
+];
+
+D.u3=[
+ {h:'Worked problem: ranking acids',html:`${W('Rank by acidity: ethanol, phenol, 4-nitrophenol, ethanoic acid, 2,2,2-trifluoroethanol, water.',['Ethanol (pK<sub>a</sub> about 16) and water (15.7) are the weakest; the ethyl group slightly destabilises ethoxide.','2,2,2-Trifluoroethanol (12.4): three F atoms withdraw by induction.','Phenol (10.0): the charge is delocalised into the ring.','4-Nitrophenol (7.2): the nitro group delocalises the charge onto its oxygens (−M), as well as −I.','Ethanoic acid (4.76): charge shared equally by two oxygens.','Order: ethanol &lt; water &lt; trifluoroethanol &lt; phenol &lt; 4-nitrophenol &lt; ethanoic acid.'])}
+ <p><b>pK<sub>a</sub> as a reaction predictor:</b> an acid–base reaction goes in the direction that forms the weaker acid. For example, NaNH₂ (conjugate acid NH₃, pK<sub>a</sub> about 38) deprotonates a terminal alkyne (pK<sub>a</sub> about 25) almost completely, but NaOH (conjugate acid water, 15.7) does not. The equilibrium constant is 10 raised to the difference in pK<sub>a</sub>.</p>`},
+ {h:'Hammett-style thinking about substituents',html:`<p>The effect of a ring substituent depends on its position. In benzoic acids, a group at the para position acts through both induction and resonance; at the meta position, mainly through induction.</p>
+ ${T([['4-NO₂','3.44','−I and −M: strongest'],['3-NO₂','3.45','−I (resonance cannot reach the meta carbon effectively)'],['4-Cl','3.98','−I outweighs weak +M'],['H','4.20','reference'],['4-CH₃','4.37','+I, hyperconjugation'],['4-OCH₃','4.47','+M outweighs −I at para']],['Substituent on benzoic acid','pK<sub>a</sub>','Explanation'])}
+ <p>Notice the methoxy group: electron-withdrawing by induction (O is electronegative) but donating by resonance. At the para position resonance wins and the acid is weaker; at the meta position (pK<sub>a</sub> 4.09) only induction acts and the acid is slightly stronger than benzoic acid.</p>`}
+];
+
+D.u4=[
+ {h:'Worked problem: predicting the product and its stereochemistry',html:`${W('(R)-2-bromobutane reacts with sodium azide (NaN₃) in DMSO. Give the product and its configuration.',['Secondary substrate, good nucleophile (N₃⁻), weakly basic, polar aprotic solvent: SN2.','Backside attack inverts the stereocentre. The priorities stay in the same order (N₃ replaces Br as the top priority group), so the label changes.','Product: (S)-2-azidobutane.'])}
+ ${W('trans-1-bromo-2-methylcyclohexane and its cis isomer are each treated with sodium ethoxide. Which gives 1-methylcyclohexene?',['E2 needs the H and Br anti-periplanar, which in a chair means both axial.','cis isomer: when Br is axial, the H on C2 (bearing the CH₃) is also axial, so elimination towards C2 gives the more substituted 1-methylcyclohexene (Zaitsev).','trans isomer: with Br axial, the C2 substituent H is equatorial; only the H on C6 is anti, so it gives 3-methylcyclohexene.','So the cis isomer gives 1-methylcyclohexene.'])}`},
+ {h:'Neighbouring groups and rearrangements',html:`<p><b>Carbocation rearrangements.</b> In SN1 and E1 reactions, a carbocation can become more stable by moving a hydride or an alkyl group (with its electrons) from the next carbon: a 1,2-shift. 3,3-Dimethylbutan-2-ol with HBr gives mainly 2-bromo-2,3-dimethylbutane, after a methyl shift turns a secondary cation into a tertiary one. If a question shows an unexpected carbon skeleton in the product, look for a shift.</p>
+ <p><b>Neighbouring group participation.</b> A nearby nucleophilic atom (a sulfur, an oxygen or a nitrogen lone pair, or a π bond) can attack the carbon intramolecularly as the leaving group departs, forming a three-membered ring that the external nucleophile then opens. Two inversions add up to overall <b>retention</b> of configuration, and the rate is often much faster than expected. Mustard gas, (ClCH₂CH₂)₂S, is so reactive for this reason.</p>`}
+];
+
+D.u5=[
+ {h:'Worked problem: stereospecific additions',html:`${W('Give the product(s) of (Z)-but-2-ene with Br₂, and of (E)-but-2-ene with Br₂.',['Bromine adds anti through a bromonium ion.','(E)-But-2-ene: anti addition gives meso-2,3-dibromobutane (one compound).','(Z)-But-2-ene: anti addition gives the racemic pair (2R,3R) and (2S,3S).','The reaction is stereospecific: different starting stereoisomers give different product stereoisomers.'])}
+ ${W('1-Methylcyclohexene is treated with BH₃·THF, then H₂O₂ and NaOH. Give the product.',['Hydroboration is anti-Markovnikov and syn: B and H add to the same face, B to the less substituted carbon.','Oxidation replaces B with OH with retention.','Product: trans-2-methylcyclohexan-1-ol (OH and CH₃ trans, because H and OH were added syn), as a racemate.'])}`},
+ {h:'Ozonolysis for structure determination',html:`<p>Ozone cleaves every C=C. Followed by a reductive workup (Zn and acid, or dimethyl sulfide), each alkene carbon becomes a C=O: =CH₂ gives methanal, =CHR an aldehyde, =CR₂ a ketone. An oxidative workup (H₂O₂) turns the aldehydes into carboxylic acids.</p>
+ ${W('A compound C₈H₁₄ takes up 2 mol H₂. Ozonolysis (Zn workup) gives only OHC–CH₂–CHO and propanone, in a 1 : 2 ratio. Identify it.',['Two C=C (it takes 2 mol H₂; C₈H₁₄ has 2 degrees of unsaturation).','The central fragment OHC–CH₂–CHO came from a CH= … =CH unit; each propanone came from a (CH₃)₂C= end.','Reconnect: (CH₃)₂C=CH–CH₂–CH=C(CH₃)₂, 2,6-dimethylhepta-2,5-diene.'])}`}
+];
+
+D.u6=[
+ {h:'Worked problem: the order of steps',html:`${W('Make 4-bromobenzoic acid from methylbenzene.',['The methyl group directs ortho/para; a COOH group would direct meta. So add the bromine while the methyl is still there.','Step 1: Br₂ with FeBr₃ gives 2- and 4-bromomethylbenzene; separate the 4-isomer.','Step 2: hot alkaline KMnO₄, then acid, oxidises the CH₃ to COOH: 4-bromobenzoic acid.','Oxidising first would give benzoic acid, which brominates at the 3-position: the wrong isomer.'])}
+ ${W('Brominate 4-methylbenzoic acid. Where does the bromine go?',['CH₃ (activating, ortho/para) directs to C3 and C5, ortho to itself.','COOH (deactivating, meta) directs to C3 and C5, meta to itself.','Both groups agree: the product is 3-bromo-4-methylbenzoic acid, cleanly.'])}
+ <p>The lesson of the second example: when two groups direct to the <b>same</b> position (they reinforce), the reaction is clean. Look for an intermediate in which the directing effects agree.</p>
+ <p><b>Limits of Friedel–Crafts reactions:</b> they fail on strongly deactivated rings (nitrobenzene is even used as a solvent), and on anilines, whose nitrogen binds the AlCl₃. Alkylation can rearrange the carbocation and can over-alkylate; acylation does neither, and the ketone can be reduced to CH₂ afterwards (Clemmensen or Wolff–Kishner) to make a straight-chain alkylbenzene.</p>`}
+];
+
+D.u7=[
+ {h:'Aldol, Claisen and enolate alkylation',after:'Enols and enolates',html:`<p>A C–H next to a carbonyl (an α-hydrogen) is acidic, pK<sub>a</sub> about 19–20 for ketones, because the enolate anion is stabilised by resonance onto oxygen. Enolates are carbon nucleophiles.</p>
+ ${T([['aldol addition','enolate + aldehyde or ketone','β-hydroxy carbonyl; heating eliminates water to an α,β-unsaturated carbonyl (aldol condensation)'],['Claisen condensation','ester enolate + ester','β-keto ester (needs a full equivalent of base: the product is deprotonated, which drives the reaction)'],['alkylation','enolate (made with LDA) + primary alkyl halide','α-alkylated carbonyl'],['Michael addition','enolate + α,β-unsaturated carbonyl','1,5-dicarbonyl (conjugate addition)']],['Reaction','Partners','Product'])}
+ ${W('Propanal is treated with dilute NaOH. Give the aldol product and the condensation product on heating.',['The enolate of propanal (from C2) attacks the C=O of another propanal.','Aldol: CH₃CH₂CH(OH)CH(CH₃)CHO, 3-hydroxy-2-methylpentanal.','Heating eliminates water to give the conjugated CH₃CH₂CH=C(CH₃)CHO, 2-methylpent-2-enal.'])}
+ <p><b>Crossed aldols</b> give mixtures unless one partner has no α-hydrogens (benzaldehyde, methanal) and so can only be attacked. Aldehydes without α-H in strong base undergo the <b>Cannizzaro reaction</b> instead: one molecule is reduced to the alcohol and another oxidised to the carboxylate, by hydride transfer.</p>`},
+ {h:'Worked problem: Grignard planning',html:`${W('Choose two different Grignard routes to 2-phenylbutan-2-ol, C₆H₅C(OH)(CH₃)CH₂CH₃.',['It is a tertiary alcohol: disconnect any of the three C–C bonds to the carbinol carbon. The fragment that keeps the C–OH becomes a ketone.','Route 1: C₆H₅MgBr + butanone, then H₃O⁺.','Route 2: CH₃CH₂MgBr + acetophenone (C₆H₅COCH₃), then H₃O⁺.','(Route 3: CH₃MgBr + propiophenone, C₆H₅COCH₂CH₃.) Esters with two equivalents of Grignard give tertiary alcohols with two identical groups.'])}`}
+];
+
+D.u8=[
+ {h:'Worked problem: Carothers in practice',html:`${W('A polyester is made from equimolar diol and diacid. What extent of reaction is needed for an average chain of 200 monomer units? What if 1% excess diol is used?',['X<sub>n</sub> = 1 ÷ (1 − p) = 200, so p = 0.995: 99.5% of the groups must react.','With r = 100/101 = 0.9901 and p → 1: X<sub>n</sub> = (1 + r) ÷ (1 − r) = 1.9901 ÷ 0.0099 = 201.','So even a 1% stoichiometric imbalance caps the chain length at about 200 units, however long the reaction runs.'])}
+ <p>This is why step-growth polymers need very pure monomers in exact ratios, and why a monofunctional impurity (which caps chain ends) is so damaging. Chain-growth polymerisation behaves very differently: long chains form from the start, and the monomer is used up gradually.</p>`},
+ {h:'Critical micelle concentration',html:`<p>At low concentration, surfactant molecules sit at the water surface (heads in the water, tails in the air), lowering the surface tension. Once the surface is full, adding more surfactant forms micelles in solution. The concentration where this starts is the <b>critical micelle concentration</b> (CMC). Above it, surface tension stays roughly constant and properties such as conductivity change slope, which is how the CMC is measured.</p>
+ <p>Longer hydrophobic tails lower the CMC (each extra CH₂ roughly halves it for ionic surfactants), and adding salt lowers it further by screening the repulsion between charged heads. Lipids with two tails, like phospholipids, form bilayers rather than micelles, because their shape is closer to a cylinder than a cone.</p>`}
+];
+
+D.u9=[
+ {h:'Worked problem: pI and charge',html:`${W('Lysine has pK<sub>a</sub> values 2.2 (COOH), 9.0 (α-NH₃⁺) and 10.5 (side-chain NH₃⁺). Find its pI and its main form at pH 7.',['The neutral zwitterion has both NH₃⁺ groups protonated except one; it lies between the two amine pK<sub>a</sub> values.','pI = (9.0 + 10.5) ÷ 2 = 9.75.','At pH 7, below both amine pK<sub>a</sub>s and above the acid pK<sub>a</sub>: COO⁻, NH₃⁺, NH₃⁺. Net charge +1.'])}
+ <p>The rule: average the two pK<sub>a</sub> values on either side of the neutral form. For a neutral side chain that means pK<sub>a1</sub> and pK<sub>a2</sub>; for an acidic side chain (Asp, Glu) the two lowest; for a basic one (Lys, Arg, His) the two highest.</p>`},
+ {h:'Fats: iodine number and saponification value',html:`<p>The <b>saponification value</b> is the mass of KOH (mg) needed to hydrolyse 1 g of fat. Each triglyceride uses 3 KOH, so a smaller value means larger molecules (longer chains).</p>
+ <p>The <b>iodine value</b> is the mass of I₂ (g) that adds to 100 g of fat, measuring unsaturation: each C=C adds one I₂. Olive oil is about 80, linseed oil (rich in triply unsaturated linolenic acid) about 180. High iodine values mean oils that oxidise and harden in air (drying oils, used in paints).</p>
+ ${W('A triglyceride has M = 885 g mol⁻¹ and an iodine value of 86. How many C=C bonds per molecule?',['I₂ absorbed per mole of fat: 86 g per 100 g, so 86 × 885 ÷ 100 = 761 g = 761 ÷ 254 = 3.0 mol.','Three C=C per molecule (for example, triolein).'])}`}
+];
+
+D.u10=[
+ {h:'Worked problem: SNAr or benzyne?',html:`${W('Predict the products: (a) 1-chloro-2,4-dinitrobenzene with CH₃O⁻; (b) 4-chloromethylbenzene with NaNH₂ in liquid ammonia.',['(a) Two nitro groups ortho and para to Cl stabilise the Meisenheimer complex: SNAr gives 2,4-dinitroanisole (1-methoxy-2,4-dinitrobenzene), with the OCH₃ exactly where the Cl was.','(b) No activating groups, very strong base: elimination–addition through a benzyne. NH₂⁻ adds to either end of the triple bond: a mixture of 4-methylaniline and 3-methylaniline.'])}
+ <p><b>Leaving groups in SNAr</b> behave unexpectedly: F &gt; Cl ≈ Br &gt; I. The slow step is the nucleophile’s addition, not the loss of the halide, and fluorine’s strong −I effect makes the carbon most electrophilic and stabilises the anionic intermediate. That is why Sanger’s reagent uses 1-fluoro-2,4-dinitrobenzene.</p>`}
+];
+
+D.u11=[
+ {h:'Worked problem: ee and specific rotation',html:`${W('Pure (S)-ibuprofen has [α] = +57°. A sample shows [α] = +40°. Find the ee and the percentage of each enantiomer.',['ee = 40 ÷ 57 × 100 = 70%.','So 70% is pure S in excess; the other 30% is racemic (15% S + 15% R).','S = 85%, R = 15%.'])}
+ <p>In a chair, substituents prefer the equatorial position; the preference is measured by the <b>A-value</b> (the energy difference, in kJ mol⁻¹). Typical values: CH₃ 7.3, CH(CH₃)₂ 9.2, C(CH₃)₃ about 20, OH 3.9, Cl 2.2. A tert-butyl group is so large that it "locks" the ring with itself equatorial. ΔG = −RT ln K converts an A-value to an equilibrium ratio: for methylcyclohexane at 298 K, K = e^(7300/2478) ≈ 19, so about 95% of molecules have the methyl equatorial.</p>`}
+];
+
+D.u12=[
+ {h:'Worked problem: full structure from spectra',html:`${W('C₉H₁₀O. IR: 1715 cm⁻¹. ¹H NMR: δ 7.2 (5H, multiplet), 3.7 (2H, singlet), 2.1 (3H, singlet). ¹³C: 206, 134, 129, 128, 127, 51, 29 ppm. Identify the compound.',['Degree of unsaturation: (2 × 9 + 2 − 10) ÷ 2 = 5: a benzene ring (4) and one C=O.','1715 cm⁻¹ and δC 206: a ketone.','δ 7.2, 5H: a monosubstituted benzene (C₆H₅–). Four aromatic ¹³C signals agree.','δ 3.7, 2H singlet: CH₂ between the ring and C=O (no neighbours). δ 2.1, 3H singlet: CH₃ on C=O.','Structure: C₆H₅CH₂COCH₃, 1-phenylpropan-2-one.'])}
+ <p><b>Coupling constants</b> (J, in Hz) add information that integration cannot: trans H–C=C–H couple with J ≈ 12–18 Hz, cis with 6–12 Hz, and neighbouring H on sp³ carbons with about 7 Hz. Two signals that split each other always share the same J value, which tells you which groups are neighbours.</p>`}
+];
+
+D.u13=[
+ {h:'Worked problem: sequencing',html:`${W('A pentapeptide contains Ala, Gly, Leu, Lys and Phe. Sanger’s reagent labels Gly. Trypsin gives a tripeptide and the dipeptide Ala-Leu. Chymotrypsin gives the dipeptide Gly-Phe and a tripeptide. Find the sequence.',['Sanger’s reagent marks the N-terminus: Gly is first.','Chymotrypsin cuts after aromatic residues: Gly-Phe is residues 1–2.','Trypsin cuts after Lys or Arg, and one piece is Ala-Leu, so Lys comes just before Ala: the tripeptide is Gly-Phe-Lys.','Sequence: Gly-Phe-Lys-Ala-Leu. Check: chymotrypsin gives Gly-Phe and Lys-Ala-Leu.'])}
+ <p><b>Enzyme inhibition and Lineweaver–Burk plots.</b> Plotting 1/v against 1/[S] gives a straight line with intercept 1/V<sub>max</sub> and slope K<sub>M</sub>/V<sub>max</sub>. A competitive inhibitor (binds the active site) increases the apparent K<sub>M</sub> but leaves V<sub>max</sub> unchanged: the lines meet on the y-axis. A non-competitive inhibitor lowers V<sub>max</sub> but leaves K<sub>M</sub> unchanged: the lines meet on the x-axis.</p>`}
+];
+
+D.u14=[
+ {h:'Worked problem: sugar reasoning',html:`${W('An aldohexose A gives an optically inactive aldaric acid with HNO₃. Which D-aldohexoses could A be?',['An aldaric acid has COOH at both C1 and C6, so the molecule is symmetrical end to end when the OHs on C2/C5 and C3/C4 mirror each other.','Among the D-aldohexoses, D-allose and D-galactose give meso (optically inactive) aldaric acids.','So A is D-allose or D-galactose. A further test, such as a Kiliani–Fischer or Ruff degradation, distinguishes them.'])}
+ <p>The <b>DNA base pairs</b> differ in strength: G·C has three hydrogen bonds and A·T two, so GC-rich DNA melts at a higher temperature. The melting temperature T<sub>m</sub> rises roughly linearly with GC content, which is used to design PCR primers.</p>`}
+];
+
+D.u15=[
+ {h:'Worked problem: molar-mass averages',html:`${W('A sample contains 10 chains of M = 10 000 and 10 chains of M = 30 000 g mol⁻¹. Find M<sub>n</sub>, M<sub>w</sub> and Đ.',['M<sub>n</sub> = (10 × 10 000 + 10 × 30 000) ÷ 20 = 20 000.','M<sub>w</sub> = (10 × 10 000² + 10 × 30 000²) ÷ (10 × 10 000 + 10 × 30 000) = (10⁹ + 9 × 10⁹) ÷ 400 000 = 25 000.','Đ = 25 000 ÷ 20 000 = 1.25.'])}
+ <p>M<sub>w</sub> is weighted towards the heavier chains because each chain counts in proportion to its mass. Living polymerisations (anionic, or controlled radical methods) give Đ close to 1, because all chains start together and grow at the same rate; ordinary radical polymerisation gives Đ of 1.5–2 or more.</p>`}
+];
+})();
