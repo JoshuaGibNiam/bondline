@@ -33,6 +33,10 @@
   Cache-Control: no-cache
 /bondle/*
   Cache-Control: no-cache
+/daily/*
+  Cache-Control: no-cache
+/syllabus-data.js
+  Cache-Control: no-cache
 /extras.css
   Cache-Control: no-cache
 /assets/track.js

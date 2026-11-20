@@ -7243,7 +7243,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='35';
+const APP_VER='36';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -10362,6 +10362,7 @@ function wireV21(){
   $('#coPage').addEventListener('change',e=>{const sel=e.target.closest('[data-cosel]');if(sel)return coGoCourse(sel.value);const sa=e.target.closest('[data-cosyla]');if(sa){const key=coSylKey(C().id),ck=v18get(key,{});sa.checked?ck[sa.dataset.cosyla]=1:delete ck[sa.dataset.cosyla];v18set(key,ck);const T=$('#coSylT');if(T)T.textContent=Object.keys(ck).length;const sm=sa.closest('details').querySelector('summary small');if(sm){const b=sa.closest('ul').querySelectorAll('input');sm.textContent=`${[...b].filter(x=>x.checked).length} of ${b.length}`}return}const c=e.target.closest('[data-cosyl]');if(!c||!CO.unit)return;const all=coChecks(),cur=new Set(all[CO.unit]||[]),i=+c.dataset.cosyl;c.checked?cur.add(i):cur.delete(i);all[CO.unit]=[...cur].sort((a,b)=>a-b);v18set(C().sylKey,all)});
   document.addEventListener('keydown',coKey);
   { const _ci=cmdItems;cmdItems=function(){const I=_ci();
+    I.push({label:'Bondline Daily: today’s chemistry story',kind:'Go to',fn:()=>{location.href='/daily/'},kw:'daily fact article story chemistry news interesting'});
     I.push({label:'All courses',kind:'Go to',fn:()=>{setMode('course');coPick()},kw:'courses course syllabus icho a level alevel stpm cambridge 9701 962'});
     I.push({label:'IChO course',kind:'Go to',fn:()=>coGoCourse('icho'),kw:'icho olympiad chemistry olympiad course syllabus competition courses'});
     I.push({label:'Cambridge A Level Chemistry course (9701)',kind:'Go to',fn:()=>coGoCourse('cie'),kw:'a level alevel cambridge cie caie 9701 as level chemistry course syllabus organic orbitals bonding'});
@@ -10711,6 +10712,9 @@ function bx22homeCard(){
   card.innerHTML=`${BX_HEX('bx-home-hex',fills.length?fills:[1,2,3,4,5,0],r&&!r.done?fills.length:-1)}<div class="bx-ht"><div class="bx-hk">Bondle #${t.idx+1}</div>${state}</div><button class="btn${r&&r.done?'':' primary'}" data-bxhome>${r&&r.done?'See results':r?'Continue':'Play'}</button>`;
   card.addEventListener('click',e=>{if(e.target.closest('button')||e.target===card||e.target.closest('.bx-ht'))openBondle()});
   const hero=hp.querySelector('.h7-hero');if(hero)hero.insertAdjacentElement('afterend',card);else hp.querySelector('.h7').prepend(card);
+  { const od=hp.querySelector('.dy-home');if(od)od.remove();let seen='';try{seen=localStorage.getItem('bondline.daily.seen')||''}catch(e){}
+    const dl=document.createElement('a');dl.className='dy-home'+(seen===dayKey(Date.now())?'':' new');dl.href='/daily/';dl.innerHTML='<span class="dy-hk">Bondline Daily</span><b>Today’s chemistry story</b><small>A two-minute read on something surprising, linked to your syllabus.</small><span class="dy-ha" aria-hidden="true">→</span>';
+    card.insertAdjacentElement('afterend',dl);setTimeout(()=>{if(!dl.isConnected)return;const bx=hp.querySelector('.bx-home'),row=bx&&bx.parentElement;if(row&&row!==dl.parentElement&&!row.classList.contains('h7'))row.insertAdjacentElement('afterend',dl)},0) }
   const fb=hp.querySelector('.bx-hfb');if(!fb){const p=document.createElement('p');p.className='bx-hfb';p.innerHTML='Found a bug or have an idea? <button class="linkbtn" data-hfb>Send feedback</button>';p.querySelector('button').onclick=()=>openFeedback();hp.querySelector('.h7').appendChild(p)}
 }
 
@@ -13321,6 +13325,9 @@ CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions an
   ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
   ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
   ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
+CHANGELOG.unshift({v:'36',d:'20 November 2026',t:'Bondline Daily',items:[
+  ['A chemistry story every day','Bondline Daily (bondline.site/daily) has a short, surprising chemistry story each day, from why onions make you cry to how one chlorine atom destroys thousands of ozone molecules. Each one links to the syllabus topic it explains.'],
+  ['On your home page','A card on Home takes you to today’s story, with a dot until you have read it. Earlier stories are in the archive.']]});
 CHANGELOG.unshift({v:'35',d:'20 November 2026',t:'Full syllabus checklists',items:[
   ['Every point in your syllabus','Each course page now has a full checklist of the official syllabus, in its own order: 415 points for Cambridge A Level 9701, every AP topic, IB understandings marked SL or HL, all 20 JEE Main and NEET units, and IChO Appendix C including the advanced topics. Tick points off as you learn them.'],
   ['Printable PDFs','Download any checklist as a PDF with tick boxes you can fill in on screen or print.'],
