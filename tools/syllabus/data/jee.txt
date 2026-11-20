@@ -1,0 +1,142 @@
+@title JEE Main Chemistry
+@exams JEE Main 2026 syllabus (20 units)
+@src JEE Main syllabus published by the National Testing Agency (jeemain.nta.nic.in), following NCERT Chemistry for Classes 11 and 12
+@part Section A: physical chemistry
+# Unit 1 Some basic concepts in chemistry
+1.1 | Matter and its nature; Dalton's atomic theory; atoms, molecules, elements and compounds
+1.2 | Laws of chemical combination
+1.3 | Atomic and molecular masses; mole concept; molar mass
+1.4 | Percentage composition; empirical and molecular formulas
+1.5 | Chemical equations and stoichiometry
+# Unit 2 Atomic structure
+2.1 | Electromagnetic radiation; photoelectric effect
+2.2 | Spectrum of the hydrogen atom; Bohr model: radii, energies, limitations
+2.3 | Dual nature of matter: de Broglie relationship
+2.4 | Heisenberg uncertainty principle
+2.5 | Quantum mechanical model: orbitals, ψ and ψ²; quantum numbers
+2.6 | Shapes of s, p and d orbitals; nodes; electron spin
+2.7 | Aufbau principle, Pauli exclusion principle, Hund's rule
+2.8 | Electronic configurations; stability of half-filled and completely filled orbitals
+# Unit 3 Chemical bonding and molecular structure
+3.1 | Kossel–Lewis approach; ionic bond formation and factors; lattice enthalpy
+3.2 | Covalent bond: electronegativity, Fajans' rules, dipole moment
+3.3 | VSEPR theory and shapes of simple molecules
+3.4 | Valence bond theory: hybridisation with s, p and d orbitals; resonance
+3.5 | Molecular orbital theory: LCAO, bonding and antibonding MOs, σ and π MOs
+3.6 | MO configurations of homonuclear diatomics; bond order, bond length, bond energy
+3.7 | Metallic bonding (elementary)
+3.8 | Hydrogen bonding and its applications
+# Unit 4 Chemical thermodynamics
+4.1 | System and surroundings; extensive and intensive properties; state functions
+4.2 | First law: work, heat, internal energy, enthalpy, heat capacity, molar heat capacity
+4.3 | Hess's law; enthalpies of bond dissociation, combustion, formation, atomisation, sublimation, phase transition, hydration, ionisation and solution
+4.4 | Second law: spontaneity, ΔS of the universe, ΔG of the system
+4.5 | ΔG° and the equilibrium constant
+# Unit 5 Solutions
+5.1 | Concentration: molarity, molality, mole fraction, percentage
+5.2 | Vapour pressure of solutions; Raoult's law
+5.3 | Ideal and non-ideal solutions; vapour pressure–composition plots
+5.4 | Colligative properties: relative lowering of vapour pressure, depression of freezing point, elevation of boiling point, osmotic pressure
+5.5 | Molecular mass from colligative properties
+5.6 | Abnormal molar mass; van't Hoff factor
+# Unit 6 Equilibrium
+6.1 | Equilibria in physical processes: solid–liquid, liquid–gas, solid–gas; Henry's law
+6.2 | Chemical equilibrium: law of mass action, Kp and Kc and their relation
+6.3 | ΔG and equilibrium; Le Chatelier's principle
+6.4 | Ionic equilibrium: weak and strong electrolytes; ionisation of electrolytes
+6.5 | Acid–base concepts (Arrhenius, Brønsted–Lowry, Lewis); ionisation of acids and bases
+6.6 | Ionic product of water; pH scale; common ion effect
+6.7 | Hydrolysis of salts and pH of their solutions; solubility product
+6.8 | Buffer solutions
+# Unit 7 Redox reactions and electrochemistry
+7.1 | Oxidation and reduction; oxidation number; balancing redox reactions
+7.2 | Electrolytic and metallic conduction; conductance; specific and molar conductivity and their variation with concentration
+7.3 | Kohlrausch's law and its applications
+7.4 | Electrochemical cells: electrolytic and galvanic; electrode potentials; half-cell and cell reactions
+7.5 | EMF of a galvanic cell and its measurement; Nernst equation
+7.6 | Relation between ΔG and EMF; dry cell and lead accumulator; fuel cells
+# Unit 8 Chemical kinetics
+8.1 | Rate of reaction (average and instantaneous); factors affecting rate
+8.2 | Elementary and complex reactions; order and molecularity
+8.3 | Rate law, rate constant and its units
+8.4 | Differential and integral forms of zero- and first-order reactions; half-lives
+8.5 | Effect of temperature: Arrhenius theory; activation energy and its calculation
+8.6 | Collision theory of bimolecular gaseous reactions (no derivation)
+@part Section B: inorganic chemistry
+# Unit 9 Classification of elements and periodicity in properties
+9.1 | Modern periodic law and the present form of the periodic table
+9.2 | s, p, d and f block elements
+9.3 | Periodic trends: atomic and ionic radii, ionisation enthalpy, electron gain enthalpy, valence, oxidation states
+9.4 | Chemical reactivity across periods and down groups
+# Unit 10 p-Block elements
+10.1 | Group 13 to group 18: general introduction, electronic configuration
+10.2 | General trends in physical and chemical properties
+10.3 | Unique behaviour of the first element in each group
+# Unit 11 d- and f-block elements
+11.1 | Transition elements: general introduction, electronic configuration, occurrence and characteristics
+11.2 | General trends: metallic character, ionisation enthalpy, oxidation states, ionic radii, colour, catalytic behaviour, magnetic properties, complex formation, interstitial compounds, alloys
+11.3 | Preparation, properties and uses of K₂Cr₂O₇ and KMnO₄
+11.4 | Inner transition elements: lanthanoids (configuration, oxidation states, lanthanoid contraction)
+11.5 | Actinoids: configuration and oxidation states
+# Unit 12 Coordination compounds
+12.1 | Introduction; ligands, coordination number, denticity, chelation
+12.2 | IUPAC nomenclature of mononuclear coordination compounds
+12.3 | Isomerism
+12.4 | Bonding: valence bond approach and basic ideas of crystal field theory
+12.5 | Colour and magnetic properties
+12.6 | Importance in qualitative analysis, metal extraction and biological systems
+@part Section C: organic chemistry
+# Unit 13 Purification and characterisation of organic compounds
+13.1 | Purification: crystallisation, sublimation, distillation, differential extraction, chromatography (principles and applications)
+13.2 | Qualitative analysis: detection of nitrogen, sulfur, phosphorus and halogens
+13.3 | Quantitative analysis (basic principles): estimation of C, H, N, halogens, S, P
+13.4 | Empirical and molecular formulas; numerical problems
+# Unit 14 Some basic principles of organic chemistry
+14.1 | Tetravalency of carbon; shapes of simple molecules; hybridisation (s and p)
+14.2 | Classification by functional group: C=C, C≡C and groups containing halogen, O, N and S; homologous series
+14.3 | Isomerism: structural and stereoisomerism
+14.4 | Nomenclature (trivial and IUPAC)
+14.5 | Covalent bond fission: homolytic and heterolytic; free radicals, carbocations and carbanions; their stability
+14.6 | Electrophiles and nucleophiles
+14.7 | Electronic displacement: inductive effect, electromeric effect, resonance, hyperconjugation
+14.8 | Common types of reaction: substitution, addition, elimination, rearrangement
+# Unit 15 Hydrocarbons
+15.1 | Classification; isomerism; IUPAC nomenclature; general preparation, properties and reactions
+15.2 | Alkanes: conformations (Sawhorse and Newman projections of ethane); mechanism of halogenation
+15.3 | Alkenes: geometrical isomerism; mechanism of electrophilic addition (H₂, X₂, H₂O, HX); Markovnikov and peroxide effect; ozonolysis and polymerisation
+15.4 | Alkynes: acidic character; addition of H₂, X₂, HX and H₂O; polymerisation
+15.5 | Aromatic hydrocarbons: nomenclature, benzene structure and aromaticity
+15.6 | Electrophilic substitution: halogenation, nitration, Friedel–Crafts alkylation and acylation; directive influence of substituents
+# Unit 16 Organic compounds containing halogens
+16.1 | General methods of preparation, properties and reactions
+16.2 | Nature of the C–X bond; mechanisms of substitution reactions
+16.3 | Uses; environmental effects of chloroform, iodoform, freons and DDT
+# Unit 17 Organic compounds containing oxygen
+17.1 | Alcohols: identification of primary, secondary and tertiary alcohols; mechanism of dehydration
+17.2 | Phenols: acidic nature, electrophilic substitution (halogenation, nitration, sulfonation); Reimer–Tiemann reaction
+17.3 | Ethers: structure
+17.4 | Aldehydes and ketones: nature of the carbonyl group; nucleophilic addition to >C=O
+17.5 | Important reactions: nucleophilic addition, reactions with NH₃ and its derivatives, Grignard reagent
+17.6 | Oxidation, reduction (Wolff–Kishner and Clemmensen), acidity of α-hydrogen, aldol condensation, Cannizzaro reaction, haloform reaction
+17.7 | Chemical tests to distinguish aldehydes and ketones
+17.8 | Carboxylic acids: acidic strength and factors affecting it
+# Unit 18 Organic compounds containing nitrogen
+18.1 | Amines: nomenclature, classification, structure, basic character and identification of 1°, 2° and 3° amines
+18.2 | Diazonium salts: importance in synthetic organic chemistry
+# Unit 19 Biomolecules
+19.1 | Carbohydrates: classification (aldoses and ketoses); monosaccharides (glucose and fructose)
+19.2 | Constituent monosaccharides of oligosaccharides (sucrose, lactose and maltose)
+19.3 | Proteins: α-amino acids, peptide bond, polypeptides; primary, secondary, tertiary and quaternary structure; denaturation; enzymes
+19.4 | Vitamins: classification and functions
+19.5 | Nucleic acids: chemical constitution of DNA and RNA; biological functions
+19.6 | Hormones: general introduction
+# Unit 20 Principles related to practical chemistry
+20.1 | Detection of extra elements (N, S, halogens) in organic compounds
+20.2 | Detection of functional groups: hydroxyl (alcoholic and phenolic), carbonyl (aldehyde and ketone), carboxyl and amino groups
+20.3 | Preparation of inorganic compounds: Mohr's salt, potash alum
+20.4 | Preparation of organic compounds: acetanilide, p-nitroacetanilide, aniline yellow, iodoform
+20.5 | Titrimetric exercises: acids, bases and indicators; oxalic acid vs KMnO₄; Mohr's salt vs KMnO₄
+20.6 | Enthalpy of solution of CuSO₄; enthalpy of neutralisation of a strong acid and a strong base
+20.7 | Preparation of lyophilic and lyophobic sols
+20.8 | Kinetic study of the reaction of iodide with hydrogen peroxide at room temperature
+20.9 | Qualitative salt analysis: cations Pb²⁺, Cu²⁺, Al³⁺, Fe³⁺, Zn²⁺, Ni²⁺, Ca²⁺, Ba²⁺, Mg²⁺, NH₄⁺; anions CO₃²⁻, S²⁻, SO₄²⁻, NO₃⁻, Cl⁻, Br⁻, I⁻ (insoluble salts excluded)

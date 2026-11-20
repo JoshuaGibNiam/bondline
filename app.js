@@ -7243,7 +7243,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='34';
+const APP_VER='35';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -10213,7 +10213,7 @@ function coSide(){const box=$('#coList');if(!box)return;const K=C(),cur=CO.view=
    ${K.groups.map(([h,f])=>`<div class="pg-sh">${esc(h)}</div>${K.units.filter(f).map(item).join('')}`).join('')}`}`}
 
 function coCrumb(K,unit){return`<nav class="co-crumb" aria-label="Breadcrumb"><button class="co-crb" data-copick="1">All courses</button><span aria-hidden="true">›</span>${unit?`<button class="co-crb" data-cohome="1">${esc(K.name)}</button>`:`<span class="co-crc">${esc(K.name)}</span>`}<label class="co-crsel"><span class="sr-only">Switch course</span><select data-cosel="1" aria-label="Switch course">${CO_IDS.map(c=>`<option value="${c}"${c===K.id?' selected':''}>${esc(COURSES[c].short)}</option>`).join('')}</select></label></nav>`}
-function coOpen(){if(!CO.c)CO.c=v18get('bondline.course','');if(CO.view==='quiz'&&CO.qz)return coRenderQ();if(CO.view==='unit'&&CO.unit)return coUnit(CO.unit);if(!CO.c||CO.view==='pick')return coPick();coHome()}
+function coOpen(){if(!CO.c)CO.c=v18get('bondline.course','');if(CO.view==='syl'&&CO.c)return coSylAll();if(CO.view==='quiz'&&CO.qz)return coRenderQ();if(CO.view==='unit'&&CO.unit)return coUnit(CO.unit);if(!CO.c||CO.view==='pick')return coPick();coHome()}
 function coDone(){$('#main').scrollTop=0;$('#side').classList.remove('open');coSide()}
 
 function coPick(){
@@ -10235,11 +10235,31 @@ function coHome(){
    <div class="co-stats"><div><b>${A.done}</b><span>of ${K.units.length} units complete</span></div><div><b>${A.m}</b><span>of ${A.n} questions mastered</span></div></div>
    <div class="nm-actions">${lu?`<button class="btn primary" data-counit="${lu.id}">Continue: Unit ${lu.n}</button><button class="btn" data-counit="${u1.id}">Start from Unit 1</button>`:`<button class="btn primary" data-counit="${u1.id}">Start Unit 1</button>`}<button class="linkbtn" data-copick="1">Other courses</button></div>
    ${coNote(K.note[0],K.note[1])}
+   ${coSylCard(K)}
    ${K.groups.map(([h,f])=>`<h2 class="co-gh">${esc(h)}</h2><div class="co-grid">${K.units.filter(f).map(card).join('')}</div>`).join('')}
    ${!PRO_CFG.enforce?`<p class="co-foot">Units 1–3 are free. The rest are part of Bondline Pro, and free for everyone while Pro is in preview.</p>`:proActive()?'':`<p class="co-foot">Units 1–3 are free. <button class="linkbtn" data-copro="1">Unlock all ${K.units.length} units with Pro</button></p>`}
    <p class="co-foot">${esc(K.src)}</p></article>`;
   coDone()}
 
+/* Version 35: the full official syllabus for each course as a checklist (data in syllabus-data.js). */
+const coSylD=c=>(window.BL_SYL||{})[c];
+const coSylKey=c=>'bondline.sylall.'+c;
+const coSylN=d=>d.parts.reduce((n,p)=>n+p.secs.reduce((m,s)=>m+s.items.length,0),0);
+const coSylPdf=c=>`/syllabus/Bondline_${c.toUpperCase()}_Syllabus_Checklist.pdf`;
+function coSylCard(K){const d=coSylD(K.id);
+  if(!d)return`<section class="co-sylcard"><div><b>Full syllabus checklist</b><small>The checklist for the new ${esc(K.short)} syllabus is being prepared.</small></div></section>`;
+  const n=coSylN(d),t=Object.keys(v18get(coSylKey(K.id),{})).length;
+  return`<section class="co-sylcard"><div><b>Full syllabus checklist</b><small>Every point in the official ${esc(K.short)} syllabus, ${n} in all. ${t?`${t} ticked.`:'Tick them off as you go.'}</small><span class="nm-meter" aria-hidden="true"><i style="width:${Math.round(100*t/n)}%"></i></span></div><div class="co-sylbtns"><button class="btn primary" data-cosylall="1">Open checklist</button><a class="btn" href="${coSylPdf(K.id)}" target="_blank" rel="noopener" download>PDF</a></div></section>`}
+function coSylAll(){const K=C(),d=coSylD(K.id);if(!d)return coHome();CO.view='syl';
+  const ck=v18get(coSylKey(K.id),{}),n=coSylN(d),t=Object.keys(ck).length;
+  const sec=(s,pi,si)=>{const done=s.items.filter(([c])=>ck[c]).length;return`<details class="co-sylsec"${pi===0&&si===0?' open':''}><summary><span>${esc(s.h)}</span><small>${done} of ${s.items.length}</small></summary><ul>${s.items.map(([c,x])=>`<li><label><input type="checkbox" data-cosyla="${esc(c)}"${ck[c]?' checked':''}><span><b class="co-sylc">${esc(c)}</b>${esc(x)}</span></label></li>`).join('')}</ul></details>`};
+  $('#coPage').innerHTML=`<article class="nm-lesson co-home co-sylpage">${coCrumb(K,true)}<header class="nm-head"><div class="nm-kicker">${esc(K.short)} · Syllabus checklist</div><h1>${esc(d.title)}</h1>
+   <p class="nm-lede">${esc(d.exams)}. Every point in the official syllabus, in its own order. Tick each one when you could explain it without notes.</p></header>
+   <div class="co-stats"><div><b id="coSylT">${t}</b><span>of ${n} points ticked</span></div></div>
+   <div class="nm-actions"><a class="btn" href="${coSylPdf(K.id)}" target="_blank" rel="noopener" download>Download the PDF</a><button class="linkbtn" data-cosylopen="1">Open every section</button><button class="linkbtn" data-cohome="1">Back to the course</button></div>
+   ${d.parts.map((p,pi)=>`<h2 class="co-gh">${esc(p.h)}</h2>${p.secs.map((s,si)=>sec(s,pi,si)).join('')}`).join('')}
+   <p class="co-foot">Source: ${esc(d.src)}. Item wording is shortened; check the original document for the exact wording. Not affiliated with or endorsed by the exam board.</p></article>`;
+  coDone()}
 function coTool(t){const[k,a,l,d]=t;const attr=k==='view3d'?`data-3d="${esc(a)}" data-name="${esc(l.replace(/ in 3D$/,''))}"`:`data-cgo="${k}|${esc(a)}"`;
   return`<button class="co-tool" ${attr}><b>${esc(l)}</b>${d?`<small>${esc(d)}</small>`:''}</button>`}
 function coUnit(id){
@@ -10331,13 +10351,15 @@ function wireV21(){
     if(t.closest('[data-copick]')){CO.qz=null;return coPick()}
     const un=t.closest('[data-counit]');if(un)return coUnit(un.dataset.counit);
     if(t.closest('[data-cohome]'))return coHome();
+    if(t.closest('[data-cosylall]'))return coSylAll();
+    if(t.closest('[data-cosylopen]')){document.querySelectorAll('#coPage details.co-sylsec').forEach(d=>d.open=true);return}
     const q=t.closest('[data-coquiz]');if(q)return coStart({unit:q.dataset.coquiz});
     const dr=t.closest('[data-codraw]');if(dr)return coStart({unit:dr.dataset.codraw,draw:true});
     const k=t.closest('[data-cok]');if(k)return coAnswer(+k.dataset.cok);
     const g=t.closest('[data-cgo]');if(g)return coGo(g.dataset.cgo);
     if(t.closest('[data-copro]'))return openPro(CO.c||'icho')};
   $('#coPage').addEventListener('click',click);$('#coSide').addEventListener('click',click);
-  $('#coPage').addEventListener('change',e=>{const sel=e.target.closest('[data-cosel]');if(sel)return coGoCourse(sel.value);const c=e.target.closest('[data-cosyl]');if(!c||!CO.unit)return;const all=coChecks(),cur=new Set(all[CO.unit]||[]),i=+c.dataset.cosyl;c.checked?cur.add(i):cur.delete(i);all[CO.unit]=[...cur].sort((a,b)=>a-b);v18set(C().sylKey,all)});
+  $('#coPage').addEventListener('change',e=>{const sel=e.target.closest('[data-cosel]');if(sel)return coGoCourse(sel.value);const sa=e.target.closest('[data-cosyla]');if(sa){const key=coSylKey(C().id),ck=v18get(key,{});sa.checked?ck[sa.dataset.cosyla]=1:delete ck[sa.dataset.cosyla];v18set(key,ck);const T=$('#coSylT');if(T)T.textContent=Object.keys(ck).length;const sm=sa.closest('details').querySelector('summary small');if(sm){const b=sa.closest('ul').querySelectorAll('input');sm.textContent=`${[...b].filter(x=>x.checked).length} of ${b.length}`}return}const c=e.target.closest('[data-cosyl]');if(!c||!CO.unit)return;const all=coChecks(),cur=new Set(all[CO.unit]||[]),i=+c.dataset.cosyl;c.checked?cur.add(i):cur.delete(i);all[CO.unit]=[...cur].sort((a,b)=>a-b);v18set(C().sylKey,all)});
   document.addEventListener('keydown',coKey);
   { const _ci=cmdItems;cmdItems=function(){const I=_ci();
     I.push({label:'All courses',kind:'Go to',fn:()=>{setMode('course');coPick()},kw:'courses course syllabus icho a level alevel stpm cambridge 9701 962'});
@@ -13299,5 +13321,9 @@ CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions an
   ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
   ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
   ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
+CHANGELOG.unshift({v:'35',d:'20 November 2026',t:'Full syllabus checklists',items:[
+  ['Every point in your syllabus','Each course page now has a full checklist of the official syllabus, in its own order: 415 points for Cambridge A Level 9701, every AP topic, IB understandings marked SL or HL, all 20 JEE Main and NEET units, and IChO Appendix C including the advanced topics. Tick points off as you learn them.'],
+  ['Printable PDFs','Download any checklist as a PDF with tick boxes you can fill in on screen or print.'],
+  ['STPM next','The checklist for the new STPM syllabus (from 2026) is on its way.']]});
 boot().then(()=>{try{const q=new URLSearchParams(location.search);if(q.has('papers')){const c=q.get('papers');setTimeout(()=>ppOpen(COURSES[c]?c:''),300);history.replaceState(null,'',location.pathname+'?app')}}catch(e){}v16DeepLinks();v17AfterBoot();v18AfterBoot();v19AfterBoot();v21AfterBoot();v22AfterBoot();v24AfterBoot();v25AfterBoot();v26AfterBoot();v27AfterBoot()});
 })();

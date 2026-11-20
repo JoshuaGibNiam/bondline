@@ -1,0 +1,161 @@
+@title IB Diploma Programme Chemistry (SL and HL)
+@exams First assessment 2025 · (HL) marks additional higher level content
+@src IB Diploma Programme Chemistry guide, first assessment 2025, and the IB Chemistry subject brief (ibo.org)
+@part Structure 1: models of the particulate nature of matter
+# Structure 1.1 Introduction to the particulate nature of matter
+S1.1.1 | Elements, compounds and mixtures; homogeneous and heterogeneous mixtures
+S1.1.2 | Separating mixtures: filtration, crystallisation, evaporation, distillation, paper chromatography, solvation
+S1.1.3 | Kinetic molecular theory: states of matter and changes of state
+S1.1.4 | Temperature in kelvin is proportional to average kinetic energy
+# Structure 1.2 The nuclear atom
+S1.2.1 | Atoms: a dense nucleus of protons and neutrons surrounded by electrons
+S1.2.2 | Isotopes; nuclear symbol notation
+S1.2.3 | Relative atomic mass from isotopic abundances
+S1.2.4 | (HL) Mass spectra and isotopic abundances
+# Structure 1.3 Electron configurations
+S1.3.1 | Emission spectra: continuous versus line spectra
+S1.3.2 | Hydrogen line spectrum: transitions converge at higher energy
+S1.3.3 | Energy levels, sublevels and orbitals; maximum electrons per level 2n²
+S1.3.4 | Shapes of s and p orbitals
+S1.3.5 | Aufbau principle, Hund's rule and Pauli exclusion principle; orbital diagrams
+S1.3.6 | (HL) Ionisation energy from the convergence limit of the hydrogen spectrum
+S1.3.7 | (HL) Successive ionisation energies and electron configuration
+# Structure 1.4 Counting particles by mass: the mole
+S1.4.1 | The mole and the Avogadro constant
+S1.4.2 | Molar mass
+S1.4.3 | Empirical and molecular formulas
+S1.4.4 | Molar concentration; dilution
+S1.4.5 | Avogadro's law: equal volumes of gases contain equal numbers of particles
+# Structure 1.5 Ideal gases
+S1.5.1 | Ideal gas model assumptions
+S1.5.2 | Real gases deviate at high pressure, low temperature and with strong forces
+S1.5.3 | Molar volume of an ideal gas at STP
+S1.5.4 | Pressure, volume and temperature relationships; combined gas law
+S1.5.5 | Ideal gas equation pV = nRT
+@part Structure 2: models of bonding and structure
+# Structure 2.1 The ionic model
+S2.1.1 | Ions form by losing or gaining electrons; predicting charge from the periodic table
+S2.1.2 | Ionic bonding; electronegativity difference
+S2.1.3 | Ionic lattices; lattice enthalpy as a measure of bond strength
+S2.1.4 | Properties of ionic compounds: volatility, conductivity, solubility
+# Structure 2.2 The covalent model
+S2.2.1 | Covalent bond: shared pair attracted by two nuclei; octet rule
+S2.2.2 | Single, double and triple bonds; bond length and strength
+S2.2.3 | Coordination (dative) bonds
+S2.2.4 | VSEPR: shapes for up to four electron domains
+S2.2.5 | Bond polarity and molecular polarity
+S2.2.6 | Covalent network structures: carbon allotropes, silicon, silicon dioxide
+S2.2.7 | Intermolecular forces: London dispersion, dipole–induced dipole, dipole–dipole, hydrogen bonding
+S2.2.8 | Effect of intermolecular forces on physical properties
+S2.2.9 | Chromatography: Rf values and separating by polarity
+S2.2.10 | (HL) Resonance structures; delocalised electrons in benzene
+S2.2.11 | (HL) Expanded octets: VSEPR for five and six electron domains
+S2.2.12 | (HL) Formal charge
+S2.2.13 | (HL) Sigma and pi bonds
+S2.2.14 | (HL) Hybridisation sp, sp², sp³
+# Structure 2.3 The metallic model
+S2.3.1 | Metallic bond: cations in a sea of delocalised electrons
+S2.3.2 | Properties of metals: conductivity, malleability
+S2.3.3 | (HL) Strength of metallic bonding; transition elements have delocalised d electrons
+# Structure 2.4 From models to materials
+S2.4.1 | Bonding triangle: ionic, covalent and metallic character
+S2.4.2 | Predicting properties from position on the triangle
+S2.4.3 | Alloys
+S2.4.4 | Polymers: monomers and repeating units
+S2.4.5 | Addition polymers
+S2.4.6 | (HL) Condensation polymers: polyamides, polyesters, biological polymers
+@part Structure 3: classification of matter
+# Structure 3.1 The periodic table: classification of elements
+S3.1.1 | Periods, groups and blocks
+S3.1.2 | Period number and group number from configuration
+S3.1.3 | Periodicity: atomic radius, ionic radius, ionisation energy, electron affinity, electronegativity
+S3.1.4 | Trends in group 1 and group 17
+S3.1.5 | Metallic and non-metallic character; oxides: basic, acidic, amphoteric
+S3.1.6 | Oxidation states; naming with Roman numerals
+S3.1.7 | (HL) Discontinuities in ionisation energy across a period
+S3.1.8 | (HL) Transition elements: incomplete d sublevel, variable oxidation states
+S3.1.9 | (HL) Coloured complexes: d-orbital splitting and complementary colours
+# Structure 3.2 Functional groups: classification of organic compounds
+S3.2.1 | Molecular, empirical, structural (full, condensed, skeletal) and stereochemical formulas
+S3.2.2 | Functional groups and classes of organic compound
+S3.2.3 | Homologous series and trends in physical properties
+S3.2.4 | IUPAC nomenclature
+S3.2.5 | Structural isomers
+S3.2.6 | (HL) Stereoisomers: cis–trans and optical isomers
+S3.2.7 | Mass spectrometry: fragmentation patterns
+S3.2.8 | Infrared spectroscopy: functional groups
+S3.2.9 | (HL) ¹H NMR: chemical shift, integration, splitting
+S3.2.10 | (HL) Combining spectra to identify structure
+@part Reactivity 1: what drives chemical reactions?
+# Reactivity 1.1 Measuring enthalpy changes
+R1.1.1 | Energy transfer as heat; system and surroundings
+R1.1.2 | Exothermic and endothermic reactions
+R1.1.3 | Energy profiles and relative stability
+R1.1.4 | Calorimetry: Q = mcΔT and ΔH
+# Reactivity 1.2 Energy cycles in reactions
+R1.2.1 | Bond enthalpy and average bond enthalpies
+R1.2.2 | Hess's law
+R1.2.3 | (HL) Standard enthalpies of formation and combustion
+R1.2.4 | (HL) Born–Haber cycles
+# Reactivity 1.3 Energy from fuels
+R1.3.1 | Combustion of organic compounds: complete and incomplete
+R1.3.2 | Fossil fuels: advantages and disadvantages; specific energy and energy density
+R1.3.3 | Biofuels and the carbon cycle
+R1.3.4 | Fuel cells
+# Reactivity 1.4 Entropy and spontaneity (HL)
+R1.4.1 | (HL) Entropy and the dispersal of energy and matter
+R1.4.2 | (HL) Gibbs energy ΔG = ΔH − TΔS
+R1.4.3 | (HL) Effect of temperature on spontaneity
+R1.4.4 | (HL) ΔG° = −RT ln K
+@part Reactivity 2: how much, how fast and how far?
+# Reactivity 2.1 How much? The amount of chemical change
+R2.1.1 | Balanced equations and mole ratios
+R2.1.2 | Reacting masses, volumes of gases and concentrations
+R2.1.3 | Limiting reactant; theoretical and percentage yield
+R2.1.4 | Atom economy
+# Reactivity 2.2 How fast? The rate of chemical change
+R2.2.1 | Rate of reaction and how to measure it
+R2.2.2 | Collision theory; Maxwell–Boltzmann distribution
+R2.2.3 | Factors affecting rate
+R2.2.4 | Activation energy and catalysts
+R2.2.5 | (HL) Reaction mechanisms, intermediates and the rate-determining step
+R2.2.6 | (HL) Rate equations, orders and the rate constant
+R2.2.7 | (HL) Arrhenius equation; activation energy from graphs
+# Reactivity 2.3 How far? The extent of chemical change
+R2.3.1 | Dynamic equilibrium
+R2.3.2 | Equilibrium constant K and its meaning
+R2.3.3 | Le Châtelier's principle
+R2.3.4 | (HL) Reaction quotient Q
+R2.3.5 | (HL) Calculating K and equilibrium concentrations
+@part Reactivity 3: what are the mechanisms of chemical change?
+# Reactivity 3.1 Proton transfer reactions
+R3.1.1 | Brønsted–Lowry acids and bases; conjugate pairs; amphiprotic species
+R3.1.2 | pH scale; pH = −log[H⁺]; Kw
+R3.1.3 | Strong and weak acids and bases
+R3.1.4 | Neutralisation; pH curves
+R3.1.5 | (HL) pOH, Ka, Kb, pKa, pKb
+R3.1.6 | (HL) Salt hydrolysis: pH of salt solutions
+R3.1.7 | (HL) Buffers
+R3.1.8 | (HL) Indicators and pH curves
+# Reactivity 3.2 Electron transfer reactions
+R3.2.1 | Oxidation and reduction; oxidation states; half-equations
+R3.2.2 | Activity series of metals
+R3.2.3 | Primary (voltaic) cells and electrolytic cells
+R3.2.4 | Secondary (rechargeable) cells
+R3.2.5 | Oxidation of alcohols; reduction of carboxylic acids, aldehydes and ketones
+R3.2.6 | Hydrogenation of alkenes
+R3.2.7 | (HL) Standard electrode potentials and the standard hydrogen electrode
+R3.2.8 | (HL) ΔG° = −nFE°
+R3.2.9 | (HL) Electrolysis of aqueous solutions; electroplating
+# Reactivity 3.3 Electron sharing reactions
+R3.3.1 | Radicals and homolytic fission
+R3.3.2 | Free-radical substitution of alkanes
+# Reactivity 3.4 Electron-pair sharing reactions
+R3.4.1 | Nucleophiles and nucleophilic substitution
+R3.4.2 | Electrophiles and electrophilic addition to alkenes
+R3.4.3 | Lewis acids and bases
+R3.4.4 | (HL) Coordination bonds and complex ions
+R3.4.5 | (HL) SN1 and SN2 mechanisms; factors affecting rate
+R3.4.6 | (HL) Heterolytic fission; curly arrows
+R3.4.7 | (HL) Markovnikov's rule and carbocation stability
+R3.4.8 | (HL) Electrophilic substitution of benzene

@@ -1,0 +1,130 @@
+@title AP Chemistry
+@exams Course and Exam Description (updated for 2024–25 onwards)
+@src AP Chemistry Course and Exam Description and Course at a Glance (apcentral.collegeboard.org)
+@part Units 1 and 2: atoms and compounds
+# Unit 1 Atomic Structure and Properties (7–9%)
+1.1a | Moles and molar mass: n = m ÷ M; Avogadro's number 6.022 × 10²³
+1.1b | Average mass of one particle in amu equals the molar mass in g/mol
+1.2a | Mass spectra of elements: each peak is an isotope, height is relative abundance
+1.2b | Average atomic mass from isotope masses and abundances
+1.3a | Elemental composition of pure substances: law of definite proportions
+1.3b | Empirical formula from mass percent
+1.4a | Composition of mixtures: mass percent of components
+1.4b | Elemental analysis to find purity of a mixture
+1.5a | Coulomb's law: force ∝ q₁q₂ ÷ r²
+1.5b | Electron configurations (aufbau); shells and subshells
+1.5c | Core and valence electrons; effective nuclear charge
+1.6a | Photoelectron spectroscopy: peak position = binding energy, height = number of electrons
+1.6b | Reading electron configurations from a PES spectrum
+1.7a | Periodic trends: atomic radius, ionisation energy, electron affinity, electronegativity
+1.7b | Explaining trends with Coulomb's law and shielding
+1.8a | Valence electrons and typical ionic charges
+1.8b | Predicting formulas of ionic compounds from periodic position
+# Unit 2 Compound Structure and Properties (7–9%)
+2.1a | Ionic, covalent (polar and nonpolar) and metallic bonds
+2.1b | Electronegativity difference and bond type
+2.2a | Potential energy versus internuclear distance graph
+2.2b | Bond length and bond energy from the graph; effect of bond order and atom size
+2.3a | Structure of ionic solids: lattice of alternating ions
+2.3b | Lattice energy and Coulombic attraction (charge and ion size)
+2.4a | Metals: positive ions in a sea of delocalised electrons
+2.4b | Interstitial and substitutional alloys
+2.5a | Lewis diagrams: octet rule and its exceptions
+2.6a | Resonance structures and delocalised electrons
+2.6b | Formal charge and choosing the best Lewis structure
+2.7a | VSEPR shapes and bond angles (2 to 6 electron domains)
+2.7b | Hybridisation sp, sp², sp³; σ and π bonds
+2.7c | Molecular polarity
+@part Units 3 and 4: substances, mixtures and reactions
+# Unit 3 Properties of Substances and Mixtures (18–22%)
+3.1a | London dispersion, dipole–dipole, hydrogen bonding, ion–dipole forces
+3.1b | Polarisability and strength of dispersion forces
+3.2a | Properties of ionic, covalent network, molecular and metallic solids
+3.2b | Crystalline versus amorphous solids
+3.3a | Particle-level structure of solids, liquids and gases
+3.4a | Ideal gas law PV = nRT; Dalton's law of partial pressures
+3.4b | Mole fraction and partial pressure
+3.5a | Kinetic molecular theory; kinetic energy ∝ temperature
+3.5b | Maxwell–Boltzmann distribution of speeds
+3.6a | Deviations from ideal behaviour: high pressure, low temperature, strong forces
+3.7a | Solutions; molarity M = n ÷ V
+3.8a | Particulate representations of solutions
+3.9a | Separation: paper and column chromatography, distillation
+3.10a | Solubility: "like dissolves like"; intermolecular forces between solute and solvent
+3.11a | Electromagnetic spectrum and molecular transitions (microwave, IR, UV-visible)
+3.12a | Photons: E = hν and c = λν
+3.13a | Beer–Lambert law A = εbc; spectrophotometry
+# Unit 4 Chemical Reactions (7–9%)
+4.1a | Evidence of reactions; physical versus chemical changes
+4.2a | Net ionic equations and spectator ions
+4.3a | Representations: balanced equations and particle diagrams
+4.4a | Physical and chemical changes at the particle level
+4.5a | Stoichiometry: mole ratios, limiting reactant, percent yield
+4.6a | Titration: equivalence point, finding an unknown concentration
+4.7a | Types of reaction: acid–base, redox, precipitation
+4.8a | Brønsted–Lowry acids and bases; conjugate pairs; amphoteric water
+4.9a | Oxidation numbers; balancing redox half-reactions
+@part Units 5 and 6: kinetics and thermochemistry
+# Unit 5 Kinetics (7–9%)
+5.1a | Reaction rate and the factors affecting it
+5.2a | Rate law rate = k[A]^m[B]^n; orders from initial rates
+5.3a | Integrated rate laws for zero, first and second order; linear plots
+5.3b | First-order half-life t½ = 0.693 ÷ k
+5.4a | Elementary reactions: rate law from molecularity
+5.5a | Collision model: orientation and energy
+5.6a | Reaction energy profile: activation energy, transition state
+5.6b | Arrhenius idea: effect of temperature on k
+5.7a | Mechanisms: intermediates, sum of elementary steps
+5.8a | Rate law from the rate-determining step
+5.9a | Pre-equilibrium approximation (fast equilibrium before slow step)
+5.10a | Multistep energy profiles
+5.11a | Catalysts: new pathway, lower Ea; acid–base, surface and enzyme catalysis
+# Unit 6 Thermochemistry (7–9%)
+6.1a | Endothermic and exothermic processes
+6.2a | Energy diagrams
+6.3a | Heat transfer and thermal equilibrium
+6.4a | Heat capacity and calorimetry q = mcΔT
+6.5a | Energy of phase changes (enthalpies of fusion and vaporisation)
+6.6a | Enthalpy of reaction from calorimetry
+6.7a | Bond enthalpies: ΔH = Σ(bonds broken) − Σ(bonds formed)
+6.8a | Standard enthalpies of formation: ΔH°rxn = ΣΔH°f(products) − ΣΔH°f(reactants)
+6.9a | Hess's law
+@part Units 7 and 8: equilibrium, acids and bases
+# Unit 7 Equilibrium (7–9%)
+7.1a | Dynamic equilibrium: equal forward and reverse rates
+7.2a | Direction of reversible reactions
+7.3a | Reaction quotient Q and equilibrium constant K (Kc and Kp)
+7.4a | Calculating K from equilibrium amounts
+7.5a | Magnitude of K: product- or reactant-favoured
+7.6a | Properties of K: reversing, multiplying, adding reactions
+7.7a | Equilibrium concentrations with ICE tables
+7.8a | Particulate representations of equilibrium
+7.9a | Le Châtelier's principle
+7.10a | Comparing Q and K to predict shifts
+7.11a | Solubility equilibria and Ksp; molar solubility
+7.12a | Common-ion effect
+# Unit 8 Acids and Bases (11–15%)
+8.1a | Kw = [H⁺][OH⁻] = 1.0 × 10⁻¹⁴ at 25 °C; pH and pOH
+8.2a | pH and pOH of strong acids and bases
+8.3a | Weak acid and base equilibria: Ka, Kb, percent ionisation
+8.4a | Acid–base reactions and buffers
+8.5a | Titration curves: equivalence point, half-equivalence point pH = pKa
+8.6a | Molecular structure and acid strength (bond polarity, conjugate base stability)
+8.7a | pH and pKa: which form dominates
+8.8a | Properties of buffers
+8.9a | Henderson–Hasselbalch equation pH = pKa + log([A⁻] ÷ [HA])
+8.10a | Buffer capacity
+8.11a | pH and solubility
+@part Unit 9: thermodynamics and electrochemistry
+# Unit 9 Thermodynamics and Electrochemistry (7–9%)
+9.1a | Entropy: dispersal of matter and energy
+9.2a | Absolute entropy; ΔS° = ΣS°(products) − ΣS°(reactants)
+9.3a | Gibbs free energy ΔG° = ΔH° − TΔS°; thermodynamic favourability
+9.4a | Thermodynamic versus kinetic control
+9.5a | Free energy and equilibrium: ΔG° = −RT ln K
+9.6a | Free energy of dissolution
+9.7a | Coupled reactions
+9.8a | Galvanic (voltaic) and electrolytic cells: anode, cathode, salt bridge
+9.9a | Cell potential and free energy: ΔG° = −nFE°
+9.10a | Nonstandard conditions: Nernst equation (qualitative and with Q)
+9.11a | Electrolysis and Faraday's law: q = It

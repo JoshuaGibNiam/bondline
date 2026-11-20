@@ -1,0 +1,145 @@
+@title International Chemistry Olympiad (IChO)
+@exams Appendix C of the IChO Regulations (current version, used for IChO 2026)
+@src IChO Regulations, Appendix C: concepts and skills, as published for IChO 2026 (icho2026.uz)
+@part Core theory: can appear in any IChO exam
+# 1 General skills and maths
+1.1 | Experimental errors and significant figures
+1.2 | Quadratic and simultaneous equations (two unknowns)
+1.3 | Logarithms and exponentials
+1.4 | Sine, cosine and Pythagoras' theorem
+1.5 | Plotting and reading graphs
+# 2 Atomic and nuclear structure
+2.1 | Nucleons, isotopes, radioactive decay; α, β and γ nuclear reactions
+2.2 | Quantum numbers n, l, m; s, p and d orbitals in hydrogen-like atoms
+2.3 | Hund's rule and the Pauli exclusion principle
+2.4 | Configurations of main-group atoms and ions, and first-row transition metals and ions
+# 3 Periodic trends and bonding
+3.1 | Electronegativity, electron affinity, ionisation energy
+3.2 | Atomic and ionic size, melting points, metallic character, reactivity
+3.3 | Covalent, ionic, metallic and coordination bonds
+3.4 | Intermolecular forces and their effect on properties
+3.5 | Lewis theory; molecular shapes by VSEPR
+# 4 Stoichiometry
+4.1 | Balancing equations; empirical formulas
+4.2 | Mole concept and the Avogadro constant; stoichiometric calculations
+4.3 | Density; concentration units
+# 5 Equilibria
+5.1 | Chemical equilibrium and Le Chatelier's principle
+5.2 | Equilibrium constants in concentrations, pressures and mole fractions
+5.3 | Arrhenius and Brønsted acid–base theory; pH; self-ionisation of water
+5.4 | Acid–base constants; pH of weak acids and of very dilute solutions
+5.5 | Simple buffers; hydrolysis of salts
+5.6 | Solubility constants and solubility
+5.7 | Complexation: coordination number, formation constants
+5.8 | Partition coefficients
+5.9 | Electromotive force, Nernst equation, electrolysis, Faraday's laws
+# 6 Kinetics
+6.1 | Rate, elementary reactions, factors affecting rate
+6.2 | Rate laws (homogeneous and heterogeneous), rate constant, order
+6.3 | Energy profiles, activation energy, Arrhenius equation
+6.4 | Catalysis: effect on kinetic and thermodynamic quantities
+6.5 | Zero- and first-order rate laws, exponential decay, half-life
+# 7 Thermodynamics
+7.1 | Energy, heat, work, enthalpy, heat capacity
+7.2 | Hess's law; Born–Haber cycles
+7.3 | Standard enthalpies of formation, solution, solvation; bond enthalpies
+7.4 | Entropy, Gibbs energy, second law, spontaneity
+7.5 | Equilibrium constants from ΔH° and ΔS°
+7.6 | Ideal gas law; partial pressures
+# 8 Analytical chemistry and spectroscopy
+8.1 | Direct, indirect and back titrations
+8.2 | Acid–base titrations: curves, indicator choice and colours
+8.3 | Redox titrations: permanganometry, iodometry
+8.4 | Simple complexometric and precipitation titrations
+8.5 | Inorganic qualitative analysis; flame tests
+8.6 | Light: wavelength, frequency, wavenumber, photon energy; Beer–Lambert law
+# 9 Inorganic chemistry
+9.1 | s-block elements with water, oxygen and halogens; flame colours
+9.2 | Binary hydrides of non-metals
+9.3 | Oxides of carbon, nitrogen and sulfur: CO, CO₂, NO, NO₂, N₂O₄, SO₂, SO₃
+9.4 | p-block oxidation states; halides; oxoacids HNO₂, HNO₃, H₂CO₃, H₃PO₄, H₃PO₃, H₂SO₃, H₂SO₄, HOCl, HClO₃, HClO₄
+9.5 | Reactions of the halogens with water
+9.6 | First-row transition metals: oxidation states and ion colours
+9.7 | Dissolving these metals and Al; amphoteric Al(OH)₃, Cr(OH)₃, Zn(OH)₂
+9.8 | Permanganate, chromate and dichromate redox reactions
+9.9 | Iodometry: thiosulfate and iodine
+9.10 | Identifying Ag⁺, Ba²⁺, Fe³⁺, Cu²⁺, Cl⁻, CO₃²⁻, SO₄²⁻
+# 10 Organic chemistry
+10.1 | Structure and reactivity: polarity, electrophilicity, nucleophilicity, inductive effects, stability
+10.2 | Structure and properties: boiling point, acidity, basicity
+10.3 | Simple nomenclature
+10.4 | Hybridisation and geometry at carbon and other centres
+10.5 | σ and π bonds, delocalisation, aromaticity, resonance
+10.6 | Isomerism: constitutional, configurational, conformational, tautomerism
+10.7 | Stereochemistry: E/Z, cis/trans, chirality, optical activity, CIP rules, Fischer projections, D/L
+10.8 | Cyclohexane conformations
+10.9 | Common electrophiles and nucleophiles
+10.10 | Electrophilic addition: Markovnikov and anti-Markovnikov (Kharasch), stereochemistry
+10.11 | Electrophilic aromatic substitution; substituent effects
+10.12 | E1 and E2 elimination: stereochemistry, leaving groups
+10.13 | SN1 and SN2 substitution: stereochemistry
+10.14 | Nucleophilic addition; addition–elimination
+10.15 | Radical halogenation of alkanes
+10.16 | Oxidation-level interconversions: alkyne/alkene/alkane/halide, alcohol/aldehyde/ketone/acid derivatives, nitriles, carbonates
+10.17 | Grignard reaction; Fehling's and Tollens' tests
+10.18 | Protecting groups; simple multistep synthesis
+# 11 Polymers and biochemistry
+11.1 | Polystyrene, polyethylene, polyamides, polyesters: monomers and preparation
+11.2 | Chain polymerisation, polyaddition, polycondensation
+11.3 | Amino acids: classification, isoelectric point, peptide bond, proteins
+11.4 | Carbohydrates: open-chain and cyclic forms of glucose and fructose
+11.5 | Lipids: di- and triacylglycerides, saturated and unsaturated fatty acids
+11.6 | DNA and RNA: structure, base pairing, replication, transcription
+11.7 | Hydrophilic and hydrophobic groups; micelles and bilayers
+@part Core practical skills
+# 12 Laboratory skills
+12.1 | Heating and heating under reflux
+12.2 | Measuring mass and volume: balance, cylinder, pipette, burette, volumetric flask
+12.3 | Reading thermometers; magnetic stirrers
+12.4 | Preparing standard solutions; dilution
+12.5 | Test-tube tests for organic functional groups
+12.6 | Titration with a pipette filler
+12.7 | Measuring pH (paper or calibrated meter)
+12.8 | Gravity filtration; drying precipitates
+12.9 | Simple digital instruments; plotting and analysing data
+@part Advanced topics: only if the host lists them in the preparatory problems
+# 13 Advanced theory
+13.1 | Inorganic stereochemistry; isomerism in complexes
+13.2 | Solid state: unit cells (metals, NaCl, CsCl), Bragg's law, packing, radius ratios
+13.3 | Crystal field theory; magnetic moments
+13.4 | Thermodynamic cycles, adiabatic processes, flame temperatures, heat engines
+13.5 | Temperature dependence of K; complex equilibrium calculations
+13.6 | Cell potentials from thermodynamic or equilibrium data, and back
+13.7 | Latimer, Frost and Pourbaix diagrams
+13.8 | Higher-order rate laws; kinetic isotope effects
+13.9 | Steady-state and pre-equilibrium approximations; catalytic mechanisms
+13.10 | Kinetic theory of gases; collision theory
+13.11 | Phase diagrams; Clausius–Clapeyron equation; triple and critical points
+13.12 | Axial and planar chirality
+13.13 | Stereoselective reactions; enantiomeric and diastereomeric excess
+13.14 | Conformational analysis, Newman projections, anomeric effect
+13.15 | Nucleophilic aromatic substitution
+13.16 | Electrophilic substitution of polycyclic aromatics and heterocycles
+13.17 | Pericyclic reactions: cycloadditions, sigmatropic and electrocyclic reactions
+13.18 | Advanced polymers: rubbers, copolymers, thermosets, polymerisation kinetics
+13.19 | Monosaccharides: pyranoses, furanoses, Haworth projections, glycosides
+13.20 | Amino acid side chains, separation, protein sequencing
+13.21 | Translation, genetic code, tRNA, aminoacyl-tRNA synthetases
+13.22 | Nucleobases, nucleosides, nucleotides; PCR; DNA chips
+13.23 | Protein structure, folding, denaturation, purification
+13.24 | Enzymes: classification, active sites, cofactors, kinetics, inhibitors
+13.25 | Complex solubility calculations (hydrolysing anions, complex formation)
+13.26 | Quantum mechanics: Schrödinger equation, particle in a box, angular momentum
+13.27 | Rotational, vibrational and electronic transitions; simple MO theory
+13.28 | Mass spectrometry: molecular ions, isotope patterns
+13.29 | IR spectroscopy: vibrations and characteristic peaks
+13.30 | ¹H and ¹³C NMR: shift, multiplicity, integration; simple heteronuclear NMR
+# 14 Advanced practical
+14.1 | Vacuum filtration; thin-layer chromatography
+14.2 | Microscale synthesis
+14.3 | Advanced inorganic qualitative analysis
+14.4 | Using a spectrophotometer
+14.5 | Extraction with immiscible solvents
+14.6 | Column chromatography; recrystallisation
+14.7 | Distillation and vacuum distillation
+14.8 | Viscometry; spreadsheet analysis of data

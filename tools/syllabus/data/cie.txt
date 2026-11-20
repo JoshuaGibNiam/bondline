@@ -1,0 +1,461 @@
+@title Cambridge International AS & A Level Chemistry 9701
+@exams Exams in 2025, 2026 and 2027
+@src Cambridge International AS & A Level Chemistry 9701 syllabus for 2025–2027 (cambridgeinternational.org)
+@part AS Level: physical chemistry
+# 1 Atomic structure
+1.1.1 | Atom: mostly empty space, small dense nucleus, electrons in shells
+1.1.2 | Relative charges and masses of protons, neutrons and electrons
+1.1.3 | Proton (atomic) number and nucleon (mass) number
+1.1.4 | How mass and charge are distributed in an atom
+1.1.5 | Behaviour of beams of protons, neutrons and electrons in an electric field
+1.1.6 | Numbers of protons, neutrons and electrons in atoms and ions
+1.1.7 | Trends in atomic and ionic radius across a period and down a group
+1.2.1 | Isotopes: same protons, different neutrons
+1.2.2 | Isotope notation (mass number and proton number on the symbol)
+1.2.3 | Isotopes have the same chemical properties, and why
+1.2.4 | Isotopes have different physical properties (mass, density), and why
+1.3.1 | Shells, sub-shells and orbitals; principal quantum number n; ground state
+1.3.2 | Number of orbitals in s, p and d sub-shells and their electron capacity
+1.3.3 | Order of sub-shell energies in the first three shells, plus 4s and 4p
+1.3.4 | Electronic configurations: electrons per shell, sub-shell and orbital
+1.3.5 | Explain configurations using electron energy and electron–electron repulsion
+1.3.6 | Full and shorthand configurations of atoms and ions
+1.3.7 | Electrons-in-boxes notation
+1.3.8 | Shapes of s and p orbitals
+1.3.9 | Free radical: a species with one or more unpaired electrons
+1.4.1 | First ionisation energy: definition
+1.4.2 | Equations for first, second and successive ionisation energies
+1.4.3 | Ionisation energy trends across a period and down a group
+1.4.4 | Patterns in successive ionisation energies
+1.4.5 | Ionisation energy and nucleus–outer electron attraction
+1.4.6 | Factors: nuclear charge, atomic radius, shielding, spin-pair repulsion
+1.4.7 | Deduce configuration from successive ionisation energies
+1.4.8 | Deduce an element's position in the Periodic Table from successive ionisation energies
+# 2 Atoms, molecules and stoichiometry
+2.1.1 | Unified atomic mass unit: one twelfth of the mass of a carbon-12 atom
+2.1.2 | Relative atomic mass, relative isotopic mass, relative molecular mass, relative formula mass
+2.2.1 | The mole and the Avogadro constant
+2.3.1 | Formulas of ionic compounds from ionic charges and oxidation numbers (Roman numerals)
+2.3.1a | Predict ionic charges from Periodic Table position
+2.3.1b | Names and formulas of NO₃⁻, CO₃²⁻, SO₄²⁻, OH⁻, NH₄⁺, Zn²⁺, Ag⁺, HCO₃⁻, PO₄³⁻
+2.3.2a | Balanced equations, including ionic equations without spectator ions
+2.3.2b | State symbols
+2.3.3 | Empirical and molecular formulas
+2.3.4 | Anhydrous, hydrated and water of crystallisation
+2.3.5 | Calculate empirical and molecular formulas from data
+2.4.1a | Reacting masses, including percentage yield
+2.4.1b | Volumes of gases (e.g. combustion of hydrocarbons)
+2.4.1c | Volumes and concentrations of solutions
+2.4.1d | Limiting and excess reagents
+2.4.1e | Deduce stoichiometric relationships from calculations
+# 3 Chemical bonding
+3.1.1 | Electronegativity: definition
+3.1.2 | Factors affecting electronegativity: nuclear charge, radius, shielding
+3.1.3 | Electronegativity trends across a period and down a group
+3.1.4 | Pauling electronegativity differences predict ionic or covalent bonding
+3.2.1 | Ionic bonding: electrostatic attraction between oppositely charged ions
+3.2.2 | Ionic bonding in NaCl, MgO and CaF₂
+3.3.1 | Metallic bonding: positive ions in a sea of delocalised electrons
+3.4.1 | Covalent bonding: a shared pair of electrons attracted to two nuclei
+3.4.1a | Covalent bonding in H₂, O₂, N₂, Cl₂, HCl, CO₂, NH₃, CH₄, C₂H₆, C₂H₄
+3.4.1b | Expanded octets: SO₂, PCl₅, SF₆
+3.4.1c | Coordinate (dative) bonding: NH₄⁺ and Al₂Cl₆
+3.4.2a | σ and π bonds from orbital overlap
+3.4.2b | σ and π bonding in H₂, C₂H₆, C₂H₄, HCN and N₂
+3.4.2c | Hybridisation: sp, sp² and sp³
+3.4.3a | Bond energy and bond length: definitions
+3.4.3b | Using bond energies and lengths to compare reactivity
+3.5.1 | VSEPR shapes and bond angles: BF₃, CO₂, CH₄, NH₃, H₂O, SF₆, PF₅
+3.5.2 | Predict the shapes and angles of similar molecules and ions
+3.6.1a | Hydrogen bonding through N–H and O–H: ammonia and water
+3.6.1b | Anomalous properties of water: high m.p./b.p., surface tension, ice less dense
+3.6.2 | Electronegativity, bond polarity and dipole moments
+3.6.3a | van der Waals' forces as the general term
+3.6.3b | Instantaneous dipole–induced dipole (London) and permanent dipole–permanent dipole forces
+3.6.3c | Hydrogen bonding as a special case of permanent dipole forces
+3.6.4 | Ionic, covalent and metallic bonds are stronger than intermolecular forces
+3.7.1 | Dot-and-cross diagrams for ionic, covalent and coordinate bonding
+# 4 States of matter
+4.1.1 | Gas pressure from particle collisions with container walls
+4.1.2 | Ideal gas assumptions: no particle volume, no intermolecular forces
+4.1.3 | Ideal gas equation pV = nRT, including finding Mr
+4.2.1a | Giant ionic lattices: NaCl, MgO
+4.2.1b | Simple molecular lattices: iodine, C₆₀ (buckminsterfullerene), ice
+4.2.1c | Giant molecular lattices: SiO₂, graphite, diamond
+4.2.1d | Giant metallic lattice: copper
+4.2.2 | Predict physical properties from structure and bonding
+4.2.3 | Deduce structure and bonding from given information
+# 5 Chemical energetics
+5.1.1 | Exothermic and endothermic changes; the sign of ΔH
+5.1.2 | Reaction pathway diagrams showing ΔH and activation energy
+5.1.3 | Standard conditions (298 K, 101 kPa); ΔHr, ΔHf, ΔHc and ΔHneut
+5.1.4 | Bond breaking is endothermic, bond making exothermic
+5.1.5 | ΔHr from bond energies
+5.1.6 | Exact bond energies versus average bond energies
+5.1.7 | Enthalpy changes from experiments: q = mcΔT, ΔH = −mcΔT ÷ n
+5.2.1 | Hess's law and energy cycles
+5.2.2a | Enthalpy changes that cannot be measured directly
+5.2.2b | Calculations using bond energy data
+# 6 Electrochemistry
+6.1.1 | Oxidation numbers in compounds and ions
+6.1.2 | Balancing equations using changes in oxidation number
+6.1.3 | Redox, oxidation, reduction and disproportionation (electrons and oxidation numbers)
+6.1.4 | Oxidising and reducing agents
+6.1.5 | Roman numerals for oxidation numbers
+# 7 Equilibria
+7.1.1a | Reversible reactions
+7.1.1b | Dynamic equilibrium: equal forward and reverse rates, constant concentrations
+7.1.1c | A closed system is needed for dynamic equilibrium
+7.1.2 | Le Chatelier's principle
+7.1.3 | Effects of temperature, concentration, pressure and catalysts on equilibrium position
+7.1.4 | Writing Kc expressions
+7.1.5 | Mole fraction and partial pressure
+7.1.6 | Writing Kp expressions
+7.1.7 | Kc and Kp calculations (no quadratic equations)
+7.1.8 | Calculating amounts present at equilibrium
+7.1.9 | Which changes alter the value of K (only temperature)
+7.1.10 | Conditions in the Haber and Contact processes
+7.2.1 | Common acids: HCl, H₂SO₄, HNO₃, CH₃COOH
+7.2.2 | Common alkalis: NaOH, KOH, NH₃
+7.2.3 | Brønsted–Lowry theory of acids and bases
+7.2.4 | Strong and weak acids and bases: full versus partial dissociation
+7.2.5 | The pH scale
+7.2.6 | Telling strong and weak acids apart: reaction with metals, pH
+7.2.7 | Neutralisation: H⁺(aq) + OH⁻(aq) → H₂O(l)
+7.2.8 | Salts form in neutralisation
+7.2.9 | pH titration curves for strong/weak acid and base combinations
+7.2.10 | Choosing an indicator for a titration
+# 8 Reaction kinetics
+8.1.1 | Rate of reaction; collision frequency; effective and non-effective collisions
+8.1.2 | Effect of concentration and pressure on rate
+8.1.3 | Calculating rate from experimental data
+8.2.1 | Activation energy: the minimum energy for a successful collision
+8.2.2 | Boltzmann distribution: sketch and meaning
+8.2.3 | Effect of temperature on rate, using the Boltzmann distribution
+8.3.1a | Catalysts provide a route with lower activation energy
+8.3.1b | Catalysis explained using the Boltzmann distribution
+8.3.1c | Reaction pathway diagrams with and without a catalyst
+@part AS Level: inorganic chemistry
+# 9 The Periodic Table: chemical periodicity
+9.1.1 | Period 3 trends: atomic radius, ionic radius, melting point, electrical conductivity
+9.1.2 | Explain melting point and conductivity trends from structure and bonding
+9.2.1 | Period 3 elements with oxygen, chlorine and water (Na and Mg only with water)
+9.2.2 | Oxidation numbers of the oxides and chlorides from outer electrons
+9.2.3 | Oxides with water, and the pH of the solutions
+9.2.4 | Acid–base behaviour of the oxides and hydroxides; amphoteric Al₂O₃ with NaOH
+9.2.5 | Chlorides with water, and the pH of the solutions
+9.2.6 | Explain these trends using bonding and electronegativity
+9.2.7 | Deduce the type of bonding from chemical and physical properties
+9.3.1 | Predict the properties of an element in a group
+9.3.2 | Deduce the identity and position of an unknown element
+# 10 Group 2
+10.1.1 | Mg to Ba with oxygen, water, dilute HCl and dilute H₂SO₄
+10.1.2 | Oxides, hydroxides and carbonates with water and dilute acids
+10.1.3 | Thermal decomposition of nitrates and carbonates; trend in stability
+10.1.4 | Predict trends in properties and reactions down the group
+10.1.5 | Solubility trends of the hydroxides and sulfates
+# 11 Group 17
+11.1.1 | Colours and trend in volatility of Cl₂, Br₂ and I₂
+11.1.2 | Trend in bond strength of the halogen molecules
+11.1.3 | Volatility explained by instantaneous dipole–induced dipole forces
+11.2.1 | Relative oxidising power of the halogens (displacement)
+11.2.2 | Reactions with hydrogen and relative reactivity
+11.2.3 | Thermal stability of the hydrogen halides and bond strengths
+11.3.1 | Relative reducing power of halide ions
+11.3.2a | Halide ions with aqueous silver ions, then aqueous ammonia
+11.3.2b | Halide ions with concentrated sulfuric acid
+11.4.1 | Chlorine with cold and hot aqueous NaOH: disproportionation
+11.4.2 | Chlorine in water purification: HOCl and ClO⁻
+# 12 Nitrogen and sulfur
+12.1.1 | Why nitrogen is unreactive: strong triple bond, no polarity
+12.1.2a | Basicity of ammonia (Brønsted–Lowry)
+12.1.2b | Structure and formation of the ammonium ion
+12.1.2c | Displacing ammonia from ammonium salts
+12.1.3 | Natural and man-made NOx; catalytic removal from car exhausts
+12.1.4 | NOx and unburnt hydrocarbons form PAN (photochemical smog)
+12.1.5 | NO and NO₂ in acid rain, including catalysing the oxidation of SO₂
+@part AS Level: organic chemistry and analysis
+# 13 An introduction to AS Level organic chemistry
+13.1.1 | Hydrocarbons contain C and H only
+13.1.2 | Alkanes have no functional group
+13.1.3 | Functional groups decide properties
+13.1.4 | General, structural, displayed and skeletal formulas
+13.1.5 | Systematic names up to six carbons
+13.1.6 | Molecular and empirical formulas from a structure
+13.2.1a | Homologous series
+13.2.1b | Saturated and unsaturated
+13.2.1c | Homolytic and heterolytic fission
+13.2.1d | Free radicals: initiation, propagation, termination
+13.2.1e | Nucleophiles and electrophiles
+13.2.1f | Addition, substitution, elimination, hydrolysis, condensation
+13.2.1g | Oxidation [O] and reduction [H]
+13.2.2a | Free-radical substitution mechanism
+13.2.2b | Electrophilic addition mechanism
+13.2.2c | Nucleophilic substitution mechanism
+13.2.2d | Nucleophilic addition mechanism
+13.3.1 | Straight-chain, branched and cyclic molecules
+13.3.2 | Shapes and bond angles around sp, sp² and sp³ carbons
+13.3.3 | Arrangement of σ and π bonds
+13.3.4 | Planar arrangement around C=C (ethene)
+13.4.1 | Structural isomerism: chain, positional, functional group
+13.4.2 | Stereoisomerism: geometrical (cis/trans) and optical
+13.4.3 | cis/trans isomerism from restricted rotation about a π bond
+13.4.4 | A chiral centre gives a pair of enantiomers
+13.4.5 | Identify chiral centres and cis/trans isomerism in a formula
+13.4.6 | Deduce possible isomers from a molecular formula
+# 14 Hydrocarbons
+14.1.1a | Alkanes from alkenes: H₂, Pt or Ni catalyst, heat
+14.1.1b | Alkanes by cracking: heat with Al₂O₃
+14.1.2a | Complete and incomplete combustion of alkanes
+14.1.2b | Free-radical substitution with Cl₂ or Br₂ in UV light (ethane)
+14.1.3 | Free-radical mechanism: initiation, propagation, termination
+14.1.4 | Cracking to make useful smaller molecules
+14.1.5 | Why alkanes are unreactive: strong C–H bonds, low polarity
+14.1.6 | Effects of CO, NOx and unburnt hydrocarbons; catalytic converters
+14.2.1a | Alkenes from halogenoalkanes: ethanolic NaOH, heat
+14.2.1b | Alkenes by dehydrating alcohols: Al₂O₃ or concentrated H₂SO₄
+14.2.1c | Alkenes by cracking
+14.2.2a | Addition of H₂ (Pt/Ni, heat), steam (H₃PO₄), HX and X₂
+14.2.2b | Cold dilute acidified KMnO₄ gives a diol
+14.2.2c | Hot concentrated acidified KMnO₄ splits the C=C
+14.2.2d | Addition polymerisation (ethene, propene)
+14.2.3 | Test for C=C: decolourises aqueous bromine
+14.2.4 | Electrophilic addition mechanism (Br₂ + ethene, HBr + propene)
+14.2.5 | Inductive effect of alkyl groups, carbocation stability, Markovnikov's rule
+# 15 Halogen compounds
+15.1.1 | Making halogenoalkanes from alkanes, alkenes and alcohols (HX, KCl/H₂SO₄, PCl₃, PCl₅, SOCl₂)
+15.1.2 | Primary, secondary and tertiary halogenoalkanes
+15.1.3a | With NaOH(aq), heat: alcohol
+15.1.3b | With KCN in ethanol, heat: nitrile
+15.1.3c | With NH₃ in ethanol under pressure: amine
+15.1.3d | Test for the halogen: aqueous AgNO₃ in ethanol
+15.1.4 | Elimination: NaOH in ethanol, heat, gives an alkene
+15.1.5 | SN1 and SN2 mechanisms; inductive effect of alkyl groups
+15.1.6 | Primary by SN2, tertiary by SN1, secondary by both
+15.1.7 | Reactivity and C–X bond strength (rates with AgNO₃)
+# 16 Hydroxy compounds
+16.1.1 | Making alcohols: hydration, KMnO₄ (diols), hydrolysis, NaBH₄/LiAlH₄ reduction, ester hydrolysis
+16.1.2a | Combustion of alcohols
+16.1.2b | Substitution to halogenoalkanes
+16.1.2c | Reaction with sodium
+16.1.2d | Oxidation: distil for carbonyls, reflux for carboxylic acids
+16.1.2e | Dehydration to alkenes
+16.1.2f | Esterification with carboxylic acids (concentrated H₂SO₄)
+16.1.3a | Primary, secondary and tertiary alcohols
+16.1.3b | Telling them apart with acidified K₂Cr₂O₇ (orange to green)
+16.1.4 | Iodoform test for CH₃CH(OH)–: alkaline I₂, yellow precipitate
+16.1.5 | Acidity of alcohols compared with water
+# 17 Carbonyl compounds
+17.1.1 | Aldehydes and ketones by oxidising primary and secondary alcohols
+17.1.2a | Reduction to alcohols with NaBH₄ or LiAlH₄
+17.1.2b | Hydroxynitriles with HCN and KCN (ethanal, propanone)
+17.1.3 | Nucleophilic addition mechanism with HCN
+17.1.4 | Test for C=O: 2,4-DNPH (orange precipitate)
+17.1.5 | Telling aldehydes from ketones: Fehling's and Tollens' reagents
+17.1.6 | Iodoform test for CH₃CO–
+# 18 Carboxylic acids and derivatives
+18.1.1 | Making carboxylic acids: oxidising alcohols/aldehydes, hydrolysing nitriles and esters
+18.1.2a | With reactive metals: salt + H₂
+18.1.2b | With alkalis: salt + water
+18.1.2c | With carbonates: salt + water + CO₂
+18.1.2d | Esterification with alcohols
+18.1.2e | Reduction by LiAlH₄ to primary alcohols
+18.2.1 | Esters from alcohols and carboxylic acids (concentrated H₂SO₄)
+18.2.2 | Ester hydrolysis by dilute acid and by dilute alkali
+# 19 Nitrogen compounds
+19.1.1 | Primary amines from halogenoalkanes and ammonia
+19.2.1 | Nitriles from halogenoalkanes and KCN
+19.2.2 | Hydroxynitriles from aldehydes and ketones with HCN/KCN
+19.2.3 | Hydrolysis of nitriles to carboxylic acids
+# 20 Polymerisation
+20.1.1 | Addition polymers: poly(ethene) and PVC
+20.1.2 | Repeat unit from a monomer
+20.1.3 | Monomer from a section of polymer
+20.1.4 | Disposal problems: non-biodegradable, harmful combustion products
+# 21 Organic synthesis
+21.1.1 | Identify functional groups and predict the reactions of multifunctional molecules
+21.1.2 | Devise multi-step synthetic routes
+21.1.3 | Analyse a route: reaction types, reagents, by-products
+# 22 Analytical techniques
+22.1.1 | Infrared spectra: identify functional groups
+22.2.1 | Mass spectra: m/e values and isotopic abundances
+22.2.2 | Relative atomic mass from isotope abundances or a spectrum
+22.2.3 | Relative molecular mass from the molecular ion peak
+22.2.4 | Identify fragment ions
+22.2.5 | Number of carbon atoms from the [M+1]⁺ peak
+22.2.6 | Chlorine or bromine from the [M+2]⁺ peak
+@part A Level: physical chemistry
+# 23 Chemical energetics
+23.1.1 | Enthalpy change of atomisation and lattice energy
+23.1.2 | First electron affinity: factors affecting it, trends in Groups 16 and 17
+23.1.3 | Constructing Born–Haber cycles
+23.1.4 | Born–Haber calculations
+23.1.5 | Effect of ionic charge and radius on lattice energy
+23.2.1 | Enthalpy change of hydration and of solution
+23.2.2 | Energy cycles linking solution, lattice and hydration enthalpies
+23.2.3 | Calculations with these cycles
+23.2.4 | Effect of ionic charge and radius on hydration enthalpy
+23.3.1 | Entropy as the number of ways of arranging particles and energy
+23.3.2 | Sign of ΔS for melting, boiling, dissolving, temperature change and change in gas moles
+23.3.3 | ΔS = ΣS°(products) − ΣS°(reactants)
+23.4.1 | Gibbs equation: ΔG° = ΔH° − TΔS°
+23.4.2 | Calculations with the Gibbs equation
+23.4.3 | Feasibility from the sign of ΔG
+23.4.4 | Effect of temperature on feasibility
+# 24 Electrochemistry
+24.1.1 | Products of electrolysis: state, position in redox series, concentration
+24.1.2 | F = Le
+24.1.3 | Q = It; mass and volume of substance liberated
+24.1.4 | Finding the Avogadro constant by electrolysis
+24.2.1 | Standard electrode potential and standard cell potential
+24.2.2 | The standard hydrogen electrode
+24.2.3 | Measuring E° for metals, non-metals and ions in different oxidation states
+24.2.4 | Standard cell potential from two electrode potentials
+24.2.5 | Electrode polarity, direction of electron flow, feasibility from E°cell
+24.2.6 | Relative strength of oxidising and reducing agents from E°
+24.2.7 | Redox equations from half-equations
+24.2.8 | Qualitative effect of concentration on E
+24.2.9 | Nernst equation: E = E° + (0.059 ÷ z) log([oxidised] ÷ [reduced])
+24.2.10 | ΔG° = −nE°cell F
+# 25 Equilibria
+25.1.1 | Conjugate acids and conjugate bases
+25.1.2 | Identifying conjugate acid–base pairs
+25.1.3 | pH, Ka, pKa and Kw: definitions and calculations
+25.1.4 | [H⁺] and pH of strong acids, strong alkalis and weak acids
+25.1.5 | Buffers: definition, how they are made, how they work, uses (HCO₃⁻ in blood)
+25.1.6 | pH of buffer solutions
+25.1.7 | Solubility product Ksp
+25.1.8 | Writing Ksp expressions
+25.1.9 | Ksp and solubility calculations
+25.1.10 | Common ion effect, with calculations
+25.2.1 | Partition coefficient Kpc
+25.2.2 | Calculations with Kpc
+25.2.3 | Factors affecting Kpc: polarity of solvent and solute
+# 26 Reaction kinetics
+26.1.1 | Rate equation, order, rate constant, half-life, rate-determining step, intermediate
+26.1.2 | rate = k[A]^m[B]^n with orders 0, 1, 2; orders from graphs, initial rates and half-lives
+26.1.3 | First-order half-life is constant; calculations
+26.1.4 | Rate constant from initial rates and from k = 0.693 ÷ t½
+26.1.5 | Linking mechanisms, rate-determining steps and rate equations; intermediates and catalysts
+26.1.6 | Effect of temperature on the rate constant
+26.2.1 | Homogeneous and heterogeneous catalysts
+26.2.2 | Heterogeneous catalysis: adsorption, weakening bonds, desorption (Fe in Haber; Pd, Pt, Rh in exhausts)
+26.2.3 | Homogeneous catalysis: NOx in SO₂ oxidation; Fe²⁺/Fe³⁺ in I⁻ + S₂O₈²⁻
+@part A Level: inorganic chemistry
+# 27 Group 2
+27.1.1 | Thermal stability of nitrates and carbonates: polarisation of the anion
+27.1.2 | Solubility of hydroxides and sulfates: lattice and hydration enthalpies
+# 28 Chemistry of transition elements
+28.1.1 | Transition element: d-block element forming an ion with an incomplete d sub-shell
+28.1.2 | Shapes of 3dxy and 3dz² orbitals
+28.1.3 | Variable oxidation states, catalysis, complex ions and coloured compounds
+28.1.4 | Variable oxidation states: 3d and 4s energies are similar
+28.1.5 | Catalysis: variable oxidation states and dative bonding
+28.1.6 | Complex formation: vacant d orbitals
+28.2.1 | Ligand reactions of Cu²⁺ and Co²⁺ with H₂O, NH₃, OH⁻ and Cl⁻
+28.2.2 | Ligand: definition
+28.2.3 | Monodentate (H₂O, NH₃, Cl⁻, CN⁻), bidentate (en, C₂O₄²⁻), polydentate (EDTA⁴⁻)
+28.2.4 | Complex: definition
+28.2.5 | Linear, square planar, tetrahedral and octahedral complexes
+28.2.6 | Coordination number; formula and charge of a complex ion
+28.2.7 | Ligand exchange in Cu²⁺ and Co²⁺ complexes
+28.2.8 | Feasibility of redox reactions from E° values
+28.2.9 | Redox titrations: MnO₄⁻ with C₂O₄²⁻ or Fe²⁺; Cu²⁺ with I⁻
+28.2.10 | Calculations for other redox systems
+28.3.1 | Degenerate and non-degenerate d orbitals
+28.3.2 | Splitting of d orbitals in octahedral and tetrahedral complexes
+28.3.3 | Colour from light absorbed when electrons move between d orbitals
+28.3.4 | Ligand affects ΔE and so the colour seen (complementary colour)
+28.3.5 | Ligand exchange changes colour (Cu²⁺, Co²⁺)
+28.4.1 | cis/trans and optical isomers of complexes ([Pt(NH₃)₂Cl₂], [Ni(en)₃]²⁺ and others)
+28.4.2 | Polarity of these complexes
+28.5.1 | Stability constant Kstab
+28.5.2 | Writing Kstab expressions
+28.5.3 | Kstab calculations
+28.5.4 | Ligand exchange and large Kstab
+@part A Level: organic chemistry and analysis
+# 29 An introduction to A Level organic chemistry
+29.1.1 | Functional groups decide properties
+29.1.2 | Interpreting general, structural, displayed and skeletal formulas
+29.1.3 | Naming aliphatic compounds up to six carbons
+29.1.4 | Naming aromatic compounds (e.g. 3-nitrobenzoic acid)
+29.2.1 | Terms: electrophilic substitution, addition–elimination
+29.3.1 | Shape of benzene: sp² carbons, σ bonds, delocalised π system
+29.4.1 | Enantiomers differ only in optical rotation and biological activity
+29.4.2 | Optically active; racemic mixture
+29.4.3 | Rotation of plane-polarised light
+29.4.4 | Different biological activity, separating racemates, chiral catalysts
+# 30 Hydrocarbons (arenes)
+30.1.1a | Halogenation: Cl₂ or Br₂ with AlCl₃ or AlBr₃
+30.1.1b | Nitration: concentrated HNO₃ and H₂SO₄, 25–60 °C
+30.1.1c | Friedel–Crafts alkylation: CH₃Cl and AlCl₃
+30.1.1d | Friedel–Crafts acylation: CH₃COCl and AlCl₃
+30.1.1e | Side-chain oxidation: hot alkaline KMnO₄, then acid
+30.1.1f | Hydrogenation to cyclohexane: H₂, Pt or Ni
+30.1.2 | Electrophilic substitution mechanism; why benzene substitutes rather than adds
+30.1.3 | Side-chain versus ring halogenation depends on conditions
+30.1.4 | Directing effects of –NH₂, –OH, –R, –NO₂, –COOH, –COR
+# 31 Halogen compounds
+31.1.1 | Making halogenoarenes: chlorobenzene, chloromethylbenzenes
+31.1.2 | Halogenoalkanes versus halogenoarenes (chloroethane vs chlorobenzene)
+# 32 Hydroxy compounds
+32.1.1 | Alcohols with acyl chlorides give esters
+32.2.1 | Phenol from phenylamine via a diazonium salt
+32.2.2 | Phenol with NaOH, Na, diazonium salts, dilute HNO₃ and Br₂(aq)
+32.2.3 | Why phenol is acidic
+32.2.4 | Acidity of water, phenol and ethanol
+32.2.5 | Why phenol reacts under milder conditions than benzene
+32.2.6 | –OH directs to the 2-, 4- and 6-positions
+32.2.7 | Applying this to other phenols (e.g. naphthol)
+# 33 Carboxylic acids and derivatives
+33.1.1 | Benzoic acid from alkylbenzenes: hot alkaline KMnO₄, then acid
+33.1.2 | Acyl chlorides from carboxylic acids: PCl₃, PCl₅, SOCl₂
+33.1.3 | Oxidation of methanoic acid and ethanedioic acid
+33.1.4 | Acidity of carboxylic acids, phenols and alcohols
+33.1.5 | Acidity of chlorine-substituted carboxylic acids
+33.2.1 | Esters from alcohols or phenols and acyl chlorides
+33.3.2 | Acyl chlorides with water, alcohols, phenols, ammonia and amines
+33.3.3 | Addition–elimination mechanism
+33.3.4 | Ease of hydrolysis: acyl, alkyl and aryl chlorides
+# 34 Nitrogen compounds
+34.1.1 | Making amines: halogenoalkanes, reducing amides and nitriles
+34.1.2 | Amines and ammonia with acyl chlorides give amides
+34.1.3 | Basicity of aqueous amines
+34.2.1 | Phenylamine: nitrate benzene, reduce with Sn/concentrated HCl, then NaOH
+34.2.2 | Phenylamine with Br₂(aq) and with HNO₂ (diazonium salts)
+34.2.3 | Basicity of ammonia, ethylamine and phenylamine
+34.2.4 | Azo coupling with phenol; azo dyes
+34.3.1 | Making amides from acyl chlorides
+34.3.2 | Hydrolysis of amides; reduction with LiAlH₄
+34.3.3 | Amides are much weaker bases than amines
+34.4.1 | Amino acids: zwitterions, isoelectric point
+34.4.2 | Peptide bonds: di- and tripeptides
+34.4.3 | Electrophoresis of amino acids and dipeptides at different pH
+# 35 Polymerisation
+35.1.1 | Polyesters from diols and dicarboxylic acids (or dioyl chlorides), and from hydroxy acids
+35.1.2 | Polyamides from diamines and dicarboxylic acids, aminocarboxylic acids and amino acids
+35.1.3 | Repeat unit from monomers
+35.1.4 | Monomers from a section of polymer
+35.2.1 | Predict the type of polymerisation from the monomers
+35.2.2 | Deduce the type of polymerisation from the polymer
+35.3.1 | Poly(alkene)s are inert and hard to biodegrade
+35.3.2 | Some polymers are degraded by light
+35.3.3 | Polyesters and polyamides are biodegradable by hydrolysis
+# 36 Organic synthesis
+36.1.1 | Identify functional groups and predict properties and reactions
+36.1.2 | Devise multi-step synthetic routes
+36.1.3 | Analyse a route: reaction types, reagents, by-products
+# 37 Analytical techniques
+37.1.1 | Thin-layer chromatography: stationary and mobile phases, Rf, solvent front, baseline
+37.1.2 | Interpreting Rf values
+37.1.3 | Explaining differences in Rf values
+37.2.1 | Gas–liquid chromatography: stationary and mobile phases, retention time
+37.2.2 | Interpreting chromatograms; percentage composition
+37.2.3 | Explaining retention times
+37.3.1 | ¹³C NMR: carbon environments and possible structures
+37.3.2 | Predicting the number of ¹³C peaks
+37.4.1 | ¹H NMR: chemical shift, peak areas, n + 1 rule, possible structures
+37.4.2 | Predicting chemical shifts and splitting patterns
+37.4.3 | TMS as the reference standard
+37.4.4 | Deuterated solvents such as CDCl₃
+37.4.5 | Identifying O–H and N–H protons by D₂O exchange
