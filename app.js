@@ -7243,7 +7243,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='36';
+const APP_VER='37';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -10133,6 +10133,14 @@ for(const[id,x]of Object.entries(PU_EXT)){const u=PU_UNITS.find(v=>v.id===id);if
 /* v31: extra questions, exam-style written questions and the rest of AP Chemistry, from course-x1.js to course-x4.js. */
 (()=>{const X=window.BL_COURSE_X;if(!X)return;for(const u of X.units||[])if(!PU_UNITS.some(v=>v.id===u.id))PU_UNITS.push(u);
   for(const u of PU_UNITS){const x=X.pu&&X.pu[u.id];if(!x)continue;if(x.qs)u.qs.push(...x.qs);if(x.xp)u.xp=(u.xp||[]).concat(x.xp);if(x.dq)u.dq=(u.dq||[]).concat(x.dq)}})();
+// v37: deeper lesson sections from course-deep-*.js (window.BL_DEEP). Lessons only; questions are untouched.
+(()=>{const D=window.BL_DEEP;if(!D)return;const by=Object.fromEntries([...PU_UNITS,...CO_UNITS].map(u=>[u.id,u]));
+  for(const id of Object.keys(D)){const u=by[id];if(!u)continue;const last={};
+    for(const s of D[id]){if(u.sections.some(x=>x.h===s.h))continue;const sec={h:s.h,html:s.html};if(s.only!=null)sec.only=s.only;
+      const i=s.after?u.sections.findIndex(x=>x.h===s.after):-1;
+      if(i<0){u.sections.push(sec);continue}
+      let j=i+1;if(last[s.after]){const k=u.sections.indexOf(last[s.after]);if(k>=0)j=k+1}
+      u.sections.splice(j,0,sec);last[s.after]=sec}}})();
 PU_UNITS.forEach(u=>{u.qs.forEach((q,k)=>{q.id=u.id+'-'+(k+1);q.t=u.id});(u.dq=u.dq||[]).forEach((q,k)=>{q.id=u.id+'-d'+(k+1);q.t=u.id})});
 // v31: the first 30% of every unit's questions are free; the rest need Pro.
 const CO_FREE_SHARE=.3;
@@ -13325,6 +13333,10 @@ CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions an
   ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
   ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
   ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
+CHANGELOG.unshift({v:'37',d:'20 November 2026',t:'More detailed lessons',items:[
+  ['Deeper lessons, syllabus point by syllabus point','Course lessons are being expanded with fuller explanations, worked examples and common mistakes, matched to each syllabus. First up: atoms, orbitals, ionisation energy, bonding, shapes and intermolecular forces, now about three times as long.'],
+  ['Tuned to your course','Extra sections appear only in the courses whose syllabus includes them, so A Level students don’t see JEE-only material and vice versa.'],
+  ['Quizzes unchanged','Your questions, progress and mastery are exactly as they were.']]});
 CHANGELOG.unshift({v:'36',d:'20 November 2026',t:'Bondline Daily',items:[
   ['A chemistry story every day','Bondline Daily (bondline.site/daily) has a short, surprising chemistry story each day, from why onions make you cry to how one chlorine atom destroys thousands of ozone molecules. Each one links to the syllabus topic it explains.'],
   ['On your home page','A card on Home takes you to today’s story, with a dot until you have read it. Earlier stories are in the archive.']]});
