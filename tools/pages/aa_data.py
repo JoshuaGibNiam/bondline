@@ -1,0 +1,30 @@
+AA = [
+ # name, 3, 1, smiles (L, neutral), group, side-chain pKa, pI, essential, fact, code hint
+ ("Glycine", "Gly", "G", "NCC(=O)O", "np", None, 5.97, False, "The smallest amino acid: its side chain is just H, so it is the only one that isn't chiral.", "G for Glycine."),
+ ("Alanine", "Ala", "A", "C[C@H](N)C(=O)O", "np", None, 6.00, False, "Side chain is a methyl group. Made from pyruvate by transamination.", "A for Alanine."),
+ ("Valine", "Val", "V", "CC(C)[C@H](N)C(=O)O", "np", None, 5.96, True, "Branched isopropyl side chain. One of the three branched-chain amino acids (with Leu and Ile).", "V for Valine."),
+ ("Leucine", "Leu", "L", "CC(C)C[C@H](N)C(=O)O", "np", None, 5.98, True, "Isobutyl side chain. The most common amino acid in proteins.", "L for Leucine."),
+ ("Isoleucine", "Ile", "I", "CC[C@H](C)[C@H](N)C(=O)O", "np", None, 6.02, True, "An isomer of leucine with a second stereocentre in the side chain (2S,3S).", "I for Isoleucine."),
+ ("Methionine", "Met", "M", "CSCC[C@H](N)C(=O)O", "np", None, 5.74, True, "Contains a thioether (C–S–C). Coded by AUG, so it starts almost every protein.", "M for Methionine."),
+ ("Proline", "Pro", "P", "OC(=O)[C@@H]1CCCN1", "np", None, 6.30, False, "Its side chain loops back onto the nitrogen, making a secondary amine. It kinks chains and breaks α-helices.", "P for Proline."),
+ ("Phenylalanine", "Phe", "F", "N[C@@H](Cc1ccccc1)C(=O)O", "ar", None, 5.48, True, "Benzyl side chain. People with PKU can't break it down.", "F: say it 'Fenylalanine'."),
+ ("Tryptophan", "Trp", "W", "N[C@@H](Cc1c[nH]c2ccccc12)C(=O)O", "ar", None, 5.89, True, "Indole side chain, the largest. Your body makes serotonin and melatonin from it.", "W: tWo rings (the indole)."),
+ ("Tyrosine", "Tyr", "Y", "N[C@@H](Cc1ccc(O)cc1)C(=O)O", "ar", 10.1, 5.66, False, "Phenylalanine with an OH on the ring (a phenol). Can be phosphorylated in cell signalling.", "Y: tYrosine."),
+ ("Serine", "Ser", "S", "N[C@@H](CO)C(=O)O", "po", None, 5.68, False, "CH₂OH side chain. The nucleophile in the active site of serine proteases such as trypsin.", "S for Serine."),
+ ("Threonine", "Thr", "T", "C[C@@H](O)[C@H](N)C(=O)O", "po", None, 5.60, True, "Secondary alcohol side chain, with a second stereocentre (2S,3R).", "T for Threonine."),
+ ("Cysteine", "Cys", "C", "N[C@@H](CS)C(=O)O", "po", 8.3, 5.07, False, "Thiol (SH) side chain. Two cysteines oxidise to a disulfide bridge. The only L amino acid that is R, not S.", "C for Cysteine."),
+ ("Asparagine", "Asn", "N", "N[C@@H](CC(N)=O)C(=O)O", "po", None, 5.41, False, "Amide side chain (CH₂CONH₂). Sugars attach to its nitrogen in N-linked glycoproteins.", "N: asparagiNe (it has the amide N)."),
+ ("Glutamine", "Gln", "Q", "N[C@@H](CCC(N)=O)C(=O)O", "po", None, 5.65, False, "Amide side chain one CH₂ longer than asparagine. The most abundant amino acid in blood.", "Q: 'Q-tamine' (glutamine)."),
+ ("Aspartic acid", "Asp", "D", "N[C@@H](CC(=O)O)C(=O)O", "ac", 3.9, 2.77, False, "Carboxylic acid side chain; at pH 7 it is the negative aspartate ion.", "D: asparDic. D comes before E, and Asp is shorter than Glu."),
+ ("Glutamic acid", "Glu", "E", "N[C@@H](CCC(=O)O)C(=O)O", "ac", 4.1, 3.22, False, "One CH₂ longer than aspartic acid; negative at pH 7. Monosodium glutamate (MSG) is its salt.", "E: glutEmate, one letter (and one CH₂) after D."),
+ ("Lysine", "Lys", "K", "NCCCC[C@H](N)C(=O)O", "ba", 10.5, 9.74, True, "Four CH₂ groups then NH₂; positive (NH₃⁺) at pH 7.", "K: comes just before L in the alphabet (L was taken)."),
+ ("Arginine", "Arg", "R", "N=C(N)NCCC[C@H](N)C(=O)O", "ba", 12.5, 10.76, False, "Guanidine group: the most basic side chain, positive at almost any pH.", "R: aRginine (say 'R-ginine')."),
+ ("Histidine", "His", "H", "N[C@@H](Cc1c[nH]cn1)C(=O)O", "ba", 6.0, 7.59, True, "Imidazole side chain with a pKa near 6, so it can gain or lose H⁺ at body pH. A key acid–base catalyst in enzymes.", "H for Histidine."),
+]
+GROUPS = {
+ "np": ("Nonpolar", "#c27a12", "Hydrocarbon side chains. They avoid water and pack inside folded proteins."),
+ "ar": ("Aromatic", "#7b4fc9", "Side chains with a benzene-type ring. They absorb UV at 280 nm."),
+ "po": ("Polar, uncharged", "#1f8a5b", "OH, SH or amide side chains that hydrogen-bond with water."),
+ "ac": ("Acidic (−)", "#d33f49", "Carboxylic acid side chains, negatively charged at pH 7."),
+ "ba": ("Basic (+)", "#1f5fd1", "Amine-type side chains, positively charged at pH 7 (histidine only partly)."),
+}

@@ -2,3 +2,17 @@
 # Only turn this on once everyone has moved: notes saved without an account on bondline.netlify.app
 # stay in that address's browser storage and would not appear on bondline.site.
 # https://bondline.netlify.app/*  https://bondline.site/:splat  301!
+
+# v39: short links for Instagram reels and posts. UTM tags show up in the admin page's "where visitors came from".
+/ms        /guides/mass-spectrometry-fragmentation/?utm_source=instagram&utm_medium=reel&utm_campaign=ms   302
+/nmr       /lab/nmr/?utm_source=instagram&utm_medium=reel&utm_campaign=nmr   302
+/ir        /learn/spectroscopy/?utm_source=instagram&utm_medium=reel&utm_campaign=ir   302
+/spectra   /learn/spectroscopy/?utm_source=instagram&utm_medium=reel&utm_campaign=spectra   302
+/stereo    /learn/stereochemistry/?utm_source=instagram&utm_medium=reel&utm_campaign=stereo   302
+/bio       /learn/biochemistry/?utm_source=instagram&utm_medium=reel&utm_campaign=bio   302
+/aa        /guides/amino-acids/?utm_source=instagram&utm_medium=reel&utm_campaign=aminoacids   302
+/sn        /learn/mechanisms/?utm_source=instagram&utm_medium=reel&utm_campaign=sn   302
+/newman    /guides/newman-projections/?utm_source=instagram&utm_medium=reel&utm_campaign=newman   302
+/whatif    /?about&utm_source=instagram&utm_medium=reel&utm_campaign=whatif   302
+/pro       /pricing/?utm_source=instagram&utm_medium=reel&utm_campaign=pro   302
+/ig        /?about&utm_source=instagram&utm_medium=bio   302

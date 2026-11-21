@@ -3021,8 +3021,10 @@ Editor.prototype.updateInfo=function(){
     return`<div class="mi-row" data-k="${k}"><div class="mi-head">${res.length>1?`<span class="mi-num">${k+1}</span>`:''}<div class="mi-namebox">${nameHTML}</div>
       <div class="mi-btns">${nm?`<button class="linkbtn" data-mi="copy">Copy name</button><button class="linkbtn" data-mi="label">Add name to drawing</button>`:''}${!r.formula.pseudo.length?`<button class="linkbtn" data-mi="spec" aria-pressed="${!!(this._spec&&this._spec.has(k))}">${this._spec&&this._spec.has(k)?'Hide spectra':'Predict spectra'}</button>`:''}${ONLINE_LOOKUP&&r.smiles&&!r.formula.pseudo.length?`<button class="linkbtn" data-mi="pubchem">${nm?'Check in PubChem':'Look up in PubChem'}</button>`:''}</div></div>
       <div class="mi-facts"><span><i>Formula</i> ${fmtFormulaHTML(F)}</span>${F.mass!=null?`<span><i>Molar mass</i> ${F.mass.toFixed(2)} g/mol</span>`:''}${F.dbe!=null&&F.dbe>=0&&Number.isInteger(F.dbe)?`<span><i>Degrees of unsaturation</i> ${F.dbe}</span>`:''}</div>
+      ${ONLINE_LOOKUP&&r.smiles&&!r.formula.pseudo.length&&r.m.atoms.length>1?`<div class="mi-props" data-smi="${esc(r.smiles)}">${mpHTML(mpStore()[r.smiles])}</div>`:''}
       ${warn||notes?`<ul class="mi-list">${warn}${notes}</ul>`:''}<div class="mi-pc" hidden></div>${this._spec&&this._spec.has(k)?`<div class="mi-spec">${spectraHTML(r)}</div>`:''}</div>`;
   }).join('');
+  mpFill(el);
   el.onclick=e=>{const b=e.target.closest('[data-mi]');if(!b)return;const k=+b.closest('.mi-row').dataset.k,r=res[k];
     if(b.dataset.mi==='copy'){const t=r.name.name;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Name copied'),()=>{const rg=document.createRange();rg.selectNodeContents(b.closest('.mi-row').querySelector('.mi-name'));const sl=getSelection();sl.removeAllRanges();sl.addRange(rg);toast('Press Ctrl+C to copy the selected name')})}
     if(b.dataset.mi==='label'){this.snap();const c=r.comp,txt=r.name.name,w=textW(txt,FS);this.d.texts.push({id:uid(),x:f((c.x0+c.x1)/2-w/2),y:f(c.y1+30),text:txt});if(c.y1+40>this.d.h)this.d.h=Math.min(1200,Math.ceil(c.y1+50));this.changed()}
@@ -3038,6 +3040,54 @@ async function pubchemName(r,box){
     if(!p||!p.CID||(!p.IUPACName&&!p.Title)){box.textContent='PubChem doesn\'t have this compound.';return}
     const cid=Math.floor(Number(p.CID))||0;box.innerHTML=`<span class="mi-pcl">PubChem</span> ${p.IUPACName?`<b>${esc(String(p.IUPACName))}</b>`:''}${p.Title&&String(p.Title).toLowerCase()!==String(p.IUPACName||'').toLowerCase()?` <span class="mi-common">(${esc(String(p.Title))})</span>`:''}${cid?` <a href="https://pubchem.ncbi.nlm.nih.gov/compound/${cid}" target="_blank" rel="noopener noreferrer">Open</a>`:''}`;
   }catch(e){box.textContent=navigator.onLine===false?'You\'re offline. Connect to the internet to search PubChem.':'Couldn\'t reach PubChem. Try again later.'}
+}
+/* v39: measured properties (boiling point, melting point, density…) from PubChem for each molecule in the info panel.
+   Looked up once per structure after the drawing has been still for a moment, then kept in bondline.mprops. */
+const MPROP={mem:null,pend:new Set(),t:null};
+function mpStore(){if(!MPROP.mem){try{MPROP.mem=JSON.parse(localStorage.getItem('bondline.mprops')||'{}')||{}}catch(e){MPROP.mem={}}}return MPROP.mem}
+function mpSave(){try{const m=mpStore(),ks=Object.keys(m);if(ks.length>300)ks.slice(0,ks.length-300).forEach(k=>delete m[k]);localStorage.setItem('bondline.mprops',JSON.stringify(m))}catch(e){}}
+function mpHTML(p){
+  if(!p)return'<span class="mi-pmut">Looking up boiling point, melting point and more…</span>';
+  if(p.err)return'<span class="mi-pmut">Couldn\'t reach PubChem for properties. They\'ll load when you\'re back online.</span>';
+  if(p.none)return'<span class="mi-pmut">PubChem has no record of this exact structure, so there are no measured properties to show.</span>';
+  const F=[['Boiling point',p.bp],['Melting point',p.mp],['Density',p.d],['In water',p.sol],['Flash point',p.fp],['log P',p.logp],['H-bond donors / acceptors',p.hb]].filter(x=>x[1]!=null&&x[1]!=='');
+  return`<div class="mi-pgrid">${F.map(([k,v])=>`<span><i>${k}</i> ${esc(String(v))}</span>`).join('')}</div><span class="mi-psrc">${p.title?`${esc(p.title)} · `:''}measured values from <a href="https://pubchem.ncbi.nlm.nih.gov/compound/${+p.cid||0}" target="_blank" rel="noopener noreferrer">PubChem</a>${p.bp||p.mp?'':' (no boiling or melting point listed)'}</span>`;
+}
+function mpFill(root){
+  const boxes=[...root.querySelectorAll('.mi-props')];if(!boxes.length)return;
+  const need=boxes.map(b=>b.dataset.smi).filter(s=>{const p=mpStore()[s];return(!p||p.err)&&!MPROP.pend.has(s)});
+  if(!need.length)return;clearTimeout(MPROP.t);
+  MPROP.t=setTimeout(()=>{[...new Set(need)].forEach(smi=>{
+    if(!document.querySelector(`.mi-props[data-smi="${CSS.escape(smi)}"]`))return;
+    MPROP.pend.add(smi);
+    mpFetch(smi).then(p=>{mpStore()[smi]=p;if(!p.err)mpSave()},()=>{mpStore()[smi]={err:1}}).then(()=>{MPROP.pend.delete(smi);
+      document.querySelectorAll(`.mi-props[data-smi="${CSS.escape(smi)}"]`).forEach(b=>{b.innerHTML=mpHTML(mpStore()[smi])})});
+  })},900);
+}
+function mpVals(js){const out=[];(function walk(x){if(!x)return;(x.Section||[]).forEach(walk);(x.Information||[]).forEach(i=>{const v=i.Value||{};if(v.Number&&v.Number.length)out.push(v.Number[0]+(v.Unit?' '+v.Unit:''));else(v.StringWithMarkup||[]).forEach(w=>{if(w.String)out.push(String(w.String))})})})(js&&js.Record);return out}
+function mpTemp(vals){
+  const C=[],F=[],K=[];
+  for(const v0 of vals){const v=v0.replace(/−/g,'-');if(/mm ?Hg|torr|kPa|mbar/i.test(v)&&!/760 ?mm|101\.3/i.test(v))continue;if(/decomp|sublim/i.test(v)&&!/°/.test(v))continue;
+    let m=v.match(/(-?\d+(?:\.\d+)?)\s*(?:to|-)?\s*(?:-?\d+(?:\.\d+)?)?\s*°\s*C\b/i);if(m){C.push(+m[1]);continue}
+    m=v.match(/(-?\d+(?:\.\d+)?)\s*°\s*F\b/i);if(m){F.push((+m[1]-32)*5/9);continue}
+    m=v.match(/^(-?\d+(?:\.\d+)?)\s*K$/);if(m)K.push(+m[1]-273.15)}
+  const cs=C.length?C:F.length?F:K;if(!cs.length)return null;cs.sort((a,b)=>a-b);const c=cs[Math.floor(cs.length/2)];
+  const r=Math.abs(c)>=100?Math.round(c):Math.round(c*10)/10;return`${String(r).replace('-','−')} °C`;
+}
+function mpDensity(vals){for(const v of vals){const m=v.replace(/−/g,'-').match(/(\d*\.\d+|\d+)\s*(g\/(?:cu ?cm|cm3|cm³|mL|ml)|g cm-3)/i)||v.match(/^(\d*\.\d+)\s*$/)||v.match(/^(\d*\.\d+)\s+(?:at|@)/);if(m&&+m[1]>0.05&&+m[1]<25)return`${+m[1]} g/cm³`}return null}
+function mpSol(vals){const w=vals.filter(v=>v.length<70&&/water|miscible|insoluble|soluble|g\/L|mg\/mL/i.test(v)&&!/ethanol|ether|acetone|benzene|chloroform/i.test(v));const v=w.find(x=>/miscible|insoluble|soluble/i.test(x))||w[0];return v?v.replace(/\s*\((?:NTP|NIOSH|USCG)[^)]*\)\s*/g,'').replace(/\.$/,''):null}
+async function mpFetch(smi){
+  const PC='https://pubchem.ncbi.nlm.nih.gov/rest/';
+  const r=await fetch(PC+'pug/compound/smiles/cids/JSON',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'smiles='+encodeURIComponent(smi)});
+  if(!r.ok){if(r.status===404||r.status===400)return{none:1};throw new Error('http')}
+  const cid=Math.floor(Number((((await r.json()).IdentifierList||{}).CID||[])[0]))||0;if(!cid)return{none:1};
+  const view=h=>fetch(`${PC}pug_view/data/compound/${cid}/JSON?heading=${encodeURIComponent(h)}`).then(x=>x.ok?x.json():null).then(mpVals).catch(()=>[]);
+  const [pj,bp,mp,d,sol,fp]=await Promise.all([fetch(`${PC}pug/compound/cid/${cid}/property/Title,XLogP,HBondDonorCount,HBondAcceptorCount/JSON`).then(x=>x.ok?x.json():null).catch(()=>null),
+    view('Boiling Point'),view('Melting Point'),view('Density'),view('Solubility'),view('Flash Point')]);
+  const P=pj&&pj.PropertyTable&&pj.PropertyTable.Properties&&pj.PropertyTable.Properties[0]||{};
+  return{cid,title:P.Title?String(P.Title).slice(0,80):'',bp:mpTemp(bp),mp:mpTemp(mp),d:mpDensity(d),sol:mpSol(sol),fp:mpTemp(fp),
+    logp:P.XLogP!=null&&isFinite(P.XLogP)?String(Math.round(P.XLogP*10)/10).replace('-','−'):null,
+    hb:P.HBondDonorCount!=null?`${+P.HBondDonorCount} / ${+P.HBondAcceptorCount}`:null};
 }
 /* name → structure dialog */
 let nmT=null,nmLast=null;
@@ -4148,7 +4198,7 @@ function buildPalette(){
     else{for(const el of ELS)h+=`<button class="tb el${el.length>1?' wide':''}" data-tool="el:${el}" title="${el} atom" aria-label="${el} atom">${el}</button>`;h+=`<input class="custom" id="customEl" placeholder="OMe" title="Custom label: type e.g. OMe, Ph, NO2 and press Enter" aria-label="Custom atom label">`}
     h+='</div></div>';
   }
-  h+=`<div class="grp"><span>Chemistry</span><div><button class="tb" data-act="tpl" title="Templates: groups, rings, amino acids, reagents" aria-label="Templates"><svg viewBox="0 0 20 20" style="fill:none"><path d="M6 2.8l3.1 1.8v3.6L6 10 2.9 8.2V4.6zM14 2.8l3.1 1.8v3.6L14 10l-3.1-1.8V4.6zM10 10l3.1 1.8v3.6L10 17.2l-3.1-1.8v-3.6z"/></svg></button><button class="tb" data-act="fromname" title="Draw a structure from its name" aria-label="Draw from a name"><span class="tb-txt">Aa→</span></button><button class="tb" data-act="info" title="Show name, formula and molar mass" aria-label="Molecule info" aria-pressed="false"><span class="tb-txt">C<sub>x</sub>H<sub>y</sub></span></button><button class="tb" data-act="cip" title="Label R/S and E/Z" aria-label="Label R/S and E/Z" aria-pressed="false"><span class="tb-txt"><i>R/S</i></span></button><button class="tb tb-more" data-act="more" title="More chemistry tools" aria-label="More chemistry tools" aria-haspopup="menu" aria-expanded="false"><span class="tb-txt">More</span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></div>`;
+  h+=`<div class="grp"><span>Chemistry</span><div><button class="tb" data-act="tpl" title="Templates: groups, rings, amino acids, reagents" aria-label="Templates"><svg viewBox="0 0 20 20" style="fill:none"><path d="M6 2.8l3.1 1.8v3.6L6 10 2.9 8.2V4.6zM14 2.8l3.1 1.8v3.6L14 10l-3.1-1.8V4.6zM10 10l3.1 1.8v3.6L10 17.2l-3.1-1.8v-3.6z"/></svg></button><button class="tb" data-act="fromname" title="Draw a structure from its name" aria-label="Draw from a name"><span class="tb-txt">Aa→</span></button><button class="tb" data-act="info" title="Show name, formula, molar mass and properties" aria-label="Molecule info" aria-pressed="false"><span class="tb-txt">C<sub>x</sub>H<sub>y</sub></span></button><button class="tb" data-act="cip" title="Label R/S and E/Z" aria-label="Label R/S and E/Z" aria-pressed="false"><span class="tb-txt"><i>R/S</i></span></button><button class="tb tb-more" data-act="more" title="More chemistry tools" aria-label="More chemistry tools" aria-haspopup="menu" aria-expanded="false"><span class="tb-txt">More</span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></div>`;
   h+=`<div class="grp"><span>Drawing</span><div><button class="tb" data-act="undo" title="Undo (Ctrl+Z)" aria-label="Undo">${ICON.undo}</button><button class="tb" data-act="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">${ICON.redo}</button><button class="tb" data-act="png" title="Save as PNG image" aria-label="Save as PNG">${ICON.save}</button><button class="tb" data-act="copy" title="Copy as image" aria-label="Copy as image">${ICON.copy}</button><button class="tb" data-act="svgdl" title="Save as SVG" aria-label="Save as SVG" style="font:700 10px var(--font-ui)">SVG</button><button class="tb" data-act="3d" title="View in 3D (D)" aria-label="View in 3D"><svg viewBox="0 0 20 20" style="fill:none"><path d="M10 2.5l6.5 3.75v7.5L10 17.5l-6.5-3.75v-7.5z"/><path d="M10 10l6.5-3.75M10 10v7.5M10 10L3.5 6.25"/></svg></button><button class="tb" data-act="help" title="Shortcuts (?)" aria-label="Shortcuts">${ICON.help}</button></div></div>`;
   const tools=$('#tools');tools.innerHTML=h;
   tools.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.tool)setTool(b.dataset.tool);else if(b.dataset.act)paletteAct(b.dataset.act)});
@@ -7243,7 +7293,7 @@ function wireV16(){
 if(/[?&]bltest\b/.test(location.search))Object.assign(window.__bl||(window.__bl={}),{SYN,SYP,CL,LM,noteSlides,exportPPTX,openLecture,clRender,clRenderClass,synStart,routeScheme,structSVG,mechRow,RXN,smilesToScheme,schemeSVG,smilesSVG,drawScheme,PRINT,bbox,App,setMode,openNote,insertReaction,FB,Store,NM_TOPICS,SP_TOPICS,STUDY_TIPS,analyseDrawing});
 
 /* ---------- v17: grouped sidebar, focused Home, guided tour, What's new ---------- */
-const APP_VER='38';
+const APP_VER='39';
 const PX_MODES=['cards','naming','spectra','synth','orbitals'];
 const PX_LABEL={cards:'Flashcards',naming:'Naming',spectra:'Spectra',synth:'Synthesis',orbitals:'Orbitals'};
 function v17ls(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
@@ -7289,7 +7339,7 @@ function openWhatsNew(){closeMenus();let sc=$('#wnScrim');
   if(!sc){sc=document.createElement('div');sc.id='wnScrim';sc.className='scrim v17-scrim';sc.innerHTML=`<div class="wn" role="dialog" aria-modal="true" aria-labelledby="wnTitle"><header class="wn-h"><div><div class="hm-kicker">Update log</div><h2 id="wnTitle">What’s new in Bondline</h2></div><button class="sf-b" id="wnClose" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></header><div class="wn-body" id="wnBody"></div></div>`;document.body.appendChild(sc);
     sc.addEventListener('click',e=>{if(e.target===sc||e.target.closest('#wnClose'))closeWhatsNew()});
     sc.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeWhatsNew()}})}
-  $('#wnBody').innerHTML=CHANGELOG.map((r,i)=>{const body=`<ul class="wn-list">${r.items.map(([a,b])=>`<li><b>${esc(a)}</b>${b?`<span>${esc(b)}</span>`:''}</li>`).join('')}</ul>`,head=`<span class="wn-v">v${esc(r.v)}</span><span class="wn-t">${esc(r.t)}</span>${r.d?`<span class="wn-d">${esc(r.d)}</span>`:''}`;
+  $('#wnBody').innerHTML=CHANGELOG.slice().sort((a,b)=>parseFloat(b.v)-parseFloat(a.v)).map((r,i)=>{const body=`<ul class="wn-list">${r.items.map(([a,b])=>`<li><b>${esc(a)}</b>${b?`<span>${esc(b)}</span>`:''}</li>`).join('')}</ul>`,head=`<span class="wn-v">v${esc(r.v)}</span><span class="wn-t">${esc(r.t)}</span>${r.d?`<span class="wn-d">${esc(r.d)}</span>`:''}`;
     return i<2?`<section class="wn-rel${i===0?' latest':''}"><div class="wn-rh">${head}${i===0?'<span class="wn-new">Latest</span>':''}</div>${body}</section>`:`<details class="wn-rel"><summary class="wn-rh">${head}</summary>${body}</details>`}).join('')+`<p class="hm-muted wn-foot">Bondline updates itself. If something looks out of date, close every Bondline tab and open it again.</p>`;
   sc.hidden=false;document.body.classList.add('sk-lock');$('#wnClose').focus();
   v17ls('bondline.seenVer',APP_VER);syncAcctBtn()}
@@ -7309,6 +7359,10 @@ function renderToolsMenu(){$('#toolsMenu').innerHTML=`<div class="v7-mh">Tools</
   menuItem('prac',ico('<path d="M5 17c0-6 5-10 11-9"/><path d="M13.5 5l3 3-3.3 2.6"/><circle cx="5" cy="18.5" r="1.4"/>'),'Mechanism practice','Draw the curly arrows yourself')+
   menuItem('gloss',ico('<path d="M5.5 5a1.5 1.5 0 011.5-1.5h11v13H7A1.5 1.5 0 005.5 18z"/><path d="M5.5 18A1.5 1.5 0 007 19.5h11V16.5M9 7.5h5.5"/>'),'Glossary','Terms, reagents and solvents')+
   menuItem('ref',ico('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M9.5 4v16"/>'),'Quick reference','Periodic table, pKa, IR and NMR tables')+
+  `<div class="v7-msep"></div>`+
+  menuItem('learn',ico('<path d="M4 6.5l8-3.5 8 3.5-8 3.5z"/><path d="M7 8.2v5c0 1.6 2.2 3 5 3s5-1.4 5-3v-5M20 6.5v6"/>'),'Interactive lessons','Spectroscopy, stereo, biochemistry, SN1/SN2')+
+  menuItem('nmrlab',ico('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 3v6M10 3h4"/>'),'Virtual NMR lab','Run a 3D spectrometer yourself')+
+  menuItem('aa',ico('<rect x="4" y="5" width="12" height="15" rx="2"/><path d="M8 3h11a1 1 0 011 1v13"/>'),'Amino acid flashcards','All 20, with structures and codes')+
   `<div class="v7-msep"></div>`+menuItem('cmd',ico('<path d="M8 4.5a2.5 2.5 0 100 5h8a2.5 2.5 0 100-5 2.5 2.5 0 00-2.5 2.5v10a2.5 2.5 0 102.5-2.5H8a2.5 2.5 0 102.5 2.5V7A2.5 2.5 0 008 4.5z"/>'),'Search everything',`<kbd>${/Mac|iP/.test(navigator.platform)?'⌘':'Ctrl'} K</kbd>`)}
 function renderAcctMenu(){const u=FB&&FB.user,name=u?(u.displayName||u.email||'Your account'):'',tn=App.trash.length;
   const head=FB&&FB.cfg?(u?`<div class="v7-acct"><span class="acct-av">${esc((name.trim()[0]||'?').toUpperCase())}</span><span><b>${esc(name)}</b><small>${esc(u.email&&u.email!==name?u.email:'Notes sync across your devices')}</small></span></div>`
@@ -7321,6 +7375,7 @@ function renderAcctMenu(){const u=FB&&FB.user,name=u?(u.displayName||u.email||'Y
   menuItem('settings',ico('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/>'),'Settings','Appearance, account, backups')}
 function menuGo(k){closeMenus();if(isMob())$('#side').classList.remove('open');
   ({predict:openPredictor,rxn:()=>openLibrary(),prac:()=>openPractice(),gloss:()=>openGlossary(),ref:()=>openRef(),cmd:openCmd,
+    learn:()=>{location.href='/learn/'},nmrlab:()=>{location.href='/lab/nmr/'},aa:()=>{location.href='/guides/amino-acids/'},
     new:openWhatsNew,tour:startTour,guide:()=>openGuide(),trash:openTrash,settings:()=>openSettings(),signin:()=>openSettings('#setAcctSec')}[k]||(()=>{}))()}
 function syncAcctBtn(){const b=$('#acctBtn');if(!b)return;const u=FB&&FB.user,name=u?(u.displayName||u.email||''):'';
   b.querySelector('.ab-av').innerHTML=u?`<span class="acct-av sm">${esc((name.trim()[0]||'?').toUpperCase())}</span>`:ico('<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c.8-3.9 3.6-6 7.2-6s6.4 2.1 7.2 6"/>');
@@ -13333,6 +13388,13 @@ CHANGELOG.unshift({v:'34',d:'16 November 2026',t:'Diagrams, drawing questions an
   ['Drawing questions','Every course now has questions where you draw the answer: Lewis structures, titration curves, tables and graphs. Lewis structures, tables and titration curves are marked for you.'],
   ['Over 1,600 new questions','Every unit of every course now has at least 50 questions.'],
   ['Switch courses anywhere','Each course and unit page has an All courses link and a course switcher, and tapping Courses again takes you back to the list.']]});
+CHANGELOG.unshift({v:'39',d:'21 November 2026',t:'Interactive lessons and a virtual NMR lab',items:[
+  ['Interactive lessons','Scroll-through lessons on spectroscopy, stereochemistry, biochemistry and SN1/SN2, with animations that follow your scrolling and sliders you can move. Open them from Tools.'],
+  ['Virtual NMR spectrometer','Put a sample tube in a 3D magnet, switch on, lock and shim, record the FID, Fourier transform it and click through the ¹H or ¹³C spectrum. Try Mystery mode to identify unknowns.'],
+  ['Molecule facts','The info panel under a drawing now shows the boiling point, melting point, density, solubility and more from PubChem for each molecule you draw.'],
+  ['36 more reactions','The reaction guide has 266 reactions, including Sharpless, Luche, Pinnick, Favorskii, Fischer indole and a new set on fats, amino acids and fermentation.'],
+  ['Biochemistry','A new biochemistry guide, and all 20 amino acids with flashcards that bring back the ones you miss.'],
+  ['Faster first visit','The landing page now loads before the notebook does, so it appears much sooner on phones.']]});
 CHANGELOG.unshift({v:'38',d:'20 November 2026',t:'Physical and inorganic chemistry',items:[
   ['17 new units','Moles and calculations, states of matter, energetics, lattice energy and Gibbs energy, redox, electrochemistry, equilibrium, acids and bases (with buffers and K<sub>sp</sub>), kinetics, solutions and colligative properties, periodicity, Group 2, Group 17, nitrogen and sulfur, the p-block, transition elements and coordination compounds.'.replace(/<\/?sub>/g,'')],
   ['In every course that needs them','A Level now has 36 units, STPM 36, IB 29, and JEE and NEET 33 each, covering their physical and inorganic syllabus points. Each new unit has full lessons, worked examples and an exam-style question with answers.'],

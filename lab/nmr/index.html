@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Virtual NMR spectrometer: run your own ¹H and ¹³C NMR | Bondline</title>
+<meta name="description" content="Operate a 3D NMR spectrometer in your browser: load a sample tube, lock and shim the magnet, record the FID, Fourier transform it and read the spectrum. Free.">
+<link rel="canonical" href="https://bondline.site/lab/nmr/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Bondline">
+<meta property="og:title" content="Virtual NMR spectrometer: run your own ¹H and ¹³C NMR | Bondline">
+<meta property="og:description" content="Operate a 3D NMR spectrometer in your browser: load a sample tube, lock and shim the magnet, record the FID, Fourier transform it and read the spectrum. Free.">
+<meta property="og:url" content="https://bondline.site/lab/nmr/">
+<meta property="og:image" content="https://bondline.site/og-image.png">
+<meta property="og:image:alt" content="Bondline, the free organic chemistry notebook">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Virtual NMR spectrometer: run your own ¹H and ¹³C NMR | Bondline">
+<meta name="twitter:description" content="Operate a 3D NMR spectrometer in your browser: load a sample tube, lock and shim the magnet, record the FID, Fourier transform it and read the spectrum. Free.">
+<meta name="theme-color" content="#0a0f17">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/learn.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebApplication", "headline": "Virtual NMR spectrometer: run your own ¹H and ¹³C NMR", "description": "Operate a 3D NMR spectrometer in your browser: load a sample tube, lock and shim the magnet, record the FID, Fourier transform it and read the spectrum. Free.", "url": "https://bondline.site/lab/nmr/", "mainEntityOfPage": "https://bondline.site/lab/nmr/", "datePublished": "2026-11-21", "dateModified": "2026-11-21", "author": {"@type": "Organization", "name": "Bondline", "url": "https://bondline.site/"}, "publisher": {"@type": "Organization", "name": "Bondline", "logo": {"@type": "ImageObject", "url": "https://bondline.site/icons/icon-512.png"}}, "image": "https://bondline.site/og-image.png", "inLanguage": "en", "about": "NMR spectroscopy"}]}</script>
+</head>
+<body class="nl-body">
+<div class="nl-wrap">
+<div class="nl-scene"><canvas id="cv" aria-label="3D NMR spectrometer. Use the controls on the right to operate it."></canvas>
+  <div class="nl-top"><a href="/?about" aria-label="Bondline home"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3.5l10.8 6.25v12.5L16 28.5 5.2 22.25V9.75z"/><path class="c" d="M9.5 19.5c1-6 6-9.5 12-8"/><path class="c" d="M19 8.3l3.1 3.1-3.6 2.3"/></svg></a><h1>Virtual NMR spectrometer</h1></div>
+  <p class="nl-hint" aria-live="polite"></p>
+</div>
+<aside class="nl-panel" aria-label="Spectrometer controls">
+  <h2>Steps</h2>
+  <ol class="nl-steps"><li>Choose a sample</li><li>Put it in the magnet</li><li>Switch on the spectrometer</li><li>Lock and shim</li><li>Acquire the FID</li><li>Fourier transform</li><li>Read the spectrum</li></ol>
+  <h2>Samples <label style="float:right;text-transform:none;letter-spacing:0;font-size:13px;color:#c7d0e4"><input type="checkbox" id="mystery"> Mystery mode</label></h2>
+  <div class="nl-samples"></div>
+  <h2>Controls</h2>
+  <div class="nl-act">
+    <button id="bIns">Lower sample into the magnet</button>
+    <button id="bPow">Switch on</button>
+    <div class="nl-shim"><label>Lock signal <span id="lockv">0%</span></label><canvas class="nl-lock"></canvas><div class="nl-meter"><i></i></div>
+      <label for="z1">Z1 shim</label><input type="range" id="z1" min="-100" max="100" value="0">
+      <label for="z2">Z2 shim</label><input type="range" id="z2" min="-100" max="100" value="0">
+      <button id="bAuto" class="sec" style="margin-top:8px;width:100%">Auto-shim</button></div>
+    <div class="nl-tog"><button data-nuc="H" class="on" style="color:#fff;background:#1c2648;border-color:#2e3a60">¹H</button><button data-nuc="C" style="color:#fff;background:#1c2648;border-color:#2e3a60">¹³C</button>
+      <span style="flex:1"></span><button data-scans="1" style="color:#fff;background:#1c2648;border-color:#2e3a60">1 scan</button><button data-scans="8" class="on" style="color:#fff;background:#1c2648;border-color:#2e3a60">8</button><button data-scans="64" style="color:#fff;background:#1c2648;border-color:#2e3a60">64</button></div>
+    <button id="bAcq">Acquire</button>
+    <button id="bFT">Fourier transform</button>
+    <button id="bEj" class="sec">Eject sample</button>
+  </div>
+  <div class="nl-spec"><canvas id="spc"></canvas>
+    <div style="display:flex;justify-content:flex-end"><button class="linkbtn" id="bZoom" hidden style="font-size:12px">Show the whole spectrum</button></div>
+    <div class="nl-mol"><div class="sv"></div><p class="nl-peak"></p></div>
+  </div>
+  <div class="nl-guess" hidden><h2>What is the unknown?</h2><div class="lx-row"></div><p class="nl-fb" aria-live="polite"></p></div>
+  <pre class="nl-log" aria-live="polite"></pre>
+  <p style="font-size:13px;color:#8d98b3">Spectra are simulated at 400 MHz in CDCl₃ from typical literature shifts, using first-order splitting (the n + 1 rule). Learn to read them in the <a href="/learn/spectroscopy/">spectroscopy lesson</a> or the <a href="/guides/nmr-splitting-n-plus-1-rule/">n + 1 rule guide</a>.</p>
+</aside>
+</div>
+<script src="/vendor/three.min.js"></script>
+<script src="/lab/nmr/data.js"></script>
+<script src="/lab/nmr/lab.js"></script>
+<script src="/assets/track.js" defer></script>
+</body>
+</html>

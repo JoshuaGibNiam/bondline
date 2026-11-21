@@ -859,3 +859,13 @@
 .co-dmodel h3{margin:0 0 4px;font:600 13px var(--font-ui);color:var(--muted)}
 .co-mi .dg-fig svg{max-width:420px}
 @media (max-width:700px){.dg-f.md input{width:150px}.dg-tedit input{width:96px}.dg-tabs button{padding:9px 8px}}
+
+/* v39: shown while the notebook's scripts are still loading (loader.js) */
+html.app-loading.lp-off body::after{content:"Loading Bondline…";position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9999;padding:8px 16px;border-radius:999px;background:#0a0f17;color:#fff;font:600 14px/1.4 "Bricolage Grotesque",system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+/* v39: measured properties in the molecule info panel */
+.mi-props{margin:8px 0 2px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--accent,#1f5fd1) 6%,transparent);font-size:13.5px}
+.mi-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 16px}
+.mi-pgrid span{display:flex;flex-direction:column;line-height:1.35}
+.mi-pgrid i{font-style:normal;font-size:11.5px;opacity:.7;text-transform:uppercase;letter-spacing:.03em}
+.mi-psrc{display:block;margin-top:8px;font-size:12px;opacity:.75}
+.mi-pmut{opacity:.7;font-size:13px}

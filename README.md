@@ -1,4 +1,4 @@
-# Bondline: organic chemistry notebook (version 32)
+# Bondline: organic chemistry notebook (version 39)
 
 An installable web app for organic chemistry:
 
@@ -23,6 +23,21 @@ Version 12 needs **new Firestore security rules** for shared notebooks and your 
 To check the rules, use the **Rules Playground** button on the Rules page:
 - Signed in as any user, a `get` of `/users/<that user's id>/notes/test` is **allowed**, and of `/users/someone-else/notes/test` is **denied**.
 - A `create` of `/notebooks/abc` is **allowed** when the data has `owner` and `memberIds` set to your own id, and **denied** when `owner` is someone else.
+
+## New in version 39: interactive lessons, a virtual NMR lab and a faster first visit
+
+No Firebase changes. Service worker version is `bondline-v39-1`.
+
+- **Faster landing page.** `index.html` now loads one small `loader.js` instead of 26 script tags. Returning users get the notebook scripts straight away; first-time visitors (most reel traffic) see the landing page first, and the 3.5 MB of app scripts load once the page is idle or when they open the app. **Add any new data file to the list in `loader.js`** (not to `index.html`).
+- **Interactive lessons** at `/learn/`: scroll-driven lessons on spectroscopy, stereochemistry (a three.js chiral molecule you can try to superimpose on its mirror image, R/S, polarimetry, E/Z, diastereomers and meso), biochemistry (zwitterions, peptide bonds, folding, Michaelis–Menten, DNA) and SN1/SN2. Engine: `learn/learn.js` (each lesson's animations are in `learn/<slug>/scenes.js`); pages are generated from the lesson text by the tools scripts. Styles in `assets/learn.css`.
+- **Virtual NMR spectrometer** at `/lab/nmr/` (`lab/nmr/lab.js`, three.js): pick a tube, lower it into the magnet, switch on, lock and shim (Z1/Z2 or Auto-shim), acquire ¹H or ¹³C with 1/8/64 scans, Fourier transform, click peaks for assignments and multiplet zooms. Mystery mode hides the names. 10 samples in `lab/nmr/data.js` (CDCl₃, 400 MHz, first-order splitting; H counts checked with RDKit). Deep link: `/lab/nmr/?s=ethanol`.
+- **Molecule properties in the info panel:** for each molecule drawn, boiling point, melting point, density, water solubility, flash point, log P and H-bond donors/acceptors from PubChem (`mpFetch` in `app.js`), cached in `bondline.mprops` (300 structures).
+- **Reaction guide:** 36 new reactions (266 in all) in `guide-data.js`, structures checked with RDKit, including a biochemistry set (triglycerides, hydrogenating fats, disulfide bridges, amino acid esters, ninhydrin, fermentation, transamination).
+- **New guides:** `/guides/biochemistry/` and `/guides/amino-acids/` (all 20 with RDKit-drawn structures, codes, pKa/pI and Leitner-box flashcards saved in `bondline.aaflash`).
+- **Course pages for search engines** at `/courses/` (A Level 9701, STPM 962, AP, IB, JEE, NEET, IChO): every unit's title, syllabus points and lesson list, with previews of the free units and deep links into the app (`/?course=cie&unit=pu-atom`). These are a snapshot: regenerate them when units change.
+- **Short links for reels** in `_redirects` (`/ms`, `/nmr`, `/ir`, `/stereo`, `/bio`, `/aa`, `/sn`, `/newman`, `/whatif`, `/pro`, `/ig`), each adding UTM tags so the admin page shows which reel brought each visitor.
+- **Tools menu** has Interactive lessons, Virtual NMR lab and Amino acid flashcards. **Sitemap** has all the new pages.
+- **Fixed:** the update log listed versions out of order (v35 showed as “Latest”); it now sorts newest first.
 
 ## New in version 33
 
