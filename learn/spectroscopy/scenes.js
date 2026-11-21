@@ -74,6 +74,12 @@
   }
   LX.scene('ir', {
     fmt: {},
+    // H and Cl only form single bonds: keep the two button rows consistent
+    on: function (name, v, ch) {
+      var pick = function (ctl, val) { var b = ch.sec.querySelector('[data-ctl="' + ctl + '"] [data-v="' + val + '"]'); if (b && !b.classList.contains('on')) b.click(); };
+      if (name === 'atom' && (v === 'H' || v === 'Cl')) pick('bond', '1');
+      if (name === 'bond' && v !== '1') { var a = ch.ctl('atom'); if (a === 'H' || a === 'Cl') pick('atom', 'C'); }
+    },
     draw: function (g, st) {
       var C = g.col, t = st.t;
       if (st.s === 'spring') {

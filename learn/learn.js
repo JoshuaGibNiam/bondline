@@ -99,7 +99,7 @@
   function frame(now) {
     var mid = innerHeight * (innerWidth < 860 ? 0.72 : 0.55);
     chaps.forEach(function (ch) {
-      if (!ch.vis) return;
+      var br = ch.sec.getBoundingClientRect(); if (br.bottom < -100 || br.top > innerHeight + 100) return;
       var act = null, p = 0;
       for (var i = 0; i < ch.steps.length; i++) {
         var r = ch.steps[i].getBoundingClientRect();

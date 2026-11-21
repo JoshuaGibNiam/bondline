@@ -10,7 +10,7 @@
     own: true,
     init: function (g, ch) {
       var T = window.THREE, stage = ch.sec.querySelector('.lx-stage'), box = document.createElement('div');
-      box.style.cssText = 'position:relative;width:100%;height:86vh;max-height:760px';
+      box.style.cssText = 'position:relative;width:100%;height:' + (innerWidth < 860 ? '100%' : '86vh') + ';max-height:760px';
       stage.appendChild(box);
       var cv = document.createElement('canvas'), ov = document.createElement('canvas');
       cv.style.cssText = ov.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
@@ -39,7 +39,7 @@
       ch.three = { T: T, R: R, scene: scene, cam: cam, A: A, B: B, mirror: mirror, mglass: mglass, ov: ov, box: box, sup: null, two: false };
       this.resize(ch);
     },
-    resize: function (ch) { var k = ch.three; if (!k) return; var w = k.box.clientWidth, h = k.box.clientHeight; k.R.setSize(w, h, false); k.cam.aspect = w / h; k.cam.updateProjectionMatrix(); var d = Math.min(2, devicePixelRatio || 1); k.ov.width = w * d; k.ov.height = h * d; },
+    resize: function (ch) { var k = ch.three; if (!k) return; var w = k.box.clientWidth, h = k.box.clientHeight; k.R.setSize(w, h, false); k.cam.aspect = w / h; k.cam.position.z = w / h < 1.6 ? 9 + (1.6 - w / h) * 6 : 9; k.cam.updateProjectionMatrix(); var d = Math.min(2, devicePixelRatio || 1); k.ov.width = w * d; k.ov.height = h * d; },
     on: function (name, v, ch) { if (name === 'sub') { var k = ch.three; k.B.scale.set(-1, 1, 1); k.two = v === 'F2'; [k.A, k.B].forEach(function (m) { var s = m.userData.parts[1]; s.material.color.set(k.two ? GROUPS.F.c : GROUPS.Br.c); s.scale.setScalar(k.two ? GROUPS.F.r / GROUPS.Br.r : 1); }); k.sup = null; } },
     act: function (name, ch) { if (name === 'super') ch.three.sup = { t0: performance.now() }; },
     enter: function (s, ch) { if (ch.three) { ch.three.sup = null; ch.three.B.scale.set(-1, 1, 1); } },
@@ -62,7 +62,7 @@
           // with two identical F groups the mirror image is the same molecule turned round, so it lines up exactly
           if (k.two && e >= 1) k.B.scale.set(1, 1, 1); else k.B.scale.set(-1, 1, 1);
           if (e >= 1) {
-            ox.font = '700 ' + 26 * d + 'px "Bricolage Grotesque",sans-serif'; ox.textAlign = 'center';
+            ox.font = '700 ' + Math.min(26 * d, W / 26) + 'px "Bricolage Grotesque",sans-serif'; ox.textAlign = 'center';
             ox.fillStyle = k.two ? '#5fd39a' : '#ff6b6b';
             ox.fillText(k.two ? '✓ They match: superimposable, so achiral' : '✗ Can’t be made to match: chiral', W / 2, H * 0.88);
           }
@@ -91,7 +91,7 @@
             var end = a0 + span * sw; ox.arc(cx, cy, rad, a0, end, !cw); ox.stroke();
             var hx = cx + rad * Math.cos(end), hy = cy + rad * Math.sin(end), tang = end + (cw ? PI / 2 : -PI / 2);
             ox.fillStyle = '#ffc857'; ox.beginPath(); ox.moveTo(hx + 14 * d * Math.cos(tang), hy + 14 * d * Math.sin(tang)); ox.lineTo(hx + 10 * d * Math.cos(tang + 2.3), hy + 10 * d * Math.sin(tang + 2.3)); ox.lineTo(hx + 10 * d * Math.cos(tang - 2.3), hy + 10 * d * Math.sin(tang - 2.3)); ox.fill();
-            if (sw >= 1) { ox.font = '700 ' + 30 * d + 'px "Bricolage Grotesque",sans-serif'; ox.textAlign = 'center'; ox.fillStyle = '#ffc857'; ox.fillText((cw ? 'Clockwise → R' : 'Anticlockwise → S'), W / 2, H * 0.9); }
+            if (sw >= 1) { ox.font = '700 ' + Math.min(30 * d, W / 16) + 'px "Bricolage Grotesque",sans-serif'; ox.textAlign = 'center'; ox.fillStyle = '#ffc857'; ox.fillText((cw ? 'Clockwise → R' : 'Anticlockwise → S'), W / 2, H * 0.9); }
           } else if (q < 1) { ox.font = '600 ' + 18 * d + 'px "Bricolage Grotesque",sans-serif'; ox.fillStyle = '#8d98b3'; ox.textAlign = 'center'; ox.fillText('Turning the molecule so H (priority 4) points away from you…', W / 2, H * 0.9); }
         }
       }
